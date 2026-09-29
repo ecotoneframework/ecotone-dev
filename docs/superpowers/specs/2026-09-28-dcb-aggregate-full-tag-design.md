@@ -565,3 +565,80 @@ mixed tag scopes.
 | 5 | `aggregate:` and `tags:` are exclusive; the aggregate must be event-sourced, must record every handled event, and must be on the handler's connection — all checked at bootstrap |
 | 6 | The aggregate keeps its own load path and its snapshots; `#[Fetch]` is unchanged; decision-model snapshots become a configuration change because `fromVersion` is already an argument |
 | 7 | Revision 1's index rows are declined: ~2.2 GB per 10 M events, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays and a split-stream history that a stream copy fixes |
+
+---
+
+## Part 9 — Outcome (2026-09-29)
+
+Revision 2 was approved by the maintainer on 2026-09-29 with every recommended answer to Part 7's open questions
+(OQ 1 the class name; OQ 2 not now; OQ 3 convention plus `#[Fetch]`; OQ 4 no inference, extend the error; OQ 5 keep
+the rule and document it; OQ 6 accept the per-instance guard) and implemented in
+`implement-dcb-aggregate-backed-models`. Part 2's rule, run order, walkthrough, consistency notes and six guards
+shipped as written; Part 3's "what changes" held — **core only, and `PdoEventSourcing` gained no production code**.
+
+### 9.1 What shipped
+
+| Class | Change |
+|---|---|
+| `Api\Attribute\DecisionModel` | `aggregate: ?string` beside `tags` |
+| `AggregateBackedDecisionModelDefinition` *(new)* | aggregate class, resolved `#[AggregateType]`, stream name, identifier names, handled event classes |
+| `AggregateBackedDecisionModelInstance` *(new)* | one resolved instance: its capture leaf `EventCriteria::aggregate()`, its `AggregateIdString` and the key the batch groups reads by |
+| `DecisionModelDefinitionBuilder` | the `aggregate:` branch and §2.6's guards; the "scoped by no tag name" message gained the `aggregate:` remedy |
+| `DecisionModelDefinitionRegistry` | `getAggregateBacked()` beside `get()`; the raw shape carries an optional `aggregate` key |
+| `AggregateBackedDecisionModelLoader` *(new)* | mirrors `DecisionModelParameterLoader`: resolves identifiers by `#[Fetch]` or convention, yields the instance, folds through `EventSourcingHandlerExecutor::fill` |
+| `MessageAggregateIdentifierResolver` *(new)* | the `name` / `nameId` / `name_id` convention, for an aggregate identifier rather than a tag name |
+| `DecisionModelBatchLoader` | capture leaves join the one `loadByCriteria()` first; then one `loadAggregateEvents()` per distinct `(stream, type, id)`, narrowed to the union of the handled event names on that instance |
+| `DecisionModelConverterBuilder` / `DecisionModelHandlers` / `DecisionModelHandler` / `DecisionModelModule` | one more loader list per handler, chosen by `DecisionModelReflection::backingAggregateOf()` |
+| `DecisionModelTagResolvabilityGuard` | the identifier-resolvability guard, beside the tag one |
+| `CrossConnectionDecisionModelGuard` | the exact stream/connection check for an aggregate-backed model |
+
+Unchanged, as Part 3 promised: `EventCriteria`, `AppendCondition`, `LoadedEvents`, `TagResolver`, `AppendedTags`,
+every reader, every index, every table, `DynamicConsistencyBoundaryConfiguration`, and all of `PdoEventSourcing`.
+In-memory parity was free: `InMemoryEventStore::loadAggregateEvents()` already implemented the contract, so the
+flow tests and the Dbal tests exercise the same core classes.
+
+### 9.2 What did not survive contact with the code
+
+1. **Three guards could not live in `DecisionModelDefinitionBuilder`**, which §2.6 assumed. The builder sees one
+   model class, not the handlers that inject it, so the identifier-resolvability guard went into
+   `DecisionModelTagResolvabilityGuard` and the connection guard into `CrossConnectionDecisionModelGuard` — the two
+   places that already scan handlers and messages. Only the four model-local guards are in the builder.
+2. **`AggregateIdString::from()` agrees with the stream only for a single-identifier aggregate.** §2.2 said the same
+   function feeds both the `aggregate_id` passed to `loadAggregateEvents()` and the counter tag value, "so they
+   cannot disagree". That holds for one identifier. For several, `SaveAggregateServiceTemplate::enrichAggregateEvents()`
+   writes the identifier *array* into `_aggregate_id` while `AggregateIdString` renders a JSON map — but such an
+   aggregate cannot be loaded by its own repository either (`EventSourcingRepository::findBy()` keys on
+   `reset($identifiers)`), so a model over it has exactly the reach the aggregate has, and no new limitation was
+   introduced. A `#[Fetch]` expression returning a map remains the supported composite shape: it names *which*
+   identifier a value is, which is what §6's test 6 exercises.
+3. **`aggregate:` and `tags:` are exclusive, so `assertNoModelScopedOnlyByFilterOnlyTags` had to learn to skip
+   aggregate-backed models** — an empty tag-name list trivially satisfies "scoped only by filter-only tags".
+4. **`$eventNames` is matched against the stored `event_name`.** `loadAggregateEvents()` receives the model's handled
+   event *classes*, exactly as `EventCriteria::ofTypes()` already does on the tag path, so a custom event-name
+   mapping narrows nothing on either path. Same assumption, no regression.
+5. **No SQLite pass for `PdoEventSourcing`.** §6 asked for four engines. The repository's CI deliberately skips
+   SQLite for this package ("SQLite event store not supported"), and the two-connection contention tests do lock the
+   file. The new Dbal tests run on PostgreSQL, MySQL and MariaDB, and skip their multi-connection cases on SQLite
+   so that the rest of the suite is clean there too.
+6. **The cross-connection guard test lives in `PdoEventSourcing`.** `Ecotone\Api\EventSourcing\Stream` is not
+   autoloadable from `packages/Ecotone`, so the guard's test sits beside the existing
+   `CrossConnectionDecisionModelTest` rather than in the core validation test, which skips it.
+
+### 9.3 Tests
+
+*`packages/Ecotone/tests/Modelling/DecisionModel/`* — `AggregateBackedDecisionModelValidationTest` (the six guards
+and the improved message), `AggregateBackedDecisionModelTest` (folding, event-type narrowing, aggregate-version
+order, identifier by convention and by `#[Fetch]` including a map, the same model class twice, a nullable parameter,
+an absent aggregate, two models sharing one instance, an aggregate-backed and a tag-scoped model in one handler),
+`AggregateBackedDecisionModelConcurrencyTest` (a competing save fails the append naming the aggregate, the retry
+decides on current state, a save of an ignored event type still invalidates, a concurrent creation of an absent
+aggregate conflicts, a competing write to the tag-scoped model in the same handler conflicts, DCB disabled is the
+usual bootstrap `ConfigurationException`).
+
+*`packages/PdoEventSourcing/tests/Integration/Tagging/`* — `AggregateBackedDecisionModelDbalTest` (the §2.4
+walkthrough, event-type narrowing, no `ecotone_tagged_events` row for the counter, a wallet written with no tag row
+at all folded and guarded from the first command, a save on a second connection losing the append, a rolled-back
+competing save letting the decision commit, the InnoDB `REPEATABLE READ` case, and a snapshotted aggregate keeping
+its own load path while the model reads the full history), `AggregateBackedDecisionModelLegacyStreamDbalTest` (a
+1.x `_<sha1>` stream folded through `StreamTableRegistry`, and contended), and two more cases in
+`CrossConnectionDecisionModelTest`.

@@ -436,6 +436,12 @@ exactly one meaning, on events: *publish this value under this name*. A model is
 > `#[DecisionModel(tags: [...])]`, or by default are the tags that _every_ handled event carries. A handler's
 > consistency boundary is the OR of the models it injects.**
 
+**Or by one aggregate, instead of by tag names** (2026-09-29, §4.12). `#[DecisionModel(aggregate: Wallet::class)]`
+scopes a model by one instance of an event-sourced aggregate: its criterion is that aggregate's own events, of the
+handled types, read from its own stream, and its boundary is the aggregate's counter tag from §4.11. The aggregate's
+events need no `#[EventTag]`. `aggregate:` and `tags:` are exclusive — no event carries both an aggregate's identity
+and a user tag, so the two could not be ANDed, and two questions are two models.
+
 **Why the default is the intersection, not the union.** `CouponRedemptions` (§4.5b) folds `CouponIssued`
 (`coupon`) and `OrderPlaced` (`customer`, `coupon`). The union would scope it by `customer` *and* `coupon` — a
 different, wrong question ("this customer's redemptions"), and one the command could not always answer. The
@@ -1256,6 +1262,44 @@ save — without a transaction; a fetched event-sourced aggregate that recorded 
 
 **No backfill**: a missing row is version 0 and the guarded path for 0 conflicts when someone inserted first.
 
+**Reading an aggregate's events**: the counter described here is also the boundary of an aggregate-backed decision
+model — see §4.12.
+
+---
+
+### 4.12 Aggregate-backed decision models (2026-09-29)
+
+Design: `2026-09-28-dcb-aggregate-full-tag-design.md` revision 2, Part 9.
+
+**Rule.** `#[DecisionModel(aggregate: Wallet::class)]` scopes a model by one instance of the event-sourced aggregate
+`Wallet`: its events, of the types the model handles, read from `Wallet`'s own stream by the stream's own
+`(aggregate_type, aggregate_id, no)` index, in `aggregate_version` order, with the event-name filter pushed into SQL.
+Its boundary is `Wallet`'s counter tag from §4.11 — captured before the read and guarded on the append. `aggregate:`
+and `tags:` are exclusive: an aggregate's events carry no `#[EventTag]`, so the two scopes cannot be ANDed, and two
+questions are two models. **Nothing is indexed, backfilled, written on save, migrated or configured**; `EventCriteria`,
+`TagResolver`, the readers, the schema and `PdoEventSourcing` are all untouched.
+
+**Identifier.** `#[Fetch]` first — an expression, or a map for an explicit name, the shape `#[Fetch]`-ed aggregates
+already use — otherwise by convention: a message property named like the aggregate's `#[Identifier]`, with the same
+`name` / `nameId` / `name_id` candidates tag values use. The resolved identifiers feed `AggregateIdString::from()`
+both for the `aggregate_id` handed to `loadAggregateEvents()` and for the counter tag value, so the two cannot
+disagree. A nullable parameter whose identifier does not resolve receives `null` and contributes nothing.
+
+**Run order.** `DecisionModelBatchLoader` ORs the aggregate-backed models' `EventCriteria::aggregate()` leaves into
+the one `loadByCriteria()` it already issues — capture first — and then reads one `loadAggregateEvents()` per distinct
+`(stream, aggregate type, id)`, narrowed to the union of the handled event names of the models on that instance.
+"One load per handler" becomes one tag load plus one stream read per distinct aggregate instance in the boundary,
+which is what `#[Fetch]`-ing those aggregates already costs; two models on the same instance share one read.
+
+**Guards.** Bootstrap: `aggregate:` with `tags:`; a class that is not an `#[EventSourcingAggregate]` (state-stored
+aggregate and saga named separately); a handled event the aggregate never records, traced from its own
+`#[EventSourcingHandler]`s; an identifier unresolvable from a concrete message class; the aggregate's stream on
+another connection than the handler's. The "scoped by no tag name" message names `aggregate:` as a third remedy.
+
+**Accepted.** The guard is per aggregate instance, so a save recording an event type the model ignores still
+invalidates the decision — conservative, at most a retry, the trade §4.3 already makes for a mixed tag scope. A model
+spanning an aggregate's events *and* tagged events stays impossible: put `#[EventTag]` on the event instead.
+
 ## Part 4½ — Store cleanups pulled into scope (maintainer, 2026-09-23)
 
 Not DCB, but the maintainer wants the store left clean by the same work. Each is a plan task.
@@ -1417,3 +1461,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-28 | **DCB options move onto `DynamicConsistencyBoundaryConfiguration`; one class resolves the flag.** `withFilterOnlyTags()` is deleted from `BaseEventSourcingConfiguration`/`EventSourcingConfiguration` (2.0 branch, no shim) and lives on `DynamicConsistencyBoundaryConfiguration`. `Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary` reads the extension object once and registers the append-strategy and in-memory collaborator pairs for both the Pdo and the flow-testing module | **Maintainer**, readability review item 9 | Enabling and configuring DCB happened on two unrelated objects, and four modules each re-asked whether the extension object was present |
 | 2026-09-28 | **Aggregates are counted tags inside the boundary.** Once DCB is registered every aggregate except sagas maintains `aggregate_<AggregateType>` (counter only, never indexed); `#[AggregateType]` required; event-sourced saves bump it via the condition's aggregate part, state-stored saves capture at load and bump guarded at save (the first optimistic lock for state-stored aggregates); `#[Fetch]` in a decision-model handler captures it before invocation; `EventCriteria::aggregate()` for boundaries; fetched event-sourced aggregates are read-only in decision-model handlers; conflicts render as the aggregate; no backfill | **Maintainer** (D1–D12) | A decision taken on a fetched aggregate was unguarded, and state-stored aggregates had no enforced lock at all. §4.11 and `2026-09-28-dcb-fetched-aggregates-design.md` Part 6 |
 | 2026-09-28 | **`#[DecisionBoundary]` criteria are captured before invocation, in the handler's single batched read** — the separate post-handler `loadByCriteria()` is gone | **Maintainer** | Captured after the handler, an aggregate-only boundary could not see a save of the aggregate made while the handler decided; the batch loader already builds the command from the message for model loaders, so folding the boundary in costs nothing and restores one load per handler |
+| 2026-09-29 | **A decision model can be backed by an event-sourced aggregate.** `#[DecisionModel(aggregate: Wallet::class)]` folds the aggregate's own stream, narrowed to the handled event types in SQL, guarded by the §4.11 counter that already exists. Revision 1's proposal — an `ecotone_tagged_events` row per aggregate event — is declined. Identifier by convention or `#[Fetch]`; `aggregate:` and `tags:` exclusive; six bootstrap guards; no schema change, no backfill, no per-save cost, no configuration, no `PdoEventSourcing` change | **Maintainer** (revision 2 redirect, every recommended answer to OQ 1-6) | The events are already queryable by the pair the boundary is keyed on, so index rows would be a second copy of an index the stream already has — ~2.2 GB per 10 M events on PostgreSQL, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays for `#[Fetch]`. §4.12 and `2026-09-28-dcb-aggregate-full-tag-design.md` Parts 5 and 9 |

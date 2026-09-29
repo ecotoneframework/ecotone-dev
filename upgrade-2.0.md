@@ -416,6 +416,47 @@ own stream or repository, snapshots included.
   decision-model handler behaves exactly as before. A boundary made only of an aggregate is written with
   `EventCriteria::aggregate(Wallet::class, $command->walletId)` — a leaf that captures the counter and matches no
   events. Fetching a saga into a decision-model handler is a bootstrap `ConfigurationException`.
+- **A decision model can be backed by an event-sourced aggregate.** `#[DecisionModel(aggregate: Wallet::class)]`
+  scopes the model by one instance of `Wallet`: its events, of the types the model handles, are read from `Wallet`'s
+  own stream by the stream's own `(aggregate_type, aggregate_id, no)` index, in `aggregate_version` order, with the
+  event-name filter pushed into SQL. The boundary is the aggregate's counter tag, which already exists and is already
+  bumped by every save, captured in the same read as the handler's other models and guarded on the append. The
+  aggregate's events need **no `#[EventTag]`**, and nothing is indexed, backfilled, migrated or configured:
+
+  ```php
+  #[DecisionModel(aggregate: Wallet::class)]
+  final class WalletBalance
+  {
+      private int $balance = 0;
+
+      #[EventSourcingHandler] public function credited(WalletCredited $e): void { $this->balance += $e->amount; }
+      #[EventSourcingHandler] public function debited(WalletDebited $e): void   { $this->balance -= $e->amount; }
+
+      public function canCover(int $amount): bool { return $this->balance >= $amount; }
+  }
+
+  #[CommandHandler]
+  public function payOut(RequestPayout $command, WalletBalance $wallet, PayoutsToday $today): array { /* ... */ }
+  ```
+
+  The aggregate id comes from the message by the same convention tag values use — a property named like the
+  aggregate's `#[Identifier]` (`walletId`, `walletIdId` or `walletId_id` for `#[Identifier] private string $walletId`)
+  — or from `#[Fetch]`, which is what you need to inject the same model class twice
+  (`#[Fetch('payload.fromWalletId')]`) or to name the identifier explicitly
+  (`#[Fetch("{'walletId': payload.sourceWalletId}")]`). A nullable parameter whose identifier does not resolve
+  receives `null`, contributes nothing to the boundary, and the handler still appends. An aggregate with no events
+  folds from nothing and is captured at 0, so deciding on its absence is safe and a concurrent creation conflicts.
+  Two models backed by the same instance share one read of its stream.
+
+  Checked at bootstrap: `aggregate:` and `tags:` are exclusive; the named class must be an `#[EventSourcingAggregate]`
+  (a state-stored `#[Aggregate]` records no events — fetch it with `#[Fetch]` instead; a saga is outside the
+  boundary); every event the model handles must be recorded by that aggregate; the identifier must resolve from a
+  concrete message class; and the aggregate's stream must be on the handler's connection.
+
+  A save of the aggregate recording an event type the model ignores still bumps the counter and still invalidates the
+  decision — conservative, and at most a retry. And a model cannot span an aggregate's events *and* tagged events:
+  if you need one aggregate's event inside a model shared with other events, put `#[EventTag]` on that event and
+  scope the model by tag names as usual.
 - **Fetched aggregates are read-only.** In a decision-model handler, an event-sourced aggregate fetched with
   `#[Fetch]` that has recorded events when the handler returns throws ("fetched aggregates are read-only") and nothing
   is appended — those events were silently dropped before. Send a command to the aggregate instead. Outside

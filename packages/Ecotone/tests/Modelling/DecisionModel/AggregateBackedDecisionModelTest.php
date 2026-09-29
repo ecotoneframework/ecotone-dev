@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -179,6 +180,18 @@ final class AggregateBackedDecisionModelTest extends TestCase
         $this->assertSame(10, PayoutsForAggregateBackedTest::$observed['paidOutToday']);
     }
 
+    public function test_a_query_handler_reads_the_backing_aggregates_current_state_without_appending(): void
+    {
+        $ecotone = $this->bootstrap();
+        $ecotone->withEventsFor('w-1', WalletForAggregateBackedTest::class, [
+            new WalletCreditedForAggregateBackedTest('w-1', 100),
+            new WalletDebitedForAggregateBackedTest('w-1', 25),
+        ]);
+
+        $this->assertSame(75, $ecotone->sendQuery(new CheckWalletBalanceForAggregateBackedTest('w-1')));
+        $this->assertCount(2, $ecotone->getEventStreamEvents('ecotone_event_stream'));
+    }
+
     private function bootstrap(): FlowTestSupport
     {
         $handler = new PayoutsForAggregateBackedTest();
@@ -274,6 +287,14 @@ final readonly class AuditLedgerForAggregateBackedTest
 {
     public function __construct(
         public string $ledgerId,
+    ) {
+    }
+}
+
+final readonly class CheckWalletBalanceForAggregateBackedTest
+{
+    public function __construct(
+        public string $walletId,
     ) {
     }
 }
@@ -504,6 +525,12 @@ final class PayoutsForAggregateBackedTest
         self::$observed['review'] = ['balance' => $wallet->balance(), 'credits' => $credits->credits()];
 
         return [];
+    }
+
+    #[QueryHandler]
+    public function checkBalance(CheckWalletBalanceForAggregateBackedTest $query, WalletBalanceForAggregateBackedTest $wallet): int
+    {
+        return $wallet->balance();
     }
 
     #[CommandHandler]

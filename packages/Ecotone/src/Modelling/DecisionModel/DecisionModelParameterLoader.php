@@ -57,9 +57,9 @@ final class DecisionModelParameterLoader
     /**
      * @param Event[] $events
      */
-    public function fold(array $events): object
+    public function fold(array $events, ?object $snapshotState = null): object
     {
-        return $this->eventSourcingHandlerExecutor->fill($events, null);
+        return $this->eventSourcingHandlerExecutor->fill($events, $snapshotState);
     }
 
     /**

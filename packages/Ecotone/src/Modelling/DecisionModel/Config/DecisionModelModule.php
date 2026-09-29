@@ -33,6 +33,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
@@ -50,10 +51,12 @@ use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelHandler;
 use Ecotone\Modelling\DecisionModel\DecisionModelHandlers;
 use Ecotone\Modelling\DecisionModel\DecisionModelTagResolvabilityGuard;
+use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
 use function implode;
 
+use Psr\Container\ContainerInterface;
 use ReflectionClass;
 
 use function sprintf;
@@ -130,6 +133,16 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         $messagingConfiguration->registerServiceDefinition(
+            DecisionModelSnapshotStore::class,
+            new Definition(DecisionModelSnapshotStore::class, [
+                DynamicConsistencyBoundary::resolveFrom($extensionObjects)->snapshottedModelClasses(),
+                Reference::to(ContainerInterface::class),
+                Reference::to(ConversionService::REFERENCE_NAME),
+                Reference::to(LoggingGateway::class),
+            ]),
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
             DecisionModelDefinitionRegistry::class,
             new Definition(DecisionModelDefinitionRegistry::class, [$this->rawDefinitions], 'createWith'),
         );
@@ -157,6 +170,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     $handler->aggregateBackedModelLoaderDefinitions(),
                     $handler->fetchedAggregateCaptureDefinitions(),
                     $handler->decisionBoundaryDefinitions(),
+                    Reference::to(DecisionModelSnapshotStore::class),
                 ]),
             );
 
@@ -191,6 +205,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 Reference::to(EcotoneClockInterface::class),
                 Reference::to(EventBus::class),
                 Reference::to(AggregateDefinitionRegistry::class),
+                Reference::to(DecisionModelSnapshotStore::class),
             ]),
         );
 

@@ -49,9 +49,6 @@ final class AppendCondition
     }
 
     /**
-     * Names, per tag key, the decision models and #[DecisionBoundary] methods whose scope covers that tag,
-     * so a conflict on it can say what was being decided.
-     *
      * @param array<string, string[]> $decidingScopeNamesByTagKey
      */
     public function withDecidingScopes(array $decidingScopeNamesByTagKey): self

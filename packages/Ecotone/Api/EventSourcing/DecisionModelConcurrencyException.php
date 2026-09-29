@@ -78,8 +78,6 @@ class DecisionModelConcurrencyException extends ConcurrencyException
     }
 
     /**
-     * The conflict as named fields, so a log line and a tracing span event report the same thing.
-     *
      * @return array<string, string|int>
      */
     public function conflictFields(): array

@@ -39,9 +39,6 @@ final class DynamicConsistencyBoundaryConfiguration
     }
 
     /**
-     * State-stored aggregates that keep the 1.x last-write-wins behaviour: no counter tag is captured when
-     * one is loaded and none is bumped when it is saved.
-     *
      * @param class-string|class-string[] $stateStoredAggregateClasses
      */
     public function withoutOptimisticLockFor(array|string $stateStoredAggregateClasses): self

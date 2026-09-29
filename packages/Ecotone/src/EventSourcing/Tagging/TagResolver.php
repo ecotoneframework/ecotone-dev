@@ -75,10 +75,6 @@ final class TagResolver
     }
 
     /**
-     * The criterion's tags that carry a counter, so a decision folded from it is guarded by them.
-     * A filter-only tag narrows the read and is never counted, so capturing its version would
-     * serialise every writer that shares it.
-     *
      * @return array<string, array{name: string, value: string}>
      */
     public function countedTagsOfCriteria(EventCriteria $criteria): array

@@ -107,9 +107,6 @@ final class DecisionModelDefinitionBuilder
     }
 
     /**
-     * A scope tag whose value every handled event fixes with the same class-level #[EventTag] literal
-     * is the model's value for that tag, so nothing has to supply it from the message.
-     *
      * @param string[] $tagNames
      * @param class-string[] $handledEventClasses
      * @return array<string, string>

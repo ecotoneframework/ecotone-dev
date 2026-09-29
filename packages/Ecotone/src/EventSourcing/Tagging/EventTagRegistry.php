@@ -98,9 +98,6 @@ final class EventTagRegistry
     }
 
     /**
-     * The tag values an event class fixes with a class-level #[EventTag('name', value: 'literal')],
-     * which every instance of that class carries whatever its properties hold.
-     *
      * @return array<string, string>
      */
     public function literalTagValuesFor(string $eventClass): array

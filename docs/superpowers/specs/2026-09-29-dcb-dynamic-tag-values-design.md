@@ -1,6 +1,6 @@
 # Dynamic tag values in DCB — research and proposal
 
-Status: **research, no implementation** — proposal awaiting the maintainer
+Status: **§3.6 / OQ5 implemented** (2026-09-29); the rest remains a proposal awaiting the maintainer
 Date: 2026-09-29
 Base: `dgafka/ecotone-2-0-dcb-design` at `a98c23fa` (aggregate-backed decision models merged)
 Builds on: `2026-09-20-dcb-design.md` §4.3–§4.4, §4.11–§4.12; `2026-09-28-dcb-fetched-aggregates-design.md` §1.1;
@@ -472,6 +472,10 @@ expression are on the message, with the original as `$previous`.
 
 ### 3.6 `#[DecisionBoundary]` — the escape hatch, opened
 
+**Implemented 2026-09-29** — see the OQ5 note in Part 6 for what shipped, including two bootstrap rejections this
+section does not mention. Part 1's inventory of the old behaviour (§1.5, G3) is left as the record of what was
+verified at `a98c23fa`.
+
 The boundary already receives the command built by the same compiled `PayloadBuilder` the loaders use. Extend it
 to the ordinary parameter rules (G3) while keeping the matching rule untouched:
 
@@ -777,6 +781,18 @@ it. **Low risk.**
 *Recommended: yes (§3.6).* It is documented as the escape hatch for a boundary no model expresses, and the most
 common such boundary is tenant-scoped. The change reuses `ParameterConverterAnnotationFactory` wholesale, keeps
 the method static and stateless, and does not touch the matching rule. **Low risk.**
+
+> **Answered yes and implemented** (maintainer, 2026-09-29; `implement-decision-boundary-parameters`). The shape
+> guard now asks for at least one parameter, the first a class or interface; every further parameter is compiled
+> with `ParameterConverterAnnotationFactory::getConverterFor()`, falling back to a container reference by type
+> hint, so `#[Header]`, `#[Headers]`, `#[Reference]`, `#[ConfigurationVariable]` and a bare service type hint all
+> work. The method stays `public static` and the matching rule is unchanged. Two bootstrap rejections were added
+> beyond §3.6, both settling cases the factory resolves but a boundary cannot honour: a parameter no rule resolves
+> (naming the method and the parameter), and a parameter needing the very read the boundary scopes — a
+> `#[DecisionModel]` type hint or any `#[Fetch]` parameter. F11 now reads that a query appends no events, so the
+> boundary would guard nothing. Covered by `DecisionBoundaryTest`, which pairs each conflict test with a
+> non-conflicting competing write so the header, the service-mapped value and the configuration variable are each
+> shown to select the scope. The remaining open questions (OQ1–OQ4) and the other gaps in Part 2 are untouched.
 
 **OQ6 — Should `#[EventTag]` gain an expression?**
 *Recommended: no (§3.7).* Tags must be reproducible from a stored event by `backfill-tags`; an expression reading

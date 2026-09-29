@@ -562,20 +562,36 @@ runs, after the channel.
 
 ```php
 #[DecisionBoundary]
-public static function boundary(RateCourse $command): EventCriteria { /* … */ }
+public static function boundary(
+    RateCourse $command,
+    #[Header('tenant')] string $tenant,
+    TenantCourseMapper $mapper,
+): EventCriteria { /* … */ }
 ```
 
 `DecisionBoundaryEvaluator` (Enterprise) owns the escape hatch: it discovers boundary methods at bootstrap — a
 boundary is matched to the `#[CommandHandler]`/`#[EventHandler]` of its class whose **first parameter has the same type
-as the boundary's first parameter** (a boundary that is not static, takes other than that one parameter, does not
+as the boundary's first parameter** (a boundary that is not static, takes no such first parameter, does not
 declare `EventCriteria` as its return type, matches no handler, or duplicates another boundary's parameter type is a
-bootstrap `ConfigurationException`) — and builds, per handler, a `DecisionBoundaryEvaluator` that converts the
+bootstrap `ConfigurationException`; matched only by a `#[QueryHandler]`, it is rejected saying a query appends no
+events, so the boundary would guard nothing) — and builds, per handler, a `DecisionBoundaryEvaluator` that converts the
 message's payload into the handler's command (the same compiled `PayloadBuilder` a model loader uses) and calls the
 static method with it. The batch loader ORs the boundary's criteria into the **same single `loadByCriteria()`** as the
 handler's models and fetched aggregates, before invocation — so the one-load-per-handler guarantee covers boundaries
 too, a handler with only a boundary gets a batch of its own, and a write committed to the boundary's tags while the
 handler runs fails the append (until 2026-09-28 the boundary was loaded after the handler returned, which let such a
 write through; see Part 8).
+
+**A boundary's parameters after the command** (2026-09-29) are compiled with the same
+`ParameterConverterAnnotationFactory::getConverterFor()` every handler parameter uses, falling back to a container
+reference by type hint, so `#[Header]`, `#[Headers]`, `#[Reference]`, `#[ConfigurationVariable]` and a bare service
+type hint all work with no new machinery; the matching rule is untouched, since only the *first* parameter selects the
+handler. The method stays `public static` — it is called before any instance exists and its services arrive as
+arguments, which keeps it stateless. Two bootstrap rejections bound this: a parameter no rule resolves (a scalar with
+no attribute), naming the method and the parameter; and a parameter that would need the very read the boundary scopes
+— a `#[DecisionModel]` type hint, or any parameter marked `#[Fetch]` — since the boundary is evaluated to *produce*
+that read's criteria. One evaluation per message, inside the batch, before the read: capture-before-read holds, and a
+service the boundary calls therefore runs inside the database transaction, so that mapping must stay local and fast.
 
 **Testing** needs nothing new — tags are on the events:
 
@@ -1462,3 +1478,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-28 | **Aggregates are counted tags inside the boundary.** Once DCB is registered every aggregate except sagas maintains `aggregate_<AggregateType>` (counter only, never indexed); `#[AggregateType]` required; event-sourced saves bump it via the condition's aggregate part, state-stored saves capture at load and bump guarded at save (the first optimistic lock for state-stored aggregates); `#[Fetch]` in a decision-model handler captures it before invocation; `EventCriteria::aggregate()` for boundaries; fetched event-sourced aggregates are read-only in decision-model handlers; conflicts render as the aggregate; no backfill | **Maintainer** (D1–D12) | A decision taken on a fetched aggregate was unguarded, and state-stored aggregates had no enforced lock at all. §4.11 and `2026-09-28-dcb-fetched-aggregates-design.md` Part 6 |
 | 2026-09-28 | **`#[DecisionBoundary]` criteria are captured before invocation, in the handler's single batched read** — the separate post-handler `loadByCriteria()` is gone | **Maintainer** | Captured after the handler, an aggregate-only boundary could not see a save of the aggregate made while the handler decided; the batch loader already builds the command from the message for model loaders, so folding the boundary in costs nothing and restores one load per handler |
 | 2026-09-29 | **A decision model can be backed by an event-sourced aggregate.** `#[DecisionModel(aggregate: Wallet::class)]` folds the aggregate's own stream, narrowed to the handled event types in SQL, guarded by the §4.11 counter that already exists. Revision 1's proposal — an `ecotone_tagged_events` row per aggregate event — is declined. Identifier by convention or `#[Fetch]`; `aggregate:` and `tags:` exclusive; six bootstrap guards; no schema change, no backfill, no per-save cost, no configuration, no `PdoEventSourcing` change | **Maintainer** (revision 2 redirect, every recommended answer to OQ 1-6) | The events are already queryable by the pair the boundary is keyed on, so index rows would be a second copy of an index the stream already has — ~2.2 GB per 10 M events on PostgreSQL, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays for `#[Fetch]`. §4.12 and `2026-09-28-dcb-aggregate-full-tag-design.md` Parts 5 and 9 |
+| 2026-09-29 | **`#[DecisionBoundary]` receives headers and services.** After the command, a boundary takes any number of further parameters, compiled with the same `ParameterConverterAnnotationFactory::getConverterFor()` handler parameters use, plus the container-reference-by-type-hint fallback: `#[Header]`, `#[Headers]`, `#[Reference]`, `#[ConfigurationVariable]` and a bare service type hint. The method stays `public static`; the matching rule is untouched, since only the first parameter selects the handler. An unresolvable parameter is a bootstrap `ConfigurationException` naming the method and the parameter, as is a parameter needing the read the boundary itself scopes (a `#[DecisionModel]` type hint or a `#[Fetch]` parameter). A boundary matched only by a `#[QueryHandler]` is now rejected saying a query appends no events, so the boundary would guard nothing. Event-side `#[EventTag]` expressions are declined | **Maintainer** (OQ5 of `2026-09-29-dcb-dynamic-tag-values-design.md`) | The documented escape hatch could not express the most common boundary a model cannot — a tenant-scoped one — because a static method has no route to a header or a service. Reuses the handler-parameter machinery wholesale; the two rejections keep capture-before-read intact, since the boundary is evaluated to *produce* the read's criteria |

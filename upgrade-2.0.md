@@ -613,11 +613,35 @@ no transaction.
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).
   `#[DecisionBoundary]` on a static method of the same class, taking the same command, is the escape hatch for a
   boundary no model expresses. It is matched to the handler whose first parameter has the same type — a boundary
-  that is not static, does not take exactly that one parameter, does not declare `EventCriteria` as its return type,
-  matches no handler of its class, or shares its parameter type with another boundary is a bootstrap
-  `ConfigurationException`. Its criteria are evaluated with the handler's command **before invocation**, in the same
-  single read as the handler's models and fetched aggregates, so a write committed to them while the handler runs
-  fails the append.
+  that is not static, does not take that command as its first parameter, does not declare `EventCriteria` as its
+  return type, matches no handler of its class, or shares its parameter type with another boundary is a bootstrap
+  `ConfigurationException`; a boundary matched only by a `#[QueryHandler]` is rejected saying a query appends no
+  events, so the boundary would guard nothing. Its criteria are evaluated with the handler's command **before
+  invocation**, in the same single read as the handler's models and fetched aggregates, so a write committed to them
+  while the handler runs fails the append.
+
+  After the command, a boundary may take **any number of further parameters**, resolved by exactly the rules a
+  handler's parameters follow — `#[Header]`, `#[Headers]`, `#[Reference]`, `#[ConfigurationVariable]`, and a service
+  by type hint. A tenant-scoped boundary, the most common one a model cannot express, is then one method:
+
+  ```php
+  #[DecisionBoundary]
+  public static function boundary(
+      RateCourse $command,
+      #[Header('tenant')] string $tenant,
+      TenantCourseMapper $mapper,
+  ): EventCriteria {
+      return EventCriteria::tag('tenant', $tenant)
+          ->andTag('course', $mapper->courseOf($command->rating));
+  }
+  ```
+
+  The method stays `public static`: it is called before any instance exists, and its services arrive as arguments
+  rather than through a constructor, which keeps it stateless. A parameter no rule resolves — a scalar with no
+  attribute — is a bootstrap `ConfigurationException` naming the method and the parameter. So is a parameter that
+  would need the very read the boundary scopes: a decision model, or one marked `#[Fetch]`. Inject those into the
+  handler instead. Because the boundary runs inside the handler's single read, a service it calls runs inside the
+  database transaction — keep that mapping local and fast.
 - Only a `#[CommandHandler]`/`#[EventHandler]` that injects a model appends and publishes its returned events;
   `#[QueryHandler]` replies as always, appending nothing. `return []` is a no-op. `outputChannelName` keeps working
   on a model-injecting handler: events are appended and published, then forwarded as today.

@@ -43,6 +43,7 @@ final class DecisionModelHandlers
 
         $handlers = [];
         $matchedBoundaries = [];
+        $queryHandledTypesByClass = [];
         foreach ([CommandHandler::class, EventHandler::class, QueryHandler::class] as $handlerAnnotationClass) {
             foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
                 $className = $annotatedMethod->getClassName();
@@ -54,6 +55,10 @@ final class DecisionModelHandlers
                 }
 
                 $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
+
+                if ($handlerAnnotationClass === QueryHandler::class && $interfaceToCall->getInterfaceParameterAmount() > 0) {
+                    $queryHandledTypesByClass[$className][$interfaceToCall->getFirstParameter()->getTypeHint()] = true;
+                }
 
                 [$modelLoaderDefinitions, $aggregateBackedModelLoaderDefinitions, $fetchedAggregateConverters] = self::decisionConvertersOf($interfaceToCall);
                 $ambiguouslyDuplicatedModelClasses = self::ambiguouslyDuplicatedModelClassesIn($interfaceToCall, $handlerAnnotationClass);
@@ -85,12 +90,14 @@ final class DecisionModelHandlers
                     $ambiguouslyDuplicatedModelClasses,
                     $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): Definition => $converter->compileCounterCapture(), $fetchedAggregateConverters) : [],
                     $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): string => $converter->aggregateClassName(), $fetchedAggregateConverters) : [],
-                    $appendsItsResult && $boundaryMethodName !== null ? [DecisionBoundaryEvaluator::definitionFor($className, $boundaryMethodName, $interfaceToCall)] : [],
+                    $appendsItsResult && $boundaryMethodName !== null
+                        ? [DecisionBoundaryEvaluator::definitionFor($className, $boundaryMethodName, $interfaceToCall, $interfaceToCallRegistry->getFor($className, $boundaryMethodName))]
+                        : [],
                 );
             }
         }
 
-        DecisionBoundaryEvaluator::assertEveryBoundaryMatchesAHandler($boundariesByClass, $matchedBoundaries);
+        DecisionBoundaryEvaluator::assertEveryBoundaryMatchesAHandler($boundariesByClass, $matchedBoundaries, $queryHandledTypesByClass);
 
         return new self($handlers);
     }

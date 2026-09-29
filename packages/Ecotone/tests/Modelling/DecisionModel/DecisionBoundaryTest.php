@@ -7,8 +7,13 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConfigurationVariable;
 use Ecotone\Api\Attribute\DecisionBoundary;
+use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -19,6 +24,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -115,22 +121,22 @@ final class DecisionBoundaryTest extends TestCase
         $this->assertCount(1, $this->eventsMatching($ecotone, EventCriteria::tag('course', 'course-tier-5')));
     }
 
-    public function test_boundary_combining_a_header_a_service_and_a_configuration_variable_conflicts_when_all_three_match(): void
+    public function test_boundary_taking_a_header_a_service_and_a_configuration_variable_conflicts_on_the_configured_region(): void
     {
         $ecotone = $this->bootstrapMixedParameterRating();
 
-        $this->armCompetingWriteWith($ecotone, new TenantCourseRatedForBoundaryTest('acme', 'eu', 'course-tier-5', 1));
+        $this->armCompetingWriteWith($ecotone, new RegionAuditedForBoundaryTest('eu'));
 
         $this->expectException(DecisionModelConcurrencyException::class);
 
         $ecotone->sendCommand(new RateTenantCourseForBoundaryTest('course-1', 5), metadata: ['tenant' => 'acme']);
     }
 
-    public function test_boundary_combining_a_header_a_service_and_a_configuration_variable_ignores_another_region(): void
+    public function test_boundary_taking_a_header_a_service_and_a_configuration_variable_ignores_an_unconfigured_region(): void
     {
         $ecotone = $this->bootstrapMixedParameterRating();
 
-        $this->armCompetingWriteWith($ecotone, new TenantCourseRatedForBoundaryTest('acme', 'us', 'course-tier-5', 1));
+        $this->armCompetingWriteWith($ecotone, new RegionAuditedForBoundaryTest('us'));
 
         $ecotone->sendCommand(new RateTenantCourseForBoundaryTest('course-1', 5), metadata: ['tenant' => 'acme']);
 
@@ -140,6 +146,16 @@ final class DecisionBoundaryTest extends TestCase
     public function test_boundary_parameter_that_no_parameter_rule_can_resolve_is_rejected_at_bootstrap(): void
     {
         $this->assertBootstrapRejects(new UnresolvableParameterBoundaryHandlerForBoundaryTest(), '$unresolvable');
+    }
+
+    public function test_boundary_taking_a_decision_model_is_rejected_at_bootstrap(): void
+    {
+        $this->assertBootstrapRejects(new DecisionModelTakingBoundaryHandlerForBoundaryTest(), 'evaluated before the read');
+    }
+
+    public function test_boundary_fetching_an_aggregate_is_rejected_at_bootstrap(): void
+    {
+        $this->assertBootstrapRejects(new FetchingBoundaryHandlerForBoundaryTest(), 'evaluated before the read');
     }
 
     public function test_boundary_on_a_query_handler_is_rejected_explaining_that_a_query_appends_nothing(): void
@@ -176,7 +192,7 @@ final class DecisionBoundaryTest extends TestCase
         $handler = new MixedParameterRatingHandlerForBoundaryTest();
 
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
+            classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, RegionAuditedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CourseTagMapperForBoundaryTest(), new CompetingWriteInjectorForBoundaryTest()],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             configurationVariables: ['region' => 'eu'],
@@ -354,6 +370,14 @@ final readonly class TenantCourseRatedForBoundaryTest
     }
 }
 
+final readonly class RegionAuditedForBoundaryTest
+{
+    public function __construct(
+        #[EventTag('region')] public string $region,
+    ) {
+    }
+}
+
 final readonly class CourseRatingQueryForBoundaryTest
 {
     public function __construct(
@@ -489,5 +513,67 @@ final class QueryOnlyBoundaryHandlerForBoundaryTest
     public function rating(CourseRatingQueryForBoundaryTest $query): int
     {
         return 0;
+    }
+}
+
+#[DecisionModel]
+final class CourseRatingsForBoundaryTest
+{
+    private int $ratings = 0;
+
+    #[EventSourcingHandler]
+    public function rated(CourseRatedForBoundaryTest $event): void
+    {
+        $this->ratings++;
+    }
+
+    public function ratings(): int
+    {
+        return $this->ratings;
+    }
+}
+
+#[EventSourcingAggregate]
+final class CourseForBoundaryTest
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    private string $courseId;
+
+    #[EventSourcingHandler]
+    public function applyRated(CourseRatedForBoundaryTest $event): void
+    {
+        $this->courseId = $event->courseId;
+    }
+}
+
+final class DecisionModelTakingBoundaryHandlerForBoundaryTest
+{
+    #[DecisionBoundary]
+    public static function boundary(RateCourseForBoundaryTest $command, CourseRatingsForBoundaryTest $ratings): EventCriteria
+    {
+        return EventCriteria::tag('course', $command->courseId);
+    }
+
+    #[CommandHandler]
+    public function rate(RateCourseForBoundaryTest $command): array
+    {
+        return [];
+    }
+}
+
+final class FetchingBoundaryHandlerForBoundaryTest
+{
+    #[DecisionBoundary]
+    public static function boundary(RateCourseForBoundaryTest $command, #[Fetch('payload.courseId')] CourseForBoundaryTest $course): EventCriteria
+    {
+        return EventCriteria::tag('course', $command->courseId);
+    }
+
+    #[CommandHandler]
+    public function rate(RateCourseForBoundaryTest $command): array
+    {
+        return [];
     }
 }

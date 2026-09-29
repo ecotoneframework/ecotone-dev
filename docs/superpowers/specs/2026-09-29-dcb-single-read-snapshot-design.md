@@ -1,11 +1,20 @@
 # Reading the aggregate decision model in the same statement as the event tags
 
-*Research, 2026-09-29. Base `dgafka/ecotone-2-0-dcb-design` @ `8839179a`. Proposal for approval; nothing is
-implemented.*
+*Research. Revision 1, 2026-09-29, base `dgafka/ecotone-2-0-dcb-design` @ `8839179a`. **Revision 2, 2026-09-29**,
+base `dgafka/research-dcb-single-read-snapshot` @ `55824913`. Proposal for approval; nothing is implemented.*
 
-**The maintainer's question, verbatim:** *"Can we ensure that aggregate decision model is loaded via same sql as
-event tags, just to ensure that we snapshot at the same time. Let's research: is it possible and how would it look
-like."*
+**The maintainer's question, verbatim (revision 1):** *"Can we ensure that aggregate decision model is loaded via
+same sql as event tags, just to ensure that we snapshot at the same time. Let's research: is it possible and how
+would it look like."*
+
+**The maintainer's push-back, verbatim (revision 2):** *"What about folding fetch? What if we would introduce
+snapshots for decision models too — meaning the loading flow would allow for snapshotting a decision model up to a
+given point, and we would fetch only the rest and apply. This way fetching an aggregate or a decision model would
+collapse into the same flow. Push back to the research session to investigate that approach."*
+
+**How to read this document.** Parts 0–8 are revision 1 and stand unchanged except where a *(revision 2)* note says
+otherwise. Parts 9–13 are revision 2: what a decision-model snapshot is (9), the one load flow (10), correctness
+under snapshots (11), the measured cost (12), and the revised proposal, including the new answer to OQ5 (13).
 
 ---
 
@@ -31,6 +40,37 @@ all once a handler does two milliseconds of work (87.1% vs 86.2%, measured) — 
 the number of contenders, not by the shape of the read. **Recommendation: take option C, but take it for the round
 trips, and say so honestly in the docs; and delete the existence probes first, because that is two thirds of the win
 for a tenth of the work.**
+
+### Part 0 (revision 2) — the answer to the push-back, in one paragraph
+
+**Yes: snapshot the decision model, and the two loads become one shape — but they stay two implementations, and the
+reason is the repository, not the read.** A decision-model snapshot needs no new position: for a tag scope the
+position already exists and is already stored on every index row — `tag_sequence` *is* the tag's counter version at
+the instant that event was appended, every event of one append carries the same value, and the counter and the index
+rows are written in one transaction, so `tag_sequence > :covered` is an exact cut at an append boundary and can never
+land mid-append (Part 9). For an aggregate scope the position is `aggregate_version` and `fromVersion` has been a SQL
+argument all along. Both push down into the option C statement, and on PostgreSQL the snapshot's covered position
+reaches the index as an `InitPlan` inside the *same statement*: measured, `Index Cond: (tag_name = … AND tag_value =
+… AND tag_sequence > COALESCE($1, 0))` — one statement, capture, snapshot, tail and aggregate branch, no round trip
+between them (Part 10.2). The payoff is the one revision 1 could not offer, because it is the only part of the read
+that grows with history: for a 1 000-event tag scope snapshotted at 900, the combined read goes from **6.7 ms to
+1.5 ms on PostgreSQL, 8.6 ms to 1.5 ms on MySQL and 9.2 ms to 1.2 ms on MariaDB**, and 2 002 rows to 103 — against
+option C's flat ~2.4 ms saving, which does not grow at all. **Option C is the constant-factor win; snapshots are the
+asymptotic one** (Part 12). Correctness costs nothing: the tail is exact by *position*, so a stale snapshot only
+makes the tail longer, and a snapshot that is somehow *ahead* of the events the reader can see is not a wrong
+decision but a guaranteed conflict, because the tag whose snapshot ran ahead is in the captured set and its guarded
+`UPDATE` cannot match (Part 11.4). **Folding `#[Fetch]` is where the answer is no, and revision 1's reason was the
+wrong one.** It is not that repository loading would be reimplemented — with snapshots on both sides the *shape* is
+identical (scope → snapshot → tail-by-position → fold). It is that `AllAggregateRepository::findBy()` is a
+**dispatch point over user-supplied repositories**: `EventSourcedRepository` is a public interface, state-stored
+aggregates have no events at all, and an aggregate's snapshot already lives in the document store keyed by the
+user's own `#[Version]` serialization. Folding the read would mean the tag reader deciding, per aggregate class,
+whether it is allowed to bypass the user's repository — two load paths wearing one name. What *is* worth doing is a
+**hand-off**, not a replacement: the batch loader already resolves the fetched aggregates' identifiers before the
+converter runs, so it can fold them in the same statement and leave the instances in `DecisionModelLoadedState` for
+`FetchAggregateConverter` to pick up when the aggregate is event-sourced on Ecotone's own repository, falling back
+to `AllAggregateRepository` otherwise. The converter stays. **Recommended order: probes deletion → option C →
+aggregate-scope snapshots → tag-scope snapshots → the `#[Fetch]` hand-off, gated** (Part 13.6).
 
 ---
 
@@ -522,6 +562,12 @@ General form: **`1 + A_fetched` reads per handler**, down from `2 + S + 2·(A_ba
 **Option C, one statement per stream table, with the capture in the first one — and the existence probes deleted
 first, as a separate unit that stands on its own.**
 
+> *(revision 2)* Option C acquires a second reason in Part 11.4: once decision models are snapshotted, reading the
+> counters and the snapshot's covered position in **one** database snapshot is what makes "a snapshot that ran ahead
+> of the events" structurally impossible rather than a runtime check. Revision 1 could only recommend option C for
+> round trips; revision 2 can recommend it for a correctness property, and Part 13.6 therefore puts it **before**
+> snapshots in the build order.
+
 The probe deletion is worth stating separately because it is most of the measured win: two
 `information_schema` round trips per handler, 0.91 ms each on PostgreSQL and 0.51 ms on MySQL, guarding against a
 missing table that the very next statement would report anyway. `DbalEventStore::loadAggregateEvents` and `load`
@@ -659,6 +705,12 @@ perfect behaviour looks like. **Add two milliseconds of handler work and the adv
 movement at all, as Part 1.4 predicts — its reads were never the window. The conflict rate is governed by the number
 of contenders and the length of the whole transaction, not by the shape of the read.
 
+> *(revision 2)* **Latency is the axis where this changes.** Option C's ~2.4 ms is a constant: it is round trips, and
+> it is the same whether a scope holds ten events or ten thousand. Part 12 measures the other axis — for a
+> 1 000-event tag scope snapshotted at 900 the combined read is **6.7 → 1.5 ms on PostgreSQL, 8.6 → 1.5 ms on MySQL,
+> 9.2 → 1.2 ms on MariaDB**, 2 002 rows to 103 — and that saving grows with the history. Option C is the
+> constant-factor win; snapshots are the asymptotic one, and they compose.
+
 **The honest summary for the maintainer:** the change buys round trips and a cleaner guarantee sentence. It does not
 buy correctness, and it does not meaningfully buy throughput under contention. It is worth doing if a shorter,
 provable guarantee and five fewer statements per handler are worth a new plan collaborator and a signature change on
@@ -683,7 +735,7 @@ Against the rules carried through this Run (`launch-execution.md`):
 | **Four engines plus in-memory parity** | All four SQL dialects given and measured in Part 3; the in-memory store needs no change (Part 4.4) and stays the semantic reference. |
 | **Open-core path untouched** | Everything here is on the Enterprise tag path: `DbalTaggedEventReader`, `DbalTagIndex`, `DbalTagVersionRegister`, `DecisionModelBatchLoader` are all `licence Enterprise`. `DbalEventStore` gains one method used only from that path; its open-core `load`/`loadAggregateEvents`/`appendTo` behaviour is unchanged — including, deliberately, the `tableExists` probe on the *public* `load()` and `loadAggregateEvents()`, whose "missing stream returns no events" contract open-core callers rely on. **The probe deletion applies to the decision read path only.** |
 | **No nullable service dependencies / no single-implementation interfaces** | `DbalSingleReadPlan` is injected unconditionally into `DbalTaggedEventReader` as a concrete class, not behind an interface with one implementor. `SqlFragment` is a value object, not a service. |
-| **No schema or protocol change** | No DDL, no migration, no backfill, no new column, no configuration. |
+| **No schema or protocol change** | No DDL, no migration, no backfill, no new column, no configuration. *(revision 2: snapshots add one additive table — Part 13.2.)* |
 
 ---
 
@@ -724,6 +776,11 @@ the current code for a reason other than "the SQL looks different".
 
 Not tested, by the 2026-09-27 rule: statement counts. The `1 + A_fetched` guarantee and the one-snapshot guarantee are
 review-protected, recorded in the design document, and verified by the plans in Part 3.5 at review time.
+
+> *(revision 2)* Tests 12–21, for decision-model snapshots, are in Part 13.3. Test 18 of
+> `2026-09-28-dcb-aggregate-full-tag-design.md` — *"the model reads the full history"* — changes its second clause
+> to *"the model reads from its own snapshot"*; its first clause, that the aggregate's own handler still loads
+> through the aggregate's document-store snapshot, is unchanged and load-bearing (Part 10.5).
 
 ### 6.2 Docs to touch
 
@@ -767,10 +824,17 @@ stream list comes from it**; when the flags name a second stream, issue one furt
 additional stream, each carrying its own `flags` CTE narrowed by `stream_name`. For `S = 1` — the overwhelming
 majority — that is exactly one statement. Document the guarantee per stream table, not per handler.*
 
-**OQ5 — Should the `#[Fetch]`-ed aggregate be folded into the statement too?** It would mean reimplementing
-repository loading — snapshots, state-stored aggregates, the full event set — inside the tag reader, for an aggregate
-whose counter is already captured in the same statement. *Recommendation: **no**. Keep it on
-`AllAggregateRepository::findBy()`. State the reason in the design document so it does not get re-asked.*
+**OQ5 — Should the `#[Fetch]`-ed aggregate be folded into the statement too?** ~~It would mean reimplementing
+repository loading — snapshots, state-stored aggregates, the full event set — inside the tag reader.~~
+**Answered again in revision 2 (Part 13.4), and the revision 1 reason was wrong.** With snapshots on both sides the
+two loads are the same steps (Part 10.1), so the mechanism is not the obstacle. What is:
+`AllAggregateRepository::findBy()` is a **dispatch point** over user-supplied `EventSourcedRepository`
+implementations, state-stored aggregates that have no events at all, cross-connection aggregates and document-store
+snapshots — so a folded read would have to decide, per aggregate class, whether it may bypass the user's repository.
+*Recommendation: **not a replacement, a hand-off** — the batch loader folds the fetched aggregate in the same
+statement and leaves it in `DecisionModelLoadedState`; `FetchAggregateConverter` keeps its signature, gains one guard
+clause and falls back to `AllAggregateRepository` otherwise, with eligibility decided at bootstrap. Build it last
+(Part 13.6), and only if the round trip is worth the branch.*
 
 **OQ6 — Push `ofTypes` into the tag half's SQL?** Part 3.6: safe only as the union of every branch's types and only
 when every branch declares some. *Recommendation: **yes**, as part of the same unit, one line of guard — but do not
@@ -803,3 +867,748 @@ What the single statement does buy is five fewer round trips per handler and a g
 sentence. Two thirds of the measured latency, though, is not round trips at all — it is two `information_schema`
 existence probes, one before each `loadAggregateEvents()`, at 0.91 ms on PostgreSQL, guarding against a missing table
 whose absence should be an error rather than an empty fold. **Delete those first.**
+
+> *(revision 2)* Two sentences change. **Added:** snapshots give the decision read the only saving that grows with
+> history — 6.7 → 1.5 ms on PostgreSQL, 8.6 → 1.5 ms on MySQL, 9.2 → 1.2 ms on MariaDB for a 1 000-event tag scope
+> covered to 900, 2 002 rows to 103 — and nothing new has to be invented to get it: `tag_sequence` already *is* the
+> tag's counter version, stamped identically on every event of an append, and `fromVersion` is already a SQL
+> argument. **Corrected:** OQ5's reason. Folding `#[Fetch]` is blocked not by the mechanism but by
+> `AllAggregateRepository` being a dispatch point over user repositories and state-stored aggregates; the right move
+> is a hand-off, not a replacement. Parts 9–13 carry both.
+
+---
+
+# Revision 2 — snapshots for decision models, and one load flow
+
+## Part 9 — What a decision-model snapshot is
+
+### 9.1 Identity: the same key the counter already uses
+
+A snapshot is addressed by three things, and two of them already exist.
+
+| Scope kind | Scope key | The counter it shares the key with |
+|---|---|---|
+| tag-scoped, one tag | `tag_name` + `tag_value` | `ecotone_tag_versions (tag_name, tag_value)` — the same row |
+| tag-scoped, several tags (AND) | the ordered `(name, value)` pairs of the branch | the **position tag**: the first *counted* tag (§9.3) |
+| aggregate-backed | `aggregate_type` + `aggregate_id` | `aggregate_<Type>` / `<id>` — `AggregateCounterTags::counterTagOf()` |
+
+Plus the **model class**, because two models can be scoped by the same tag and fold it differently (`PayoutsToday`
+and `WalletBalance` may both be `#[DecisionModel(tags: ['wallet'])]`). So the primary key is
+`(model_class, scope_key)`, where `scope_key` is built the way `TagKey::of()` and
+`AggregateBackedDecisionModelInstance::instanceKey()` already build theirs — no new identity concept enters the
+system.
+
+**The `#[Fetch]`-ed aggregate keeps the identity it has**: `aggregate_snapshots_<Class>` in the document store,
+document id `AggregateIdString`-shaped (`EventSourcedRepositoryAdapter::getSnapshotDocumentId`). §10.4 says why that
+is not merged.
+
+### 9.2 Content: state, position, and a fold shape
+
+```
+model_class      VARCHAR(255)   Ecotone\...\PayoutsToday
+scope_key        VARCHAR(512)   wallet|w-1        (or  aggregate_Wallet|w-1)
+fold_shape       CHAR(40)       sha1 of (class, sorted handled event names, sorted tag names)
+state            TEXT           the folded model, JSON
+covered_position BIGINT         the tag_sequence / aggregate_version it covers
+taken_at         BIGINT         hrtime, for pruning — the column DbalDocumentStore already carries as updated_at
+```
+
+**Serialization: the mechanism that ships, with one thing removed.** `DbalDocumentStore::convertToJSONDocument`
+runs the model through `ConversionService` from `application/x-php` to `application/json` and stores the class name
+in `document_type` so the read can convert back. Aggregate snapshots use exactly that today, and the requirement on
+the class is exactly the one aggregate snapshots impose: a registered converter — a `#[MediaTypeConverter]` such as
+`BasketMediaTypeConverter` in `packages/PdoEventSourcing/tests/Fixture/Snapshots`, or a serializer package. A
+decision model is a plain PHP object with `#[EventSourcingHandler]`s and no identity, which makes it *easier* to
+serialize than an aggregate, not harder: there is no identifier property and no version property to preserve.
+
+**And that is the thing to remove.** `EventSourcedRepositoryAdapter::findBy` reads the covered version *out of the
+snapshot object*, through a `#[Version]`-annotated property, and asserts it is greater than zero:
+
+```php
+$aggregateVersion = $this->getAggregateVersion($aggregate);
+Assert::isTrue($aggregateVersion > 0, sprintf('Serialization for snapshot of %s is set incorrectly, it does not serialize aggregate version', $aggregate::class));
+```
+
+That assertion exists because the position rides inside the user's own serialization and users forget it. A decision
+model has no `#[Version]` property and must not grow one: **`covered_position` is a column of the snapshot record,
+written by the framework, never by the user's converter.** The state is opaque to the framework; the position is
+opaque to the user.
+
+### 9.3 The position, per scope kind — and why the tail is exact
+
+**Tag scope: the position is the tag's counter version, and it is already written on every index row.**
+
+`AppendedTags::sequencedAfterBump()` computes, per involved tag, `capturedVersion + 1` — the value the counter has
+*after* the guarded bump — and hands it to `EventsTags::sequencedBy()`, which stamps it on every event of the append
+that carries that tag. `DbalTagIndex::insertRows` then writes one `ecotone_tagged_events` row per (event, tag) with
+that `tag_sequence`. Three consequences, each checkable in the code:
+
+1. **`tag_sequence` and `ecotone_tag_versions.version` are the same number space.** After any append, the tag's
+   counter equals the maximum `tag_sequence` of its index rows. A snapshot that covers counter version *v* therefore
+   has tail `tag_sequence > v`, with no translation.
+2. **The values are dense: 1, 2, 3, …** Every counted append bumps by exactly one (`version = version + 1`, or the
+   initial `INSERT` at 1) and stamps that one value. A lost append writes nothing at all (§4.4 of the main spec:
+   *"counters first, events second … losers fail before they write"*), so it burns no sequence.
+3. **All events of one append share one value, so a snapshot cannot be taken mid-append.** `sequencedBy` assigns one
+   sequence per tag for the whole batch, and `insertRows` writes every index row of the append in **one**
+   `INSERT … SELECT … UNION ALL` statement inside the handler's transaction — after `bumpGuarded`, after
+   `insertEventRows`, before `COMMIT`. A reader on another connection sees all of an append's index rows or none of
+   them; a reader on the *same* connection is the appending transaction itself, which is not taking snapshots. So
+   `> covered` always cuts at an append boundary. There is no arrangement of statements that produces a half-covered
+   append, and therefore no "the snapshot folded three of the five events of one commit" hazard.
+
+**Cross-stream folding is fine, and this is where `tag_sequence` earns its existence.** A tag-scoped model may fold
+events from several stream tables (§4.5a of the main spec). `event_no` is per stream and says nothing across
+streams; `tag_sequence` is per tag and, because the counter row is the serialization point, **is commit order for
+that tag across every stream** (§4.4: *"`no` is now allocated under the tag's row lock, so for any one tag, `no`
+order equals commit order"*). One scalar covers a multi-stream scope. A per-stream `event_no` watermark map would
+also be exact — and would ride the existing primary key prefix, which is tempting (§12.3) — but it needs a vector,
+it needs a rule for a stream that appears for the first time after the snapshot, and it buys nothing `tag_sequence`
+does not already give. **Recommendation: one scalar, `tag_sequence`.**
+
+**Multi-tag AND scope: still one scalar, not a vector.** A model scoped `tag('wallet', w).andTag('region', r)`
+matches only events carrying both. Such an event was appended once, and that append bumped *both* counters in the
+same sorted pass, stamping `sequence_wallet` and `sequence_region` from the same transaction. So for every event in
+the scope the two predicates agree: an event committed after the snapshot instant has `sequence_wallet > covered_wallet`
+**and** `sequence_region > covered_region`; one committed before has both `≤`. Either tag alone is an exact cut, and
+the AND-filter (`has_0 AND has_1`, unchanged) does the rest. The vector is redundant.
+
+**One precision the code forces.** `DbalTaggedEventReader::matchingEvents` takes its ordering sequence from
+`$branch->tags()[0]` — the first declared tag. A **filter-only** tag is stamped with sequence `0`, not its counter
+(`EventsTags::sequencedBy`: `'sequence' => $tag['counted'] ? $versionsAfterBump[$key] : 0`), because filter-only
+tags have no counter at all. A model may legitimately mix one counted and one filter-only tag —
+`DecisionModelModule::assertNoModelScopedOnlyByFilterOnlyTags` rejects only the all-filter-only case. **So the
+position tag is the first *counted* tag of the branch, not `tags()[0]`.** Picking `tags()[0]` blindly would give
+`covered = 0` forever and silently disable the snapshot; worse, if a snapshot were ever written against it, `> 0`
+would still be a correct (full) tail, so the bug would be invisible. Name the position tag explicitly.
+
+**Aggregate scope: `aggregate_version`, and the push-down already exists.**
+`EventStore::loadAggregateEvents($stream, $type, $id, $fromVersion, …)` compiles `$fromVersion` into
+`<aggregate_version> >= ?` (`DbalEventStore::loadAggregateEvents`), which is the same argument
+`EventSourcingRepository::findBy()` passes for aggregate snapshots. Tail = `fromVersion: covered + 1`. Exact because
+`_aggregate_version` is dense per instance and assigned by the save.
+
+### 9.4 Where it lives
+
+Three candidates, and the choice is forced by §10.2 and §11.4.
+
+| | (a) the document store | (b) a table on the **event store's** connection | (c) the document store, moved onto the event store's connection |
+|---|---|---|---|
+| reuses shipped code | all of it (`DbalDocumentStore`, the `aggregate_snapshots_` convention) | the serializer only | most of it |
+| can be a CTE of the option C statement | **no** — `DbalConfiguration::getDocumentStoreConnectionReference()` is independently configurable | **yes** | yes, but only when the user has configured it that way |
+| transactional with the append | only if the references coincide (then `CachedConnectionFactory::createFor` hands back the same `Connection`, so it is the same transaction) | **always** | user-dependent |
+| key shape | one `document_id` string; a tag scope must be encoded into it | `(model_class, scope_key)`, two columns, indexable | as (a) |
+| covered position | would have to ride inside the serialized object (§9.2) | its own column | as (a) |
+| measured read | 0.05–0.25 ms (PG), 0.08–0.11 ms (MySQL/MariaDB) — a separate statement | 0.05–0.33 ms standalone, **0 ms as a CTE branch** | — |
+
+**Recommendation: (b), a new `ecotone_decision_snapshots` table on the event store's connection**, created by a
+`DbalTableManager` beside `TagTableManager` and covered by `database:setup` / `verify-schema` the same way. It is the
+only option that folds into the one statement, it keeps the position out of the user's serialization, and §11.4 shows
+it makes the "snapshot ahead of the events" question disappear instead of needing an argument. (a) is not *unsafe* —
+§11.4 proves a cross-connection snapshot store is self-guarding — it is merely a second round trip and a worse key.
+
+### 9.5 When it is taken
+
+**Not inside the deciding handler's transaction, and this is the difference from aggregate snapshots.**
+`EventSourcedRepositoryAdapter::save()` writes the snapshot inline, in the save path, whenever
+`version % threshold === 0` — every Nth command pays a serialize and an upsert before it may commit. For decision
+models that is the wrong trade, because the tail is exact by position: **a snapshot that is late is not wrong, it is
+only longer.** Nothing depends on it existing, on it being recent, or on it being written at all.
+
+So: after the handler commits, on its own channel, driven by the same threshold arithmetic
+(`covered_position` of the current snapshot vs the counter after the append). Inline every-N stays available as an
+option for deployments that will not run a consumer, and it is what an in-memory test does. The important property is
+that the *default* adds nothing to command latency.
+
+### 9.6 Invalidation and self-healing
+
+**The model class changed → the fold changed → the snapshot is meaningless.** `fold_shape` is a hash over the model
+class name, its sorted `#[EventSourcingHandler]` event class names (`handledEventClasses()`, which is also what the
+criteria's `ofTypes` carries) and its sorted tag names. It is part of the read predicate, not a post-check: a
+deploy that adds a handler simply stops matching, the tail becomes the whole history, and the next write stores a
+snapshot under the new shape. No migration, no deploy gate, no rolling-deploy hazard — the two shapes coexist, and
+the stale row is pruned by `taken_at`.
+
+**Anything else wrong → full fold.** The pattern is already in the codebase and should be copied verbatim:
+`EventSourcedRepositoryAdapter::findBy` catches `DocumentException`, logs *"Snapshot ignored to self-heal system"*,
+and loads from version 1; it also checks `$aggregate::class === $aggregateClassName` and discards a snapshot of the
+wrong type. Same three cases here — deserialization failure, wrong class, missing row — and the same outcome. **The
+completeness of the fold is guaranteed by the position, never by the snapshot**, so discarding one is always
+available and always correct.
+
+---
+
+## Part 10 — One load flow
+
+### 10.1 The flow, named once
+
+```
+resolve scope        →  tag (name, value) pairs, and aggregate (type, id) pairs      — no database
+capture counters     →  ecotone_tag_versions, every counted tag of every scope       ─┐
+read snapshots       →  ecotone_decision_snapshots, one row per (model, scope)        │ one
+read tails           →  tag_sequence > covered   /   aggregate_version > covered      │ statement
+fold                 →  EventSourcingHandlerExecutor::fill($tail, $snapshotState)    ─┘ (then PHP)
+hand to the handler  →  DecisionModelLoadedState
+```
+
+Every participant runs the same steps; only the *scope resolver* and the *tail predicate* differ, and both are
+already per-kind today:
+
+| | tag-scoped model | aggregate-backed model | `#[Fetch]`-ed aggregate |
+|---|---|---|---|
+| scope | `DecisionModelParameterLoader::resolveCriteria` | `AggregateBackedDecisionModelLoader::resolveInstance` | `FetchedAggregateCounterCapture::resolveCriteria` |
+| counter | the tag itself | `aggregate_<Type>:<id>` | `aggregate_<Type>:<id>` |
+| tail predicate | `tag_sequence > :covered` | `aggregate_version > :covered` | `aggregate_version > :covered` |
+| fold | `fill($tail, $state)` with the model's handlers | `fill($tail, $state)` with the model's handlers | `fillFor($class, $state, $tail)` with the aggregate's |
+| executed by | the tag reader | the tag reader | **its repository** (§10.4) |
+
+`EventSourcingHandlerExecutor::fill(array $events, ?object $existingAggregate)` already takes the base state —
+`$aggregate = $existingAggregate ?? (new $this->aggregateClassName())`. Folding onto a snapshot is the argument
+that is already there, passed instead of `null`. `GroupedEventSourcingExecutor::fillFor` is the same on the
+aggregate side, and `EventSourcedRepositoryAdapter` already calls it that way.
+
+### 10.2 The statement, extended — measured, not sketched
+
+Option C with two more branches. The interesting part is the `flags` CTE: its tail predicate has to come from the
+snapshot that the *same statement* is reading.
+
+```sql
+WITH captured AS (
+    SELECT tag_name, tag_value, version FROM ecotone_tag_versions
+    WHERE (tag_name = ? AND tag_value = ?) OR …
+), snaps AS (
+    SELECT model_class, scope_key, state, covered_position FROM ecotone_decision_snapshots
+    WHERE (model_class = ? AND scope_key = ? AND fold_shape = ?) OR …
+), flags AS (
+    SELECT stream_name, event_no,
+           MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) AS sequence_0,
+           MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN 1 ELSE 0 END)     AS has_0,
+           …
+    FROM ecotone_tagged_events
+    WHERE (tag_name = ? AND tag_value = ?
+           AND tag_sequence > COALESCE((SELECT covered_position FROM snaps WHERE model_class = ? AND scope_key = ?), 0))
+       OR …
+    GROUP BY stream_name, event_no
+)
+SELECT 'version'  AS branch, tag_name, tag_value, version, NULL, …            FROM captured
+UNION ALL
+SELECT 'snapshot', model_class, scope_key, covered_position, state, …         FROM snaps
+UNION ALL
+SELECT 'tag',      NULL, NULL, NULL, NULL, s.no, s.event_name, s.payload, s.metadata, f.sequence_0, f.has_0
+                                                                              FROM flags f JOIN <stream> s ON s.no = f.event_no
+                                                                              WHERE f.stream_name = ?
+UNION ALL
+SELECT 'aggregate', NULL, NULL, NULL, NULL, s.no, s.event_name, s.payload, s.metadata, NULL, NULL
+                                                                              FROM <stream> s
+                                                                              WHERE <aggregate_type> = ? AND <aggregate_id> = ?
+                                                                                AND <aggregate_version> > ?
+```
+
+**PostgreSQL turns the scalar sub-select into an `InitPlan` and pushes it into the index condition.** Measured, the
+statement above against the Part 12 dataset:
+
+```
+->  HashAggregate
+      InitPlan 2 (returns $1)
+        ->  CTE Scan on snaps  (rows=1)
+      ->  Index Only Scan using ecotone_tagged_events…
+            Index Cond: (tag_name = 'wallet' AND tag_value = 'w-1'
+                         AND tag_sequence > COALESCE($1, 0) AND stream_name = '…')
+            Heap Fetches: 0
+```
+
+The snapshot's covered position is evaluated **once** and becomes part of the index range, inside the same statement
+that captured the counters. That is the strongest form of the maintainer's original question the mechanism can take:
+capture, snapshot position, tail and aggregate branch, one snapshot of the database, one round trip.
+
+**The alternative, and it is nearly as good.** Reading the snapshots as their own statement first and binding
+`covered_position` as an ordinary parameter:
+
+| | PostgreSQL 16 | MySQL 8.0 | MariaDB 11.4 |
+|---|---|---|---|
+| (i) one statement, snapshot as a CTE | 1.37–1.54 ms | 1.52–1.54 ms | 1.07–1.16 ms |
+| (ii) snapshot read + option C statement | 0.07–0.33 + 1.19–1.22 = **1.29–1.52 ms** | 0.05–0.21 + 1.11–1.12 = **1.16–1.34 ms** | 0.06–0.08 + 0.72–1.02 = **0.78–1.11 ms** |
+| (iii) option C, no snapshot | 4.68–6.72 ms | 7.52–8.57 ms | 9.24–9.42 ms |
+
+*Medians of 20 runs each, two independent runs per engine; 30 900 stream rows, 30 900 index rows, the read tag
+holding 1 000 of them, snapshot at 900. (i) and (ii) return 103 and 102 rows; (iii) returns 2 002.*
+
+(i) and (ii) are within noise of each other and both are four to eight times (iii). **Recommendation: (i), the
+CTE — but not for the milliseconds.** Take it because the snapshot position is then read in the same database
+snapshot as the counters it must be compared against (§11.4), which turns a runtime invariant into a structural one;
+and because it keeps the guarantee sentence to one clause. Take (ii) instead if the snapshot store is ever allowed
+to live on another connection, where (i) is impossible anyway.
+
+**Ordering is unaffected.** The `flags` CTE still emits `sequence_n`, `MatchedEvents::consider()` still keeps the
+lowest sequence per `(stream, event_no)` and `inSequenceOrder()` still sorts by `(sequence, eventNo)` — over a
+shorter list. The aggregate branch is still sorted by `no` in PHP. §3.7 of revision 1 stands word for word.
+
+### 10.3 What a model's fold becomes
+
+```
+foldInstances(...)
+    $snapshot = $loaded->snapshotFor($parameterName);          // state + covered position, or null
+    $tail     = $this->tagResolver->eventsMatching($loaded->events, $criteria);
+    $instance = $loader->fold($tail, $snapshot?->state);        // fill($tail, $state ?? null)
+```
+
+`DecisionModelParameterLoader::fold` and `AggregateBackedDecisionModelLoader::fold` each gain the second argument and
+pass it straight to `fill()`. `DecisionModelBatchLoader::load` gains nothing structurally: it already hands criteria
+to the store and folds what comes back, and `readEventsOfEachAggregateInstance` — its second store call — was already
+leaving in revision 1 (§4.3).
+
+### 10.4 OQ5 revisited: can the `#[Fetch]`-ed aggregate be the same load?
+
+**In shape, yes — completely.** With aggregate-scope snapshots the fetched aggregate's load *is*
+scope → snapshot → `aggregate_version > covered` → fold with its own `#[EventSourcingHandler]`s. That is literally
+`EventSourcedRepositoryAdapter::findBy` with the document-store lookup swapped for a table read. Revision 1's stated
+reason — *"it would mean reimplementing repository loading"* — describes the mechanism, and the mechanism turns out
+not to be the obstacle. **Revision 1's OQ5 answer was right for the wrong reason, and the right reason is narrower
+and harder to remove.**
+
+**In execution, no, because `findBy` is a dispatch point, not a loader.** `FetchAggregateConverter` calls
+`AllAggregateRepository::findBy()`, which walks registered repositories and asks `canHandle()`:
+
+| What it may dispatch to | Can the tag reader's statement replace it? |
+|---|---|
+| `EventSourcedRepositoryAdapter` wrapping `EventSourcingRepository` (the Dbal event store) | **yes** — same connection, same stream, `loadAggregateEvents` is what both call |
+| `EventSourcedRepositoryAdapter` wrapping a **user-supplied** `EventSourcedRepository` | **no.** `EventSourcedRepository` is a public interface (`findBy($class, $ids, $fromVersion): EventStream`) that users implement; its events are not in `ecotone_event_stream` and may not be in a database at all |
+| `StateStoredRepositoryAdapter` — document store, Doctrine ORM, Eloquent, user repositories | **no, and never.** State-stored aggregates have **no events**. There is nothing to fold and nothing to tail. Out, permanently |
+| an aggregate on another connection | **no** — `CrossConnectionDecisionModelGuard` exists precisely because a read on one connection cannot be guarded by an append on another |
+| an aggregate with `withSnapshotsFor(...)` configured | **only by taking its snapshot over**, §10.5 |
+
+So a folded `#[Fetch]` would have to *decide, per aggregate class, whether it is allowed to bypass the user's
+repository*, and fall back when it is not. That is two load paths sharing one name — the opposite of one flow — and
+the branch condition is invisible to the user until the day they register a repository and the read silently changes
+shape.
+
+**What is worth building instead: a hand-off.** `DecisionModelBatchLoader` already resolves each `#[Fetch]`-ed
+parameter's identifiers before the converter runs — that is how `FetchedAggregateCounterCapture` puts the counter in
+the capture set (§2.3b). It can therefore also fold the aggregate from the same statement and leave the instance in
+`DecisionModelLoadedState`, alongside the models. `FetchAggregateConverter::getArgumentFrom` then:
+
+```
+$preloaded = DecisionModelLoadedState::fetchedAggregateIn($message, $this->parameterName);
+if ($preloaded !== null) { return $preloaded; }
+… today's AllAggregateRepository::findBy() …
+```
+
+The pre-load is populated only when the aggregate is event-sourced, on Ecotone's own `EventSourcingRepository`, on
+the handler's connection and in the handler's stream — a condition the batch loader can evaluate at **bootstrap**,
+not at runtime, so the shape of the read is fixed per handler and reviewable. Everything else takes the branch it
+takes today, unchanged and untested-against.
+
+**`FetchAggregateConverter` still exists and keeps its signature.** What changes is one guard clause at the top of
+`getArgumentFrom` and nothing else: the licence check, the expression evaluation, `identifiersFrom`, the
+`AggregateNotFoundException`, the nullable handling and the `ResolvedAggregate` unwrapping are all untouched. It does
+*not* gain knowledge of snapshots, streams or SQL.
+
+**The cost of the hand-off, stated plainly:** it removes one round trip per fetched aggregate (revision 1 measured
+the whole read phase at 3.70 ms on PostgreSQL, of which the fetched aggregate's `tableExists` + `loadAggregateEvents`
+is ~1.24 ms), and it shortens the general form from `1 + A_fetched` to `1`. It also puts the fetched aggregate's read
+inside the same database snapshot as its captured counter, which today it is not (§2.3b shows this is safe, not that
+it is tidy). It does **not** make the aggregate any more consistent than it is now. It is a legitimate step; it is
+the last one.
+
+### 10.5 The two snapshot mechanisms must not diverge
+
+If an aggregate has `withSnapshotsFor(Wallet::class, 100)` **and** a `#[DecisionModel(aggregate: Wallet::class)]`
+folds its events, there are now two snapshots of overlapping histories:
+
+| | the aggregate's | the model's |
+|---|---|---|
+| stores | `aggregate_snapshots_Wallet` in the document store | `ecotone_decision_snapshots` |
+| holds | the whole aggregate | the model's projection of it |
+| position | `#[Version]` inside the serialized object | `covered_position` column |
+| written | inline in `save()`, every Nth event | after commit, every Nth append |
+| read by | `EventSourcedRepositoryAdapter::findBy` | the decision read |
+
+**They do not have to agree, and trying to make them agree is the trap.** They snapshot *different objects*: the
+aggregate's snapshot is `Wallet`, the model's is `WalletBalance`. Neither is derivable from the other, neither
+invalidates the other, and both are exact by their own position. The `2026-09-28-dcb-aggregate-full-tag-design.md`
+test 18 already pins this — *"a model backed by an aggregate with a configured snapshot: the aggregate's own command
+handler still loads through its snapshot; the model reads the full history (pinning that the two paths are
+independent)"*. That test stays; only its second clause changes, to "the model reads from its own snapshot".
+
+**Migrating aggregate snapshots into the new table is out of scope and should stay out.** It is shipped user data,
+keyed by a document id the user's converter round-trips, in a store whose connection the user chose. The only
+argument for it is aesthetic. **Recommendation: two stores, one *position concept* (`aggregate_version`), and one
+sentence in the documentation saying they are independent.**
+
+---
+
+## Part 11 — Correctness under snapshots
+
+### 11.1 Capture-before-read still holds, and gets stronger
+
+The capture is inside the statement (§3.3) and the snapshot is a CTE of the same statement (§10.2), so the order is
+not "capture, then read" but "capture *and* read", one database snapshot. What has to be shown is the new claim:
+**the tail is complete relative to the captured counter.**
+
+The proof is two lines, and it needs the single statement.
+
+1. The guarded bump, the event rows and the index rows of any append are written in **one transaction**
+   (`DbalTagConditionalAppender::appendEventsWithTagCondition`: `bumpGuarded` → `insertEventRows` →
+   `index->insertRows`, all inside the handler's `BEGIN … COMMIT`). So for a reader, `counter = c` and
+   "all index rows with `tag_sequence ≤ c` are present" are the same fact.
+2. If the reader observes the counter and the index rows in one database snapshot, then reading `tag_sequence > covered`
+   returns **exactly** the appends numbered `covered+1 … c`, where `c` is the captured version. Nothing is missing and
+   nothing is from the future.
+
+With the reads split across statements on PostgreSQL's READ COMMITTED, (2) weakens to "the tail may contain appends
+numbered above `c`" — which is revision 1's benign divergence, now with a snapshot in front of it: the extra appends
+are still folded, the decision is still taken on data newer than the capture, and the guarded `UPDATE` still fails.
+**Spurious retry, never a missed conflict.** The single statement removes that window; it does not create a new one.
+
+### 11.2 With rows: a competing commit between capture and read
+
+`wallet:w-1` is at 1 000. `PayoutsToday` has a snapshot covering 900. Anna decides; Ben commits a `PayoutMade`
+carrying `wallet:w-1` in between.
+
+**PostgreSQL, one statement (option C + snapshot CTE)**
+
+| Anna | Snapshot | Reads |
+|---|---|---|
+| the statement | *t₀* | `captured wallet:w-1 = 1000`; `snaps.covered_position = 900`; `flags` where `tag_sequence > 900` → sequences 901…1000, 100 rows |
+| — | | *Ben commits: `wallet:w-1 → 1001`, one index row at `tag_sequence = 1001`* |
+| fold | — | snapshot state + 100 events. Ben is not in it, and Ben's counter is not in the capture |
+| guarded bump | current read | `UPDATE … AND version = 1000` → **1 row**. Anna commits at 1001… |
+
+…and Ben's own bump, which ran first, took the counter to 1001, so Anna's `version = 1000` finds **0 rows**. Anna
+retries. The order is whichever commits first; the loser retries. Exactly today's behaviour, with a shorter read.
+
+**PostgreSQL, reads split (the multi-stream case, §3.4)**
+
+| Anna | Snapshot | Reads |
+|---|---|---|
+| capture + snapshot | *t₀* | `1000`, covered `900` |
+| — | | *Ben commits, counter → 1001* |
+| tail, second stream | *t₁* | `tag_sequence > 900` → **901…1001** — Ben's event is folded |
+| guarded bump | current read | `… AND version = 1000` → **0 rows** |
+
+Anna folded one event more than her capture covers, and is rejected for it. **The snapshot changes nothing here:**
+the divergence window is between the capture and the read, and the snapshot sits before both.
+
+**MySQL / MariaDB / SQLite** — one transaction snapshot, pinned at the statement: Ben is invisible throughout, the
+tail is 901…1000, the guarded bump is a current read and fails. As in §2.2.
+
+### 11.3 Multi-tag AND scope, and the aggregate-backed case
+
+**AND scope.** `PayoutsToday` scoped `wallet:w-1` AND `region:eu`, counters at 1 000 and 4 000, snapshot covering
+`(wallet: 900)` — the first *counted* tag (§9.3). Events carrying both tags: `#870` at
+`(sequence_wallet 870, sequence_region 3 010)` and `#1 000` at `(1 000, 3 980)`.
+
+| Event | `sequence_wallet` | in tail `> 900`? | `has_wallet AND has_region`? | folded? |
+|---|---|---|---|---|
+| #870 (both tags) | 870 | no | — | no — covered by the snapshot |
+| #950 (wallet only) | 950 | yes | no | no — AND-filtered, as today |
+| #1000 (both tags) | 1 000 | yes | yes | **yes** |
+
+`#950` bumped `wallet:w-1` without being in the scope, so `tag_sequence` values are *not* a count of matching events.
+That is exactly why the cut is correct: `> covered` is a **time** cut at an append boundary, not a count. The
+AND-filter runs after it, unchanged, and the snapshot state covers every matching event with `sequence_wallet ≤ 900`
+— which is every matching event committed before the snapshot instant, because a matching event carries `wallet:w-1`
+and therefore bumps it.
+
+**Aggregate-backed.** `WalletBalance` over `Wallet w-1`, 1 000 events, snapshot covering `aggregate_version 900`,
+counter `aggregate_Wallet:w-1` at (say) 640 appends. Tail is `aggregate_version > 900` → versions 901…1 000. Ben
+saves `Wallet w-1` mid-decision: he bumps the counter to 641 and writes versions 1 001–1 003. Anna's captured 640
+fails the guarded `UPDATE`; Anna retries. Note the counter and `aggregate_version` are *different scales* — one
+append of three events moves the counter by one and the version by three — which is fine, because they are used for
+different jobs: the version positions the snapshot, the counter guards the decision.
+
+### 11.4 A stale snapshot, and a snapshot that ran ahead
+
+**Stale costs a longer tail and nothing else.** A snapshot covering 500 when the counter is at 1 000 yields a
+500-row tail instead of a 100-row one. The fold is identical — `fill()` applies the same handlers to the same events
+in the same order, whether they come from the snapshot or from the tail — so the model instance is bit-for-bit what
+a full fold produces. Missing entirely is the limiting case: tail = the whole history, which is today's behaviour.
+
+**A snapshot that ran ahead is the case worth proving, and it is safe on every arrangement.** Suppose the snapshot
+store is a *different connection* (option (a) of §9.4) and its writer commits `covered_position = 1000` while the
+append that took the tag's counter to 1 000 is not yet visible to the reader.
+
+| Reader | observes |
+|---|---|
+| capture | `wallet:w-1 = 999` |
+| snapshot | `covered_position = 1000` — **ahead of the capture** |
+| tail | `tag_sequence > 1000` → empty (row 1 000 is invisible anyway) |
+| fold | the snapshot state, which includes an event the capture does not cover |
+| guarded bump | `UPDATE … AND version = 999` → **0 rows**, because the row *is* at 1 000 |
+
+**It cannot commit.** The reason is structural, not lucky: the snapshot's scope tag is a counted tag of the model, so
+it is in the captured set; `AppendCondition::fromCapturedVersions` carries it into the append condition;
+`AppendedTags` puts every condition version into `involved`; and each is bumped guarded. Whatever made the snapshot
+run ahead necessarily moved that counter, and the guard is a current read. **A cross-connection snapshot store
+produces spurious retries, never a wrong decision** — the same class of answer §2.4 gives for the whole question.
+
+That said, a *guaranteed* conflict is not a good outcome: the handler burns a full attempt every time. So:
+
+> **Invariant, cheap and total: discard any snapshot whose `covered_position` exceeds the captured counter version**
+> (for a tag scope; for an aggregate scope, whose tail is empty while the stream's `MAX(aggregate_version)` is
+> lower). Fall back to the full fold, log it, and let the decision succeed.
+
+With option (b) — the snapshot table on the event store's connection, read in the same statement — the invariant is
+**structurally unreachable**: the snapshot writer's transaction either committed before the reader's snapshot, in
+which case the counter moved with it, or after, in which case neither is visible. That is the argument for (b) in
+§9.4, and it is the strongest correctness reason this document has found for a single statement.
+
+**Corrupt or undeserializable** → §9.6, full fold, log, self-heal. **Written under a different `fold_shape`** → not
+matched by the predicate, full fold, no runtime check at all.
+
+### 11.5 In-memory parity
+
+`EnterpriseInMemoryTagCollaborator::loadByCriteria` captures and walks the index in one pass over PHP arrays inside
+one call, so it is already one snapshot (§4.4). A snapshot mirror is an array keyed `(model_class, scope_key)`
+holding `[state, coveredPosition, foldShape]`, filtered by the same `sequence > covered` predicate in
+`InMemoryTagIndex::eventsMatching`. Two things to get right, both already learned in this codebase:
+
+1. **Store a clone, not the instance.** Part 6.2 item 8 of the fetched-aggregates design records that in-memory
+   state-stored aggregates are shared instances, so a lost update was observable only on the Dbal document store.
+   A folded model handed out by reference would be mutated by the next fold. The Dbal path serializes, which clones
+   by construction; the in-memory path must `clone` explicitly or the parity tests will pass while the semantics
+   differ.
+2. **Serialize in memory too, or do not claim parity on the converter requirement.** A model with no registered
+   `#[MediaTypeConverter]` snapshots happily in memory and fails on Dbal. Either the in-memory store round-trips
+   through `ConversionService` as well, or the missing-converter failure is a bootstrap guard rather than a runtime
+   one. **Recommendation: a bootstrap guard** — when a model is configured for snapshots, assert a converter exists
+   for it, with the same message shape `DecisionModelModule` already uses. Then in-memory can clone and the two
+   stores agree.
+
+---
+
+## Part 12 — Cost and benefit, measured
+
+### 12.1 The dataset
+
+One stream table, **30 900 events**: 300 `Wallet` instances, the read instance `w-1` holding **1 000** events and the
+other 299 holding 100 each; every event tagged `wallet:<id>`, so `ecotone_tagged_events` holds 30 900 rows and the
+read tag holds 1 000 of them. Tables, indexes and column expressions copied from `EventStreamSchema`,
+`TaggedEventSchema` and `DocumentStoreTableManager`. Snapshot at `tag_sequence` / `aggregate_version` **900**, so the
+tail is 100. Medians of 20 runs per statement, two independent runs per engine, on the compose stack. The throwaway
+harness was deleted.
+
+### 12.2 Rows read, and time
+
+| | PostgreSQL 16 | MySQL 8.0 | MariaDB 11.4 |
+|---|---|---|---|
+| **tag scope, today** — flags (1 000 rows) | 1.02–1.54 ms | 1.51–2.01 ms | 1.85–2.00 ms |
+| — events by `no IN (…)` (1 000 rows) | 3.00–4.44 ms | 5.48–6.67 ms | 3.50–4.30 ms |
+| — PHP decode + fold, 1 000 events | 1.86–2.10 ms | 1.87 ms | 1.71–1.85 ms |
+| **total** | **5.9–8.1 ms** | **8.9–10.6 ms** | **7.1–8.2 ms** |
+| **tag scope, snapshot at 900** — snapshot read | 0.05–0.25 ms | 0.09–0.10 ms | 0.08–0.11 ms |
+| — flags tail, existing index (100 rows) | 0.48–0.75 ms | 0.79–0.94 ms | 0.52–0.85 ms |
+| — events tail by `no IN (…)` (100 rows) | 0.54–0.65 ms | 0.72–0.77 ms | 0.59–0.63 ms |
+| — PHP snapshot decode + fold, 100 events | 0.19 ms | 0.19 ms | 0.19 ms |
+| **total** | **1.3–1.8 ms** | **1.8–2.0 ms** | **1.4–1.8 ms** |
+| **aggregate scope, today** — `loadAggregateEvents` from 1 (1 000 rows) | 2.49–2.65 ms | 2.65–3.45 ms | 2.67–2.69 ms |
+| — PHP decode + fold | 1.86–2.10 ms | 1.87 ms | 1.71–1.85 ms |
+| **aggregate scope, snapshot at 900** — `fromVersion: 901` (100 rows) | 0.92–0.97 ms | 1.48–1.90 ms | 2.16–2.17 ms |
+| — snapshot read + decode + fold | 0.25 ms | 0.29 ms | 0.30 ms |
+| **combined statement (option C), no snapshot** — 2 002 rows | 4.68–6.72 ms | 7.52–8.57 ms | 9.24–9.42 ms |
+| **combined statement, snapshot as a CTE** — 103 rows | **1.37–1.54 ms** | **1.52–1.54 ms** | **1.07–1.16 ms** |
+| **snapshot read + combined statement** — 102 rows | **1.29–1.52 ms** | **1.16–1.34 ms** | **0.78–1.11 ms** |
+
+**Rows: 2 002 → 103.** **Time: four to eight times.** And the saving is proportional to what the snapshot covers,
+where everything revision 1 measured is a constant.
+
+### 12.3 Statement count, and whether a new index is needed
+
+Statement count does not change: the snapshot is a CTE branch (one statement, as §10.2) or one extra read (two). The
+general form of revision 1, `1 + A_fetched`, becomes `1 + A_fetched` or `2 + A_fetched`. **Snapshots are not a
+round-trip optimisation and must not be sold as one** — they are a rows-read optimisation, which is the axis that
+scales with history.
+
+**A new index is tempting and is not yet warranted.** `ecotone_tagged_events`'s primary key is
+`(tag_name, tag_value, stream_name, event_no)`, so `tag_sequence > :covered` is a *filter* inside the tag's range,
+not a range bound: the scan still touches all 1 000 of the tag's index entries and groups 100. An index
+`(tag_name, tag_value, tag_sequence, stream_name, event_no)` makes the tail an index-only range scan:
+
+| flags tail, 100 of 1 000 | existing PK | with the extra index |
+|---|---|---|
+| PostgreSQL | 0.48–0.75 ms | 0.52–0.67 ms |
+| MySQL | 0.79–0.94 ms | 0.33–0.44 ms |
+| MariaDB | 0.52–0.85 ms | 0.50–0.71 ms |
+
+It helps MySQL and is noise on PostgreSQL and MariaDB — **at 1 000 rows**. The win of a snapshot is the stream-table
+join, the transfer and the PHP fold (≈ 5.5 ms of the ≈ 7 ms on PostgreSQL), not the index scan (≈ 0.5 ms).
+**Recommendation: ship without it**, and revisit when a tag's index rows reach five or six figures — at which point
+it is a `database:setup` addition, not a design change.
+
+### 12.4 The write cost, and where it belongs
+
+Serializing a small model and upserting one row is the `snapshot read` column run backwards: **0.05–0.33 ms**, plus
+whatever the user's converter costs. Inline in the handler's transaction — the way aggregate snapshots work today —
+that is paid by one command in every N, on the critical path, inside the lock window that determines the conflict
+rate. Revision 1's §4.6 measured that the conflict rate is governed by *the length of the whole transaction*, so
+lengthening it every Nth command is the one change in this document that could make contention measurably worse.
+
+Asynchronously, after commit, it is off the critical path entirely, and correctness does not care (§9.5).
+**Recommendation: after commit, by default.**
+
+### 12.5 Storage, and the workloads
+
+**Storage is the honest cost, and it is unlike aggregate snapshots.** `withSnapshotsFor(Ticket::class, 1)` produces
+one document per `Ticket`. `#[DecisionModel(tags: ['wallet'])]` with snapshots produces one row **per tag value per
+model class** — the cardinality of the tag, times the number of models scoped on it. A tag with a million values and
+two models is two million rows, each holding a serialized object. That is a deliberate opt-in with a pruning story
+(`taken_at`, a `database:prune` style command, or a bounded threshold), not a default.
+
+| Benefits | Does not benefit |
+|---|---|
+| a long-lived tag: a wallet, a subscription, an account — hundreds to thousands of events under one value | a short scope: revision 1's own example read **10** index rows, where the snapshot read alone costs more than the fold it saves |
+| an aggregate-backed model over a long-lived aggregate | a tag whose value is high-cardinality and short-lived (one order, three events) — all storage, no saving |
+| a model folding one of many event types on a busy tag (the tail is small *and* narrow) | a model whose history is naturally bounded by design — which is what §4.5 of the main spec currently advises instead |
+
+**Break-even is low: tens of events.** On PostgreSQL the marginal cost of one covered event is ≈ 4.4 µs of fetch
+plus ≈ 2.0 µs of decode-and-fold plus ≈ 1 µs of index scan ≈ **7 µs**; the snapshot read is 50–250 µs, so it pays
+for itself somewhere around **20–35 covered events**. On MySQL, ≈ 10 µs per event against a 90–100 µs read: **around
+10**. Ignoring the write cost, which is why the guidance should be "long-lived scopes", not "always on".
+
+---
+
+## Part 13 — The revised proposal
+
+### 13.1 Part 4 revised — the collaborators
+
+Revision 1's §4.2 stands; three additions, and one rule that decides their shape.
+
+- **`DbalDecisionSnapshotStore`** (new, and the only new table owner). Owns `ecotone_decision_snapshots`:
+  `findFor(Connection, array $scopes): array` and, separately, `store(Connection, ...)`. It contributes a
+  `snapshotsCte(array $scopes): SqlFragment` beside `findFor`, exactly as `DbalTagIndex` contributes `flagsCte` and
+  `DbalTagVersionRegister` contributes `capturedCte`. One table, one collaborator, no inline SQL anywhere else.
+- **`DbalSingleReadPlan`** (revision 1's only new class) gains one more fragment to compose, and still writes no SQL.
+- **`DecisionSnapshotWriter`** (new, open question 12 below): decides *whether* to write after a commit, and writes.
+  It is a separate service on a separate path, invoked after the handler's transaction, never from the read.
+
+**CQS, stated because this is where it would be broken.** Reading a snapshot must not write one. The read path —
+`DbalTaggedEventReader::loadByCriteria` → `DbalSingleReadPlan` → `DbalDecisionSnapshotStore::snapshotsCte` — is
+pure: it returns rows and mutates nothing, not even to record a miss. The threshold arithmetic ("is this scope due a
+snapshot?") is evaluated on the **write** side, after the append, from the counter the append already produced. The
+temptation to write a snapshot at the end of a read because the fold is right there in memory is exactly the
+statelessness rule that was removed from `DbalTagVersionRegister` on 2026-09-28 (main spec, decision log), and it
+must not come back through this door.
+
+Naming follows the shipped convention: `Dbal*` for the Dbal implementations, the in-memory mirror as
+`InMemoryDecisionSnapshotStore` beside `InMemoryTagIndex`/`InMemoryTagVersionRegister`.
+
+`DecisionModelBatchLoader::load` stays the orchestration of named steps it becomes in §4.3 — it gains no knowledge
+of snapshots beyond passing `$snapshot?->state` into `fold()`.
+
+### 13.2 Part 5 revised — the constraints
+
+| Rule | How revision 2 stands |
+|---|---|
+| **Optimistic concurrency only** | Unchanged. §11.4 shows the snapshot never participates in the guard; the guarded `UPDATE`/`INSERT` is still the sole conflict mechanism |
+| **No locking reads** | The added branches are plain `SELECT`s. No `FOR UPDATE`, no `FOR SHARE`, in any SQL in Part 10 |
+| **Stateless services** | `DbalDecisionSnapshotStore` holds no per-execution state; the snapshot rows are database state, function-scoped in PHP. `DecisionSnapshotWriter` holds none either — its input is the append's outcome |
+| **CQS** | §13.1. The read never writes a snapshot |
+| **SQL owned by the table-owning collaborator** | `ecotone_decision_snapshots` → `DbalDecisionSnapshotStore`, and nothing else touches it |
+| **Black-box tests** | §13.3. Snapshot *presence* is not asserted through the table; it is asserted behaviourally — identical folds with and without, and a decision that is correct after a model class change |
+| **Four engines plus in-memory parity** | Parts 10 and 12 measure PostgreSQL, MySQL and MariaDB; SQLite needs no new syntax (CTEs since 3.8.3, as §3.3). In-memory mirror per §11.5 |
+| **Open-core untouched** | Everything is on the Enterprise tag path. `EventSourcedRepositoryAdapter`, `BaseEventSourcingConfiguration` and the document store are **not modified** (§10.5) |
+| **No nullable service dependencies** | `DbalDecisionSnapshotStore` is injected unconditionally; whether a model is snapshotted is a runtime lookup, not a nullable collaborator |
+| **No schema or protocol change** | **This one changes.** Revision 1 needed no DDL; revision 2 adds one table. It is additive, created by a `DbalTableManager` like `TagTableManager`, gated by the same `database:setup` / `verify-schema` machinery, and an application that does not opt in never creates it |
+
+### 13.3 Part 6 revised — tests
+
+Revision 1's tests 1–11 stand. Added, each behavioural:
+
+12. **A snapshotted model decides identically to an unsnapshotted one** — the same events, the same command, the
+    same folded value and the same appended events, with snapshots on and off. The regression net.
+13. **A snapshot covering part of the history, then a new event** — fold = snapshot + tail; assert the decision, not
+    the row count.
+14. **A stale snapshot** — write one, append twenty more events, decide: the same answer as a full fold.
+15. **A snapshot under a changed model class** — a model that gains an `#[EventSourcingHandler]` after a snapshot was
+    taken folds the **whole** history, not the stale projection. Drives `fold_shape`.
+16. **A corrupt snapshot** — an unparseable `state` yields a correct decision and a logged warning, not a failure.
+    Mirrors `SnapshotsTest`'s self-healing contract for aggregates.
+17. **A competing append between the snapshot read and the commit still conflicts** — `DecisionModelConcurrencyException`,
+    nothing appended. Two connections.
+18. **A snapshot ahead of the captured counter** — forced by writing a snapshot with a `covered_position` above the
+    counter: the decision is correct (full fold), not a conflict. Drives §11.4's invariant.
+19. **A multi-tag AND model with a filter-only first tag** — the position tag is the first *counted* one; the fold is
+    correct. Drives §9.3's precision.
+20. **An aggregate-backed model whose aggregate also has `withSnapshotsFor`** — both paths work and neither reads the
+    other's snapshot. This is test 18 of `2026-09-28-dcb-aggregate-full-tag-design.md`, updated.
+21. **In-memory parity** for 12–20 that do not need two connections, including that a folded model handed out twice
+    is not the same mutable instance (§11.5).
+
+Still not tested, by the 2026-09-27 rule: statement counts and rows read. Part 12's numbers are review-protected.
+
+### 13.4 Part 7 revised — OQ5's new answer, and the new questions
+
+**OQ5 (replaces revision 1's answer) — should the `#[Fetch]`-ed aggregate be folded into the statement?**
+Revision 1 said no because it would reimplement repository loading. With snapshots on both sides that reason is
+wrong: the *shape* is identical (§10.4). The reason that survives is narrower — `AllAggregateRepository::findBy()`
+dispatches over **user-supplied** `EventSourcedRepository` implementations, state-stored aggregates with no events at
+all, cross-connection aggregates and document-store snapshots, so a folded read would have to decide per class
+whether it may bypass the user's repository. *Recommendation: **not a replacement, a hand-off.** The batch loader
+folds the fetched aggregate in the same statement and leaves the instance in `DecisionModelLoadedState`;
+`FetchAggregateConverter` uses it when present and falls back to `AllAggregateRepository` otherwise, with the
+eligibility decided at bootstrap so the read shape is fixed per handler. The converter stays, with one guard clause
+added. Build it last (§13.6), and only if the round trip is worth the branch.*
+
+**OQ8 — opt-in per model class, or on the DCB extension object?** Storage is per tag *value* (§12.5), so "on for
+everything" is not defensible. Three shapes: a parameter on the attribute
+(`#[DecisionModel(tags: ['wallet'], snapshot: 100)]`), a list on `DynamicConsistencyBoundaryConfiguration`
+(`->withDecisionModelSnapshots([PayoutsToday::class => 100])`, mirroring `withSnapshotsFor`), or both.
+*Recommendation: **the extension object**, mirroring `BaseEventSourcingConfiguration::withSnapshotsFor` exactly —
+class, threshold, store reference. It keeps a performance decision out of the domain class, it is the shape users
+already know from aggregate snapshots, and it can be changed per environment. Add the attribute parameter later if
+users ask; it cannot be removed once added.*
+
+**OQ9 — one snapshot store, or the aggregate's document store reused?** §9.4 and §10.5.
+*Recommendation: **a new table on the event store's connection**, and the aggregate's document-store snapshots left
+exactly where they are. Two stores, one position concept, one documented sentence that they are independent.*
+
+**OQ10 — the extra index on `(tag_name, tag_value, tag_sequence, …)`?** §12.3: it helps MySQL and is noise elsewhere
+at 1 000 rows, and the win is the join and the fold, not the scan. *Recommendation: **no, not in the first cut.***
+
+**OQ11 — snapshot as a CTE of the one statement, or a preceding read?** §10.2: within noise of each other.
+*Recommendation: **the CTE**, because it makes §11.4's "snapshot ahead of the capture" structurally impossible
+rather than a runtime check — which is the first correctness argument this research has found for the single
+statement, and worth more than the milliseconds.*
+
+**OQ12 — when is the snapshot written?** §9.5, §12.4. Inline every-N is what aggregates do and it lengthens the
+transaction that governs the conflict rate. *Recommendation: **after commit, off the critical path**, with inline
+available as an option. The tail is exact by position, so lateness is only a cost.*
+
+**OQ13 — what does a model class need to be snapshottable?** A registered converter, as aggregates need
+(`BasketMediaTypeConverter`). *Recommendation: **a bootstrap guard** when a model is configured for snapshots, so
+the failure is a `ConfigurationException` naming the model and the converter, not a runtime log — and so the
+in-memory and Dbal stores agree (§11.5).*
+
+**OQ1, OQ2, OQ3, OQ4, OQ6, OQ7 are unchanged.**
+
+### 13.5 Part 8 revised — what the summary now says
+
+Revision 1's summary stands, with one sentence added and one corrected.
+
+*Added:* snapshots give the decision read the only saving that grows with history. At 1 000 events under one tag the
+combined read is 6.7 → 1.5 ms on PostgreSQL, 8.6 → 1.5 ms on MySQL, 9.2 → 1.2 ms on MariaDB, and 2 002 rows → 103;
+option C's ~2.4 ms is flat. Nothing new has to be invented to get it: `tag_sequence` is already the tag's counter
+version, stamped identically on every event of an append, and `fromVersion` is already a SQL argument.
+
+*Corrected:* revision 1's OQ5 gave the wrong reason. Folding `#[Fetch]` is not blocked by the mechanism — with
+snapshots the two loads are the same steps — but by `AllAggregateRepository` being a dispatch point over user
+repositories and state-stored aggregates. The right move is a hand-off, not a replacement.
+
+### 13.6 Recommended implementation order
+
+| # | Unit | Why here |
+|---|---|---|
+| 1 | **Delete the `tableExists` probes** from the decision read path (OQ2) | Two thirds of revision 1's measured win, a few lines, independent of everything else, and it turns a silent wrong decision into the `ConfigurationException` the design already uses. Lands whatever else is decided |
+| 2 | **Guard a filter-only-scoped `#[DecisionBoundary]`** (OQ1) | The only genuine correctness gap this research found, unrelated to either question, small and self-contained |
+| 3 | **Option C** — the combined statement with the capture CTE | Before snapshots, because §11.4's invariant becomes structural rather than a runtime check only when the counters and the snapshot position are read in one database snapshot. It is also the smaller change and it is fully specified by revision 1 |
+| 4 | **Aggregate-scope snapshots** | Cheapest first: the position is `aggregate_version`, the push-down is `fromVersion`, both already exist and are already tested. It needs the new table, the writer, the `fold_shape` and the configuration — every piece tag scope will reuse — against the simplest position |
+| 5 | **Tag-scope snapshots** | Adds only the position rule (§9.3, including the first-*counted*-tag precision) and the `tag_sequence > :covered` predicate. Everything else is already standing from 4 |
+| 6 | **The `#[Fetch]` hand-off** (OQ5), gated | Last, and optional. It buys one round trip per fetched aggregate and costs a bootstrap-decided branch in a converter that is currently branch-free. Build it only if step 3 has shipped and the round trip is still wanted |
+
+**If only one thing is built, build 1.** If only one *design* is built, the ordering above is 3-then-4-then-5 and
+not 4-then-3: option C without snapshots is a constant-factor improvement that helps every handler, snapshots without
+option C help only long scopes and need the §11.4 check written by hand. **If the maintainer wants the largest
+measured effect, it is 4 and 5** — four to eight times on a 1 000-event scope, against option C's flat 2.4 ms — and
+the honest way to present that is: option C makes every decision a little faster; snapshots stop long-lived tags and
+aggregates from getting slower forever, which is the bound §4.5 of the main spec currently addresses with tag-design
+advice.

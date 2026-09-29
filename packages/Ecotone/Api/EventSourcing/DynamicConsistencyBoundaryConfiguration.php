@@ -16,10 +16,12 @@ final class DynamicConsistencyBoundaryConfiguration
     /**
      * @param string[] $filterOnlyTagNames
      * @param array<class-string, array{thresholdTrigger: int, documentStore: string}> $snapshottedModelClasses
+     * @param class-string[] $classesWithoutOptimisticLock
      */
     private function __construct(
         private readonly array $filterOnlyTagNames,
         private readonly array $snapshottedModelClasses = [],
+        private readonly array $classesWithoutOptimisticLock = [],
     ) {
     }
 
@@ -33,7 +35,22 @@ final class DynamicConsistencyBoundaryConfiguration
      */
     public function withFilterOnlyTags(array $tagNames): self
     {
-        return new self($tagNames, $this->snapshottedModelClasses);
+        return new self($tagNames, $this->snapshottedModelClasses, $this->classesWithoutOptimisticLock);
+    }
+
+    /**
+     * State-stored aggregates that keep the 1.x last-write-wins behaviour: no counter tag is captured when
+     * one is loaded and none is bumped when it is saved.
+     *
+     * @param class-string|class-string[] $stateStoredAggregateClasses
+     */
+    public function withoutOptimisticLockFor(array|string $stateStoredAggregateClasses): self
+    {
+        return new self(
+            $this->filterOnlyTagNames,
+            $this->snapshottedModelClasses,
+            [...$this->classesWithoutOptimisticLock, ...(array) $stateStoredAggregateClasses],
+        );
     }
 
     /**
@@ -52,7 +69,7 @@ final class DynamicConsistencyBoundaryConfiguration
             ];
         }
 
-        return new self($this->filterOnlyTagNames, $snapshottedModelClasses);
+        return new self($this->filterOnlyTagNames, $snapshottedModelClasses, $this->classesWithoutOptimisticLock);
     }
 
     /**
@@ -69,5 +86,13 @@ final class DynamicConsistencyBoundaryConfiguration
     public function snapshottedModelClasses(): array
     {
         return $this->snapshottedModelClasses;
+    }
+
+    /**
+     * @return class-string[]
+     */
+    public function classesWithoutOptimisticLock(): array
+    {
+        return $this->classesWithoutOptimisticLock;
     }
 }

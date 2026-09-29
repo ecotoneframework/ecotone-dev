@@ -75,6 +75,23 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         self::assertSame(50, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
     }
 
+    public function test_an_aggregate_excluded_from_the_optimistic_lock_keeps_last_write_wins_across_two_connections(): void
+    {
+        $this->skipUnlessTwoConnectionsCanRace();
+
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutOptimisticLock: true);
+        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutOptimisticLock: true);
+        $anna->sendCommand(new OpenPurseForCounterDbalTest('p-1'));
+        $anna->getServiceFromContainer(CompetingWithdrawalForCounterDbalTest::class)->arm(
+            fn () => $ben->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 50))
+        );
+
+        $anna->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 30));
+
+        self::assertSame(70, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
+        self::assertSame([], $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('aggregate_DocPurse', 'p-1'))->events);
+    }
+
     public function test_an_aggregate_only_decision_boundary_fails_the_append_when_another_connection_saves_the_aggregate_during_the_decision(): void
     {
         $this->skipUnlessTwoConnectionsCanRace();
@@ -154,6 +171,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         bool $withDynamicConsistencyBoundary = true,
         bool $withTransactionOnCommandBus = true,
         string $documentStoreConnectionReference = DbalConnectionFactory::class,
+        bool $withoutOptimisticLock = false,
     ): FlowTestSupport {
         $extensionObjects = [
             DbalConfiguration::createWithDefaults()
@@ -162,14 +180,16 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
                 ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, connectionReference: $documentStoreConnectionReference, documentStoreRelatedAggregates: [PurseForCounterDbalTest::class]),
         ];
         if ($withDynamicConsistencyBoundary) {
-            $extensionObjects[] = DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+            $extensionObjects[] = $withoutOptimisticLock
+                ? DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(PurseForCounterDbalTest::class)
+                : DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
 
         $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 PurseForCounterDbalTest::class,
                 PurseJsonConverterForCounterDbalTest::class,
-                ...($withDynamicConsistencyBoundary ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
+                ...($withDynamicConsistencyBoundary && ! $withoutOptimisticLock ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
             ],
             containerOrAvailableServices: [
                 $connectionFactory,

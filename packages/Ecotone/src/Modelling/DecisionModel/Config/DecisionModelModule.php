@@ -55,6 +55,7 @@ use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
 use function implode;
+use function in_array;
 
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
@@ -157,6 +158,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         self::assertNoSagaFetchedIntoADecision($this->handlers);
+        self::assertNoAggregateWithoutOptimisticLockFetchedIntoADecision($this->handlers, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->classesWithoutOptimisticLock());
 
         foreach ($this->handlers->loadingBeforeInvocation() as $handler) {
             $batchLoaderReference = self::BATCH_LOADER_REFERENCE_PREFIX . $handler->key();
@@ -314,6 +316,29 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     $fetchedClass,
                     $handler->className(),
                     $handler->methodName(),
+                ));
+            }
+        }
+    }
+
+    /**
+     * @param class-string[] $classesWithoutOptimisticLock
+     */
+    private static function assertNoAggregateWithoutOptimisticLockFetchedIntoADecision(DecisionModelHandlers $handlers, array $classesWithoutOptimisticLock): void
+    {
+        foreach ($handlers->all() as $handler) {
+            foreach ($handler->fetchedAggregateClasses() as $fetchedClass) {
+                if (! in_array($fetchedClass, $classesWithoutOptimisticLock, true)) {
+                    continue;
+                }
+
+                throw ConfigurationException::create(sprintf(
+                    '%s is fetched into %s::%s, a Dynamic Consistency Boundary handler, but it is listed in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor(), so it keeps no counter and a decision taken on its state would be unguarded. '
+                    . 'Drop %s from withoutOptimisticLockFor(), or read it in a handler that does not take part in the boundary.',
+                    $fetchedClass,
+                    $handler->className(),
+                    $handler->methodName(),
+                    $fetchedClass,
                 ));
             }
         }

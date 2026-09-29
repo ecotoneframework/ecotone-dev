@@ -35,6 +35,7 @@ use Ecotone\Modelling\Repository\AggregateCounter;
 use Ecotone\Modelling\Repository\OpenCoreAggregateCounter;
 
 use function implode;
+use function in_array;
 
 use ReflectionClass;
 use ReflectionMethod;
@@ -79,6 +80,7 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 
         if ($dynamicConsistencyBoundary->isEnabled()) {
             AggregateCounterTagGuard::assertEveryAggregateHasACountableType($this->aggregateTypesByClass, $this->rawDefinitions);
+            AggregateCounterTagGuard::assertEveryClassWithoutOptimisticLockIsAStateStoredAggregate($dynamicConsistencyBoundary->classesWithoutOptimisticLock(), $this->aggregateTypesByClass);
             $this->assertEveryAggregateHandlerRunsInATransaction();
         }
 
@@ -88,7 +90,7 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         );
         $messagingConfiguration->registerServiceDefinition(
             AggregateCounterTags::class,
-            new Definition(AggregateCounterTags::class, [$dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType() : []], 'createWith'),
+            new Definition(AggregateCounterTags::class, [$dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : []], 'createWith'),
         );
         $messagingConfiguration->registerServiceDefinition(
             TagResolver::class,
@@ -155,12 +157,17 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     }
 
     /**
+     * @param class-string[] $classesWithoutOptimisticLock
      * @return array<string, class-string>
      */
-    private function countedAggregateClassesByType(): array
+    private function countedAggregateClassesByType(array $classesWithoutOptimisticLock): array
     {
         $aggregateClassesByType = [];
         foreach ($this->aggregateTypesByClass as $aggregateClass => $aggregateType) {
+            if (in_array($aggregateClass, $classesWithoutOptimisticLock, true)) {
+                continue;
+            }
+
             $aggregateClassesByType[$aggregateType] = $aggregateClass;
         }
 

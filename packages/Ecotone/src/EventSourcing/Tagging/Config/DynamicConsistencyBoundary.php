@@ -61,6 +61,14 @@ final class DynamicConsistencyBoundary
         return $this->configuration->snapshottedModelClasses();
     }
 
+    /**
+     * @return class-string[]
+     */
+    public function classesWithoutOptimisticLock(): array
+    {
+        return $this->configuration->classesWithoutOptimisticLock();
+    }
+
     public function registerServicesForInMemoryStore(Configuration $messagingConfiguration): void
     {
         $messagingConfiguration->registerServiceDefinition(

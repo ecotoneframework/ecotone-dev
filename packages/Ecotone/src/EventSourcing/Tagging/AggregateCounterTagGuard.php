@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Tagging;
 
+use function array_key_exists;
+use function class_exists;
+
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Messaging\Config\ConfigurationException;
 
 use function preg_match_all;
+
+use ReflectionAttribute;
+use ReflectionClass;
+
 use function sprintf;
 
 /**
@@ -15,6 +23,29 @@ use function sprintf;
 final class AggregateCounterTagGuard
 {
     private const TAG_NAME_COLUMN_LENGTH = 100;
+
+    /**
+     * @param class-string[] $classesWithoutOptimisticLock
+     * @param array<class-string, ?string> $aggregateTypesByClass
+     */
+    public static function assertEveryClassWithoutOptimisticLockIsAStateStoredAggregate(array $classesWithoutOptimisticLock, array $aggregateTypesByClass): void
+    {
+        foreach ($classesWithoutOptimisticLock as $className) {
+            if (! class_exists($className) || ! array_key_exists($className, $aggregateTypesByClass)) {
+                throw ConfigurationException::create(sprintf(
+                    'DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names %s, which is not a state-stored #[Aggregate] -- only a state-stored aggregate has a counter tag to opt out of. Sagas carry no counter, and an event-sourced aggregate is guarded by its own stream.',
+                    $className,
+                ));
+            }
+
+            if ((new ReflectionClass($className))->getAttributes(EventSourcingAggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
+                throw ConfigurationException::create(sprintf(
+                    "DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names %s, which is an #[EventSourcingAggregate] -- its stream's own version check is its lock and cannot be switched off. Drop it from withoutOptimisticLockFor().",
+                    $className,
+                ));
+            }
+        }
+    }
 
     /**
      * @param array<class-string, ?string> $aggregateTypesByClass

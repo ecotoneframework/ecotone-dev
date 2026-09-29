@@ -15,6 +15,7 @@ final class DecisionModelHandler
 {
     /**
      * @param Definition[] $modelLoaderDefinitions
+     * @param Definition[] $aggregateBackedModelLoaderDefinitions
      * @param class-string[] $ambiguouslyDuplicatedModelClasses
      * @param Definition[] $fetchedAggregateCaptureDefinitions
      * @param class-string[] $fetchedAggregateClasses
@@ -24,6 +25,7 @@ final class DecisionModelHandler
         private readonly string $className,
         private readonly string $methodName,
         private readonly array $modelLoaderDefinitions,
+        private readonly array $aggregateBackedModelLoaderDefinitions,
         private readonly bool $appendsItsResult,
         private readonly array $ambiguouslyDuplicatedModelClasses = [],
         private readonly array $fetchedAggregateCaptureDefinitions = [],
@@ -63,6 +65,14 @@ final class DecisionModelHandler
     /**
      * @return Definition[]
      */
+    public function aggregateBackedModelLoaderDefinitions(): array
+    {
+        return $this->aggregateBackedModelLoaderDefinitions;
+    }
+
+    /**
+     * @return Definition[]
+     */
     public function fetchedAggregateCaptureDefinitions(): array
     {
         return $this->fetchedAggregateCaptureDefinitions;
@@ -86,7 +96,7 @@ final class DecisionModelHandler
 
     public function loadsBeforeInvocation(): bool
     {
-        return $this->modelLoaderDefinitions !== [] || $this->fetchedAggregateCaptureDefinitions !== [] || $this->decisionBoundaryDefinitions !== [];
+        return $this->modelLoaderDefinitions !== [] || $this->aggregateBackedModelLoaderDefinitions !== [] || $this->fetchedAggregateCaptureDefinitions !== [] || $this->decisionBoundaryDefinitions !== [];
     }
 
     public function appendsItsResult(): bool

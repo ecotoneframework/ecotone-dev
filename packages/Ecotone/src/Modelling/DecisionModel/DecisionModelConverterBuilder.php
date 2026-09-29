@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Handler\Type\UnionType;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 
 use function sprintf;
 
@@ -76,11 +77,32 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
         ]);
     }
 
+    public function isBackedByAnAggregate(): bool
+    {
+        return DecisionModelReflection::backingAggregateOf($this->modelClassName) !== null;
+    }
+
     public function compileLoader(InterfaceToCall $interfaceToCall): Definition
+    {
+        return new Definition(DecisionModelParameterLoader::class, $this->commonLoaderArguments($interfaceToCall));
+    }
+
+    public function compileAggregateBackedLoader(InterfaceToCall $interfaceToCall): Definition
+    {
+        return new Definition(AggregateBackedDecisionModelLoader::class, [
+            ...$this->commonLoaderArguments($interfaceToCall),
+            Reference::to(AggregateDefinitionRegistry::class),
+        ]);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function commonLoaderArguments(InterfaceToCall $interfaceToCall): array
     {
         $payloadParameterName = $interfaceToCall->getFirstParameter()->getName();
 
-        return new Definition(DecisionModelParameterLoader::class, [
+        return [
             $this->parameterName,
             $this->modelClassName,
             $this->doesAllowNulls,
@@ -90,6 +112,6 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             $this->fetchExpression !== null
                 ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->fetchExpression), $this->attributeDeclaration)
                 : new Definition(AttributeExpressionExecutor::class, [Reference::to(ExpressionEvaluationService::REFERENCE)], factory: [AttributeExpressionExecutor::class, 'withoutExpression']),
-        ]);
+        ];
     }
 }

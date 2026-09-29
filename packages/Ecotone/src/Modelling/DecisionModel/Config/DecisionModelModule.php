@@ -149,6 +149,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     Reference::to(EventStore::RAW_REFERENCE),
                     Reference::to(TagResolver::class),
                     $handler->modelLoaderDefinitions(),
+                    $handler->aggregateBackedModelLoaderDefinitions(),
                     $handler->fetchedAggregateCaptureDefinitions(),
                     $handler->decisionBoundaryDefinitions(),
                 ]),

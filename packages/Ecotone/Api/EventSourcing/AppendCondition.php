@@ -12,7 +12,7 @@ use Ecotone\EventSourcing\Tagging\TagKey;
 final class AppendCondition
 {
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int}> $expectedTagVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, decidedBy?: string[]}> $expectedTagVersions
      * @param array{aggregateType: string, aggregateId: string, expectedVersion: int}|null $aggregateExpectation
      */
     private function __construct(
@@ -48,6 +48,24 @@ final class AppendCondition
         return new self($indexed, null);
     }
 
+    /**
+     * Names, per tag key, the decision models and #[DecisionBoundary] methods whose scope covers that tag,
+     * so a conflict on it can say what was being decided.
+     *
+     * @param array<string, string[]> $decidingScopeNamesByTagKey
+     */
+    public function withDecidingScopes(array $decidingScopeNamesByTagKey): self
+    {
+        $expectedTagVersions = $this->expectedTagVersions;
+        foreach ($decidingScopeNamesByTagKey as $tagKey => $decidingScopeNames) {
+            if (isset($expectedTagVersions[$tagKey])) {
+                $expectedTagVersions[$tagKey]['decidedBy'] = $decidingScopeNames;
+            }
+        }
+
+        return new self($expectedTagVersions, $this->aggregateExpectation);
+    }
+
     public function mergeWith(self $other): self
     {
         return new self(
@@ -57,7 +75,7 @@ final class AppendCondition
     }
 
     /**
-     * @return array<array{name: string, value: string, expectedVersion: int}>
+     * @return array<array{name: string, value: string, expectedVersion: int, decidedBy?: string[]}>
      */
     public function expectedTagVersions(): array
     {

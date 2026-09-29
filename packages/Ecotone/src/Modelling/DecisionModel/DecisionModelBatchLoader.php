@@ -57,11 +57,12 @@ final class DecisionModelBatchLoader
         $tagSnapshotsByParameterName = $this->snapshotsOfEachTagScope($criteriaByParameterName);
         $criteriaByParameterName = self::boundedBySnapshots($criteriaByParameterName, $tagSnapshotsByParameterName);
         $aggregateInstancesByParameterName = $this->aggregateInstancesByParameterName($message);
+        $boundaryCriteriaByLabel = $this->decisionBoundaryCriteriaByLabel($message);
 
         $loadedEvents = $this->loadEventsFor([
             ...$criteriaByParameterName,
             ...$this->fetchedAggregateCriteriaByParameterName($message),
-            ...$this->decisionBoundaryCriteria($message),
+            ...$boundaryCriteriaByLabel,
             ...$this->captureCriteriaOf($aggregateInstancesByParameterName),
         ]);
 
@@ -71,7 +72,52 @@ final class DecisionModelBatchLoader
             ...$this->foldAggregateBackedInstances($aggregateInstancesByParameterName, $pendingSnapshots),
         ];
 
-        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $loadedEvents->appendCondition, $pendingSnapshots)];
+        $appendCondition = $loadedEvents->appendCondition->withDecidingScopes(
+            $this->decidingScopeNamesByTagKey($criteriaByParameterName, $boundaryCriteriaByLabel),
+        );
+
+        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $appendCondition, $pendingSnapshots)];
+    }
+
+    /**
+     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     * @param array<string, EventCriteria> $boundaryCriteriaByLabel
+     * @return array<string, string[]>
+     */
+    private function decidingScopeNamesByTagKey(array $criteriaByParameterName, array $boundaryCriteriaByLabel): array
+    {
+        $decidingScopeNamesByTagKey = [];
+        foreach ($this->loaders as $loader) {
+            $criteria = $criteriaByParameterName[$loader->parameterName()];
+            if ($criteria !== null) {
+                $decidingScopeNamesByTagKey = self::nameScopeOnEveryTagOf($criteria, $loader->modelClassName(), $decidingScopeNamesByTagKey);
+            }
+        }
+
+        foreach ($boundaryCriteriaByLabel as $label => $criteria) {
+            $decidingScopeNamesByTagKey = self::nameScopeOnEveryTagOf($criteria, $label, $decidingScopeNamesByTagKey);
+        }
+
+        return $decidingScopeNamesByTagKey;
+    }
+
+    /**
+     * @param array<string, string[]> $decidingScopeNamesByTagKey
+     * @return array<string, string[]>
+     */
+    private static function nameScopeOnEveryTagOf(EventCriteria $criteria, string $scopeName, array $decidingScopeNamesByTagKey): array
+    {
+        foreach ($criteria->branches() as $branch) {
+            foreach ($branch->tags() as $tag) {
+                $tagKey = TagKey::of($tag['name'], $tag['value']);
+
+                if (! in_array($scopeName, $decidingScopeNamesByTagKey[$tagKey] ?? [], true)) {
+                    $decidingScopeNamesByTagKey[$tagKey][] = $scopeName;
+                }
+            }
+        }
+
+        return $decidingScopeNamesByTagKey;
     }
 
     /**
@@ -101,11 +147,16 @@ final class DecisionModelBatchLoader
     }
 
     /**
-     * @return EventCriteria[]
+     * @return array<string, EventCriteria>
      */
-    private function decisionBoundaryCriteria(Message $message): array
+    private function decisionBoundaryCriteriaByLabel(Message $message): array
     {
-        return array_map(static fn (DecisionBoundaryEvaluator $decisionBoundary): EventCriteria => $decisionBoundary->criteriaFor($message), $this->decisionBoundaries);
+        $criteriaByLabel = [];
+        foreach ($this->decisionBoundaries as $decisionBoundary) {
+            $criteriaByLabel[$decisionBoundary->decidedByLabel()] = $decisionBoundary->criteriaFor($message);
+        }
+
+        return $criteriaByLabel;
     }
 
     /**

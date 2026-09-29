@@ -31,7 +31,7 @@ final class InMemoryTagVersionRegister
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string}> $expectedVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
      */
     public function assertUnchanged(array $expectedVersions): void
     {
@@ -40,7 +40,7 @@ final class InMemoryTagVersionRegister
             if ($current !== $expected['expectedVersion']) {
                 throw isset($expected['aggregateType'])
                     ? DecisionModelConcurrencyException::forAggregateConflict($expected['aggregateType'], $expected['value'], $expected['expectedVersion'], $current)
-                    : DecisionModelConcurrencyException::forConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $current);
+                    : DecisionModelConcurrencyException::forConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $current, $expected['decidedBy'] ?? []);
             }
         }
     }

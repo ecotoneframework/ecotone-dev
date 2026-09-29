@@ -16,7 +16,7 @@ final class AppendedTags
     private readonly array $involved;
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int}> $conditionVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, decidedBy?: string[]}> $conditionVersions
      * @param array<string, array{name: string, value: string}> $aggregateCounterTags
      * @param array<string, string> $aggregateTypesByCounterTagKey
      */
@@ -53,7 +53,7 @@ final class AppendedTags
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $captured
-     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string}>
+     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}>
      */
     public function expectedVersions(array $captured): array
     {
@@ -67,6 +67,10 @@ final class AppendedTags
 
             if (isset($this->aggregateTypesByCounterTagKey[$key])) {
                 $expected[$key]['aggregateType'] = $this->aggregateTypesByCounterTagKey[$key];
+            }
+
+            if (isset($this->conditionVersions[$key]['decidedBy'])) {
+                $expected[$key]['decidedBy'] = $this->conditionVersions[$key]['decidedBy'];
             }
         }
 

@@ -58,6 +58,11 @@ final class DecisionBoundaryEvaluator
         ]);
     }
 
+    public function decidedByLabel(): string
+    {
+        return $this->className . '::' . $this->boundaryMethodName;
+    }
+
     public function criteriaFor(Message $message): EventCriteria
     {
         $criteria = $this->className::{$this->boundaryMethodName}(...array_map(

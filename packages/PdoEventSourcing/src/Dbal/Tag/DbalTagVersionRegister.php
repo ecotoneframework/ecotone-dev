@@ -71,12 +71,12 @@ final class DbalTagVersionRegister
     }
 
     /**
-     * @param array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string}> $expectedVersions
+     * @param array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}> $expectedVersions
      */
     public function bumpGuarded(Connection $connection, array $expectedVersions): void
     {
         foreach ($expectedVersions as $expected) {
-            $this->bumpGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null);
+            $this->bumpGuardedTag($connection, $expected['name'], $expected['value'], $expected['expectedVersion'], $expected['aggregateType'] ?? null, $expected['decidedBy'] ?? []);
         }
     }
 
@@ -92,7 +92,10 @@ final class DbalTagVersionRegister
         }
     }
 
-    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $capturedVersion, ?string $aggregateType): void
+    /**
+     * @param string[] $decidedBy
+     */
+    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $capturedVersion, ?string $aggregateType, array $decidedBy): void
     {
         $tagSchema = TaggedEventSchemaFactory::for($connection);
         $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
@@ -113,7 +116,7 @@ final class DbalTagVersionRegister
         if ($affected === 0) {
             throw $aggregateType !== null
                 ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $capturedVersion, $this->versionOf($connection, $name, $value))
-                : DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->versionOf($connection, $name, $value));
+                : DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->versionOf($connection, $name, $value), $decidedBy);
         }
     }
 

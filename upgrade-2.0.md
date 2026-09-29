@@ -1072,10 +1072,23 @@ deduplicating a message, writing a document, appending events, reading the tag i
 with `withAutoDeclare(false)`, which in 1.x surfaced Doctrine's `TableNotFoundException` on receive and Interop's
 "The transport fails to send the message due to some internal error" on send.
 
-Read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
-quietly: `DeadLetterGateway::list()`/`count()`, the document store's `findDocument()`/`getAllDocuments()`/
-`countDocuments()`, `EventStore::load()`/`loadAggregateEvents()`/`hasStream()`, and a projection reading a stream
-table that does not exist. If you need to tell "not set up" from "nothing to show" in those places, run
+Reading an event stream is not one of those paths any more. `EventStore::load()` and
+`EventStore::loadAggregateEvents()` used to probe `information_schema` on every call and answer "no events" when the
+stream table was absent, which turned a missing `ecotone:migration:database:setup` into an
+`AggregateNotFoundException` for an aggregate whose events were never readable in the first place. **They now raise
+the same `ConfigurationException` as every other missing table**, naming the `event_stream` feature, the table and
+the exact command to run, and the probe they paid for on every aggregate load is gone. Projections reading a stream
+table that does not exist raise it too, instead of reporting themselves up to date against a stream nobody created.
+Event-sourced aggregate command handlers, `#[Fetch]`, `Repository::getFor()` and partitioned and global projections
+all surface it. Tests that used an absent stream table to mean "this aggregate has no history" must create the
+tables — `$ecotone->initializeDatabase()` in an `EcotoneLite` test, or
+`$messagingSystem->getServiceFromContainer(DatabaseSetupManager::class)->initializeAll()` — and then start from an
+empty stream instead. `EventStore::hasStream()` is unchanged: it answers whether the stream exists, so it still
+returns `false` rather than raising.
+
+The read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
+quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDocument()`/`getAllDocuments()`/
+`countDocuments()`. If you need to tell "not set up" from "nothing to show" in those places, run
 `ecotone:migration:database:setup --missing` — it lists exactly the tables that are absent.
 
 - Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`

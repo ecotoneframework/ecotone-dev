@@ -63,10 +63,6 @@ class EventStoreAggregateStreamSource implements StreamSource
 
     private function loadFromStreamFilter(StreamFilter $streamFilter, string $aggregateId, ?string $lastPosition, int $count): StreamPage
     {
-        if (! $this->eventStore->hasStream($streamFilter->streamName)) {
-            return new StreamPage([], $lastPosition ?? '');
-        }
-
         $events = $this->eventStore->loadAggregateEvents(
             $streamFilter->streamName,
             $streamFilter->aggregateType,

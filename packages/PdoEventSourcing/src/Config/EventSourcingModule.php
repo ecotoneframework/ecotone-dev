@@ -18,6 +18,7 @@ use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Console\TagBackfillConsoleCommand;
 use Ecotone\EventSourcing\Console\TagVerifySchemaConsoleCommand;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
@@ -155,6 +156,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
 
         $messagingConfiguration->registerServiceDefinition(
+            MissingEventStreamTable::class,
+            new Definition(MissingEventStreamTable::class, [$consoleInvocationPrefix])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
             TagTableManager::class,
             new Definition(TagTableManager::class, [
                 $this->declaresEventTagsOrCountedAggregates && $dynamicConsistencyBoundary->isEnabled(),
@@ -246,6 +252,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 new Reference(DbalTagCollaborator::class),
                 new Reference(ProjectionInvariantGuard::class),
                 new Reference(AppendStrategy::class),
+                new Reference(MissingEventStreamTable::class),
                 $consoleInvocationPrefix,
             ])
         );

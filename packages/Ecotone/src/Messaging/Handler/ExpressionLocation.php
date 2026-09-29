@@ -12,12 +12,6 @@ use function strrchr;
 use function substr;
 
 /**
- * Names the place a single expression is written, so a failure during its evaluation
- * can point back at the attribute, the target it fills and the method it is declared on.
- *
- * @link https://docs.ecotone.tech
- */
-/**
  * licence Apache-2.0
  */
 final class ExpressionLocation
@@ -55,7 +49,7 @@ final class ExpressionLocation
         return sprintf('%s failed. Expression: %s. %s', $this->describe(), $this->expression, $cause);
     }
 
-    public function describe(): string
+    private function describe(): string
     {
         $describedTarget = $this->target === '' ? $this->attributeName : sprintf('%s on %s', $this->attributeName, $this->target);
 

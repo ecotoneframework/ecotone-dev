@@ -39,7 +39,7 @@ final class AttributeExpressionExecutor
 
     public static function withoutExpression(ExpressionEvaluationService $expressionEvaluationService, ExpressionLocation $location): self
     {
-        return new self(new class {
+        return new self(new class () {
         }, $expressionEvaluationService, [], $location);
     }
 

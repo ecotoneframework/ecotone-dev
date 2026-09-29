@@ -18,11 +18,6 @@ use function mb_substr;
 use function sprintf;
 
 /**
- * Describes what an expression returned, for a failure message the user reads.
- *
- * @link https://docs.ecotone.tech
- */
-/**
  * licence Apache-2.0
  */
 final class ExpressionResult

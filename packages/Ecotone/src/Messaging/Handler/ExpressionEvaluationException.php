@@ -8,12 +8,6 @@ use Ecotone\Messaging\MessagingException;
 use Throwable;
 
 /**
- * Thrown per message when an expression cannot be evaluated or its result cannot be used.
- * Configuration problems detectable at bootstrap stay ConfigurationException.
- *
- * @link https://docs.ecotone.tech
- */
-/**
  * licence Apache-2.0
  */
 final class ExpressionEvaluationException extends MessagingException

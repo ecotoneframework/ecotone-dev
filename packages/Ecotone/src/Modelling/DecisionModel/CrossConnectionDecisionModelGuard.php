@@ -26,7 +26,7 @@ use function sprintf;
 final class CrossConnectionDecisionModelGuard
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @param array<object> $extensionObjects
      */
     public static function assertNoCrossConnectionInjection(
@@ -51,6 +51,28 @@ final class CrossConnectionDecisionModelGuard
             $handlerConnection = self::connectionForHandler($annotationFinder, $interfaceToCallRegistry, $handler['class'], $handler['method'], $aggregateConnections, $defaultConnection);
 
             foreach ($handler['models'] as $modelClass) {
+                $backingAggregate = $rawDefinitions[$modelClass]['aggregate'] ?? null;
+
+                if ($backingAggregate !== null) {
+                    $aggregateConnection = self::classConnection($backingAggregate['className'], $defaultConnection);
+
+                    if ($aggregateConnection !== $handlerConnection) {
+                        throw ConfigurationException::create(sprintf(
+                            "DecisionModel %s is injected into %s::%s, which appends to connection '%s', but it is backed by aggregate %s, whose stream '%s' is on connection '%s' -- a model folded from one connection cannot be guarded by an append on another. "
+                            . 'Move the handler and the aggregate onto the same connection.',
+                            $modelClass,
+                            $handler['class'],
+                            $handler['method'],
+                            $handlerConnection,
+                            $backingAggregate['className'],
+                            $backingAggregate['streamName'],
+                            $aggregateConnection,
+                        ));
+                    }
+
+                    continue;
+                }
+
                 foreach ($rawDefinitions[$modelClass]['handledEventClasses'] as $eventClass) {
                     foreach ($eventRecordingAggregates[$eventClass] ?? [] as $aggregateClass) {
                         $eventConnection = $aggregateConnections[$aggregateClass];
@@ -122,7 +144,7 @@ final class CrossConnectionDecisionModelGuard
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @return array<array{class: class-string, method: string, models: class-string[]}>
      */
     private static function findModelInjectingHandlers(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry, array $rawDefinitions): array

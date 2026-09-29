@@ -6,22 +6,29 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use function array_diff;
 use function array_intersect;
+use function array_keys;
 use function array_unique;
 use function array_values;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 use function implode;
+
+use function class_exists;
 
 use ReflectionAttribute;
 use ReflectionClass;
@@ -35,13 +42,15 @@ final class DecisionModelDefinitionBuilder
 {
     /**
      * @param string[] $explicitTagNames
+     * @param ?class-string $aggregateClassName
      */
     public static function buildFor(
         ClassDefinition $classDefinition,
         InterfaceToCallRegistry $interfaceToCallRegistry,
         EventTagRegistry $eventTagRegistry,
         array $explicitTagNames,
-    ): DecisionModelDefinition {
+        ?string $aggregateClassName = null,
+    ): DecisionModelDefinition|AggregateBackedDecisionModelDefinition {
         $className = $classDefinition->getClassType()->toString();
 
         self::assertPublicNoArgumentConstructor($className);
@@ -57,13 +66,17 @@ final class DecisionModelDefinitionBuilder
             ));
         }
 
+        if ($aggregateClassName !== null) {
+            return self::aggregateBackedDefinition($className, $aggregateClassName, $explicitTagNames, $handledEventClasses, $interfaceToCallRegistry);
+        }
+
         $tagNames = $explicitTagNames !== []
             ? array_values(array_unique($explicitTagNames))
             : self::intersectionOfTagNames($handledEventClasses, $eventTagRegistry);
 
         if ($tagNames === []) {
             throw ConfigurationException::create(sprintf(
-                'DecisionModel %s is scoped by no tag name, so it would fold no event and guard nothing: its handled event(s) %s share no #[EventTag] name. Add #[EventTag] to the event(s) so that every handled event carries a common tag name, or scope the model explicitly with #[DecisionModel(tags: [...])].',
+                'DecisionModel %s is scoped by no tag name, so it would fold no event and guard nothing: its handled event(s) %s share no #[EventTag] name. Add #[EventTag] to the event(s) so that every handled event carries a common tag name, scope the model explicitly with #[DecisionModel(tags: [...])], or, if these are one event-sourced aggregate\'s own events, scope the model with #[DecisionModel(aggregate: Wallet::class)].',
                 $className,
                 self::tagNamesPerHandledEvent($handledEventClasses, $eventTagRegistry),
             ));
@@ -85,6 +98,120 @@ final class DecisionModelDefinitionBuilder
         }
 
         return new DecisionModelDefinition($className, $tagNames, $handledEventClasses);
+    }
+
+    /**
+     * @param string[] $explicitTagNames
+     * @param class-string[] $handledEventClasses
+     */
+    private static function aggregateBackedDefinition(
+        string $className,
+        string $aggregateClassName,
+        array $explicitTagNames,
+        array $handledEventClasses,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+    ): AggregateBackedDecisionModelDefinition {
+        if ($explicitTagNames !== []) {
+            throw ConfigurationException::create(sprintf(
+                "DecisionModel %s declares both aggregate: %s and tags: '%s' -- a model is scoped by one aggregate instance or by tag names, never both, because an aggregate's own events carry no #[EventTag]. Drop one of the two.",
+                $className,
+                $aggregateClassName,
+                implode("', '", $explicitTagNames),
+            ));
+        }
+
+        if (! class_exists($aggregateClassName)) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is backed by %s, which is not a loadable class -- back a model with an #[EventSourcingAggregate] class name.',
+                $className,
+                $aggregateClassName,
+            ));
+        }
+
+        self::assertBackedByAnEventSourcedAggregate($className, $aggregateClassName);
+
+        $recordedEventClasses = self::eventClassesRecordedBy($aggregateClassName, $interfaceToCallRegistry);
+        $notRecorded = array_values(array_diff($handledEventClasses, $recordedEventClasses));
+
+        if ($notRecorded !== []) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is backed by aggregate %s, but its handled event(s) %s are never recorded by %s, so the model could never receive them. %s records %s.',
+                $className,
+                $aggregateClassName,
+                implode(', ', $notRecorded),
+                $aggregateClassName,
+                $aggregateClassName,
+                $recordedEventClasses === [] ? 'no event' : implode(', ', $recordedEventClasses),
+            ));
+        }
+
+        $aggregateDefinition = AggregateDefinitionResolver::resolve($aggregateClassName, $interfaceToCallRegistry);
+
+        return new AggregateBackedDecisionModelDefinition(
+            $className,
+            $aggregateClassName,
+            $aggregateDefinition->getAggregateClassType(),
+            $aggregateDefinition->getAggregateStreamName(),
+            array_keys($aggregateDefinition->getAggregateIdentifierMapping()),
+            $handledEventClasses,
+        );
+    }
+
+    private static function assertBackedByAnEventSourcedAggregate(string $className, string $aggregateClassName): void
+    {
+        $reflectionClass = new ReflectionClass($aggregateClassName);
+
+        if ($reflectionClass->getAttributes(Saga::class) !== [] || $reflectionClass->getAttributes(EventSourcingSaga::class) !== []) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is backed by %s, which is a saga -- sagas are outside the Dynamic Consistency Boundary, so a decision folded from one would be unguarded. Back the model with an #[EventSourcingAggregate], or scope it by tag names.',
+                $className,
+                $aggregateClassName,
+            ));
+        }
+
+        if ($reflectionClass->getAttributes(EventSourcingAggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
+            return;
+        }
+
+        if ($reflectionClass->getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is backed by %s, which is a state-stored #[Aggregate] and records no events, so there is no history to fold. Fetch it with #[Fetch] instead, which is already guarded by its counter.',
+                $className,
+                $aggregateClassName,
+            ));
+        }
+
+        throw ConfigurationException::create(sprintf(
+            'DecisionModel %s is backed by %s, which is not an #[EventSourcingAggregate] -- only an event-sourced aggregate has a stream of its own to fold from.',
+            $className,
+            $aggregateClassName,
+        ));
+    }
+
+    /**
+     * @return class-string[]
+     */
+    private static function eventClassesRecordedBy(string $aggregateClassName, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::object($aggregateClassName));
+        $eventSourcingHandlerAnnotation = Type::object(EventSourcingHandler::class);
+
+        $recordedEventClasses = [];
+        foreach ($classDefinition->getPublicMethodNames() as $method) {
+            $interfaceToCall = $interfaceToCallRegistry->getFor($aggregateClassName, $method);
+
+            if (! $interfaceToCall->hasMethodAnnotation($eventSourcingHandlerAnnotation)) {
+                continue;
+            }
+
+            if ($interfaceToCall->getInterfaceParameterAmount() < 1 || ! $interfaceToCall->getFirstParameter()->isClassOrInterface()) {
+                continue;
+            }
+
+            $recordedEventClasses[] = $interfaceToCall->getFirstParameter()->getTypeHint();
+        }
+
+        return array_values(array_unique($recordedEventClasses));
     }
 
     private static function assertPublicNoArgumentConstructor(string $className): void

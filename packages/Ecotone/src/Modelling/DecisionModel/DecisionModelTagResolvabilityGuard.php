@@ -26,7 +26,7 @@ use function sprintf;
 final class DecisionModelTagResolvabilityGuard
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     public static function assertEveryModelTagResolvableFromItsMessage(
         AnnotationFinder $annotationFinder,
@@ -47,6 +47,22 @@ final class DecisionModelTagResolvabilityGuard
 
                     if ($modelClass === null || ! isset($rawDefinitions[$modelClass])) {
                         continue;
+                    }
+
+                    foreach ($rawDefinitions[$modelClass]['aggregate']['identifierNames'] ?? [] as $identifierName) {
+                        if (! MessageAggregateIdentifierResolver::canResolve($identifierName, $messageClass)) {
+                            throw ConfigurationException::create(sprintf(
+                                "%s injects DecisionModel %s, backed by aggregate %s, but its message %s has no property for aggregate identifier '%s'. Name a property '%s', '%sId' or '%s_id', or map it explicitly with #[Fetch].",
+                                $interfaceToCall,
+                                $modelClass,
+                                $rawDefinitions[$modelClass]['aggregate']['className'],
+                                $messageClass,
+                                $identifierName,
+                                $identifierName,
+                                $identifierName,
+                                $identifierName,
+                            ));
+                        }
                     }
 
                     foreach ($rawDefinitions[$modelClass]['tagNames'] as $tagName) {

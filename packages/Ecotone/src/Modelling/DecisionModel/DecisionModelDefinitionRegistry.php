@@ -15,7 +15,7 @@ use function sprintf;
 final class DecisionModelDefinitionRegistry
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     private function __construct(
         private readonly array $rawDefinitions,
@@ -28,7 +28,7 @@ final class DecisionModelDefinitionRegistry
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     public static function createWith(array $rawDefinitions): self
     {
@@ -42,12 +42,38 @@ final class DecisionModelDefinitionRegistry
 
     public function get(string $className): DecisionModelDefinition
     {
-        $raw = $this->rawDefinitions[$className] ?? throw ConfigurationException::create(sprintf(
-            'No DecisionModel definition found for %s. Did you forget #[DecisionModel]?',
+        $raw = $this->rawDefinitionFor($className);
+
+        return new DecisionModelDefinition($className, $raw['tagNames'], $raw['handledEventClasses']);
+    }
+
+    public function getAggregateBacked(string $className): AggregateBackedDecisionModelDefinition
+    {
+        $raw = $this->rawDefinitionFor($className);
+        $aggregate = $raw['aggregate'] ?? throw ConfigurationException::create(sprintf(
+            'DecisionModel %s is not backed by an aggregate.',
             $className
         ));
 
-        return new DecisionModelDefinition($className, $raw['tagNames'], $raw['handledEventClasses']);
+        return new AggregateBackedDecisionModelDefinition(
+            $className,
+            $aggregate['className'],
+            $aggregate['aggregateType'],
+            $aggregate['streamName'],
+            $aggregate['identifierNames'],
+            $raw['handledEventClasses'],
+        );
+    }
+
+    /**
+     * @return array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
+     */
+    private function rawDefinitionFor(string $className): array
+    {
+        return $this->rawDefinitions[$className] ?? throw ConfigurationException::create(sprintf(
+            'No DecisionModel definition found for %s. Did you forget #[DecisionModel]?',
+            $className
+        ));
     }
 
     /**

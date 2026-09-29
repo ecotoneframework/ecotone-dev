@@ -14,9 +14,11 @@ final class DecisionModel
 {
     /**
      * @param string[] $tags
+     * @param ?class-string $aggregate
      */
     public function __construct(
         public readonly array $tags = [],
+        public readonly ?string $aggregate = null,
     ) {
     }
 }

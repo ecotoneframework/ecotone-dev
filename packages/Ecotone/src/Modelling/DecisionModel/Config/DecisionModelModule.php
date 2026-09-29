@@ -39,9 +39,11 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
+use Ecotone\Modelling\DecisionModel\AggregateBackedDecisionModelDefinition;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
+use Ecotone\Modelling\DecisionModel\DecisionModelDefinition;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
@@ -67,7 +69,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
     /**
      * @param class-string[] $decisionModelClasses
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     private function __construct(
         private readonly AnnotationFinder $annotationFinder,
@@ -85,14 +87,15 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         $rawDefinitions = [];
         foreach ($decisionModelClasses as $decisionModelClass) {
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($decisionModelClass));
-            $explicitTags = $classDefinition->findSingleClassAnnotation(Type::create(DecisionModel::class))?->tags ?? [];
+            $declaration = $classDefinition->findSingleClassAnnotation(Type::create(DecisionModel::class));
 
-            $definition = DecisionModelDefinitionBuilder::buildFor($classDefinition, $interfaceToCallRegistry, $eventTagRegistry, $explicitTags);
-
-            $rawDefinitions[$decisionModelClass] = [
-                'tagNames' => $definition->tagNames(),
-                'handledEventClasses' => $definition->handledEventClasses(),
-            ];
+            $rawDefinitions[$decisionModelClass] = self::rawDefinitionOf(DecisionModelDefinitionBuilder::buildFor(
+                $classDefinition,
+                $interfaceToCallRegistry,
+                $eventTagRegistry,
+                $declaration?->tags ?? [],
+                $declaration?->aggregate,
+            ));
         }
 
         return new self(
@@ -200,6 +203,30 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         return ModulePackageList::CORE_PACKAGE;
     }
 
+    /**
+     * @return array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
+     */
+    private static function rawDefinitionOf(DecisionModelDefinition|AggregateBackedDecisionModelDefinition $definition): array
+    {
+        if ($definition instanceof DecisionModelDefinition) {
+            return [
+                'tagNames' => $definition->tagNames(),
+                'handledEventClasses' => $definition->handledEventClasses(),
+            ];
+        }
+
+        return [
+            'tagNames' => [],
+            'handledEventClasses' => $definition->handledEventClasses(),
+            'aggregate' => [
+                'className' => $definition->aggregateClassName(),
+                'aggregateType' => $definition->aggregateType(),
+                'streamName' => $definition->streamName(),
+                'identifierNames' => $definition->identifierNames(),
+            ],
+        ];
+    }
+
     private function usesDecisionModels(): bool
     {
         return $this->decisionModelClasses !== []
@@ -208,12 +235,16 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @param string[] $filterOnlyTagNames
      */
     private static function assertNoModelScopedOnlyByFilterOnlyTags(array $rawDefinitions, array $filterOnlyTagNames): void
     {
         foreach ($rawDefinitions as $modelClass => $rawDefinition) {
+            if (isset($rawDefinition['aggregate'])) {
+                continue;
+            }
+
             if (array_diff($rawDefinition['tagNames'], $filterOnlyTagNames) === []) {
                 throw ConfigurationException::create(sprintf(
                     "DecisionModel %s is scoped only by filter-only tag(s) '%s', which are never counted, so its handler's append would be guarded by nothing. Add a counted tag to the model's scope with #[DecisionModel(tags: [...])], or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withFilterOnlyTags().",

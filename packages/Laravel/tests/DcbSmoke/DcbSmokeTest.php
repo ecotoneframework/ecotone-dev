@@ -10,6 +10,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Foundation\Application;
@@ -60,5 +61,28 @@ final class DcbSmokeTest extends TestCase
 
         $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
         $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
+    public function test_a_missing_table_names_the_artisan_setup_command(): void
+    {
+        $this->dropEcotoneTables();
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->app->make(CommandBus::class);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('php artisan ecotone:migration:database:setup --initialize --feature=');
+
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+    }
+
+    private function dropEcotoneTables(): void
+    {
+        $connection = $this->app->make(DbalConnectionFactory::class)->createContext()->getDbalConnection();
+        foreach (['ecotone_tagged_events', 'ecotone_tag_versions', 'ecotone_event_stream'] as $tableName) {
+            if ($connection->createSchemaManager()->tablesExist([$tableName])) {
+                $connection->executeStatement('DROP TABLE ' . $tableName);
+            }
+        }
     }
 }

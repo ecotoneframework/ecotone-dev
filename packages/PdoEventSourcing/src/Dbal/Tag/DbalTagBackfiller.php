@@ -45,7 +45,7 @@ final class DbalTagBackfiller
         TagBackfillReport $report,
     ): void {
         if (! $schema->tableExists($connection, $tableName)) {
-            return;
+            throw $eventStore->missingStreamTableException($connection, $tableName);
         }
 
         if (! $dryRun) {

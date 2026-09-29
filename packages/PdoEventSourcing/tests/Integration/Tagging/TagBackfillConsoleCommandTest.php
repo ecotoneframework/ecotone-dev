@@ -12,6 +12,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Database\MissingTableInstructions;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
@@ -174,6 +176,17 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
         self::assertSame('1', $this->rowValue($result, 'Events tagged'));
         self::assertNotSame('-', $this->rowValue($result, 'Undeserializable events (skipped)'));
+    }
+
+    public function test_backfilling_a_stream_whose_table_is_absent_names_the_feature_and_the_setup_command(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $this->dropTables();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, self::STREAM, null));
+
+        $this->runBackfill($ecotone, []);
     }
 
     private function insertUndeserializableEvent(): void

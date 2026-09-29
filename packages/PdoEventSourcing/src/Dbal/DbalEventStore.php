@@ -372,7 +372,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         }
     }
 
-    private function missingStreamTableException(Connection $connection, string $tableName): ConfigurationException
+    public function missingStreamTableException(Connection $connection, string $tableName): ConfigurationException
     {
         return ConfigurationException::create(
             AutomaticTableInitializationSupport::isSupported($connection)

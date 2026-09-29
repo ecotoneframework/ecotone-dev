@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
@@ -11,7 +10,9 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -329,7 +330,27 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1)));
     }
 
-    public function test_failing_to_receive_message_when_not_declared_and_auto_declare_off()
+    public function test_receiving_when_not_declared_and_auto_declare_off_names_the_message_queue_setup_command()
+    {
+        $messageChannel = $this->channelWithoutAutoDeclare();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
+
+        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1));
+    }
+
+    public function test_sending_when_not_declared_and_auto_declare_off_names_the_message_queue_setup_command()
+    {
+        $messageChannel = $this->channelWithoutAutoDeclare();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
+
+        $messageChannel->send(MessageBuilder::withPayload('some')->build());
+    }
+
+    private function channelWithoutAutoDeclare(): PollableChannel
     {
         $queueName = Uuid::v7()->toRfc4122();
 
@@ -345,12 +366,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ])
         );
 
-        /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
-
-        $this->expectException(TableNotFoundException::class);
-
-        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1));
+        return $ecotoneLite->getMessageChannel($queueName);
     }
 
     public function test_failing_to_consume_due_to_connection_failure()

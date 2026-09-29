@@ -9,6 +9,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -64,6 +65,28 @@ final class DcbSmokeTest extends TestCase
 
         $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
         $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
+    public function test_a_missing_table_names_the_symfony_console_setup_command(): void
+    {
+        require_once __DIR__ . '/DcbSmoke/src/Kernel.php';
+
+        $kernel = new Kernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+        $container->get(CacheClearer::class)->clear('');
+
+        /** @var DbalConnectionFactory $connectionFactory */
+        $connectionFactory = $container->get(DbalConnectionFactory::class);
+        $this->dropTables($connectionFactory->createContext()->getDbalConnection());
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $container->get(CommandBus::class);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('bin/console ecotone:migration:database:setup --initialize --feature=');
+
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
     }
 
     private function initializeDatabase(Kernel $kernel): void

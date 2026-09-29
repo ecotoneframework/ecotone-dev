@@ -2,6 +2,8 @@
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
+use function array_map;
+
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -21,6 +23,17 @@ final class EventSourcingHandlerExecutor
         private array $eventSourcingHandlerMethods,
         private AggregateMethodInvoker $aggregateMethodInvoker,
     ) {
+    }
+
+    /**
+     * @return string[]
+     */
+    public function handledEventTypeNames(): array
+    {
+        return array_map(
+            static fn (EventSourcingHandlerMethod $method): string => $method->handledEventType()->toString(),
+            $this->eventSourcingHandlerMethods,
+        );
     }
 
     /**

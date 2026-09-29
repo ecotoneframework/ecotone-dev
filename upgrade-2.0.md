@@ -416,7 +416,10 @@ own stream or repository, snapshots included.
 
   It still declares `#[AggregateType]`, because that is the name its counter tag would carry and the exclusion can be
   lifted later. Fetching an excluded aggregate into a decision-model handler is a bootstrap `ConfigurationException`:
-  the decision would rest on state nothing guards. Naming an `#[EventSourcingAggregate]` is a bootstrap error too —
+  the decision would rest on state nothing guards. A `#[DecisionBoundary]` whose criteria name only excluded
+  aggregates is refused the same way, when it is evaluated rather than at bootstrap, because the criteria are built
+  at runtime; mixing in a counted tag or an aggregate outside the opt-out is allowed and guards on those.
+  Naming an `#[EventSourcingAggregate]` is a bootstrap error too —
   its stream's own version check is its lock and cannot be switched off — and so is naming a saga or a class that is
   no aggregate at all.
 - **Transactions are mandatory for every aggregate save**, not only for tagged ones — see "Transactions are

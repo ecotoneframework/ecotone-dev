@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\AggregateBoundary;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
@@ -16,8 +17,10 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -112,6 +115,54 @@ final class WithoutOptimisticLockTest extends TestCase
         );
     }
 
+    public function test_a_boundary_scoped_only_by_an_excluded_aggregate_names_the_method_the_aggregate_and_the_option(): void
+    {
+        $ecotone = $this->bootstrap(
+            [UnlockedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, ExcludedAggregateBoundaryForWithoutLock::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [new ExcludedAggregateBoundaryForWithoutLock()],
+        );
+
+        try {
+            $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ExcludedAggregateBoundaryForWithoutLock::class . '::boundary', $exception->getMessage());
+            $this->assertStringContainsString(UnlockedBasketForWithoutLock::class, $exception->getMessage());
+            $this->assertStringContainsString('withoutOptimisticLockFor', $exception->getMessage());
+        }
+    }
+
+    public function test_a_boundary_mixing_an_excluded_aggregate_with_a_counted_tag_scopes_the_append(): void
+    {
+        $ecotone = $this->bootstrap(
+            [UnlockedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, MixedExcludedAggregateBoundaryForWithoutLock::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [new MixedExcludedAggregateBoundaryForWithoutLock()],
+        );
+
+        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('basket', 'b-1'))->events);
+    }
+
+    public function test_a_boundary_scoped_only_by_an_aggregate_outside_the_exclusion_scopes_the_append(): void
+    {
+        $ecotone = $this->bootstrap(
+            [UnlockedBasketForWithoutLock::class, GuardedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, GuardedAggregateBoundaryForWithoutLock::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [new GuardedAggregateBoundaryForWithoutLock()],
+        );
+
+        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('basket', 'b-1'))->events);
+    }
+
     private function itemsWithTheBoundarySwitchedOff(): int
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [UnlockedBasketForWithoutLock::class]);
@@ -124,10 +175,11 @@ final class WithoutOptimisticLockTest extends TestCase
     /**
      * @param class-string[] $classesToResolve
      */
-    private function bootstrap(array $classesToResolve, DynamicConsistencyBoundaryConfiguration $dynamicConsistencyBoundary): FlowTestSupport
+    private function bootstrap(array $classesToResolve, DynamicConsistencyBoundaryConfiguration $dynamicConsistencyBoundary, array $services = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
+            containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$dynamicConsistencyBoundary]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -285,5 +337,57 @@ final class LedgerForWithoutLock
     public function applyEntryAdded(LedgerEntryAddedForWithoutLock $event): void
     {
         $this->ledgerId = $event->ledgerId;
+    }
+}
+
+final readonly class CheckOutUnlockedBasketForWithoutLock
+{
+    public function __construct(public string $basketId)
+    {
+    }
+}
+
+final class ExcludedAggregateBoundaryForWithoutLock
+{
+    #[CommandHandler]
+    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    {
+        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+    }
+
+    #[DecisionBoundary]
+    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    {
+        return EventCriteria::aggregate(UnlockedBasketForWithoutLock::class, $command->basketId);
+    }
+}
+
+final class MixedExcludedAggregateBoundaryForWithoutLock
+{
+    #[CommandHandler]
+    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    {
+        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+    }
+
+    #[DecisionBoundary]
+    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    {
+        return EventCriteria::aggregate(UnlockedBasketForWithoutLock::class, $command->basketId)->andTag('basket', $command->basketId);
+    }
+}
+
+final class GuardedAggregateBoundaryForWithoutLock
+{
+    #[CommandHandler]
+    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    {
+        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+    }
+
+    #[DecisionBoundary]
+    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    {
+        return EventCriteria::aggregate(GuardedBasketForWithoutLock::class, $command->basketId);
     }
 }

@@ -24,17 +24,21 @@ final class AggregateCounterTags
 {
     /**
      * @param array<string, class-string> $aggregateClassesByType
+     * @param array<string, class-string> $aggregateClassesByTypeWithoutOptimisticLock
      */
-    private function __construct(private readonly array $aggregateClassesByType)
-    {
+    private function __construct(
+        private readonly array $aggregateClassesByType,
+        private readonly array $aggregateClassesByTypeWithoutOptimisticLock = [],
+    ) {
     }
 
     /**
      * @param array<string, class-string> $aggregateClassesByType
+     * @param array<string, class-string> $aggregateClassesByTypeWithoutOptimisticLock
      */
-    public static function createWith(array $aggregateClassesByType): self
+    public static function createWith(array $aggregateClassesByType, array $aggregateClassesByTypeWithoutOptimisticLock = []): self
     {
-        return new self($aggregateClassesByType);
+        return new self($aggregateClassesByType, $aggregateClassesByTypeWithoutOptimisticLock);
     }
 
     /**
@@ -81,6 +85,18 @@ final class AggregateCounterTags
         $aggregateType = substr($tagName, strlen(AggregateCounterTag::NAME_PREFIX));
 
         return $this->counts($aggregateType) ? $aggregateType : null;
+    }
+
+    /**
+     * @return ?class-string
+     */
+    public function aggregateClassWithoutOptimisticLockFor(string $counterTagName): ?string
+    {
+        if (! str_starts_with($counterTagName, AggregateCounterTag::NAME_PREFIX)) {
+            return null;
+        }
+
+        return $this->aggregateClassesByTypeWithoutOptimisticLock[substr($counterTagName, strlen(AggregateCounterTag::NAME_PREFIX))] ?? null;
     }
 
     public function aggregateTypeOfClass(string $aggregateClass): ?string

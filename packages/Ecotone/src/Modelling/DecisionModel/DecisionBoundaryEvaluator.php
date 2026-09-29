@@ -12,6 +12,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -42,6 +43,7 @@ final class DecisionBoundaryEvaluator
         private readonly string $boundaryMethodName,
         private readonly array $parameterConverters,
         private readonly EventTagRegistry $eventTagRegistry,
+        private readonly AggregateCounterTags $aggregateCounterTags,
     ) {
     }
 
@@ -55,6 +57,7 @@ final class DecisionBoundaryEvaluator
                 ...self::additionalParameterDefinitionsOf($boundary),
             ],
             Reference::to(EventTagRegistry::class),
+            Reference::to(AggregateCounterTags::class),
         ]);
     }
 
@@ -70,22 +73,40 @@ final class DecisionBoundaryEvaluator
             $this->parameterConverters,
         ));
 
-        $this->assertNotScopedOnlyByFilterOnlyTags($criteria);
+        $this->assertTheCriteriaAreScopedBySomethingCounted($criteria);
 
         return $criteria;
     }
 
-    private function assertNotScopedOnlyByFilterOnlyTags(EventCriteria $criteria): void
+    private function assertTheCriteriaAreScopedBySomethingCounted(EventCriteria $criteria): void
     {
         $tagNames = [];
+        $aggregateClassesWithoutOptimisticLock = [];
         foreach ($criteria->branches() as $branch) {
             foreach ($branch->tags() as $tag) {
+                $aggregateClassWithoutOptimisticLock = $this->aggregateCounterTags->aggregateClassWithoutOptimisticLockFor($tag['name']);
+                if ($aggregateClassWithoutOptimisticLock !== null) {
+                    $aggregateClassesWithoutOptimisticLock[$aggregateClassWithoutOptimisticLock] = true;
+
+                    continue;
+                }
+
                 if (! $this->eventTagRegistry->isFilterOnly($tag['name'])) {
                     return;
                 }
 
                 $tagNames[$tag['name']] = true;
             }
+        }
+
+        if ($aggregateClassesWithoutOptimisticLock !== []) {
+            throw ConfigurationException::create(sprintf(
+                "#[DecisionBoundary] %s::%s returns criteria scoped only by aggregate(s) '%s' listed in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor(), which keep no counter tag, so its handler's append would be guarded by nothing. Add a counted tag or an aggregate outside the opt-out to the criteria the boundary returns, or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor().",
+                $this->className,
+                $this->boundaryMethodName,
+                implode("', '", array_keys($aggregateClassesWithoutOptimisticLock)),
+                implode("', '", array_keys($aggregateClassesWithoutOptimisticLock)),
+            ));
         }
 
         if ($tagNames === []) {

@@ -90,7 +90,10 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         );
         $messagingConfiguration->registerServiceDefinition(
             AggregateCounterTags::class,
-            new Definition(AggregateCounterTags::class, [$dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : []], 'createWith'),
+            new Definition(AggregateCounterTags::class, [
+                $dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : [],
+                $dynamicConsistencyBoundary->isEnabled() ? $this->aggregateClassesByTypeWithoutOptimisticLock($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : [],
+            ], 'createWith'),
         );
         $messagingConfiguration->registerServiceDefinition(
             TagResolver::class,
@@ -169,6 +172,20 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
             }
 
             $aggregateClassesByType[$aggregateType] = $aggregateClass;
+        }
+
+        return $aggregateClassesByType;
+    }
+
+    /**
+     * @param class-string[] $classesWithoutOptimisticLock
+     * @return array<string, class-string>
+     */
+    private function aggregateClassesByTypeWithoutOptimisticLock(array $classesWithoutOptimisticLock): array
+    {
+        $aggregateClassesByType = [];
+        foreach ($classesWithoutOptimisticLock as $aggregateClass) {
+            $aggregateClassesByType[$this->aggregateTypesByClass[$aggregateClass]] = $aggregateClass;
         }
 
         return $aggregateClassesByType;

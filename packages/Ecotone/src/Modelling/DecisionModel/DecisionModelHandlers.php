@@ -83,7 +83,7 @@ final class DecisionModelHandlers
                     $aggregateBackedModelLoaderDefinitions,
                     $appendsItsResult,
                     $ambiguouslyDuplicatedModelClasses,
-                    $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): Definition => $converter->compileCounterCapture(), $fetchedAggregateConverters) : [],
+                    $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): Definition => $converter->compileCounterCapture($interfaceToCall), $fetchedAggregateConverters) : [],
                     $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): string => $converter->aggregateClassName(), $fetchedAggregateConverters) : [],
                     $appendsItsResult && $boundaryMethodName !== null ? [DecisionBoundaryEvaluator::definitionFor($className, $boundaryMethodName, $interfaceToCall)] : [],
                 );

@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -110,8 +111,11 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             new Reference(DecisionModelExecutorRegistry::serviceIdFor($this->modelClassName)),
             PayloadBuilder::create($payloadParameterName)->compile($interfaceToCall),
             $this->fetchExpression !== null
-                ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->fetchExpression), $this->attributeDeclaration)
-                : new Definition(AttributeExpressionExecutor::class, [Reference::to(ExpressionEvaluationService::REFERENCE)], factory: [AttributeExpressionExecutor::class, 'withoutExpression']),
+                ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->fetchExpression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName)
+                : new Definition(AttributeExpressionExecutor::class, [
+                    Reference::to(ExpressionEvaluationService::REFERENCE),
+                    ExpressionLocation::definitionForParameter(Fetch::class, $this->parameterName, $interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName(), null),
+                ], factory: [AttributeExpressionExecutor::class, 'withoutExpression']),
         ];
     }
 }

@@ -6,11 +6,12 @@ namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use Closure;
 use Ecotone\Messaging\Attribute\WithExpression;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-
-use function is_string;
+use Throwable;
 
 /**
  * Carries intercepted attribute together with compiled expression program.
@@ -30,15 +31,16 @@ final class AttributeExpressionExecutor
     public function __construct(
         private object $attribute,
         private ExpressionEvaluationService $expressionEvaluationService,
-        private array $closureParameterResolvers = [],
+        private array $closureParameterResolvers,
+        private ExpressionLocation $location,
     ) {
         $this->expression = $attribute instanceof WithExpression ? $attribute->getExpression() : null;
     }
 
-    public static function withoutExpression(ExpressionEvaluationService $expressionEvaluationService): self
+    public static function withoutExpression(ExpressionEvaluationService $expressionEvaluationService, ExpressionLocation $location): self
     {
         return new self(new class {
-        }, $expressionEvaluationService);
+        }, $expressionEvaluationService, [], $location);
     }
 
     public function getAttribute(): object
@@ -51,21 +53,31 @@ final class AttributeExpressionExecutor
         return $this->expression !== null && $this->expression !== '';
     }
 
+    public function location(): ExpressionLocation
+    {
+        return $this->location;
+    }
+
     public function execute(Message $message, array $additionalContext = []): mixed
     {
         $expression = $this->expression;
-        if ($expression instanceof Closure) {
-            $arguments = [];
-            foreach ($this->closureParameterResolvers as $parameterResolver) {
-                $arguments[] = $parameterResolver->resolve($message, $additionalContext);
+        if (! $this->hasExpression()) {
+            throw InvalidArgumentException::create(sprintf('Attribute %s has no expression to execute', get_class($this->attribute)));
+        }
+
+        try {
+            if ($expression instanceof Closure) {
+                $arguments = [];
+                foreach ($this->closureParameterResolvers as $parameterResolver) {
+                    $arguments[] = $parameterResolver->resolve($message, $additionalContext);
+                }
+
+                return $expression(...$arguments);
             }
 
-            return $expression(...$arguments);
-        }
-        if (is_string($expression) && $expression !== '') {
             return $this->expressionEvaluationService->evaluateWithMessage($expression, $message, $additionalContext);
+        } catch (Throwable $exception) {
+            throw ExpressionEvaluationException::wrapping($this->location, $exception);
         }
-
-        throw InvalidArgumentException::create(sprintf('Attribute %s has no expression to execute', get_class($this->attribute)));
     }
 }

@@ -53,6 +53,14 @@ final class DynamicConsistencyBoundary
         return $this->configuration->filterOnlyTagNames();
     }
 
+    /**
+     * @return array<class-string, array{thresholdTrigger: int, documentStore: string}>
+     */
+    public function snapshottedModelClasses(): array
+    {
+        return $this->configuration->snapshottedModelClasses();
+    }
+
     public function registerServicesForInMemoryStore(Configuration $messagingConfiguration): void
     {
         $messagingConfiguration->registerServiceDefinition(

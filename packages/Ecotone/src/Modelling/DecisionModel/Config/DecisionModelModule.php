@@ -112,6 +112,11 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             throw DynamicConsistencyBoundaryDisabled::exception();
         }
 
+        self::assertEverySnapshottedClassIsADecisionModel(
+            DynamicConsistencyBoundary::resolveFrom($extensionObjects)->snapshottedModelClasses(),
+            $this->rawDefinitions,
+        );
+
         if ($this->decisionModelClasses !== []) {
             self::assertNoModelScopedOnlyByFilterOnlyTags($this->rawDefinitions, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->filterOnlyTagNames());
             CrossConnectionDecisionModelGuard::assertNoCrossConnectionInjection(
@@ -254,6 +259,26 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     implode("', '", $rawDefinition['tagNames']),
                 ));
             }
+        }
+    }
+
+    /**
+     * @param array<class-string, array{thresholdTrigger: int, documentStore: string}> $snapshottedModelClasses
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     */
+    private static function assertEverySnapshottedClassIsADecisionModel(array $snapshottedModelClasses, array $rawDefinitions): void
+    {
+        foreach (array_keys($snapshottedModelClasses) as $modelClass) {
+            if (isset($rawDefinitions[$modelClass])) {
+                continue;
+            }
+
+            throw ConfigurationException::create(sprintf(
+                'DynamicConsistencyBoundaryConfiguration::withSnapshotsFor() names %s, which is not a decision model, so there is nothing to snapshot. '
+                . 'Add #[DecisionModel(tags: [...])] or #[DecisionModel(aggregate: ...)] to %s, or drop it from withSnapshotsFor().',
+                $modelClass,
+                $modelClass,
+            ));
         }
     }
 

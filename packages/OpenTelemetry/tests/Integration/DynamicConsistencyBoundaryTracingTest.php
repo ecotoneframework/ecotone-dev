@@ -23,8 +23,10 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
+use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\Course;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\CourseCapacity;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\CourseDefined;
+use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\DefineCourse;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\Enrolments;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\EnrolmentsWithoutBoundary;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\EnrolStudent;
@@ -61,6 +63,20 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter);
 
         $ecotone->sendCommand(new EnrolStudent('course-1', 'student-1'));
+
+        $span = $this->spanNamed($exporter, 'Conditional Append: ecotone_event_stream');
+
+        self::assertSame('course:course-1', $span->getAttributes()->get(DynamicConsistencyBoundarySpanAttributes::TAGS));
+        self::assertSame(1, $span->getAttributes()->get(DynamicConsistencyBoundarySpanAttributes::EVENTS_APPENDED));
+        self::assertSame(StatusCode::STATUS_OK, $span->getStatus()->getCode());
+    }
+
+    public function test_saving_an_in_memory_event_sourced_aggregate_is_a_conditional_append_span(): void
+    {
+        $exporter = new InMemoryExporter();
+        $ecotone = $this->bootstrapWithAnEventSourcedAggregate($exporter);
+
+        $ecotone->sendCommand(new DefineCourse('course-1', 5));
 
         $span = $this->spanNamed($exporter, 'Conditional Append: ecotone_event_stream');
 
@@ -156,6 +172,18 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Enrolments::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
             containerOrAvailableServices: [new Enrolments(), TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function bootstrapWithAnEventSourcedAggregate(InMemoryExporter $exporter): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [Course::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
+            containerOrAvailableServices: [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),

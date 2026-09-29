@@ -61,7 +61,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
             true => new Definition(
                 EventStoreEventSourcedRepository::class,
                 [
-                    new Reference(EventStore::class),
+                    new Reference(EventStore::RAW_REFERENCE),
                     $this->aggregateClassNames,
                 ]
             ),

@@ -52,6 +52,20 @@ final class LiteralEventTagDecisionModelTest extends TestCase
         $this->assertSame([1, 1, 2], self::issuedNumbers($ecotone));
     }
 
+    public function test_a_numeric_literal_scopes_the_model_as_the_string_the_events_carry(): void
+    {
+        $ecotone = $this->bootstrap([
+            BatchCountingHandlerForLiteralTag::class,
+            BatchCountForLiteralTag::class,
+            BatchItemAddedForLiteralTag::class,
+        ], [new BatchCountingHandlerForLiteralTag()]);
+
+        $ecotone->sendCommand(new AddBatchItemForLiteralTag());
+        $ecotone->sendCommand(new AddBatchItemForLiteralTag());
+
+        $this->assertSame([1, 2], self::issuedNumbers($ecotone));
+    }
+
     public function test_handled_events_declaring_different_literals_for_one_scope_tag_are_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
@@ -171,6 +185,44 @@ final class RegionalInvoiceIssuingHandlerForLiteralTag
     public function issue(IssueRegionalInvoiceForLiteralTag $command, RegionalInvoiceNumberingForLiteralTag $numbering): array
     {
         return [new RegionalInvoiceIssuedForLiteralTag($command->region, $numbering->nextNumber())];
+    }
+}
+
+final readonly class AddBatchItemForLiteralTag
+{
+}
+
+#[EventTag('batch', value: '1')]
+final readonly class BatchItemAddedForLiteralTag
+{
+    public function __construct(public int $number)
+    {
+    }
+}
+
+#[DecisionModel(tags: ['batch'])]
+final class BatchCountForLiteralTag
+{
+    private int $lastNumber = 0;
+
+    #[EventSourcingHandler]
+    public function added(BatchItemAddedForLiteralTag $event): void
+    {
+        $this->lastNumber = $event->number;
+    }
+
+    public function nextNumber(): int
+    {
+        return $this->lastNumber + 1;
+    }
+}
+
+final class BatchCountingHandlerForLiteralTag
+{
+    #[CommandHandler]
+    public function add(AddBatchItemForLiteralTag $command, BatchCountForLiteralTag $batch): array
+    {
+        return [new BatchItemAddedForLiteralTag($batch->nextNumber())];
     }
 }
 

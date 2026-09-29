@@ -143,14 +143,14 @@ final class DecisionModelDefinitionBuilder
                 ));
             }
 
-            $agreedLiteralValues[$tagName] = array_key_first($declaredValues);
+            $agreedLiteralValues[$tagName] = (string) array_key_first($declaredValues);
         }
 
         return $agreedLiteralValues;
     }
 
     /**
-     * @param array<string, class-string[]> $eventClassesByLiteralValue
+     * @param array<string|int, class-string[]> $eventClassesByLiteralValue
      */
     private static function describeDeclaredLiterals(array $eventClassesByLiteralValue): string
     {

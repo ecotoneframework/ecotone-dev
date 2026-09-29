@@ -981,4 +981,9 @@ Answered during implementation (coordinator, on the maintainer's standing approv
   state-stored save appends nothing to carry it) — pre-existing, outside D1–D12.
 - A fetched *state-stored* aggregate that records events (`WithEvents`) in a DCB handler still drops them silently;
   D8 names event-sourced aggregates only.
-- Per-tag snapshots would make A2 (readable aggregate tags) a rename rather than a new mechanism (OQ 5).
+- **OQ 5 (readable aggregate tags, A2) is answered: no, and it will not be reopened.** `2026-09-28-dcb-aggregate-full-tag-design.md`
+  revision 2 asked exactly this question and declined the index rows in its Part 5 — ~2.2 GB per 10 M events on
+  PostgreSQL, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays for
+  `#[Fetch]`. The blocker is not the mechanism: an aggregate's events are already queryable by the pair the boundary
+  is keyed on, so the rows would be a second copy of an index the stream already has. A decision model reads them
+  through `#[DecisionModel(aggregate: …)]` instead (§4.12 of the shipped spec).

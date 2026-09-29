@@ -12,6 +12,7 @@ use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
@@ -343,6 +344,49 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             return [];
         }
 
+        [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, $fromVersion, $eventNames);
+
+        return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
+    }
+
+    /**
+     * @param string[] $eventNames
+     * @return Event[]
+     */
+    public function loadDecisionModelAggregateEvents(
+        string $streamName,
+        ?string $aggregateType,
+        string $aggregateId,
+        array $eventNames = [],
+    ): iterable {
+        $connection = $this->connectionFor($streamName);
+        $schema = EventStreamSchemaFactory::for($connection);
+        $tableName = $this->streamTableRegistry->tableFor($streamName);
+
+        [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, 1, $eventNames);
+
+        try {
+            return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, null, true);
+        } catch (TableNotFoundException) {
+            throw $this->missingStreamTableException($connection, $tableName);
+        }
+    }
+
+    private function missingStreamTableException(Connection $connection, string $tableName): ConfigurationException
+    {
+        return ConfigurationException::create(
+            AutomaticTableInitializationSupport::isSupported($connection)
+                ? MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
+                : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
+        );
+    }
+
+    /**
+     * @param string[] $eventNames
+     * @return array{0: array<string>, 1: array<mixed>, 2: array<ParameterType>}
+     */
+    private function createAggregateWhereClause(EventStreamSchema $schema, ?string $aggregateType, string $aggregateId, int $fromVersion, array $eventNames): array
+    {
         $where = [];
         $parameters = [];
         $types = [];
@@ -370,7 +414,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             }
         }
 
-        return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
+        return [$where, $parameters, $types];
     }
 
     /**
@@ -434,13 +478,8 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             return;
         }
 
-        $isAutomaticInitializationSupported = AutomaticTableInitializationSupport::isSupported($connection);
-        if (! $this->automaticTableInitialization || ! $isAutomaticInitializationSupported) {
-            throw ConfigurationException::create(
-                $isAutomaticInitializationSupported
-                    ? MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
-                    : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
-            );
+        if (! $this->automaticTableInitialization || ! AutomaticTableInitializationSupport::isSupported($connection)) {
+            throw $this->missingStreamTableException($connection, $tableName);
         }
 
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {

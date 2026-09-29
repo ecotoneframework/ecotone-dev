@@ -60,5 +60,16 @@ interface EventStore
         bool $deserialize = true
     ): iterable;
 
+    /**
+     * @param string[] $eventNames
+     * @return Event[]
+     */
+    public function loadDecisionModelAggregateEvents(
+        string $streamName,
+        ?string $aggregateType,
+        string $aggregateId,
+        array $eventNames = [],
+    ): iterable;
+
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }

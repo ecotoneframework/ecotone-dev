@@ -179,12 +179,10 @@ final class DecisionModelBatchLoader
 
         $eventsByInstanceKey = [];
         foreach ($instanceByInstanceKey as $instanceKey => $instance) {
-            $eventsByInstanceKey[$instanceKey] = [...$this->eventStore->loadAggregateEvents(
+            $eventsByInstanceKey[$instanceKey] = [...$this->eventStore->loadDecisionModelAggregateEvents(
                 $instance->streamName(),
                 $instance->aggregateType(),
                 $instance->aggregateId(),
-                1,
-                null,
                 $eventClassesByInstanceKey[$instanceKey],
             )];
         }

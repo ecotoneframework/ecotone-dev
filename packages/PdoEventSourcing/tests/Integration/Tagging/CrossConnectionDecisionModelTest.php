@@ -41,6 +41,42 @@ final class CrossConnectionDecisionModelTest extends TestCase
         );
     }
 
+    public function test_aggregate_backed_model_whose_aggregate_stream_is_on_another_connection_is_rejected_at_bootstrap(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [
+                    ArchivedWidgetForCrossConnectionDecisionModelTest::class,
+                    ArchivedWidgetCountForCrossConnectionDecisionModelTest::class,
+                    HandlerInjectingArchivedWidgetCountForCrossConnectionDecisionModelTest::class,
+                ],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ArchivedWidgetCountForCrossConnectionDecisionModelTest::class, $exception->getMessage());
+            $this->assertStringContainsString(ArchivedWidgetForCrossConnectionDecisionModelTest::class, $exception->getMessage());
+            $this->assertStringContainsString('archiveConnectionForCrossConnectionDecisionModelTest', $exception->getMessage());
+        }
+    }
+
+    public function test_aggregate_backed_model_on_the_handlers_connection_is_accepted_at_bootstrap(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [
+                SameConnectionAggregateForCrossConnectionDecisionModelTest::class,
+                SameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest::class,
+                HandlerInjectingSameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest::class,
+                SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest::class,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->assertNotNull($ecotone);
+    }
+
     public function test_model_traced_to_the_same_connection_as_the_handler_is_accepted_at_bootstrap(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -176,5 +212,82 @@ final class SameConnectionModelForCrossConnectionDecisionModelTest
     public function whenDefined(SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->count++;
+    }
+}
+
+final readonly class ArchivedWidgetDefinedForCrossConnectionDecisionModelTest
+{
+    public function __construct(
+        public string $widgetId,
+    ) {
+    }
+}
+
+#[EventSourcingAggregate]
+#[AggregateType('ArchivedWidget')]
+#[Stream('archived_widget_stream', connectionReferenceName: 'archiveConnectionForCrossConnectionDecisionModelTest')]
+final class ArchivedWidgetForCrossConnectionDecisionModelTest
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    private string $widgetId;
+
+    #[EventSourcingHandler]
+    public function applyDefined(ArchivedWidgetDefinedForCrossConnectionDecisionModelTest $event): void
+    {
+        $this->widgetId = $event->widgetId;
+    }
+}
+
+#[DecisionModel(aggregate: ArchivedWidgetForCrossConnectionDecisionModelTest::class)]
+final class ArchivedWidgetCountForCrossConnectionDecisionModelTest
+{
+    private int $count = 0;
+
+    #[EventSourcingHandler]
+    public function whenDefined(ArchivedWidgetDefinedForCrossConnectionDecisionModelTest $event): void
+    {
+        $this->count++;
+    }
+
+    public function count(): int
+    {
+        return $this->count;
+    }
+}
+
+final class HandlerInjectingArchivedWidgetCountForCrossConnectionDecisionModelTest
+{
+    #[CommandHandler]
+    public function handle(CheckWidgetCountForCrossConnectionDecisionModelTest $command, ArchivedWidgetCountForCrossConnectionDecisionModelTest $widgetCount): array
+    {
+        return [];
+    }
+}
+
+#[DecisionModel(aggregate: SameConnectionAggregateForCrossConnectionDecisionModelTest::class)]
+final class SameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest
+{
+    private int $count = 0;
+
+    #[EventSourcingHandler]
+    public function whenDefined(SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest $event): void
+    {
+        $this->count++;
+    }
+
+    public function count(): int
+    {
+        return $this->count;
+    }
+}
+
+final class HandlerInjectingSameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest
+{
+    #[CommandHandler]
+    public function handle(CheckWidgetCountForCrossConnectionDecisionModelTest $command, SameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest $widgetCount): array
+    {
+        return [];
     }
 }

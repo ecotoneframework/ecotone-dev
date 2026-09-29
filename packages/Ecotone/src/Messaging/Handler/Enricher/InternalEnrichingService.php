@@ -6,12 +6,15 @@ namespace Ecotone\Messaging\Handler\Enricher;
 
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Throwable;
 
 /**
  * Class InternalEnrichingService
@@ -45,7 +48,7 @@ class InternalEnrichingService
      * @param string $requestPayloadExpression
      * @param string[] $requestHeaders
      */
-    public function __construct(?EnrichGateway $enrichGateway, ExpressionEvaluationService $expressionEvaluationService, ConversionService $conversionService, array $setters, ?string $requestPayloadExpression, array $requestHeaders)
+    public function __construct(?EnrichGateway $enrichGateway, ExpressionEvaluationService $expressionEvaluationService, ConversionService $conversionService, array $setters, ?string $requestPayloadExpression, array $requestHeaders, private ExpressionLocation $requestPayloadLocation)
     {
         $this->enrichGateway               = $enrichGateway;
         $this->setters                     = $setters;
@@ -68,13 +71,17 @@ class InternalEnrichingService
             $requestMessage = MessageBuilder::fromMessage($message);
 
             if ($this->requestPayloadExpression) {
-                $requestPayload = $this->expressionEvaluationService->evaluate(
-                    $this->requestPayloadExpression,
-                    [
-                        'headers' => $message->getHeaders()->headers(),
-                        'payload' => $message->getPayload(),
-                    ],
-                );
+                try {
+                    $requestPayload = $this->expressionEvaluationService->evaluate(
+                        $this->requestPayloadExpression,
+                        [
+                            'headers' => $message->getHeaders()->headers(),
+                            'payload' => $message->getPayload(),
+                        ],
+                    );
+                } catch (Throwable $exception) {
+                    throw ExpressionEvaluationException::wrapping($this->requestPayloadLocation, $exception);
+                }
 
                 $requestMessage->setPayload($requestPayload);
             }

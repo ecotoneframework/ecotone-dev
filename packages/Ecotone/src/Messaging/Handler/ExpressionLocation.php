@@ -40,9 +40,14 @@ final class ExpressionLocation
         return self::definitionFor(self::attributeNameOf($attributeClassName), '', self::ownerOf($ownerClassName, $ownerMethodName), $expression);
     }
 
-    public static function definitionForEndpointStep(string $stepName, string $target, string $endpointName, string $expression): Definition
+    public static function definitionForEndpoint(string $stepName, string $endpointName, string $expression): Definition
     {
-        return self::definitionFor($stepName, $target, sprintf("endpoint '%s'", $endpointName), $expression);
+        return self::definitionFor($stepName, '', sprintf("endpoint '%s'", $endpointName), $expression);
+    }
+
+    public static function definitionForPropertyEditor(string $editedPart, string $propertyPath, string $expression): Definition
+    {
+        return self::definitionFor('Enricher', sprintf("%s path '%s'", $editedPart, $propertyPath), '', $expression);
     }
 
     public function describeFailureWith(string $cause): string
@@ -52,9 +57,9 @@ final class ExpressionLocation
 
     public function describe(): string
     {
-        return $this->target === ''
-            ? sprintf('%s in %s', $this->attributeName, $this->owner)
-            : sprintf('%s on %s in %s', $this->attributeName, $this->target, $this->owner);
+        $describedTarget = $this->target === '' ? $this->attributeName : sprintf('%s on %s', $this->attributeName, $this->target);
+
+        return $this->owner === '' ? $describedTarget : sprintf('%s in %s', $describedTarget, $this->owner);
     }
 
     private static function definitionFor(string $attributeName, string $target, string $owner, string|Closure|null $expression): Definition

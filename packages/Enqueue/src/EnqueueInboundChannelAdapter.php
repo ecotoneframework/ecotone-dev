@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;

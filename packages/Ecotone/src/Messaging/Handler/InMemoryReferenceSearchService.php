@@ -2,10 +2,10 @@
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Psr\Container\ContainerInterface;

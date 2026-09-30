@@ -6,7 +6,7 @@ namespace Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\Modelling\AggregateIdString;
 use Ecotone\Modelling\Repository\AggregateCounter;

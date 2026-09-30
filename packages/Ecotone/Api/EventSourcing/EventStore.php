@@ -1,10 +1,7 @@
 <?php
 
-namespace Ecotone\EventSourcing;
+namespace Ecotone\Api\EventSourcing;
 
-use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\Modelling\Event;
 

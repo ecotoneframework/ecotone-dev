@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;

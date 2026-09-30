@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;

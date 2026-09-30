@@ -36,8 +36,8 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
                 ]),
         );
 
-        /** @var \Ecotone\EventSourcing\EventStore $eventStore */
-        $eventStore = $ecotoneTestSupport->getGateway(\Ecotone\EventSourcing\EventStore::class);
+        /** @var \Ecotone\Api\EventSourcing\EventStore $eventStore */
+        $eventStore = $ecotoneTestSupport->getGateway(\Ecotone\Api\EventSourcing\EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
         $eventStore->appendTo(

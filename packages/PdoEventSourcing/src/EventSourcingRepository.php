@@ -3,6 +3,7 @@
 namespace Ecotone\EventSourcing;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateIdString;

@@ -3,7 +3,7 @@
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

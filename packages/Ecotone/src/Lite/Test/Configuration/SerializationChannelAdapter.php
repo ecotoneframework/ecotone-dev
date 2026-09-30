@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;

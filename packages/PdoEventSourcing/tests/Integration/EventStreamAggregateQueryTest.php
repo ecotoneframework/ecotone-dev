@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\Event;
 use Symfony\Component\Uid\Uuid;

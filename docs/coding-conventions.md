@@ -453,6 +453,8 @@ Never, in a test:
 - name an internal collaborator class in the test's own name
 
 ```php
+use Ecotone\Api\EventSourcing\EventStore;
+
 // wrong — bypasses the gateway to reach the implementation
 $store = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
 
@@ -689,16 +691,21 @@ second one is the easier to break, because adding to `Api/` never fails a build.
 **Nothing an application writes stays outside `Api`.** Every attribute, every `#[ServiceContext]` extension object,
 every gateway interface, every enum or value object named in a configuration call. If a user has to type the name,
 it is public surface, and leaving it in `src` makes the whole of `src` look quotable.
+The 2.0 sweep missed two: `EventStore`, the most-used gateway in the tree, and
+`ConversionService`, which an application receives by injection, stayed in `src` until they became
+`Ecotone\Api\EventSourcing\EventStore` and `Ecotone\Api\Conversion\ConversionService` (`upgrade-2.0.md` §13b).
+The audits missed them too, because they only ever read `Api/` for internal types leaking in; finding a public type
+left out means reading `src` for names an application has to type.
 
 **Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
-services, compiler passes or container plumbing. 167 files live under `packages/*/Api` today; the reason the number
+services, compiler passes or container plumbing. 172 files live under `packages/*/Api` today; the reason the number
 stays honest is that a class is added there on purpose, never because it was convenient.
 
 **The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
 framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder
 $builder): Definition` appears in `Api` on purpose in `SimpleMessageChannelBuilder.php:159`,
 `Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153` and each framework package's channel builder. The same
-goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 39 of the 167
+goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 42 of the 172
 `Api` files and none of that is a leak.
 
 It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to

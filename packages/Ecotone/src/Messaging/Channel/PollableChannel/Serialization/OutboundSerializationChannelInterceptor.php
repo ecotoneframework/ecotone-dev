@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;

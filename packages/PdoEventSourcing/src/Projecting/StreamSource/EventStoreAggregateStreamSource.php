@@ -9,7 +9,7 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
 use function count;
 
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilter;

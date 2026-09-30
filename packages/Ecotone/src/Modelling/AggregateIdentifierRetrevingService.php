@@ -5,9 +5,9 @@ namespace Ecotone\Modelling;
 use function array_key_exists;
 use function array_keys;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;

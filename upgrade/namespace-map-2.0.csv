@@ -153,6 +153,8 @@ Ecotone\Projecting\ProjectingManager,Ecotone\Api\Projecting\ProjectingManager
 Ecotone\Projecting\ProjectionRegistry,Ecotone\Api\Projecting\ProjectionRegistry
 Ecotone\Messaging\Store\Document\DocumentStore,Ecotone\Api\Gateway\DocumentStore
 Ecotone\Dbal\Recoverability\DeadLetterGateway,Ecotone\Api\Dbal\Gateway\DeadLetterGateway
+Ecotone\EventSourcing\EventStore,Ecotone\Api\EventSourcing\EventStore
+Ecotone\Messaging\Conversion\ConversionService,Ecotone\Api\Conversion\ConversionService
 Ecotone\Dbal\Database\DatabaseSetupManager,Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager
 Ecotone\Modelling\Api\Distribution\DistributedServiceMap,Ecotone\Api\ExtensionObject\DistributedServiceMap
 Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\DistributedBusHeader

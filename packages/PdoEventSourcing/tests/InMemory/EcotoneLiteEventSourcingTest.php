@@ -4,12 +4,11 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;

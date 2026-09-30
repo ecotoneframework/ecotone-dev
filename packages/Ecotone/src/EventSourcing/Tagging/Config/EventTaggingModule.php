@@ -13,7 +13,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTagGuard;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTags;

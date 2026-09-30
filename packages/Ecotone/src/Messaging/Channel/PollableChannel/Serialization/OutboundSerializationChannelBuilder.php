@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 

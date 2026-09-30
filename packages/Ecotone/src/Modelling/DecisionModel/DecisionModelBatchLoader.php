@@ -10,8 +10,8 @@ use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\EventSourcing\Tagging\TagResolver;

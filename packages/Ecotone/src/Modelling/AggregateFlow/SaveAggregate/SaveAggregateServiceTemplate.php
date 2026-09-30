@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;

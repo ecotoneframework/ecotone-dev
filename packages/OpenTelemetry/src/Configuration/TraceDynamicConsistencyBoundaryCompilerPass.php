@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry\Configuration;
 
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;

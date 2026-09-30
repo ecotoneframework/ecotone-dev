@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -9,7 +10,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;

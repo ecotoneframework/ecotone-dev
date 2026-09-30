@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;

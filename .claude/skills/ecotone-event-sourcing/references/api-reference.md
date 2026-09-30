@@ -233,7 +233,7 @@ class NamedEvent
 
 ## EventStore Interface
 
-Source: `Ecotone\EventSourcing\EventStore`
+Source: `Ecotone\Api\EventSourcing\EventStore`
 
 ```php
 interface EventStore

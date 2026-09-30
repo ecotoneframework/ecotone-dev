@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;

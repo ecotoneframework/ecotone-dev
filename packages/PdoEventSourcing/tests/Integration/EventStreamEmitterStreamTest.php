@@ -6,16 +6,15 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;

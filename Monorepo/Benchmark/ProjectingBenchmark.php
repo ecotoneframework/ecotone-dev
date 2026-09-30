@@ -3,7 +3,7 @@
 namespace Monorepo\Benchmark;
 
 use Closure;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;

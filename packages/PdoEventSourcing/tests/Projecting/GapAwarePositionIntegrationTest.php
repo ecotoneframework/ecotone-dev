@@ -8,13 +8,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectingManager;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\MissingEventStreamTable;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\EventSourcing\StreamTableRegistry;

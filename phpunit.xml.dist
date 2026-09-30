@@ -60,7 +60,7 @@
       <directory>packages/Tempest/tests</directory>
     </testsuite>
     <testsuite name="Symfony tests">
-      <directory>packages/Symfony/tests</directory>
+      <directory>packages/Symfony/tests/phpunit</directory>
     </testsuite>
     <testsuite name="Enqueue tests">
       <directory>packages/Enqueue/tests</directory>

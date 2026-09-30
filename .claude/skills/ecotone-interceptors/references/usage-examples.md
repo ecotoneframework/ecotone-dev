@@ -48,18 +48,22 @@ class ValidationInterceptor
 
 ## Audit Logging Interceptor (After)
 
+`#[After]`'s first parameter is the handler's **return value**, not the original request -- and it only runs at
+all when the handler returns something. A `void` `#[CommandHandler]` never triggers it; target a
+`#[QueryHandler]`, or a command handler with a return type, instead.
+
 ```php
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Header;
 
 class AuditInterceptor
 {
-    #[After(pointcut: CommandHandler::class)]
+    #[After(pointcut: QueryHandler::class)]
     public function audit(
-        object $payload,
+        mixed $result,
         #[Header('correlationId')] string $correlationId
     ): void {
-        $this->auditLog->record($correlationId, $payload);
+        $this->auditLog->record($correlationId, $result);
     }
 }
 ```

@@ -27,7 +27,9 @@ class Before
 
 Source: `Ecotone\Api\Attribute\After`
 
-Runs after the handler completes. Receives the handler's return value as first parameter.
+Runs after the handler completes. Receives the handler's return value as first parameter. **Only runs when the
+handler actually returns a value** -- verified against `EcotoneLite`: on a `void` handler, `#[After]` (with or
+without `changeHeaders`) never executes, while `#[Before]` on the same pointcut still does.
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]

@@ -133,5 +133,5 @@ public static function bootstrapFlowTesting(
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `getGateway(string $gatewayClass)` | `object` | Get gateway instance |
-| `getServiceFromContainer(string $serviceId)` | `object` | Get service from container |
+| `getServiceFromContainer(string $serviceId)` | `object` | Get service from container. Not for reaching Ecotone's own internals in a test -- use `getGateway()`; see `docs/coding-conventions.md` rule 10 |
 | `getMessagingSystem()` | `ConfiguredMessagingSystem` | Get messaging system |

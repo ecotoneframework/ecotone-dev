@@ -1,8 +1,10 @@
 # Ecotone dev workflow
 
-The exact commands. [AGENTS.md](../AGENTS.md) is the guide and summarizes what is here;
-[docs/coding-conventions.md](./coding-conventions.md) holds the rules. This file holds only the mechanics: which
-container, which command, which environment variable.
+The mechanics, and the process around a unit of work. [AGENTS.md](../AGENTS.md) is the guide and summarizes what is
+here; [docs/coding-conventions.md](./coding-conventions.md) holds the rules for the code itself. This file holds
+which container, which command, which environment variable — and, from
+[§ Design, briefs and review](#design-briefs-and-review) on, what a design task, a task brief and a review pass owe
+each other.
 
 Every command below was run against this tree unless it is marked otherwise.
 
@@ -61,6 +63,11 @@ requires the root `vendor/autoload.php`. Keep the root install in sync with the 
 
 Do not pass `-u root` to `composer` or to a test script: it leaves `vendor/` and phpunit's cache root-owned on the
 host, which then blocks your own user and your editor from writing to them.
+
+A **new** Laravel test fixture directory needs `storage/logs/.gitignore` and `bootstrap/cache/.gitkeep` copied from
+a sibling under `packages/Laravel/tests/` before anything runs against it, or the first run commits its own
+`laravel.log`. Two of the three DCB friction reports found this independently: `f575d7c60` and `ff8dab584` do
+nothing else, and `ff8dab584` strips a tracked 177-line log out of three fixture directories.
 
 ### What `composer tests:ci` runs
 
@@ -171,6 +178,123 @@ not add licence headers.
 
 Every one of them is `fail-fast: true`, so the first failure cancels the rest.
 
+
+---
+
+## Design, briefs and review
+
+Everything above is what to run. This is what a design task, a task brief and a review pass owe each other. All of
+it comes from three independent friction reports over the DCB effort
+(`docs/superpowers/research/dcb-friction-{a,b,c}/report.md`), where each gap below was measured in commits somebody
+had to write twice.
+
+### A design justifies new storage against the read paths that already exist
+
+Before proposing an index, a backfill job, or write-path state to make a value queryable, name the existing index or
+read path you checked and why it is not enough — in the design document, before the proposal. `c40c483c7` proposed
+indexing every event of every event-sourced aggregate as tag rows in `ecotone_tagged_events`, plus a daily backfill
+to populate it. The next commit on the same branch, `f84eb145b`, is headed "Revision 2 — maintainer redirect" and
+quotes the correction:
+
+> there should be simpler solution, we already have the events in event stream. Therefore DecisionModel backed by
+> aggregate type attribute plus ability to point what matches aggregate id would be sufficient to build the model
+
+The replacement queries the stream's own `(aggregate_type, aggregate_id, no)` index — no new index, no backfill, no
+daily population job — and the document's own comparison calls it smaller than revision 1 "by an order of
+magnitude". It cost only document text because a human read the proposal before implementation started. Nothing in
+the process caught it.
+
+Keep the discarded analysis in the document rather than deleting it: `design-dcb-aggregate-full-tag` keeps
+revision 1's cost arithmetic "because its cost arithmetic is now the justification for not building it", and
+`research-dcb-single-read-snapshot` marks its own corrections inline with a literal **"Corrected:"** prefix instead
+of silently rewriting the earlier text. Both make the next decision of the same shape cheaper to make correctly.
+
+### A design document's claims are the unit's acceptance criteria
+
+All three friction reports found this independently; it is the largest process gap they agree on. When a design
+document claims something specific — "one read regardless of how many models a handler injects", "a MariaDB 1020
+maps to `ConcurrencyException`", "counters first means a lost condition writes nothing", "the console commands route
+by tenant header" — the commit that implements it adds a test named after the claim. A claim with no such test is
+not shipped; it is waiting for a review pass to re-derive it from the document:
+
+- `c6e670fc4` — the design promised one batched read. `DecisionModelConverter` was a plain per-parameter converter,
+  so a handler with N injected `#[DecisionModel]`s paid N round trips. Retrofitting the promise took five commits, a
+  new `DecisionModelBatchLoader` and two supporting registry/collector classes, across `DecisionModelModule`,
+  `DecisionModelConverterBuilder` and `DecisionModelConverter`.
+- `ef6df5468`, `0161ed16b`, `4e510a054`, `70a7dd4bf`, `94715ee33` — five review-fix commits that add nothing but
+  tests. The code was already correct in every case; nobody could tell without reading the design document and the
+  tree side by side.
+- `1d5477356` — 313 lines of test and no source change, proving two console commands route by tenant header. They
+  always had. Nothing said so until a numbered review item asked.
+
+Where the claim is about cost rather than behaviour — a statement count, a round-trip count — a test is the wrong
+instrument and review holds it instead; see
+[conventions rule 10](./coding-conventions.md#10-tests-validate-at-the-userland-level-only), and `6b30eb5cd`
+followed by `04e831b55` for the one that was written and then deleted. The behaviour still needs its test:
+[rule 10a](./coding-conventions.md#10a-a-guarantee-is-proved-on-every-path-that-has-to-hold-it).
+
+### What a task brief has to settle before the work starts
+
+Three of the seven units in one friction group needed a blocking round-trip to the coordinator because the brief had
+left a boundary open (`docs/superpowers/specs/2026-09-29-expression-failure-context-report.md` § "What the direction
+did not settle"; `docs/superpowers/specs/2026-09-29-missing-table-instructions-audit.md` §1 "Scope decision"). Every
+one was answered correctly, and every one cost a stop. A brief states, up front:
+
+- **Whether an exclusion covers tests as well as production code.** "`#[Deduplicated]` is excluded because it lives
+  in `packages/Dbal`" was read both ways.
+- **Whether "handle X in DCB handlers" reaches every code path X touches**, including the ones shared with non-DCB
+  features, or only the DCB-exclusive ones. The `#[Fetch]` *load* half turned out not to be separable from the
+  ordinary aggregate-load path at all, which the brief had not anticipated.
+- **The engines the change must be verified on** when it touches transactions, DDL or the event store — MySQL and
+  MariaDB by name, not "run the suite" (see [step 7](#before-opening-a-pull-request)).
+- **The conventions rules the unit will be checked against**, quoted rather than referenced, when it writes tests or
+  constructors. Rules 2 and 10 were each swept by a worktree of its own after the fact rather than applied while the
+  code was written — 6 and 22 commits, no new behaviour in either — and each of rule 10a's five missed paths was a
+  later corrective commit.
+
+### A review that numbers its findings commits the numbered list
+
+DCB commit subjects carry finding IDs — `(B1)`, `(M1)`, `(M5)`, `(N9)`–`(N13)` — and two of the three friction
+reports independently went looking for the document that assigned them, across all 26 DCB worktrees, and could not
+find it committed anywhere. Only the resolutions survive, so no fix can be read against what was actually asked. The
+readability review is the counter-example and the shape to copy:
+`docs/superpowers/specs/2026-09-28-dcb-readability-review.md` is committed with its full ranked list, and every item
+it raised can still be traced to the commit that closed it.
+
+---
+
+## Practices worth repeating
+
+Recorded as deliberately as the mistakes, because each of these demonstrably stopped an error.
+
+- **Survey first, then one commit per line item.** `implement-dcb-read-path-hygiene` wrote its missing-table audit
+  table (`✓`/`→`/`~` per call site) before touching code; `implement-no-nullable-services` worked a pre-written list
+  of sites. Both landed single-purpose commits with no walk-backs, and both mapped 1:1 onto the list. This is the
+  default shape for any "sweep the codebase for X" unit.
+- **Review in the order a newcomer reads, rank by size, name the files.**
+  `docs/superpowers/specs/2026-09-28-dcb-readability-review.md` read attributes → `EventStore` → modules → flows →
+  collaborators → tests, ranked each of its ten proposals S/M/L, and named exactly which files each one touches. Six
+  were implemented in the same branch; the four touching public `Api/` or maintainer-decided names were deferred
+  explicitly rather than rushed in. Both halves are the desired behaviour.
+- **Control the host's noise before believing a number.** `docs/superpowers/specs/2026-09-29-dcb-fold-cost.md` §1.2
+  runs each configuration in its own process, shuffles the order of (shape, ablation) pairs within every pass so a
+  slow period of the shared compose host cannot land on one configuration, wires null controls that change nothing,
+  states the resulting noise floor per shape (±2% to ±43%), and declines to conclude anything at all for the two
+  shapes whose floor is too coarse. Any performance claim measured on this host follows it.
+- **A measurement pass finds defects, not just numbers.** `4f6d6e22b` measured three *proposed* read optimisations
+  against the shipped code and found two real defects on the way — a `tableExists` probe run on every call, and an
+  empty extra page whenever an aggregate's event count is an exact multiple of the load batch size — both cheaper to
+  fix than any of the three optimisations were to build.
+- **Answer a genuinely ambiguous rule once, in writing, named as a decision.** `823dd41c3`, `c48e1b7c7`,
+  `6ef6e48df`, `24edcf663` and `bd255a13a` each cite a dated maintainer call instead of folding a guess into the
+  diff, so the same question was not answered differently by the next implementer.
+- **Write the commit message so the defect can be reconstructed without the diff.** `050e760f1`, `9ae4e3fd3` and
+  `36783f980` are the standard: what broke, why, and what changed. It is what made a six-branch, seventy-commit
+  retrospective possible in a single pass.
+- **Tabulate the error surface in the report.** The expression-failure-context unit listed every producer's exact
+  exception message beside the named test asserting it, which made verification mechanical instead of a re-derivation.
+  The shape for any unit that changes an error surface.
+
 ---
 
 ## Before opening a pull request
@@ -181,6 +305,11 @@ Every one of them is `fail-fast: true`, so the first failure cancels the rest.
 4. `php bin/check-licence.php` is clean
 5. `vendor/bin/php-cs-fixer fix` on the host, with nothing outside your change rewritten
 6. `vendor/bin/phpstan` is clean
-7. Anything touching event sourcing, the event store or DBAL ran on MySQL and MariaDB too
+7. Anything touching event sourcing, the event store, DBAL, transaction wrapping or DDL ran on **MySQL and
+   MariaDB** too, not only the PostgreSQL default. They implicitly commit on DDL
+   ([rule 16](./coding-conventions.md#16-never-issue-ddl-while-handling-a-message)), so nothing a PostgreSQL or
+   SQLite run does will show it, and the omission has cost two whole worktrees weeks apart —
+   `implement-mysql-mariadb-green` (merged at `22fe48dbc`) and `implement-dbal-mysql-green` (`57c076084`,
+   `9ae4e3fd3`), both chasing the same engine-specific failure
 8. The 8.2 floor still holds, if the change could care: `docker compose exec app8_2 ...`
 9. `Monorepo/*/Symfony/config/reference.php` is not in the diff — those drift on their own

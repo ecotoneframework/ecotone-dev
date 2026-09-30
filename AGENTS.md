@@ -15,9 +15,11 @@ each rule and nothing to drift. Read it before the first edit, not after review.
 The five that cost the most when they are wrong, because each one means throwing work away rather than adjusting it:
 
 - **Tests validate at the userland level only.** No SQL against Ecotone's own tables, no reflection, no statement
-  counting, no internal service references. Fetch a gateway and assert on what the application observes. Fifteen
-  commits in one feature did nothing but pull tests back to the public surface
-  ([rule 10](./docs/coding-conventions.md#10-tests-validate-at-the-userland-level-only))
+  counting, no internal service references. Fetch a gateway and assert on what the application observes. A whole
+  worktree — 22 commits — did nothing but pull one feature's tests back to the public surface
+  ([rule 10](./docs/coding-conventions.md#10-tests-validate-at-the-userland-level-only)), and a guarantee has to be
+  proved on every path that reaches it, not only the one you changed
+  ([rule 10a](./docs/coding-conventions.md#10a-a-guarantee-is-proved-on-every-path-that-has-to-hold-it))
 - **Exceptions drive the solution.** Name what was wrong, why it cannot work, and *every* way out — the exact API
   call, attribute, option or command. The message is the deliverable; assert it in a test
   ([rule 1](./docs/coding-conventions.md#1-exceptions-drive-the-solution))
@@ -86,7 +88,7 @@ commit that evidences it. The summary:
 | # | Rule | Why |
 |---|---|---|
 | 1 | **Exceptions drive the solution** — name what was wrong, why it cannot work, and *every* way out (the exact API call, attribute, option or command). Assert the message in a test | The message is what the agent or developer reacts to; it is the deliverable |
-| 1a | A configuration mistake is **refused at bootstrap**, never at runtime, and never read as an empty result | Fails on the first test run instead of on a production message |
+| 1a | A configuration mistake is **refused at bootstrap**, never at runtime, and never read as an empty result — the guard and the message test ship in the commit that states the rule | One worktree of 18 fix commits paid for the rules that shipped without one |
 | 2 | **Never take a nullable service dependency.** Register unconditionally, decide at runtime. Split the class, add a null-object factory, make the parameter required, or pick between two services in the container | A `?Service = null` is a mode switch in disguise, and the two modes drift |
 | 3 | **Constructor-injected services are stateless** — no accumulating properties, no static caches, no per-message collectors. Mutable state goes in a function-scoped immutable value object carried on a message header | A container service is a singleton; anything it remembers leaks into the next message, transaction and retry |
 | 4 | **Do not mix queries with writes.** A read never runs DDL, a mutator returns `void`, and the name says which it is | `getRecordedEvents()` cleared its buffer and became `popRecordedEvents()` for exactly this reason |
@@ -94,8 +96,9 @@ commit that evidences it. The summary:
 | 6 | **Names carry the meaning. No comments, no descriptive docblocks.** Array shapes, generics and `@link https://docs.ecotone.tech/...` are the only allowed docblocks. One word per concept, through the whole path | A comment drifts from the code beside it; a name and an exception message cannot |
 | 7 | **Enterprise features live in separate files** with `licence Enterprise`, chosen in the container via `LicenceDecider`. Open-source files carry `licence Apache-2.0`. Open-core behaviour stays byte-for-byte unchanged | No `if ($hasLicence)` branches to keep in step |
 | 8 | **Always use optimistic locking** — a version check on the write, never a pessimistic lock or a bespoke tracker | Pessimistic locking and snapshot tracking were both tried and removed |
-| 9 | **A feature needing external storage ships an in-memory implementation**, named to mirror the storage one | Otherwise the feature cannot be used in an `EcotoneLite` flow test |
-| 10 | **Tests validate at the userland level only.** No SQL on Ecotone's tables, no internal service references, no reflection, no statement counting. Fetch a **gateway** and assert on observable behaviour | Fifteen commits in one feature did nothing but pull tests back to the public surface |
+| 9 | **A feature needing external storage ships an in-memory implementation**, named to mirror the storage one, and one shared suite proves the two behave identically | Otherwise the feature cannot be used in an `EcotoneLite` flow test — and `InMemoryEventStore` silently diverged from DBAL three times |
+| 10 | **Tests validate at the userland level only.** No SQL on Ecotone's tables, no internal service references, no reflection, no statement counting. Fetch a **gateway** and assert on observable behaviour | A whole worktree — 22 commits — did nothing but pull one feature's tests back to the public surface |
+| 10a | **A guarantee is proved on every path that has to hold it** — direct call, class-routed bus send, routed send, gateway, console command, and the reconstruction path beside the live one | Five times in one feature, a fix covered one entry point and looked finished |
 | 11 | **`EcotoneLite`, `snake_case`, no comments, fixtures in the test file.** Test-first: RED, GREEN, refactor | |
 | 12 | **The public surface is `Api/`, a sibling of `src/`** — never `src/Api/`, which breaks Tempest discovery. Everything outside `Api` is `@internal` | |
 | 13 | **Configuration is attributes plus `#[ServiceContext]`**, compiled into a container via `DefinedObject`/`Definition`. No YAML, no XML | |
@@ -135,6 +138,11 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   form in 2.0, in 92 of the 141 test files added since 1.x. Not a shared `Fixture/` directory
 - `snake_case` method names, named after the behaviour rather than the class that implements it
 - No comments, no docblocks, no assertion messages. The method name is the description
+- **One test per path the guarantee has to hold on**, not one per change: a class-routed `CommandBus::send()`, a
+  routed send, a gateway, a console command and an aggregate save all reach the same behaviour differently, and the
+  backfill path of a concept has to be proved alongside its live path (conventions rule 10a)
+- **A seam with two implementations is asserted in one suite both of them run** — an in-memory store that nobody
+  proves equal to the DBAL one makes every flow test using it suspect (conventions rule 9)
 - Run the suite of the package you modified, **one package at a time, never in parallel** — the packages share the
   compose services and a parallel run produces false failures
 
@@ -221,6 +229,31 @@ final class EcotoneConfiguration
     }
 }
 ```
+
+## Design, briefs and review
+
+Three independent friction reports over the DCB effort measured what a unit of work costs when the process around
+it is loose. [docs/dev-workflow.md § Design, briefs and review](./docs/dev-workflow.md#design-briefs-and-review) has
+the evidence; the four rules:
+
+- **A design justifies new storage against the read paths that already exist.** Name the index or read path you
+  checked, and why it is not enough, before proposing a new one. A proposal for a new tag index plus a daily
+  backfill was replaced by a query against an index the event stream already had — "smaller by an order of
+  magnitude", and caught only because a human read the design first
+- **A design document's claims are the unit's acceptance criteria.** A claim ships with a test named after it, in
+  the same commit. All three reports found this independently: a promise of one read per handler shipped as one read
+  per model, five review commits added tests for behaviour that was already correct, and 313 lines of test proved a
+  capability that had worked since the day it shipped
+- **A brief states its boundaries up front** — whether an exclusion covers tests as well as production code, whether
+  "handle X here" reaches the paths X shares with other features, which database engines the change must be verified
+  on, and which conventions rules the unit will be checked against. Three of seven units in one group needed a
+  blocking round-trip for want of one sentence
+- **A review that numbers its findings commits the numbered list.** DCB commits cite `(M1)`, `(N9)`, `(B1)`; the
+  document assigning those IDs was never committed, so no fix can be read against what was asked
+
+[Practices worth repeating](./docs/dev-workflow.md#practices-worth-repeating) records the other half — the
+survey-first sweep, the review read in a newcomer's order and ranked by size, and performance work that states its
+noise floor before it states a result.
 
 ## Committing
 

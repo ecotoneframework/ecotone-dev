@@ -109,7 +109,7 @@ final class UniqueUsernamePerTenantTest extends TestCase
      */
     private function claimedUsernamesOf(FlowTestSupport $ecotone, string $tenant): array
     {
-        $events = $ecotone->getServiceFromContainer(EventStore::class)
+        $events = $ecotone->getGateway(EventStore::class)
             ->loadByCriteria(EventCriteria::tag('tenant', $tenant)->ofTypes(UsernameClaimed::class))
             ->events;
 

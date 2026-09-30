@@ -109,7 +109,7 @@ final class StateStoredAggregateCounterTest extends TestCase
 
     private function eventStore(FlowTestSupport $ecotone): EventStore
     {
-        return $ecotone->getServiceFromContainer(EventStore::class);
+        return $ecotone->getGateway(EventStore::class);
     }
 
     private function bootstrapWithDcb(): FlowTestSupport

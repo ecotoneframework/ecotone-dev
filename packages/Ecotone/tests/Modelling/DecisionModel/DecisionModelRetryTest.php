@@ -61,7 +61,7 @@ final class DecisionModelRetryTest extends TestCase
         $ecotone->sendCommand(new SubscribeToCourseForRetryTest('course-1', 'student-1'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('student', 'student-1'))->events);
     }
 
@@ -142,7 +142,7 @@ final class DecisionModelRetryTest extends TestCase
         $ecotone->getGateway(RetryCommandBusForRetryTest::class)->send(new SubscribeToCourseForRetryTest('course-1', 'student-1'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('student', 'student-1'))->events);
     }
 

@@ -29,10 +29,10 @@ final class FlowTestSupportDefaultStreamTest extends TestCase
 
         $ecotone->withEvents([new CourseDefinedForDefaultStreamTest('course-1')]);
 
-        $this->assertTrue($ecotone->getServiceFromContainer(EventStore::class)->hasStream('ecotone_event_stream'));
+        $this->assertTrue($ecotone->getGateway(EventStore::class)->hasStream('ecotone_event_stream'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
     }
 }

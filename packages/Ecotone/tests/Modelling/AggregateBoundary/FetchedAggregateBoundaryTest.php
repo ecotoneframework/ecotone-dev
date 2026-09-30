@@ -168,7 +168,7 @@ final class FetchedAggregateBoundaryTest extends TestCase
 
     private function redemptionsOf(FlowTestSupport $ecotone, string $couponId): int
     {
-        return count($ecotone->getServiceFromContainer(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', $couponId))->events);
+        return count($ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', $couponId))->events);
     }
 
     private function bootstrapWithDcb(): FlowTestSupport

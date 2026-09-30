@@ -36,7 +36,7 @@ final class InMemoryEventSourcedRepositoryRoutingTest extends TestCase
         $ecotone->sendCommand(new PlaceOrderForRoutingTest('order-1', 'coupon-1'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
         $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'coupon-1'));
 

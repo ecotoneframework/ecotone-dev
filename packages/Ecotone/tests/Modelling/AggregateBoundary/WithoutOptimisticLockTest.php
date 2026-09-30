@@ -144,7 +144,7 @@ final class WithoutOptimisticLockTest extends TestCase
         $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('basket', 'b-1'))->events);
     }
 
@@ -159,7 +159,7 @@ final class WithoutOptimisticLockTest extends TestCase
         $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('basket', 'b-1'))->events);
     }
 

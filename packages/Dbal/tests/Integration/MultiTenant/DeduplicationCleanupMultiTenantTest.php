@@ -9,7 +9,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -49,33 +48,39 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
         $ecotoneLite->runConsoleCommand('ecotone:deduplication:remove-expired-messages', []);
     }
 
-    public function test_cleanup_with_tenant_header_routes_to_correct_tenant_connection(): void
+    public function test_cleanup_with_tenant_header_lets_only_that_tenant_handle_an_expired_message_again(): void
     {
         $ecotoneLite = $this->bootstrapEcotone();
 
-        $ecotoneLite->sendCommandWithRouting(
-            'email_event_handler.handle_with_custom_deduplication_header',
-            metadata: ['tenant' => 'tenant_a', 'emailId' => 'a-1']
-        );
-        $ecotoneLite->sendCommandWithRouting(
-            'email_event_handler.handle_with_custom_deduplication_header',
-            metadata: ['tenant' => 'tenant_b', 'emailId' => 'b-1']
-        );
+        $this->sendEmail($ecotoneLite, 'tenant_a', 'a-1');
+        $this->sendEmail($ecotoneLite, 'tenant_b', 'b-1');
+        $this->sendEmail($ecotoneLite, 'tenant_a', 'a-1');
+        $this->sendEmail($ecotoneLite, 'tenant_b', 'b-1');
 
-        $this->assertSame(1, $this->countDeduplicationRows($this->connectionForTenantA()), 'tenant_a should have one tracked message before cleanup');
-        $this->assertSame(1, $this->countDeduplicationRows($this->connectionForTenantB()), 'tenant_b should have one tracked message before cleanup');
+        $this->assertSame(2, $this->callCount($ecotoneLite));
 
         $ecotoneLite->runConsoleCommand('ecotone:deduplication:remove-expired-messages', ['header' => ['tenant:tenant_a']]);
 
-        $this->assertSame(0, $this->countDeduplicationRows($this->connectionForTenantA()), 'tenant_a expired message should be removed');
-        $this->assertSame(1, $this->countDeduplicationRows($this->connectionForTenantB()), 'tenant_b must be untouched - cleanup routed to tenant_a only');
+        $this->sendEmail($ecotoneLite, 'tenant_a', 'a-1');
+
+        $this->assertSame(3, $this->callCount($ecotoneLite));
+
+        $this->sendEmail($ecotoneLite, 'tenant_b', 'b-1');
+
+        $this->assertSame(3, $this->callCount($ecotoneLite));
     }
 
-    private function countDeduplicationRows(object $connectionFactory): int
+    private function sendEmail(FlowTestSupport $ecotoneLite, string $tenant, string $emailId): void
     {
-        return (int) $connectionFactory->createContext()->getDbalConnection()
-            ->executeQuery('SELECT COUNT(*) FROM ecotone_deduplication')
-            ->fetchOne();
+        $ecotoneLite->sendCommandWithRouting(
+            'email_event_handler.handle_with_custom_deduplication_header',
+            metadata: ['tenant' => $tenant, 'emailId' => $emailId]
+        );
+    }
+
+    private function callCount(FlowTestSupport $ecotoneLite): int
+    {
+        return $ecotoneLite->sendQueryWithRouting('email_event_handler.getCallCount', metadata: ['tenant' => 'tenant_a']);
     }
 
     private function bootstrapEcotone(): FlowTestSupport

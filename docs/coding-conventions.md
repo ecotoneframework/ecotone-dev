@@ -844,25 +844,42 @@ Related: do not pass the store into its own collaborators as a stored dependency
 
 ---
 
-## 16. Never issue DDL while handling a message
+## 16. A table is created on the message path only through the auto-create gate
 
 MySQL and MariaDB implicitly commit the surrounding transaction on any DDL statement, so a `CREATE TABLE` in the
 middle of a message breaks the commit or rollback that message's transaction expects. 1.x carried a workaround that
-string-matched the driver's error message and swallowed the failure.
+string-matched the driver's error message and swallowed the failure. 2.0's answer is not a better workaround. It
+decides, in one place, where a table may be created.
 
-2.0's answer is not a better workaround — it is that **Ecotone never issues DDL on the message path at all**. Tables
-are created through the CLI, through the `DatabaseSetupManager` gateway, or by the application's own migration tool,
-and a missing table raises the setup instructions instead (rule 1a). `AutoCreateLevel::None` is the default outside
-test bootstraps; `AutoCreateLevel::CreateOnly` is what `EcotoneLite::bootstrapFlowTesting()` uses, and is refused on
-MySQL/MariaDB for the reason above. The whole story is `upgrade-2.0.md` §8.
+What holds, engine by engine:
 
-So: do not add a code path that creates, alters or drops a table while a message is in flight, and do not add a
-workaround for a transaction a DDL statement committed — remove the DDL. `MissingTableInstructions::buildForUnsupportedAutomaticInitialization()`
-says the same to the user: "creating a table implicitly commits the surrounding transaction there, and Ecotone will
-not split your message transaction to do that."
+- **On MySQL and MariaDB, Ecotone never creates a table while a message is in flight.** A missing table raises the
+  setup `ConfigurationException` (rule 1a) whatever `AutoCreateLevel` is configured.
+  `MissingTableInstructions::buildForUnsupportedAutomaticInitialization()` tells the user why: "creating a table
+  implicitly commits the surrounding transaction there, and Ecotone will not split your message transaction to do
+  that."
+- **Under `AutoCreateLevel::None`, it never creates one on any engine.** `None` is what
+  `DbalConfiguration::createWithDefaults()` sets. Tables come from the CLI, the `DatabaseSetupManager` gateway, or
+  the application's own migration tool.
+- **Under `AutoCreateLevel::CreateOnly` on PostgreSQL or SQLite, a missing table *is* created on first use** —
+  on the message path, inside the message's transaction. That is safe there, because DDL on those engines is
+  transactional. EcotoneLite's test bootstraps run at this level by default (`DbalConfiguration::createDefaultFor()`,
+  `createForTesting()`), and an application can opt in with `DbalConfiguration::withAutoCreateLevel()`.
+
+The first bullet is the guarantee, and it holds because every lazy creation passes one gate:
+`AutomaticTableInitializationSupport::isSupported()`, which refuses any `AbstractMySQLPlatform`. `DbalEventStore`
+and `DbalTagTables` call it directly; the document store, deduplication, dead letter, DBAL channels and projection
+state reach it through `DbalTableManager::shouldBeInitializedAutomatically()`. The DDL text itself lives only in the
+`*TableManager` and `*Schema` classes.
+
+So: a code path that may need a table while a message is in flight asks that gate first and, when refused, throws
+the table manager's missing-table instructions. Do not create a table on the message path any other way, do not
+alter or drop one there, and do not add a workaround for a transaction a DDL statement committed — remove the DDL.
+The whole story for users is `upgrade-2.0.md` §8.
 
 History: `230bcea5d` and `511b31428` first moved this DDL out of the transaction; `048f614d8` and the rest of rule
-1a then removed the runtime creation entirely, and the helper those two commits introduced is gone with it.
+1a replaced that with the refusal and the setup instructions, and the helper those two commits introduced is gone
+with it.
 
 ---
 

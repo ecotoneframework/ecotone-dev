@@ -107,7 +107,7 @@ commit that evidences it. The summary:
 | 13a | **Class metadata comes from `InterfaceToCall`/`ClassDefinition` via `InterfaceToCallRegistry`, never fresh reflection.** On the message path take it as a constructor argument — `InterfaceToCallReference` in a `Definition` is resolved once by a compiler pass | The registry memoizes; a service cannot memoize, because a cache on a service is rule 3 |
 | 14 | **A console option's name is its PHP parameter name verbatim** — camelCase, never kebab-case | |
 | 15 | **Orchestrating methods read as step lists**; SQL belongs to the collaborator that owns the table | |
-| 16 | **DDL never runs inside a message transaction** | MySQL/MariaDB implicitly commit on DDL |
+| 16 | **A table is created on the message path only through the auto-create gate** — `AutomaticTableInitializationSupport::isSupported()`, which refuses MySQL/MariaDB. PostgreSQL and SQLite under `AutoCreateLevel::CreateOnly` create inside the transaction; `None`, the default, never does | MySQL/MariaDB implicitly commit on DDL |
 | 17 | New files are `final` and `declare(strict_types=1)` | |
 | 18 | PHP 8.1+ features where they say something; named arguments once past two parameters | |
 

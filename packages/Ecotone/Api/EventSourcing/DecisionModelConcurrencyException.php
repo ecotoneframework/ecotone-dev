@@ -39,7 +39,7 @@ final class DecisionModelConcurrencyException extends ConcurrencyException
     private array $decidedBy = [];
 
     /**
-     * @param string[] $decidedBy the decision models, or the #[DecisionBoundary] method, scoped by the conflicting tag
+     * @param string[] $decidedBy
      */
     public static function forConflict(string $tagName, string $tagValue, int $expectedVersion, int $currentVersion, array $decidedBy = []): self
     {

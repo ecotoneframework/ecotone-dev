@@ -82,10 +82,6 @@ final class EventCriteria
         return new self($this->tags, $eventTypes, [], $this->tagSequenceLowerBound);
     }
 
-    /**
-     * Narrows the criterion to the events its position tag counted after the given sequence,
-     * which is how a snapshot's covered position reaches both the index read and the fold.
-     */
     public function afterTagSequence(int $tagSequence): self
     {
         $this->assertNarrowsASingleCriterion('afterTagSequence');

@@ -286,10 +286,6 @@ final class DecisionModelBatchLoader
     }
 
     /**
-     * The read starts at the snapshot's own position rather than one past it, so the event the
-     * snapshot last folded comes back with the tail and proves the snapshot is not ahead of the
-     * aggregate.
-     *
      * @param array<string, ?AggregateBackedDecisionModelInstance> $instancesByParameterName
      * @param array<string, ?DecisionModelSnapshot> $snapshotsByParameterName
      * @return array<string, Event[]>

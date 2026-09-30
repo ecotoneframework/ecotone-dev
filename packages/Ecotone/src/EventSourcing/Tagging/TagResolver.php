@@ -90,9 +90,6 @@ final class TagResolver
     }
 
     /**
-     * The tag whose sequence positions a criterion: the first tag the index actually counts,
-     * because a filter-only tag is stamped with sequence 0 and would position nothing.
-     *
      * @return array{name: string, value: string}|null
      */
     public function positionTagOf(EventCriteria $branch): ?array
@@ -107,10 +104,6 @@ final class TagResolver
     }
 
     /**
-     * The lower bounds that may be pushed into the index read. A bound is only safe for a tag
-     * key that every branch uses as its position tag: elsewhere the key also decides whether an
-     * event carries all of a branch's tags, and cutting its rows would drop matching events.
-     *
      * @return array<string, int>
      */
     public function pushDownableTagSequenceLowerBounds(EventCriteria $criteria): array

@@ -37,7 +37,7 @@ DynamicMessageChannelBuilder::createRoundRobin('orders', [
 DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
     'tenant_channel',
     headerName: 'tenantId',
-    channelMapping: [
+    headerMapping: [
         'tenant_a' => 'tenant_a_queue',
         'tenant_b' => 'tenant_b_queue',
     ]
@@ -82,7 +82,7 @@ With sagas, you react to events and track state -- powerful but the workflow def
 **Define the workflow** -- return an array of step channel names:
 ```php
 use Ecotone\Api\Attribute\Orchestrator;
-use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\InternalHandler;
 
 class OrderFulfillmentOrchestrator
@@ -126,7 +126,7 @@ class OrderFulfillmentOrchestrator
 ```php
 interface OrderFulfillmentProcess
 {
-    #[OrchestratorGateway('fulfill.order')]
+    #[BusinessMethod('fulfill.order')]
     public function fulfill(OrderData $data): void;
 }
 ```
@@ -229,12 +229,12 @@ Setting up production-grade RabbitMQ consumers requires boilerplate for connecti
 Manual retry logic clutters business code with try/catch loops, retry counters, and exception filtering. One attribute replaces all of that:
 
 ```php
-use Ecotone\Messaging\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\CommandHandler;
 
 class InventoryService
 {
-    #[InstantRetry(retries: 3, exceptions: [
+    #[InstantRetry(retryTimes: 3, exceptions: [
         \Doctrine\DBAL\Exception\RetryableException::class,
         \Doctrine\DBAL\Exception\DeadlockException::class,
     ])]

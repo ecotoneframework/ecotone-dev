@@ -872,28 +872,28 @@ and a decision model would then approve what it should reject — this is exactl
 runtime check for it (a deliberate maintainer decision, to keep the append path free of bookkeeping); rolling code
 back to 1.x after decision models have run means re-running the backfill before rolling forward again.
 
-**`ecotone:event-store:backfill-tags [--stream=] [--event=] [--batch-size=500] [--from-no=] [--dry-run]
-[--skip-undeserializable]`** indexes events recorded before their class declared its current tags — every 1.x event,
+**`ecotone:event-store:backfill-tags [--stream=] [--event=] [--batchSize=500] [--fromNo=] [--dryRun]
+[--skipUndeserializable]`** indexes events recorded before their class declared its current tags — every 1.x event,
 and any event tagged later. Per batch, in one transaction: walk the stream by `no`, deserialize, bump the tags a
 batch touches once each (the same unit an ordinary append uses — one `appendTo()` call, however many events, bumps
 a shared tag once) and insert the index rows — one per tag the event carries, filter-only tags included, so events that predate
 the tags stay filterable by them; the insert is idempotent on the primary key, so re-running a
-completed range is a no-op and `--from-no` resumes an interrupted one. **`--batch-size` trades backfill throughput
+completed range is a no-op and `--fromNo` resumes an interrupted one. **`--batchSize` trades backfill throughput
 against cross-stream ordering precision:** every event sharing a tag within one batch gets that batch's single bump
 as its `tag_sequence`, so two co-tagged events recorded on *different* streams within the same batch cannot be told
 apart by commit order — only same-stream order survives, via `no`. Size it down when backfilled history needs
-precise cross-stream ordering for a tag. `--dry-run` reports counts without writing. A
-payload that no longer deserializes is reported with its `no` and aborts the run unless `--skip-undeserializable` is
+precise cross-stream ordering for a tag. `--dryRun` reports counts without writing. A
+payload that no longer deserializes is reported with its `no` and aborts the run unless `--skipUndeserializable` is
 given, in which case it is skipped and still reported. There is no decision-model usage until the backfill has
 finished — start using `#[DecisionModel]` only after step 6 above completes. On a multi-tenant setup, the `tenant`
 header selects which tenant's connection and tag tables get backfilled — `ecotone:event-store:backfill-tags --header
 "tenant:a"` indexes tenant `a` only, and the command must be run once per tenant.
 
-**`ecotone:event-store:verify-schema [--legacy-stream=]`** is the CI/deploy gate for all of the above: it checks
+**`ecotone:event-store:verify-schema [--legacyStream=]`** is the CI/deploy gate for all of the above: it checks
 that `ecotone_tagged_events` / `ecotone_tag_versions` exist (a missing one is reported with the setup command that
 creates it), their primary keys and, on MySQL/MariaDB, that their tag columns kept
 `utf8mb4_bin` collation (a hand-applied migration with the server default would silently let `'ABC'` and `'abc'`
-collide as one tag value); for every `--legacy-stream=` table named, it checks the three aggregate `NOT NULL`
+collide as one tag value); for every `--legacyStream=` table named, it checks the three aggregate `NOT NULL`
 constraints from the table above are relaxed. On any failure it prints the exact `ALTER`/`DROP CONSTRAINT`
 statement to run — the same text as the table above, generated instead of hand-typed. Like the backfill command, it
 is tenant-selected via the `tenant` header on a multi-tenant setup, and refuses to run against a default connection

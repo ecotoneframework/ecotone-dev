@@ -333,7 +333,7 @@ Recorded as deliberately as the mistakes, because each of these demonstrably sto
 6. `vendor/bin/phpstan` is clean
 7. Anything touching event sourcing, the event store, DBAL, transaction wrapping or DDL ran on **MySQL and
    MariaDB** too, not only the PostgreSQL default. They implicitly commit on DDL
-   ([rule 16](./coding-conventions.md#16-never-issue-ddl-while-handling-a-message)), so nothing a PostgreSQL or
+   ([rule 16](./coding-conventions.md#16-a-table-is-created-on-the-message-path-only-through-the-auto-create-gate)), so nothing a PostgreSQL or
    SQLite run does will show it, and the omission has cost two whole worktrees weeks apart —
    `implement-mysql-mariadb-green` (merged at `22fe48dbc`) and `implement-dbal-mysql-green` (`57c076084`,
    `9ae4e3fd3`), both chasing the same engine-specific failure

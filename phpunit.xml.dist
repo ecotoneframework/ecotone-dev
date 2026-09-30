@@ -3,6 +3,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
   backupGlobals="true"
+  bootstrap="bin/phpunit-root-bootstrap.php"
   displayDetailsOnTestsThatTriggerWarnings="true"
   displayDetailsOnTestsThatTriggerDeprecations="true"
   displayDetailsOnTestsThatTriggerErrors="true"
@@ -60,7 +61,7 @@
       <directory>packages/Tempest/tests</directory>
     </testsuite>
     <testsuite name="Symfony tests">
-      <directory>packages/Symfony/tests</directory>
+      <directory>packages/Symfony/tests/phpunit</directory>
     </testsuite>
     <testsuite name="Enqueue tests">
       <directory>packages/Enqueue/tests</directory>

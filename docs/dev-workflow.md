@@ -79,9 +79,35 @@ It is not the same script in every package. Four of them do something extra:
 | DataProtection | phpstan, then `tests/before-tests.sh` (generates a 200 MB fixture), then phpunit |
 | Symfony | phpstan, phpunit, then `bin/console ecotone:list` as a smoke test |
 | all others | phpstan, then phpunit |
-| **monorepo root** | phpstan, `packages/DataProtection/tests/before-tests.sh`, phpunit, then `quickstart-examples` |
+| **monorepo root** | `bin/check-suite-parity.php`, phpstan, `packages/DataProtection/tests/before-tests.sh`, phpunit, then `quickstart-examples` |
 
 `composer tests:local` at the root is the same as the root `tests:ci` without the quickstart examples.
+
+### The root and per-package runs must agree
+
+A package's tests run twice: in the package's own `composer tests:ci`, which is also what its split repository runs,
+and in the root full suite. A green result from one runner is no evidence for the other — three defects existed
+only in the gap between them, among them `c47252bd2`, a test-app namespace registered in the package's
+`composer.json` and not in the root one. `php bin/check-suite-parity.php` (`composer tests:suite-parity`) fails
+on any divergence and names the file, the expected entry and the fix:
+
+| Check (`bin/suite-parity/`) | What must agree |
+|---|---|
+| `psr4-autoload` | every package `psr-4` entry is in the root `composer.json` under `packages/<Package>/`, and every root entry into a package resolves in that package |
+| `testsuite-directories` | the root testsuite for a package lists exactly the package's own testsuite directories |
+| `php-environment` | each package's `<php>` block and `backupGlobals`/`backupStaticProperties`/`processIsolation` equal the root's. A deliberate difference goes in its `$acceptedDivergences` with the reason; an accepted entry that stops diverging fails too |
+| `stray-package-vendor` | no `packages/*/vendor` exists |
+| `phpunit-configuration-name` | every package has a `phpunit.xml.dist`, the name `split-testing.yml` selects packages by |
+
+A per-package `composer install` leaves `packages/<Package>/vendor` behind. A test that hands EcotoneLite its
+package directory then requires that autoloader inside the root run, replacing the root's dependency versions —
+an uncatchable `Premature end of PHP process` in an unrelated test — and its autoload map, hiding a missing root
+namespace. The root `phpunit.xml.dist` therefore bootstraps through `bin/phpunit-root-bootstrap.php`, which refuses
+to start while one exists. Remove them before a root run:
+
+```bash
+find packages -maxdepth 2 -name vendor -type d -prune -exec rm -rf {} +
+```
 
 There is **no `tests:behat` script and no behat suite** — behat was dropped over `074f37209`, `a3a52b970` and
 finally `3a9618280`. Only an empty `packages/Symfony/tests/Behat/features/.gitkeep` survives.
@@ -169,7 +195,7 @@ not add licence headers.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | pull request | One unified job: PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
+| `test-monorepo.yml` | pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
 | `split-testing.yml` | pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
 | `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
@@ -302,7 +328,7 @@ Recorded as deliberately as the mistakes, because each of these demonstrably sto
 1. The new or changed test passes: `vendor/bin/phpunit --no-coverage --filter test_name`
 2. The changed package's full CI passes: `cd packages/<PackageName> && composer install && composer tests:ci`
 3. A Core change also runs the packages downstream of it — everything depends on `packages/Ecotone`
-4. `php bin/check-licence.php` is clean
+4. `php bin/check-licence.php` and `php bin/check-suite-parity.php` are clean
 5. `vendor/bin/php-cs-fixer fix` on the host, with nothing outside your change rewritten
 6. `vendor/bin/phpstan` is clean
 7. Anything touching event sourcing, the event store, DBAL, transaction wrapping or DDL ran on **MySQL and

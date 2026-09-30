@@ -240,17 +240,20 @@
         "ecotone/symfony-bundle": "1.82.0"
     },
     "scripts": {
+        "tests:suite-parity": "php bin/check-suite-parity.php",
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
             "(cd packages/DataProtection && tests/before-tests.sh)",
             "vendor/bin/phpunit --no-coverage"
         ],
         "tests:ci": [
+            "@tests:suite-parity",
             "@tests:phpstan",
             "@tests:phpunit",
             "(cd quickstart-examples && composer tests:ci)"
         ],
         "tests:local": [
+            "@tests:suite-parity",
             "@tests:phpstan",
             "@tests:phpunit"
         ],

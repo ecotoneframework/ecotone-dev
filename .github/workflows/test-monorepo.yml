@@ -102,6 +102,9 @@ jobs:
 
     - uses: actions/checkout@v2
 
+    - name: Check the root and per-package test suites run under the same configuration
+      run: php bin/check-suite-parity.php
+
     - name: Wait for Kafka to be ready
       run: |
         echo "Waiting for Kafka to start..."

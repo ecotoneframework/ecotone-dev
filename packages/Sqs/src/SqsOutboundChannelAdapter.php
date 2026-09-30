@@ -37,7 +37,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         private PendingDeliveryRegistry $pendingDeliveryRegistry,
         private bool $batchPublishing = false,
         private bool $nonBlockingConfirmation = false,
-        private int $confirmationTimeout = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
+        private int $confirmationTimeoutInMilliseconds = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
     ) {
         $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
@@ -181,7 +181,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             'Entries' => $entries,
         ];
 
-        $arguments['@http'] = ['timeout' => $this->confirmationTimeout / 1000];
+        $arguments['@http'] = ['timeout' => $this->confirmationTimeoutInMilliseconds / 1000];
 
         return ['arguments' => $arguments, 'trackedMessages' => $trackedMessages];
     }

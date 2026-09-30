@@ -26,7 +26,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
 
     private bool $batchPublishing = false;
     private bool $nonBlockingConfirmation = false;
-    private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT;
+    private int $confirmationTimeoutInMilliseconds = self::DEFAULT_CONFIRMATION_TIMEOUT;
 
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
@@ -44,7 +44,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $this->batchPublishing = $batchPublishing;
         $this->nonBlockingConfirmation = $nonBlockingConfirmation;
         if ($confirmationTimeoutInMilliseconds !== null) {
-            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
+            $this->confirmationTimeoutInMilliseconds = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
@@ -90,7 +90,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             new Reference(PendingDeliveryRegistry::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
-            $this->confirmationTimeout,
+            $this->confirmationTimeoutInMilliseconds,
         ]);
     }
 }

@@ -100,12 +100,12 @@ final class DbalTagVersionRegister
     /**
      * @param string[] $decidedBy
      */
-    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $capturedVersion, ?string $aggregateType, array $decidedBy): void
+    private function bumpGuardedTag(Connection $connection, string $name, string $value, int $expectedVersion, ?string $aggregateType, array $decidedBy): void
     {
         $tagSchema = TaggedEventSchemaFactory::for($connection);
         $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
 
-        if ($capturedVersion === 0) {
+        if ($expectedVersion === 0) {
             try {
                 $affected = (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
             } catch (UniqueConstraintViolationException) {
@@ -114,15 +114,15 @@ final class DbalTagVersionRegister
         } else {
             $affected = (int) TagConcurrencyGuard::run(fn () => $connection->executeStatement(
                 "UPDATE {$versionsTable} SET version = version + 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
-                [$name, $value, $capturedVersion]
+                [$name, $value, $expectedVersion]
             ));
         }
 
         if ($affected === 0) {
             $currentVersion = $this->versionOf($connection, $name, $value);
             $conflict = $aggregateType !== null
-                ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $capturedVersion, $currentVersion)
-                : DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $currentVersion, $decidedBy);
+                ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $expectedVersion, $currentVersion)
+                : DecisionModelConcurrencyException::forConflict($name, $value, $expectedVersion, $currentVersion, $decidedBy);
 
             $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
 

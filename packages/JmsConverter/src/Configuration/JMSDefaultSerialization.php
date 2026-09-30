@@ -3,8 +3,8 @@
 namespace Ecotone\JMSConverter\Configuration;
 
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 
 /**
  * licence Apache-2.0

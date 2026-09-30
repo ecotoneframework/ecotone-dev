@@ -8,8 +8,8 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\Kafka\KafkaConsumer;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use RuntimeException;
 
 /**

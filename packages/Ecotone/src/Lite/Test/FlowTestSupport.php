@@ -6,6 +6,7 @@ namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
@@ -16,7 +17,6 @@ use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;

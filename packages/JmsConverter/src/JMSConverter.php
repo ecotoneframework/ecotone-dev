@@ -2,10 +2,10 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 use InvalidArgumentException;
 use JMS\Serializer\SerializationContext;

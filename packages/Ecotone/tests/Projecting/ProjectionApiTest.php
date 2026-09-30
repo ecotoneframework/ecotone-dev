@@ -6,6 +6,7 @@ namespace Test\Ecotone\Projecting;
 
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\Partitioned;
@@ -15,7 +16,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

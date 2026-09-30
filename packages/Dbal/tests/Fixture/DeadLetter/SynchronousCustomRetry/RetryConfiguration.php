@@ -7,7 +7,7 @@ namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousCustomRetry;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 /**
  * licence Enterprise

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Support;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaderDoesNotExistsException;

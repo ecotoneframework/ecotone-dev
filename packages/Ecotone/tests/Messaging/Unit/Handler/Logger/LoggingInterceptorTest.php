@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
 use Ecotone\Api\Attribute\LogAfter;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;

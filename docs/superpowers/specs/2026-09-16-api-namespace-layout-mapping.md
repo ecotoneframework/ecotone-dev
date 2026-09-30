@@ -8,6 +8,14 @@ which no longer exists — and the 17-class mixed dump in `packages/Dbal/Api` in
 maintainer specified in the task. All other packages' `Api` dirs are already flat per-module dumps and, per the
 sizing rule below, are left as-is.
 
+> **Added later, 2026-09-30 (maintainer).** Three value objects this mapping did not consider moved into
+> `Ecotone\Api\ExtensionObject\*` afterwards: `MediaType` (was `Ecotone\Messaging\Conversion`),
+> `FinalFailureStrategy` (was `Ecotone\Messaging\Endpoint`) and `RetryTemplateBuilder` (was
+> `Ecotone\Messaging\Handler\Recoverability`). All three were already named in public `Api` signatures — the buses,
+> `#[ContentType]`, `SimpleMessageChannelBuilder`, `ServiceConfiguration`, `ErrorHandlerConfiguration` — so an
+> application had to import them from an `@internal` namespace. The class counts below predate them.
+> See `upgrade-2.0.md` §13a and `docs/coding-conventions.md` rule 12a.
+
 ## 1. Rules applied
 
 - **Kind rule**: `#[Attribute]`-marked classes that are cross-cutting messaging/modelling vocabulary go to

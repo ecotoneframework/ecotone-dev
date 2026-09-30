@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;

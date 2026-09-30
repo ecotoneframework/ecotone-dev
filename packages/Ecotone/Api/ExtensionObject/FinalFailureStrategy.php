@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Endpoint;
+namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -12,8 +12,6 @@ use Ecotone\Messaging\Config\Container\Definition;
  * This is final failure strategy as it's used in case, when there is no other way to handle the failure.
  * For example, when there is no retry policy, or when the retry policy has reached its maximum number of attempts.
  * Also, when the destination of Error Channel is not defined, or sending to Error Channel fails.
- *
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 /**
  * licence Apache-2.0

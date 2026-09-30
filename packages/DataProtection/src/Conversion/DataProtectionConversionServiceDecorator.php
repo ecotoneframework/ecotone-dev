@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Conversion;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 /**

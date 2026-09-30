@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\Interceptor;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptorTrait;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Scheduling\Duration;
 use Psr\Log\LoggerInterface;
 use Throwable;

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Transformer;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;

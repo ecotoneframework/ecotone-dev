@@ -2,7 +2,8 @@
 
 namespace Ecotone\Api\Gateway;
 
-use Ecotone\Messaging\Conversion\MediaType;
+
+use Ecotone\Api\ExtensionObject\MediaType;
 
 /**
  * licence Apache-2.0

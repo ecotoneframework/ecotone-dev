@@ -4,7 +4,7 @@
 
 ```php
 use Ecotone\Api\Gateway\DistributedBus;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface DistributedBus
 {
@@ -60,7 +60,7 @@ interface DistributedBus
 
 ```php
 use Ecotone\Api\Gateway\MessagePublisher;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface MessagePublisher
 {

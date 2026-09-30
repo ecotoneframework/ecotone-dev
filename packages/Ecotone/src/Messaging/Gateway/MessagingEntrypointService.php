@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Gateway;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;

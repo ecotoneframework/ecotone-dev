@@ -3,7 +3,7 @@
 ## RetryTemplateBuilder API
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 ```
 
 ### Fixed Backoff
@@ -69,7 +69,7 @@ ErrorHandlerConfiguration::create(
 ## FinalFailureStrategy Enum
 
 ```php
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 ```
 
 | Value | Constant | Behavior |

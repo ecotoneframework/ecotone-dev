@@ -8,7 +8,7 @@ use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use RuntimeException;
 
 /**

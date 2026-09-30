@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Scheduling\NativeClock;

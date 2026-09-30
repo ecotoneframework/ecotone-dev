@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Gateway;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Future;
 
 /**

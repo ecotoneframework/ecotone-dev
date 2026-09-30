@@ -3,9 +3,9 @@
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
 use DateTimeInterface;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;

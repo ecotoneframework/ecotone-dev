@@ -7,7 +7,8 @@ a *why* and a citation — a file, or a commit you can `git show`. Where a rule 
 pair sits next to it; the wrong side is real code that was corrected.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines.
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
+12a, 13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
 > or documentation you edit must be checked against the current tree first. The 2.0 API moved
@@ -58,9 +59,21 @@ Evidence: `7cf42b477`, `5fa0024b2`, `c9b54d3f9`, `048f614d8`, `d8f81c26b`, `f85f
 ### 1a. A configuration mistake is refused at bootstrap, never at runtime
 
 If a combination cannot work, detect it while the messaging system is being built, so it fails on the first test
-run rather than on a production message. Ten commits in the DCB feature alone did nothing but move a failure
+run rather than on a production message. Twelve commits in the DCB feature alone did nothing but move a failure
 earlier: `823dd41c3`, `c48e1b7c7`, `383de545a`, `9984fae25`, `d90ae125f`, `083b9edbd`, `39d420535`, `6ef6e48df`,
-`d92883148`, `d3a25ac3c`.
+`d92883148`, `d3a25ac3c`, `b984c8d41`, `24edcf663`.
+
+**The validation ships in the same commit as the rule it enforces.** This is the most expensive omission the DCB
+retrospective measured, and two of its three independent friction reports found it. `implement-dcb-edge-cases` is a
+whole worktree of 20 commits, 18 of them `fix(dcb):`, and every one has the same shape: a rule the design spec or
+the upgrade guide already stated had no enforcing code, so the misconfiguration booted silently. A model whose
+handled events share no `#[EventTag]` name "folded nothing and guarded nothing" (`083b9edbd`); a class carrying both
+`#[DecisionModel]` and `#[Aggregate]` "booted silently with two contradictory roles" (`9984fae25`); a command
+property holding an array "silently scoped the model by its first element" (`6ef6e48df`). The remaining six did
+raise an error, but named the wrong table, the wrong cause, or a resume position that did not exist (`7cf42b477`,
+`f85f057a8`, `d8f81c26b`, `c9b54d3f9`, `d2a0f5171`, `d3a25ac3c`) — which is rule 1, and is why the test asserts the
+message and not the exception class. A spec sentence with neither the guard nor the message test is an edge case
+waiting for someone to spend a worktree finding it.
 
 `packages/Ecotone/src/EventSourcing/Tagging/AggregateCounterTagGuard.php` is the pattern: static assertions the
 module calls at compile time, each throwing `ConfigurationException` that names the class and what to do instead.
@@ -75,6 +88,46 @@ Do not assemble location strings at the throw site. `packages/Ecotone/src/Messag
 is compiled into the container with the attribute name, target and owner already in it, and every expression
 failure in the framework goes through it, producing
 `#[Fetch] on $activity in Handler::count failed. Expression: ... . <cause>` (`c45cf02bd`).
+
+### 1c. A check that can run at compile time runs at compile time
+
+Rule 1a says *when* a wrong configuration fails. This is *where the check lives*: in the module, during
+configuration building, not in a service on the message path.
+
+`Module::prepare()` is handed the `InterfaceToCallRegistry` as its fourth parameter for exactly this — it can see
+every handler, its parameters and its attributes before a single message exists:
+
+```php
+public function prepare(
+    Configuration $messagingConfiguration,
+    array $extensionObjects,
+    ModuleReferenceSearchService $moduleReferenceSearchService,
+    InterfaceToCallRegistry $interfaceToCallRegistry,
+): void
+```
+
+The shape is a **guard**: a class of static assertions the module calls, each throwing `ConfigurationException`.
+`packages/Ecotone/src/Modelling/DecisionModel/Config/DecisionModelModule.php:113` calls two of them from
+`prepare()` — `CrossConnectionDecisionModelGuard::assertNoCrossConnectionInjection()` (:126) and
+`DecisionModelTagResolvabilityGuard::assertEveryModelTagResolvableFromItsMessage()` (:133), the second taking the
+annotation finder and the registry so it can answer the question over every model in the application.
+`packages/Ecotone/src/EventSourcing/Tagging/Config/EventTaggingModule.php:71` does the same with
+`AggregateCounterTagGuard` (:82-83).
+
+**The same knowledge answers both questions, so ask it early.** `MessageTagValueResolver` has two entry points:
+`canResolve($tagName, $messageClass)`, which the resolvability guard calls at compile time, and
+`resolve($tagName, $payload)`, which `DecisionModelParameterLoader` calls per message. Because the guard refuses an
+unresolvable tag at bootstrap, the runtime path has no unresolvable case to handle — no branch, no fallback, and no
+silently empty result (rule 1a).
+
+**What is left to runtime is message content, and only that.** The shape of the configuration is knowable while
+compiling; the value carried by a particular message is not. A tag value's length in characters and its UTF-8
+validity are runtime checks for that reason (`d92883148`) — everything about *which* tag, on *which* model, from
+*which* property is compile-time.
+
+So, before adding a check: ask whether it could have been answered from the class, the method, the parameter types
+and the attributes alone. If it could, it belongs in a guard the module calls, and the test that proves it boots
+Ecotone and expects a `ConfigurationException`.
 
 ---
 
@@ -106,6 +159,12 @@ not a reason to skip the registration.
 
 Evidence: the `implement-no-nullable-services` worktree (`fb35cf316`), and `eb859ceb8` in `upgrade-2.0.md`.
 
+The rule predates the code it had to correct, and correcting it cost a worktree of its own: 6 commits over four
+classes — `InMemoryEventStore`, `DbalEventStore`, `DecisionModelParameterLoader`, `InMemoryEventSourcedRepository` —
+deleting defaults that, in the commits' own words, "every real construction site already passed concrete instances"
+for (`3e9e92d56`, `7f7d24bc0`, `65ba2a852`, `84e70e8c4`, `e15bd042f`, `eb859ceb8`). There is nothing here to
+discover later, only work to redo, so check it while you are writing the constructor.
+
 ---
 
 ## 3. Constructor-injected services are stateless
@@ -134,6 +193,14 @@ demand. `ca8a1b0fc` removed per-connection snapshot tracking from `DbalTagVersio
 Statelessness is a testable property: see
 `packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelStatelessExecutionTest.php` (`6b42c7a9b`), which drives
 the same handler repeatedly and asserts the later executions are unaffected by the earlier ones.
+
+**A mechanism that remembers anything between calls ships its leak test as the RED commit**, before the mechanism
+is designed rather than after a later unit trips over it. Two of the three DCB friction reports name this
+independently as the most-repeated corrective pattern in their scope. `424220979` ("InnoDB own-bump tracking must
+not leak into the next transaction") is exactly the test that should have gated the tracking `ca8a1b0fc` deleted
+one commit later — and it landed two units downstream of the unit that built it, so the cost fell on somebody
+else's schedule. Some of these bugs are only provable under real contention on a real connection pool, which is
+the reason to write that test first, not a reason to skip it.
 
 ---
 
@@ -282,8 +349,24 @@ feature is Enterprise by decision, not by which namespace it landed in, and the 
 Test files carry `/** licence Apache-2.0 @internal */` too (php-cs-fixer adds the `@internal`, not the licence),
 but they are a convention rather than a gate: `bin/check-licence.php` only walks `packages/*/src`.
 
-Extracting Enterprise logic out of a shared class is a normal refactor here: `a7f08f6a7`
-("extract `DbalEventStore`'s DCB tag logic into Enterprise classes"), `7bf1082a2`, `3a6134d18`.
+**Write it in the Enterprise file from the first commit; extracting it later is the expensive path.** `a7f08f6a7`
+("extract `DbalEventStore`'s DCB tag logic into Enterprise classes"), `7bf1082a2` and `3a6134d18` are what that
+costs. `DbalEventStore` and `InMemoryEventStore`, both `licence Apache-2.0`, had grown the entire DCB tag protocol
+inline — `appendEventsWithTagCondition`, `loadByCriteria`'s capture and read, `backfillTagsForStream`, the
+snapshot-hazard bookkeeping, the SQL-state mapping — and a review pass put it plainly: *"That is Enterprise logic
+living in an Apache-2.0 file."* Unpicking it took five to six new classes per store family
+(`DbalTagVersionRegister`, `DbalTagConditionalAppender`, `DbalTaggedEventReader`, `DbalTagBackfiller`,
+`EnterpriseDbalTagCollaborator`/`OpenCoreDbalTagCollaborator`, and the in-memory mirrors) wired through
+`LicenceDecider` — the pattern `EnterpriseAppendStrategy` was already using in this same codebase while the tag
+protocol was being written inline. Before writing behaviour a licence gates, read the licence header of the file
+you are in.
+
+**Split the implementation, never the interface.** Licence is not an axis to split a type on: it was tried once,
+for the event store, and reversed. `TaggedEventStore` and `AggregateEventStore` were folded back into a single
+`EventStore` with an `AppendStrategy` chosen by `LicenceDecider` (`983db0c5a`, `5a5f08572`, `ade73e6c5`,
+`1be829b95`, with the maintainer call recorded in `bd255a13a`) — after the split shape had already propagated into
+every repository, the gateway registration, the integration tests and `DcbSmokeTest`. One interface, two
+implementations, chosen in the container: rule 5's seam.
 
 **Open-core behaviour stays byte-for-byte unchanged.** An Enterprise feature may not alter what an application
 without a licence observes. This was a standing check in every DCB brief, and is why the licence seam is a
@@ -333,12 +416,29 @@ side holds its own tag state, and has no backfill — the naming makes the asymm
 
 Build them through their constructors, not through setters or a builder (`2ccb8bf9f`).
 
+**An in-memory implementation nobody proves equal to the storage one is a place bugs hide.** The whole point of
+rule 9 is that a flow test can stand in for the database; when the two disagree, the test is validating something
+the application will never do. `InMemoryEventStore` diverged from the DBAL store three times, on three different
+branches, and each time it was found by a unit doing something else entirely:
+
+| The divergence | Found by | Commit |
+|---|---|---|
+| Appending zero events is a no-op on DBAL; in-memory raised a conflict for a stale condition — "a flow test disagreed with production" | the edge-case audit | `d59bd5989` |
+| DBAL enforced the aggregate optimistic lock through its unique index; in-memory had never enforced it at all | the store unification | `ade73e6c5` |
+| The in-memory flow-testing repository held the `EventStore` *gateway* where every other caller uses `EventStore::RAW_REFERENCE`, so an in-memory conditional append produced no tracing span | a tracing feature | `503d70bc7` |
+
+So: a behaviour of a seam with two implementations is asserted once, in a suite both implementations run — never in
+a DBAL-only or an in-memory-only test. New behaviour goes into that shared suite, and which fixture a test picks
+stops being somewhere a bug can hide.
+
 ---
 
 ## 10. Tests validate at the userland level only
 
-**The single most-corrected rule in this repository** — fifteen commits in one feature did nothing but pull a test
-back to the public surface. Whatever the test needs to know, it asks the public API.
+**The single most-corrected rule in this repository** — a whole worktree, 22 of `implement-blackbox-tests`'s 22
+own commits, did nothing but pull tests back to the public surface, with no new coverage in any of them, and two
+of the 22 (`f2ef0469a`, `f383622f4`) walk back the rewrite's own over-correction. Whatever the test needs to know,
+it asks the public API.
 
 Never, in a test:
 
@@ -388,7 +488,28 @@ Evidence: `12d960553` (the `implement-blackbox-tests` worktree), `3c5bdf306`, `d
 `70dad03b8`, `c11b863dc`, `2f54403fe`, `8b7fec7f7`, `04e831b55`, `294c0a3d4`.
 
 A performance or statement-count claim is **review-protected, not test-protected** — `04e831b55` deleted a
-statement-counting test rather than keep it. State the claim in the spec and let review hold it.
+statement-counting test rather than keep it. State the claim in the spec and let review hold it. The DCB effort
+proved this twice over one claim: `6b30eb5cd` added a `QueryCountingDbalConnection` to assert one `loadByCriteria()`
+per handler however many decision models it injects, and `04e831b55` deleted it again — "one-load-per-handler is
+review-protected". What a test *can* hold is the behaviour: the N>1 case has to work, and that is rule 10a.
+
+### 10a. A guarantee is proved on every path that has to hold it
+
+Ecotone reaches the same behaviour several ways — a direct call, `CommandBus::send()` resolving by payload class,
+`CommandBus::sendWithRouting()`, a gateway, a console command — and a change that updates one of them looks
+finished. Two of the three DCB friction reports found this shape five times between them:
+
+| The guarantee | The path that was missed | Commit |
+|---|---|---|
+| A tagged append is guarded by the tag versions captured inside the transaction | aggregate saves through `SaveAggregateService` bumped tag counters unconditionally, so a commit competing with a loaded aggregate was not caught | `c09bac1e0` |
+| Filter-only tags are indexed | the live append path indexed them, the backfill that reconstructs the index did not, so a backfilled index silently disagreed with a live one — fixed by sharing one `EventsTags::sequencedBy` | `0548c4130` |
+| `#[WithoutDatabaseTransaction]` is honoured | fixed for the `CommandBus` gateway wrapper; still broken for a class-routed `CommandBus::send()`, which resolves routing through `BusRoutingKeyResolver` instead | `57c076084`, then `9ae4e3fd3` |
+| `loadByCriteria()` is on the unified `EventStore` | never registered as a gateway action in `EventSourcingModule`, so an `EventStore` from the container or the gateway did not expose it | `ade73e6c5`, then `99daa69ba` |
+
+Before the commit that adds a method to an interface, an attribute to a handler, or behaviour to a write path:
+enumerate the entry points it must work through, and write one test per entry point. The live path and the
+reconstruction path of one concept count as two of them — and they should share one method rather than be
+maintained as two.
 
 ---
 
@@ -418,40 +539,40 @@ final class BasketTest extends TestCase
 {
     public function test_adding_an_item_is_visible_to_the_query_side(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Basket::class]);
+        $basket = new #[Aggregate] class () {
+            #[Identifier]
+            private string $basketId = '';
+
+            private int $items = 0;
+
+            #[CommandHandler('basket.open')]
+            public static function open(string $basketId): self
+            {
+                $basket = new self();
+                $basket->basketId = $basketId;
+
+                return $basket;
+            }
+
+            #[CommandHandler('basket.add')]
+            public function add(): void
+            {
+                $this->items++;
+            }
+
+            #[QueryHandler('basket.items')]
+            public function items(): int
+            {
+                return $this->items;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$basket::class]);
         $ecotone->sendCommandWithRouting('basket.open', 'b-1');
 
         $ecotone->sendCommandWithRouting('basket.add', metadata: ['aggregate.id' => 'b-1']);
 
         $this->assertSame(1, $ecotone->sendQueryWithRouting('basket.items', metadata: ['aggregate.id' => 'b-1']));
-    }
-}
-
-#[Aggregate]
-final class Basket
-{
-    private int $items = 0;
-
-    private function __construct(#[Identifier] private string $basketId)
-    {
-    }
-
-    #[CommandHandler('basket.open')]
-    public static function open(string $basketId): self
-    {
-        return new self($basketId);
-    }
-
-    #[CommandHandler('basket.add')]
-    public function add(): void
-    {
-        $this->items++;
-    }
-
-    #[QueryHandler('basket.items')]
-    public function items(): int
-    {
-        return $this->items;
     }
 }
 ```
@@ -462,15 +583,49 @@ final class Basket
   `test_adding_an_item_is_visible_to_the_query_side`, not `test_basket_repository_saves`.
 - **`final class`**, with `/** licence Apache-2.0 @internal */`. php-cs-fixer adds `@internal`.
 - **No comments, no docblocks, no assertion messages.** The method name is the description.
-- **Fixtures live in the test file**, never in a shared `Fixture/` directory for new tests. Two forms:
-  - **an anonymous class** when the class only needs to hold handler methods —
-    `[new class { #[CommandHandler] public function handle(...) {} }]`
-  - **named classes below the `TestCase`** when the class name is part of what is under test: aggregates, sagas,
-    events, commands, and anything referenced by FQCN (`#[AggregateType]`, `EventCriteria`, an asserted exception
-    message). This is the dominant form in 2.0 tests — 92 of the 141 test files added since 1.x use it.
+- **Fixtures live in the test file, as inline anonymous classes.** Never a shared `Fixture/` directory — and not a
+  named class below the `TestCase` where an anonymous one does the job. Aggregates included: the example above is
+  one, and an anonymous class is registered by the generated name its own instance reports, which is all
+  `classesToResolve` needs. `packages/Ecotone/tests/Modelling/Unit/MessageBusTest.php:452` and
+  `packages/Ecotone/tests/Modelling/Unit/Causation/AggregateNotFoundCausationTest.php:25` are the committed
+  precedents: anonymous aggregates with `#[Identifier]` properties, static `#[CommandHandler]` factories, query
+  handlers, and the service handlers around them, all registered through `$fixture::class`.
 
-  Suffix named fixtures per test file (`UnlockedBasketForWithoutLock`) so two test files in one namespace cannot
-  collide. `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php` is a full example.
+  **A large share of the existing tests do not follow this.** 92 of the 141 test files added since 1.x declare
+  named fixtures below the `TestCase`. That is drift to be reduced, not a convention to copy: a new test uses an
+  anonymous class unless one of the two exceptions below applies to that particular class.
+
+  **The two exceptions.** Both are hard PHP limits rather than preferences, and nothing outside them qualifies:
+
+  1. **A class used as a type declaration** — every command, event and query, and any object a handler,
+     `#[EventSourcingHandler]` or converter names in a parameter or return type. PHP has no syntax for naming an
+     anonymous class in a type. `AggregateNotFoundCausationTest` is the shape to copy: `OrderCreated` is a named
+     class below the `TestCase`, while both aggregates and the event handler that pass it around are anonymous.
+  2. **A class named inside another fixture's attribute argument** — an attribute argument is a constant
+     expression, so `$fixture::class` cannot appear in one and the referenced class needs a name written in
+     source: `#[FromAggregateStream(EventSourcedBasket::class)]`
+     (`packages/JmsConverter/tests/Integration/InterfaceTypedPayloadTest.php:68`, where the projection carrying the
+     attribute is itself anonymous) and `#[DecisionModel(aggregate: WalletForAggregateBackedTest::class)]`
+     (`packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelTest.php:370`).
+
+  Three things that look like exceptions and are not:
+
+  - **`#[AggregateType]`** takes a string name, not a class-string
+    (`packages/Ecotone/Api/Attribute/AggregateType.php`), so it forces nothing — an anonymous aggregate carries it.
+  - **`EventCriteria`** takes its class-strings at runtime — `EventCriteria::aggregate(string $aggregateClass, ...)`,
+    `ofTypes(string ...$eventTypes)` — where `$basket::class` works. The event types it names are already named
+    under exception 1, never for `EventCriteria`'s sake.
+  - **An exception message containing the class name.** The test holds the instance, so interpolate it:
+    `$this->expectExceptionMessage($service::class . '::handle')`. Three test files do exactly that, in five places —
+    `packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverPlacementValidationTest.php:47`,
+    `WithTenantResolverLicensingTest.php:38`, and `AggregateNotFoundCausationTest.php:60`, which builds an entire
+    expected message out of `$wallet::class` and `$walletCharging::class`. Better still, assert the part of the
+    message that is the instruction and leave the class name out of it.
+
+  Where an exception does apply, suffix the named fixture per test file (`UnlockedBasketForWithoutLock`) so two
+  test files in one namespace cannot collide.
+  `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php` is a full example of the named
+  form — including, at line 81, an exception-message assertion that could have interpolated `::class` instead.
 - **No static properties or static methods** in a test class, for the same reason as rule 3.
 - A private `bootstrap()` helper on the test class is fine and common when several tests need the same wiring.
 
@@ -522,6 +677,49 @@ Two rules resolve the overlaps:
 Full reasoning and the old→new mapping: `docs/superpowers/specs/2026-09-16-api-namespace-layout-mapping.md` and
 `upgrade/namespace-map-2.0.csv`.
 
+### 12a. The boundary holds in both directions
+
+The placement table says where a user-facing class goes. Two invariants say what may cross the line at all, and the
+second one is the easier to break, because adding to `Api/` never fails a build.
+
+**Nothing an application writes stays outside `Api`.** Every attribute, every `#[ServiceContext]` extension object,
+every gateway interface, every enum or value object named in a configuration call. If a user has to type the name,
+it is public surface, and leaving it in `src` makes the whole of `src` look quotable.
+
+**Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
+services, compiler passes or container plumbing. 167 files live under `packages/*/Api` today; the reason the number
+stays honest is that a class is added there on purpose, never because it was convenient.
+
+**The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
+framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder
+$builder): Definition` appears in `Api` on purpose in `SimpleMessageChannelBuilder.php:159`,
+`Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153` and each framework package's channel builder. The same
+goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 39 of the 167
+`Api` files and none of that is a leak.
+
+It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to
+construct, a default it has to name, a return type it has to import. Three of those were in the tree, and the way
+they were found is the way to find the next one: read the imports of `packages/*/Api`, and for each internal type
+ask which method exposes it and who calls that method.
+
+| Was | Now | How an application met it |
+|---|---|---|
+| `Ecotone\Messaging\Conversion\MediaType` | `Ecotone\Api\ExtensionObject\MediaType` | `CommandBus`, `QueryBus`, `EventBus`, `DistributedBus`, `MessagePublisher` and `#[ContentType]` all name it |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` | a default parameter value on `SimpleMessageChannelBuilder::create()`/`::createQueueChannel()`, and on `#[KafkaConsumer]`/`#[RabbitConsumer]` |
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` | `ServiceConfiguration::withConnectionRetryTemplate()`, `ErrorHandlerConfiguration::create()` |
+
+`upgrade-2.0.md` §13a and the three new rows in `upgrade/namespace-map-2.0.csv` are the record. Note what did
+**not** move with them: `RetryTemplateBuilder::build()` still returns
+`Ecotone\Messaging\Handler\Recoverability\RetryTemplate`, and that is correct — the framework calls `build()`,
+the application only calls the static factories. The who-calls-it test decides the class *and* each of its methods.
+
+**`#[ModuleAnnotation]` is the deliberate edge case**, and worth knowing so it is not read as precedent: no
+application writes it, only a module does, and modules are written in packages outside this monorepo too. Extension
+authors are users. Anything whose only caller is Ecotone itself is not.
+
+**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan excludes `Api/`
+(rule 21). The boundary is held in review, which is why it is written down.
+
 **Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
 the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,
 then fails at reflection time — which `phpstan` at level 1 does not catch, because attribute arguments resolve
@@ -559,6 +757,52 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 `getModuleClassesForPackage()` match arm). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
 are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
+
+### 13a. Class metadata comes from the registry, not from fresh reflection
+
+`InterfaceToCall` and `ClassDefinition` are the metadata layer. They exist so nothing else has to build a
+`ReflectionClass`, and `InterfaceToCallRegistry` memoizes both —
+`packages/Ecotone/src/Messaging/Handler/InterfaceToCallRegistry.php` keys `getFor($class, $method)` and
+`getClassDefinitionFor($type)` by name and returns the same instance on every later ask. A module or builder that
+reflects for itself pays the cost again and gets an object the rest of the framework cannot reuse.
+
+So during configuration building, ask the registry `prepare()` already gave you:
+
+```php
+// wrong — the same facts the registry already holds, re-derived
+$attributes = (new ReflectionClass($className))->getAttributes(EventTag::class);
+
+// right
+$interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
+$interfaceToCall->getMethodAnnotationsOf(EventTag::class);
+$interfaceToCallRegistry->getClassDefinitionFor(Type::object($className));
+```
+
+`packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/AggregateResolver/AggregateDefinitionResolver.php:29`
+and `packages/Ecotone/src/Modelling/Config/Routing/BusRoutingMapBuilder.php:94` are the shape for the second one.
+
+**And on the message path, take the metadata as a constructor argument rather than reading it.** A `Definition`
+that needs an `InterfaceToCall`, one of its parameters, or an attribute instance names it as a reference —
+`InterfaceToCallReference`, `InterfaceParameterReference`, `AttributeReference` — and the
+`RegisterInterfaceToCallReferences` compiler pass
+(`packages/Ecotone/src/Messaging/Config/Container/Compiler/RegisterInterfaceToCallReferences.php`) walks every
+definition's arguments and method calls and registers each one as its own container definition. The reflection runs
+once, while compiling; the compiled container holds the result, and the runtime service receives it already built.
+`packages/Ecotone/src/Modelling/AggregateFlow/LoadAggregate/LoadAggregateServiceBuilder.php:77` and
+`packages/Ecotone/src/Projecting/Config/ProjectingAttributeModule.php:184` are the pattern; 36 places in
+`packages/*/src` build an `InterfaceToCallReference` this way.
+
+Raw reflection has not disappeared — 31 files under `packages/*/src` still build a `ReflectionClass` — but look at
+which ones: the layer that *produces* this metadata (`TypeResolver`, `ClassDefinition`, `InterfaceToCall`,
+`AttributeResolver`, the annotation finders), and compile-phase modules, builders and guards asking something the
+metadata layer does not expose, such as `class_exists()` or `isAbstract()`. The line is not "never reflect". It is
+**nothing on the message path reflects, and nothing re-derives what the registry already holds.**
+
+If a value genuinely is not knowable until a message arrives, read it on demand and **do not cache it** — a cache
+on a container service is rule 3, and both attempts at one were deleted rather than kept: `a98c23fa8` removed
+`DecisionModelReflection`'s static caches, and `4bb23eb51` stopped `MessageTagValueResolver` mutating one. That is
+the reason to move the lookup to compile time rather than to memoize it at runtime: the memo is not available to
+you.
 
 ---
 
@@ -644,6 +888,13 @@ parameters and positional calls are unreadable.
 A behaviour change that a 1.x application would notice belongs in `upgrade-2.0.md`, with **Before / Now / How to
 adapt**. A design decision and its rejected alternatives belong in a spec under `docs/superpowers/specs/`. Both
 are where rule 6 sends the prose you did not put in a comment.
+
+**A rename updates the spec in the same commit.** The spec is part of the unit, not a follow-up, and when it is
+treated as one somebody pays for an archaeology pass instead. `eec9625d5` is a dedicated readability review that
+found the designated first-read design document still describing `ecotone_event_tags` and `tag_version` — a table
+and a column the shipped code never had (`ecotone_tagged_events`, `tag_sequence`) — alongside a documented
+guarantee, that a decision model scoped only by a filter-only tag name is a bootstrap `ConfigurationException`,
+implemented nowhere. That one review produced seven commits and left four ranked items open.
 
 `docs/superpowers/` is in `.gitignore` but the specs are tracked, so adding one needs `git add -f`.
 

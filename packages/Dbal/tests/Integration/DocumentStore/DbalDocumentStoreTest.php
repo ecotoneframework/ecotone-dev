@@ -92,20 +92,20 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     public function test_adding_document_as_object_should_return_object()
     {
         $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
-            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType)
             {
-                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationXPHP())) {
                     return '{"name":"johny"}';
                 }
 
                 return new stdClass();
             }
 
-            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType): bool
             {
                 return ($sourceType->toString() === 'stdClass'
-                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
-                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson())
                         && $targetType->toString() === 'stdClass');
             }
         };
@@ -132,20 +132,20 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     public function test_adding_document_as_collection_of_objects_should_return_object()
     {
         $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
-            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType)
             {
-                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationXPHP())) {
                     return '[{"name":"johny"},{"name":"franco"}]';
                 }
 
                 return [new stdClass(), new stdClass()];
             }
 
-            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType): bool
             {
                 return ($sourceType->toString() === 'array<stdClass>'
-                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
-                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson())
                         && $targetType->toString() === 'array<stdClass>');
             }
         };
@@ -174,20 +174,20 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     public function test_adding_document_as_array_should_return_array()
     {
         $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
-            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType)
             {
-                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationXPHP())) {
                     return '[1,2,5]';
                 }
 
                 return [1, 2, 5];
             }
 
-            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType): bool
             {
                 return ($sourceType->isIterable() && ! $sourceType->isClassOrInterface()
-                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
-                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson())
                         && $targetType->isIterable() && ! $targetType->isClassOrInterface());
             }
         };
@@ -313,20 +313,20 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     public function test_retrieving_whole_collection_of_objects()
     {
         $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
-            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType)
             {
-                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationXPHP())) {
                     return '{"name":"johny"}';
                 }
 
                 return new stdClass();
             }
 
-            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Api\ExtensionObject\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Api\ExtensionObject\MediaType $targetMediaType): bool
             {
                 return ($sourceType->toString() === 'stdClass'
-                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
-                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Api\ExtensionObject\MediaType::createApplicationJson())
                         && $targetType->toString() === 'stdClass');
             }
         };

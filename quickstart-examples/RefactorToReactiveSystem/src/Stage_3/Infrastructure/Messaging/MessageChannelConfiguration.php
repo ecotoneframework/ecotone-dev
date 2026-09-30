@@ -6,9 +6,9 @@ namespace App\ReactiveSystem\Stage_3\Infrastructure\Messaging;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 
 final class MessageChannelConfiguration

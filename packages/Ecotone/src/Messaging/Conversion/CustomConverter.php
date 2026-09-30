@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 abstract class CustomConverter implements Converter

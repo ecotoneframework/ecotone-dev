@@ -96,7 +96,7 @@ class MessageGateway
 
 ## MediaType Constants
 
-Source: `Ecotone\Messaging\Conversion\MediaType`
+Source: `Ecotone\Api\ExtensionObject\MediaType`
 
 ```php
 MediaType::APPLICATION_JSON             // 'application/json'

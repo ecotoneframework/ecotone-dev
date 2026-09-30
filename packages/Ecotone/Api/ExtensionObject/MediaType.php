@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Conversion;
+namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -10,11 +10,6 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
-/**
- * Class MediaType
- * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
 /**
  * licence Apache-2.0
  */

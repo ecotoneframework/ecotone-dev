@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**
  * licence Apache-2.0

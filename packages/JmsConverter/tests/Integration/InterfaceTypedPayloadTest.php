@@ -6,13 +6,13 @@ namespace Test\Ecotone\JMSConverter\Integration;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\InterfacePayload\Basket;

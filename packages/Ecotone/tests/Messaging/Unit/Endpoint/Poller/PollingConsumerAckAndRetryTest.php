@@ -7,11 +7,11 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint\Poller;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

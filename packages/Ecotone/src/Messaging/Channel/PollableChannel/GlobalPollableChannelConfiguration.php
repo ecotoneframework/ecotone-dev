@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**
  * licence Apache-2.0

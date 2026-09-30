@@ -101,7 +101,9 @@ public function test_with_dbal_module(): void
 ## Common Mistakes
 
 - **Don't** use raw PHPUnit mocking instead of EcotoneLite -- use the framework's test support
-- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes
+- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes, aggregates
+  included. `docs/coding-conventions.md` rule 11 is the single statement of this rule, including the two cases where
+  PHP forces a named class below the `TestCase`
 - **Don't** test implementation details -- test behavior from the end-user perspective
 - **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
 - **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` -- pick the right one

@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 
 use Ecotone\Api\Attribute\MediaTypeConverter;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 use function json_decode;

@@ -18,7 +18,7 @@ Ecotone's resiliency features handle message processing failures gracefully thro
 ## 1. RetryTemplateBuilder
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 // Fixed backoff: 1 second between retries, max 3 attempts
 $retry = RetryTemplateBuilder::fixedBackOff(1000)

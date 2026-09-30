@@ -3,6 +3,14 @@
 Unit `agents-conventions` (task_1e220300d9d1), 2026-09-30. Base `dgafka/ecotone-2-0-work` @ `d0b4ffcc1` (which
 contains the brief's `03895706`). One commit: `669c5587f`.
 
+> **Superseded in part, 2026-09-30 (maintainer).** The fixture rule recorded below — two co-equal forms, with
+> named classes below the `TestCase` as "the dominant form" on the strength of 92 of 141 test files — was reversed.
+> Inline anonymous classes are the rule, aggregates included; the 92-of-141 figure is drift to be reduced, not
+> precedent. Of the forcing cases this report listed, `#[AggregateType]` and `EventCriteria` turned out not to force
+> a named class at all, and an asserted exception message can interpolate `$fixture::class`. The current statement
+> of the rule, with its evidence, is `docs/coding-conventions.md` rule 11; the reversal is recorded in
+> `docs/superpowers/research/dcb-friction-consolidation.md`. Everything else in this report stands.
+
 ## What shipped
 
 | File | Change |

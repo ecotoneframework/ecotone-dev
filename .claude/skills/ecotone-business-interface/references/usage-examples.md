@@ -63,24 +63,28 @@ interface ProductWriter
 
 ### Parameter Type Conversion
 
+`type` takes a Doctrine `ParameterType`/`ArrayParameterType` case (how the value is bound), not a string; converting a
+PHP value before binding (e.g. an array to JSON) is `convertToMediaType`. A `\DateTimeInterface` parameter needs
+no `#[DbalParameter]` at all -- it converts automatically.
+
 ```php
+use Doctrine\DBAL\ArrayParameterType;
 use Ecotone\Api\Dbal\Attribute\DbalParameter;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface AdvancedQueries
 {
     #[DbalQuery('SELECT * FROM events WHERE tags @> :tags')]
     public function findByTags(
-        #[DbalParameter(type: 'json')] array $tags
+        #[DbalParameter(convertToMediaType: MediaType::APPLICATION_JSON)] array $tags
     ): array;
 
     #[DbalQuery('SELECT * FROM orders WHERE created_at > :since')]
-    public function findRecent(
-        #[DbalParameter(type: 'datetime')] \DateTimeInterface $since
-    ): array;
+    public function findRecent(\DateTimeInterface $since): array;
 
     #[DbalQuery('SELECT * FROM items WHERE id = ANY(:ids)')]
     public function findByIds(
-        #[DbalParameter(type: 'json')] array $ids
+        #[DbalParameter(type: ArrayParameterType::STRING)] array $ids
     ): array;
 }
 ```
@@ -168,7 +172,7 @@ class ProductConverter
 
 ## BusinessMethod Examples
 
-### BusinessMethod with ServiceActivator
+### BusinessMethod with InternalHandler
 
 ```php
 use Ecotone\Api\Attribute\BusinessMethod;
@@ -182,19 +186,19 @@ interface CacheService
     public function get(string $key): ?string;
 }
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class InMemoryCache
 {
     private array $items;
 
-    #[ServiceActivator('cache.set')]
+    #[InternalHandler('cache.set')]
     public function set(CachedItem $item): void
     {
         $this->items[$item->key] = $item->value;
     }
 
-    #[ServiceActivator('cache.get')]
+    #[InternalHandler('cache.get')]
     public function get(string $key): ?string
     {
         return $this->items[$key] ?? null;

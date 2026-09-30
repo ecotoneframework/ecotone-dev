@@ -34,35 +34,59 @@ public function test_interceptor_runs(): void
 
 ## Testing Execution Order
 
+`#[After]` only fires when the handler returns a value, so this uses a `#[QueryHandler]` (not the more common
+`void` `#[CommandHandler]`) to exercise the full chain, injecting a shared `#[Reference]` service instead of a
+captured-by-value local variable (an anonymous class has no implicit constructor):
+
 ```php
 public function test_interceptor_execution_order(): void
 {
-    $callStack = [];
+    $callStack = new CallStack();
 
-    $beforeInterceptor = new class($callStack) {
-        #[Before(pointcut: CommandHandler::class)]
-        public function before(): void { $this->stack[] = 'before'; }
-    };
-
-    $aroundInterceptor = new class($callStack) {
-        #[Around(pointcut: CommandHandler::class)]
-        public function around(MethodInvocation $invocation): mixed {
-            $this->stack[] = 'around-start';
-            $result = $invocation->proceed();
-            $this->stack[] = 'around-end';
-            return $result;
+    $handler = new class {
+        #[QueryHandler('getOrder')]
+        public function handle(): string
+        {
+            return 'order-data';
         }
     };
 
-    $afterInterceptor = new class($callStack) {
-        #[After(pointcut: CommandHandler::class)]
-        public function after(): void { $this->stack[] = 'after'; }
+    $interceptors = new class {
+        #[Before(pointcut: QueryHandler::class)]
+        public function before(#[Reference] CallStack $stack): void
+        {
+            $stack->calls[] = 'before';
+        }
+
+        #[Around(pointcut: QueryHandler::class)]
+        public function around(MethodInvocation $invocation, #[Reference] CallStack $stack): mixed
+        {
+            $stack->calls[] = 'around-start';
+            $result = $invocation->proceed();
+            $stack->calls[] = 'around-end';
+            return $result;
+        }
+
+        #[After(pointcut: QueryHandler::class)]
+        public function after(#[Reference] CallStack $stack): void
+        {
+            $stack->calls[] = 'after';
+        }
     };
 
-    // Register all in bootstrapFlowTesting
-    // Expected order: before -> around-start -> handler -> around-end -> after
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        classesToResolve: [$handler::class, $interceptors::class],
+        containerOrAvailableServices: [$handler, $interceptors, $callStack],
+    );
+
+    $ecotone->sendQueryWithRouting('getOrder');
+
+    $this->assertEquals(['before', 'around-start', 'around-end', 'after'], $callStack->calls);
 }
 ```
+
+`CallStack` is a small named fixture class (`public array $calls = [];`) referenced by `#[Reference]` -- an
+anonymous class here since it is only a type declaration, not the fixture under test.
 
 ## Testing Header Modification
 

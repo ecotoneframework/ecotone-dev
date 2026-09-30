@@ -28,16 +28,16 @@ Source: `Ecotone\Api\Attribute\Identifier`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class Identifier
+class Identifier extends Header
 {
-    public function __construct(public string $identifierPropertyName = '') {}
+    public function __construct() {}
 }
 ```
 
-Parameters:
-- `identifierPropertyName` (string) -- optional custom name for the identifier property. If empty, uses the property name.
-
-Can be applied to properties or constructor parameters. Multiple `#[Identifier]` properties create a composite identifier.
+Takes no arguments. Can be applied to properties or (promoted) constructor parameters. Multiple `#[Identifier]`
+properties create a composite identifier. To resolve the identifier from a command/event property with a
+different name, use `#[TargetIdentifier]` on that property, or `identifierMapping`/`identifierMetadataMapping` on
+the handler attribute -- not a parameter on `#[Identifier]` itself.
 
 ## EventSourcingHandler Attribute
 
@@ -55,8 +55,11 @@ Method-level attribute. Marks a method that applies an event to rebuild aggregat
 Source: `Ecotone\Api\Attribute\Version`
 
 ```php
-#[Attribute(Attribute::TARGET_PROPERTY)]
-class Version {}
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+class Version
+{
+    public function __construct(bool $autoIncrease = true) {}
+}
 ```
 
 Property-level attribute. Marks the version property used for optimistic concurrency control. Typically used via the `WithAggregateVersioning` trait instead.
@@ -103,8 +106,13 @@ Methods:
 Source: `Ecotone\Api\Attribute\TargetIdentifier`
 
 ```php
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class TargetIdentifier {}
+#[Attribute(Attribute::TARGET_PROPERTY)]
+class TargetIdentifier
+{
+    public function __construct(public string $identifierName = '') {}
+}
 ```
 
-Applied to command/event properties to explicitly mark which property maps to the aggregate identifier.
+Applied to command/event properties (including promoted constructor parameters) to explicitly mark which
+property maps to the aggregate identifier. `identifierName` overrides which aggregate `#[Identifier]` it targets
+when the names differ; empty matches the property name.

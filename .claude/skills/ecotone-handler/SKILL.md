@@ -21,7 +21,7 @@ Message handlers are the core building blocks in Ecotone. They process messages 
 | `#[CommandHandler]` | Handles commands (write operations) | `void` or identifier |
 | `#[EventHandler]` | Reacts to events (side effects) | `void` |
 | `#[QueryHandler]` | Handles queries (read operations) | Data |
-| `#[ServiceActivator]` | Low-level message endpoint | Varies |
+| `#[InternalHandler]` | Low-level message endpoint, not exposed via a bus | Varies |
 
 ## CommandHandler
 
@@ -70,16 +70,16 @@ class OrderQueryService
 }
 ```
 
-## ServiceActivator
+## InternalHandler
 
 Low-level message handler that works directly with message channels:
 
 ```php
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class MessageProcessor
 {
-    #[ServiceActivator(inputChannelName: 'processChannel')]
+    #[InternalHandler(inputChannelName: 'processChannel')]
     public function process(string $payload): string
     {
         return strtoupper($payload);
@@ -155,8 +155,8 @@ public function placeOrder(PlaceOrder $command): void { }
 - First parameter is the message object (type-hinted)
 - `#[CommandHandler]` on aggregates: static = factory (creation), instance = action (modification)
 - Use `#[Header]` for metadata access, not message wrapping
-- PHPDoc `@param`/`@return` on public API methods
-- No comments -- meaningful method names only
+- Names carry the meaning; no comments or descriptive docblocks (see
+  [coding-conventions.md rule 6](../../../docs/coding-conventions.md#6-names-carry-the-meaning-no-comments-no-descriptive-docblocks))
 
 ## Enterprise Upgrade Paths
 
@@ -167,6 +167,6 @@ public function placeOrder(PlaceOrder $command): void { }
 
 ## Additional resources
 
-- [API Reference](references/api-reference.md) -- Constructor signatures and parameter details for `#[CommandHandler]`, `#[EventHandler]`, `#[QueryHandler]`, `#[ServiceActivator]`, and `#[Header]` attributes. Load when you need exact parameter names, types, or defaults.
-- [Usage Examples](references/usage-examples.md) -- Full class implementations: service command handlers with routing keys, aggregate command handlers (factory + action), async event handlers, query handlers with string routing, header parameter usage, and ServiceActivator wiring. Load when you need complete, copy-paste-ready handler implementations.
+- [API Reference](references/api-reference.md) -- Constructor signatures and parameter details for `#[CommandHandler]`, `#[EventHandler]`, `#[QueryHandler]`, `#[InternalHandler]`, and `#[Header]` attributes. Load when you need exact parameter names, types, or defaults.
+- [Usage Examples](references/usage-examples.md) -- Full class implementations: service command handlers with routing keys, aggregate command handlers (factory + action), async event handlers, query handlers with string routing, header parameter usage, and InternalHandler wiring. Load when you need complete, copy-paste-ready handler implementations.
 - [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test setup for handlers, command/event/query testing, recorded events assertions, and routing key test patterns. Load when writing tests for handlers.

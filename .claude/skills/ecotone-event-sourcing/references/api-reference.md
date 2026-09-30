@@ -20,11 +20,12 @@ Source: `Ecotone\Api\Projecting\FromStream`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
-class FromStream
+readonly class FromStream
 {
     public function __construct(
-        public readonly string $stream,
-        public readonly ?string $aggregateType = null,
+        public string $stream,
+        public ?string $aggregateType = null,
+        public string $eventStoreReferenceName = EventStore::class,
     )
 }
 ```
@@ -61,11 +62,12 @@ appended to without migrating it.
 Source: `Ecotone\Api\Projecting\FromAggregateStream`
 
 ```php
-#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
-class FromAggregateStream
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
+readonly class FromAggregateStream
 {
     public function __construct(
-        public readonly string $aggregateClass,
+        public string $aggregateClass,
+        public string $eventStoreReferenceName = EventStore::class,
     )
 }
 ```
@@ -81,7 +83,7 @@ Source: `Ecotone\Api\Projecting\Partitioned`
 class Partitioned
 {
     public function __construct(
-        public readonly ?string $headerName = null,
+        public readonly ?string $partitionHeaderName = null,
     )
 }
 ```
@@ -124,7 +126,7 @@ class Streaming
 | `#[ProjectionInitialization]` | `Ecotone\Api\Projecting\ProjectionInitialization` | On first run / initialization |
 | `#[ProjectionDelete]` | `Ecotone\Api\Projecting\ProjectionDelete` | When projection is deleted |
 | `#[ProjectionReset]` | `Ecotone\Api\Projecting\ProjectionReset` | When projection is reset |
-| `#[ProjectionFlush]` | `Ecotone\EventSourcing\Attribute\ProjectionFlush` | After each batch of events |
+| `#[ProjectionFlush]` | `Ecotone\Api\Projecting\ProjectionFlush` | After each batch of events |
 
 All are `#[Attribute(Attribute::TARGET_METHOD)]` with no constructor parameters.
 
@@ -139,10 +141,12 @@ Source: `Ecotone\Api\Projecting\ProjectionExecution`
 class ProjectionExecution
 {
     public function __construct(
-        public readonly int $eventLoadingBatchSize = 1000,
+        public readonly int $eventLoadingBatchSize,
     )
 }
 ```
+
+`eventLoadingBatchSize` has no default -- it is required.
 
 ### ProjectionBackfill
 
@@ -168,8 +172,8 @@ Source: `Ecotone\Api\Projecting\ProjectionDeployment`
 class ProjectionDeployment
 {
     public function __construct(
-        public readonly bool $live = true,
         public readonly bool $manualKickOff = false,
+        public readonly bool $live = true,
     )
 }
 ```
@@ -235,12 +239,17 @@ Source: `Ecotone\EventSourcing\EventStore`
 interface EventStore
 {
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
-    public function appendTo(string $streamName, array $streamEvents): void;
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
     public function delete(string $streamName): void;
     public function hasStream(string $streamName): bool;
-    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ...): iterable;
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): iterable;
+    public function loadAggregateEvents(string $streamName, ?string $aggregateType, string $aggregateId, int $fromVersion = 1, ?int $count = null, array $eventNames = [], bool $deserialize = true): iterable;
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }
 ```
+
+`AggregateEventStore` and `TaggedEventStore` no longer exist -- `loadAggregateEvents()` and `loadByCriteria()`
+(Enterprise) are part of this one interface.
 
 ## EventStreamEmitter
 

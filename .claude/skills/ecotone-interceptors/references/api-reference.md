@@ -27,7 +27,9 @@ class Before
 
 Source: `Ecotone\Api\Attribute\After`
 
-Runs after the handler completes. Receives the handler's return value as first parameter.
+Runs after the handler completes. Receives the handler's return value as first parameter. **Only runs when the
+handler actually returns a value** -- verified against `EcotoneLite`: on a `void` handler, `#[After]` (with or
+without `changeHeaders`) never executes, while `#[Before]` on the same pointcut still does.
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -121,17 +123,22 @@ Used exclusively in `#[Around]` interceptors to control handler execution.
 interface MethodInvocation
 {
     public function proceed(): mixed;
+    public function cloneCurrentState(): self;
+    public function getObjectToInvokeOn(): string|object;
+    public function getMethodName(): string;
+    public function getName(): string;
     public function getArguments(): array;
-    public function 
-    public function getObjectToInvokeOn(): object;
 }
 ```
 
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `proceed()` | `mixed` | Continue to next interceptor or handler. **Must be called.** |
-| `getArguments()` | `array` | Get handler method arguments as named array |
-| `getObjectToInvokeOn()` | `object` | Get the handler instance being invoked |
+| `cloneCurrentState()` | `self` | Snapshot the invocation to inspect/replay without mutating the original |
+| `getObjectToInvokeOn()` | `string\|object` | The handler instance being invoked, or its class name for a static method |
+| `getMethodName()` | `string` | Name of the method being invoked |
+| `getName()` | `string` | `"{ClassName}::{methodName}"` of the intercepted handler |
+| `getArguments()` | `mixed[]` | Handler method arguments, indexed positionally (`$invocation->getArguments()[0]`), not by parameter name |
 
 ## Precedence Constants
 

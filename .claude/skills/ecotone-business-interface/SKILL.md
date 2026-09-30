@@ -81,11 +81,11 @@ interface NotificationGateway
     public function send(string $message, string $recipient): void;
 }
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class NotificationHandler
 {
-    #[ServiceActivator('notification.send')]
+    #[InternalHandler('notification.send')]
     public function handle(string $message): void
     {
         // Process notification

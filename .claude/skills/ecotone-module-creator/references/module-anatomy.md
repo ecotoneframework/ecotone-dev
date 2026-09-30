@@ -60,13 +60,15 @@ final class ModulePackageList
     public const TRACING_PACKAGE = 'tracing';
     public const LARAVEL_PACKAGE = 'laravel';
     public const SYMFONY_PACKAGE = 'symfony';
+    public const TEMPEST_PACKAGE = 'tempest';
     public const TEST_PACKAGE = 'test';
 
     public static function allPackages(): array { ... }
-    public static function allPackagesExcept(array $names): array { ... }
-    public static function getModuleClassesForPackage(string $name): array { ... }
+    public static function getModuleClassesForPackage(string $packageName): array { ... }
 }
 ```
+
+There is no `allPackagesExcept()` -- exclusion is done by the caller, e.g. `array_diff(ModulePackageList::allPackages(), $skippedPackages)`.
 
 To register a new package:
 1. Add constant: `public const MY_PACKAGE = 'myPackage';`
@@ -121,12 +123,12 @@ interface Configuration
     public function registerConsumer(ChannelAdapterConsumerBuilder $consumer): self;
 
     // Register converters
-    public function registerConverter(ConverterBuilder $converter): self;
-
-    // Register service activators
-    public function registerServiceActivator(ServiceActivatorBuilder $activator): self;
+    public function registerConverter(CompilableBuilder $converter): self;
 }
 ```
+
+There is no `registerServiceActivator()` -- a `#[ServiceActivator]`/`#[InternalHandler]` handler is built with
+`ServiceActivatorBuilder` and registered the same way as any other handler, through `registerMessageHandler()`.
 
 ## AnnotationFinder Interface (Key Methods)
 
@@ -138,16 +140,16 @@ Used in `create()` to scan for annotations:
 interface AnnotationFinder
 {
     // Find classes annotated with a specific attribute
-    public function findAnnotatedClasses(string $attributeClass): array;
+    public function findAnnotatedClasses(string $annotationClassName): array;
 
-    // Find methods annotated with a specific attribute
-    public function findAnnotatedMethods(string $attributeClass): array;
+    // Find methods annotated with a specific attribute; returns AnnotatedMethod[]
+    public function findAnnotatedMethods(string $methodAnnotationClassName): array;
 
-    // Find all annotations for a class
-    public function getAnnotationsForClass(string $className): array;
+    // Get a required class/method attribute instance
+    public function getAttributeForClass(string $className, string $attributeClassName): object;
 
-    // Find all annotations for a method
-    public function getAnnotationsForMethod(string $className, string $methodName): array;
+    // Get an optional class/method attribute instance, or null
+    public function findAttributeForClass(string $className, string $attributeClassName): ?object;
 }
 ```
 

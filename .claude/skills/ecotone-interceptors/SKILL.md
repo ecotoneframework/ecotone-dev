@@ -26,6 +26,12 @@ Interceptors are cross-cutting middleware that hook into handler execution. Use 
 
 Execution order: Presend -> Before -> Around -> handler -> Around end -> After
 
+**`#[After]` only runs when the intercepted handler actually returns a value.** A `void` handler produces no
+reply for `#[After]` to post-process, so it is skipped entirely -- verified against `EcotoneLite`: identical
+`#[Before]`/`#[After]` interceptors on the same pointcut fire `before` either way, but `after` only when the
+handler's return type is non-`void`. Target `#[QueryHandler]`s, or handlers with a return type, when using
+`#[After]`.
+
 ## Before Interceptor
 
 ```php
@@ -43,15 +49,18 @@ class ValidationInterceptor
 
 ## After Interceptor
 
+Only fires for a handler that returns a value -- pointing this at `CommandHandler::class` broadly is a no-op for
+every `void` command handler.
+
 ```php
 use Ecotone\Api\Attribute\After;
 
 class AuditInterceptor
 {
-    #[After(pointcut: CommandHandler::class)]
-    public function audit(object $command): void
+    #[After(pointcut: QueryHandler::class)]
+    public function audit(mixed $result): void
     {
-        // Log after handler completes
+        // Receives the handler's return value as the first parameter; log after handler completes
     }
 }
 ```
@@ -138,7 +147,7 @@ Pointcuts target which handlers an interceptor applies to:
 
 // AND / OR / NOT
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Auto-Inference

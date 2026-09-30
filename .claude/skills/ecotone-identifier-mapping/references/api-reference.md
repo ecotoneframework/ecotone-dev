@@ -7,7 +7,7 @@ Source: `Ecotone\Api\Attribute\Identifier`
 Marks a property as the identity of an aggregate or saga. Multiple `#[Identifier]` properties create a composite identifier.
 
 ```php
-#[Attribute(Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
 class Identifier
 {
 }

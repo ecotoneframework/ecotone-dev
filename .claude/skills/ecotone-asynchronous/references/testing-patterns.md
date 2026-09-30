@@ -8,9 +8,11 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 public function test_async_processing(): void
 {
+    $handler = new NotificationHandler();
+
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [NotificationHandler::class],
-        containerOrAvailableServices: [new NotificationHandler()],
+        containerOrAvailableServices: [$handler],
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
@@ -18,7 +20,6 @@ public function test_async_processing(): void
     // Flow tests provide an in-memory delayable queue for 'notifications'; consume it explicitly
     $ecotone->run('notifications');
 
-    // Assert results
     $this->assertTrue($handler->wasProcessed);
 }
 ```
@@ -40,10 +41,15 @@ $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(
 
 ## Testing Delayed Messages
 
+`run()` takes a channel name and an optional `ExecutionPollingMetadata` -- move time forward with
+`advanceTimeBy()` first, then run:
+
 ```php
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
-$ecotone->run('reminders', null, TimeSpan::withSeconds(60));
+$ecotone
+    ->advanceTimeBy(TimeSpan::withSeconds(60))
+    ->run('reminders');
 ```
 
 ## Key Testing Methods

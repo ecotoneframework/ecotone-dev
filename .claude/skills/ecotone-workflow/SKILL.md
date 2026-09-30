@@ -139,18 +139,38 @@ class AuthorizationOrchestrator
 }
 ```
 
-### OrchestratorGateway
+### Invoking a Fixed Orchestrator via a Business Interface
 
-Provide a business interface for invoking orchestrators:
+A fixed orchestrator is invoked like any other endpoint, through `#[BusinessMethod]` targeting its
+`#[Orchestrator]` input channel:
+
+```php
+use Ecotone\Api\Attribute\BusinessMethod;
+
+interface AuthorizationProcess
+{
+    #[BusinessMethod('start.authorization')]
+    public function start(string $data): string;
+}
+```
+
+### OrchestratorGateway (Dynamic Routing Slip)
+
+`#[OrchestratorGateway]` takes no arguments -- unlike `#[BusinessMethod]`, it lets the *caller* supply the routing
+slip itself instead of a fixed `#[Orchestrator]` method, useful when the sequence of steps is decided at runtime:
 
 ```php
 use Ecotone\Api\Attribute\OrchestratorGateway;
 
-interface AuthorizationProcess
+interface DynamicAuthorizationProcess
 {
-    #[OrchestratorGateway('start.authorization')]
-    public function start(string $data): string;
+    #[OrchestratorGateway]
+    public function start(array $routingSlip, mixed $data, array $metadata): string;
 }
+```
+
+```php
+$gateway->start(['validate', 'process', 'sendEmail'], 'test-data', []);
 ```
 
 ## Key Rules

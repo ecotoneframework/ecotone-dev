@@ -2,6 +2,10 @@
 
 ## Testing Retry Behavior
 
+`ErrorHandlerConfiguration`'s retry runs inside a single `run()` call -- `RetryTemplateBuilder::fixedBackOff(0)`
+means no delay between attempts, so `ExecutionPollingMetadata`'s polling loop drains every retry without a second
+`run()` call. `stopOnError: false` keeps that loop going after a failed delivery.
+
 ```php
 public function test_retry_on_failure(): void
 {
@@ -19,24 +23,26 @@ public function test_retry_on_failure(): void
         }
     };
 
+    $errorConfig = new class {
+        #[ServiceContext]
+        public function errorHandler(): ErrorHandlerConfiguration
+        {
+            return ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3));
+        }
+    };
+
     $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
-        containerOrAvailableServices: [$handler],
+        classesToResolve: [$handler::class, $errorConfig::class],
+        containerOrAvailableServices: [$handler, $errorConfig],
         configuration: ServiceConfiguration::createWithDefaults()
+            ->withDefaultErrorChannel('errorChannel')
             ->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ]),
     );
 
     $ecotone->sendCommand(new PlaceOrder('123'));
-
-    for ($i = 0; $i < 3; $i++) {
-        try {
-            $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        } catch (\Throwable) {
-            // Expected failures on first attempts
-        }
-    }
+    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
     $this->assertEquals(3, $handler->attempts);
 }
@@ -44,9 +50,22 @@ public function test_retry_on_failure(): void
 
 ## Testing with Error Handler Configuration
 
+An endpoint only reaches `ErrorHandlerConfiguration` once something routes its failures to the matching error
+channel name -- either `ServiceConfiguration::withDefaultErrorChannel()` for every endpoint, or
+`PollingMetadata::setErrorChannelName()` per endpoint.
+
 ```php
 public function test_error_handler_routes_to_dead_letter(): void
 {
+    $handler = new class {
+        #[Asynchronous('orders')]
+        #[CommandHandler(endpointId: 'placeOrder')]
+        public function handle(PlaceOrder $command): void
+        {
+            throw new \RuntimeException('Always fails');
+        }
+    };
+
     $errorConfig = new class {
         #[ServiceContext]
         public function errorHandler(): ErrorHandlerConfiguration
@@ -63,6 +82,7 @@ public function test_error_handler_routes_to_dead_letter(): void
         classesToResolve: [$handler::class, $errorConfig::class],
         containerOrAvailableServices: [$handler, $errorConfig],
         configuration: ServiceConfiguration::createWithDefaults()
+            ->withDefaultErrorChannel('errorChannel')
             ->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 SimpleMessageChannelBuilder::createQueueChannel('dead_letter'),
@@ -70,9 +90,8 @@ public function test_error_handler_routes_to_dead_letter(): void
     );
 
     $ecotone->sendCommand(new PlaceOrder('123'));
-    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-    // Verify message ended up in dead letter
-    $ecotone->run('dead_letter', ExecutionPollingMetadata::createWithTestingSetup());
+    $this->assertNotNull($ecotone->receiveMessageFrom('dead_letter'));
 }
 ```

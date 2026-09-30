@@ -125,14 +125,14 @@ class AuditService
 }
 ```
 
-## ServiceActivator with Output Channel
+## InternalHandler with Output Channel
 
 ```php
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class TransformationService
 {
-    #[ServiceActivator(inputChannelName: 'transformChannel', outputChannelName: 'outputChannel')]
+    #[InternalHandler(inputChannelName: 'transformChannel', outputChannelName: 'outputChannel')]
     public function transform(string $payload): string
     {
         return json_encode(['data' => $payload]);

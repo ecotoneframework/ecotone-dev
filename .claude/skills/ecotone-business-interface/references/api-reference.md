@@ -9,9 +9,10 @@ Source: `Ecotone\Api\Dbal\Attribute\DbalQuery`
 class DbalQuery
 {
     public function __construct(
-        public readonly string $sql = '',
-        public readonly string $fetchMode = FetchMode::ASSOCIATIVE,
-        public readonly string $connectionReferenceName = DbalConnection::class,
+        private string  $sql,
+        private int     $fetchMode = FetchMode::ASSOCIATIVE,
+        private ?string $replyContentType = null,
+        private string  $connectionReferenceName = DbalConnectionReference::DEFAULT
     )
 }
 ```
@@ -25,40 +26,50 @@ Source: `Ecotone\Api\Dbal\Attribute\DbalWrite`
 class DbalWrite
 {
     public function __construct(
-        public readonly string $sql = '',
-        public readonly string $connectionReferenceName = DbalConnection::class,
+        private string $sql,
+        private string $connectionReferenceName = DbalConnectionReference::DEFAULT
     )
 }
 ```
 
 ## DbalParameter Attribute
 
-Source: `Ecotone\Api\Dbal\Attribute\DbalParameter`
+Source: `Ecotone\Api\Dbal\Attribute\DbalParameter`. Can target a parameter, or a method/class (paired with a
+`name` to bind an expression-derived value that has no matching method parameter).
 
 ```php
-#[Attribute(Attribute::TARGET_PARAMETER)]
-class DbalParameter
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+final class DbalParameter
 {
     public function __construct(
-        public readonly string $name = '',
-        public readonly ?string $type = null,
-        public readonly string $expression = '',
+        private ?string $name = null,
+        private int|ArrayParameterType|ParameterType|null $type = null,
+        private string|Closure|null $expression = null,
+        private ?string $convertToMediaType = null,
+        private bool $ignored = false
     )
 }
 ```
+
+- `type` -- a `Doctrine\DBAL\ParameterType` or `Doctrine\DBAL\ArrayParameterType` case, for how the value is bound
+  (e.g. `ArrayParameterType::STRING` for `WHERE id = ANY(:ids)`). Not a string.
+- `convertToMediaType` -- converts the PHP value to this media type before binding (e.g.
+  `MediaType::APPLICATION_JSON` to store an array as a JSON string).
+- `expression` -- a SpEL expression, or closure, evaluated to produce the bound value.
+- A `\DateTimeInterface` parameter needs neither `type` nor `convertToMediaType` -- it converts automatically.
 
 ## FetchMode Constants
 
 Source: `Ecotone\Dbal\DbaBusinessMethod\FetchMode`
 
 ```php
-class FetchMode
+final class FetchMode
 {
-    public const ASSOCIATIVE = 'associative';
-    public const FIRST_COLUMN = 'first_column';
-    public const FIRST_ROW = 'first_row';
-    public const FIRST_COLUMN_OF_FIRST_ROW = 'first_column_of_first_row';
-    public const COLUMN_OF_FIRST_ROW = 'column_of_first_row';
+    public const ASSOCIATIVE = 0;
+    public const FIRST_COLUMN = 1;
+    public const FIRST_ROW = 2;
+    public const FIRST_COLUMN_OF_FIRST_ROW = 3;
+    public const ITERATE = 4;
 }
 ```
 
@@ -66,9 +77,9 @@ class FetchMode
 |------|---------|
 | `FetchMode::ASSOCIATIVE` | Array of associative arrays |
 | `FetchMode::FIRST_COLUMN` | Array of first column values |
-| `FetchMode::FIRST_ROW` | Single associative array (first row) |
+| `FetchMode::FIRST_ROW` | Single associative array (first row); `null` if the method's return type is nullable and there is no row |
 | `FetchMode::FIRST_COLUMN_OF_FIRST_ROW` | Single scalar value |
-| `FetchMode::COLUMN_OF_FIRST_ROW` | Named column from first row |
+| `FetchMode::ITERATE` | Generator yielding one associative array per row |
 
 ## BusinessMethod / MessageGateway Attribute
 
@@ -87,7 +98,7 @@ class MessageGateway
     public function __construct(
         string $requestChannel,
         string $errorChannel = '',
-        int $replyTimeoutInMilliseconds = 0,
+        int $replyTimeoutInMilliseconds = GatewayProxyBuilder::DEFAULT_REPLY_MILLISECONDS_TIMEOUT, // -1: wait indefinitely
         array $requiredInterceptorNames = [],
         ?string $replyContentType = null
     )

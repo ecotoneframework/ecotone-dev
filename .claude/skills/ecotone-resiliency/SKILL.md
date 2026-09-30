@@ -101,6 +101,8 @@ class OrderService
 
 ## Key Rules
 
+- `ErrorHandlerConfiguration` only runs once its `errorChannelName` actually receives failures -- wire that with
+  `ServiceConfiguration::withDefaultErrorChannel()` or a per-endpoint `PollingMetadata::setErrorChannelName()`
 - Use `RetryTemplateBuilder` to define retry strategies (fixed, exponential, exponential with cap)
 - Use `ErrorHandlerConfiguration` for global error handling with optional dead letter
 - Use `PollingMetadata::setErrorChannelName()` for per-endpoint error routing
@@ -119,5 +121,5 @@ class OrderService
 ## Additional resources
 
 - [API reference](references/api-reference.md) — Constructor signatures for `RetryTemplateBuilder` (all three factory methods with parameter types), `ErrorHandlerConfiguration` (with and without dead letter), `FinalFailureStrategy` enum values with transport-specific behavior, `#[InstantRetry]` and `#[ErrorChannel]` attributes, and `ErrorMessage` API. Load when you need exact parameter names, types, or method signatures.
-- [Usage examples](references/usage-examples.md) — Complete code examples for dead letter channel setup, outbox pattern with DBAL, per-endpoint error routing with `PollingMetadata`, custom error processing with `ServiceActivator`, retry-only configuration, and multi-service resiliency wiring. Load when implementing specific error handling patterns beyond the basics.
+- [Usage examples](references/usage-examples.md) — Complete code examples for dead letter channel setup, outbox pattern with DBAL, per-endpoint error routing with `PollingMetadata`, custom error processing with `InternalHandler`, retry-only configuration, and multi-service resiliency wiring. Load when implementing specific error handling patterns beyond the basics.
 - [Testing patterns](references/testing-patterns.md) — How to test retry behavior, error handler routing to dead letter channels, and failure assertions using `EcotoneLite::bootstrapFlowTesting` with in-memory channels. Load when writing tests for error handling or retry logic.

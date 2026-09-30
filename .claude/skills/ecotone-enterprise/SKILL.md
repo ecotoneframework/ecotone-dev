@@ -108,7 +108,7 @@ public function fulfill(OrderData $data): array
 
 **Instant Retry -- declare resilience as an attribute:**
 ```php
-#[InstantRetry(retries: 3, exceptions: [\Doctrine\DBAL\Exception\RetryableException::class])]
+#[InstantRetry(retryTimes: 3, exceptions: [\Doctrine\DBAL\Exception\RetryableException::class])]
 #[CommandHandler]
 public function placeOrder(PlaceOrder $command): void
 {
@@ -121,7 +121,7 @@ public function placeOrder(PlaceOrder $command): void
 DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
     'tenant_channel',
     headerName: 'tenantId',
-    channelMapping: [
+    headerMapping: [
         'tenant_a' => 'tenant_a_queue',
         'tenant_b' => 'tenant_b_queue',
     ]

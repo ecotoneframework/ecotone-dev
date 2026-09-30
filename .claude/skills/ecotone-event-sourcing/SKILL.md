@@ -158,12 +158,17 @@ class PersonWasRegistered
 interface EventStore
 {
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
-    public function appendTo(string $streamName, array $streamEvents): void;
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
     public function delete(string $streamName): void;
     public function hasStream(string $streamName): bool;
-    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ...): iterable;
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): iterable;
+    public function loadAggregateEvents(string $streamName, ?string $aggregateType, string $aggregateId, int $fromVersion = 1, ?int $count = null, array $eventNames = [], bool $deserialize = true): iterable;
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }
 ```
+
+`loadAggregateEvents()` and `loadByCriteria()` (Enterprise, see DCB below) are folded into this one interface --
+there is no separate `AggregateEventStore`/`TaggedEventStore`.
 
 ## 5. Dynamic Consistency Boundary (DCB) -- Enterprise
 
@@ -245,7 +250,8 @@ final class OrderService {
 - Projection names must be unique
 - A `#[ProjectionState]` parameter must declare a default value (`array $state = []`, or `MyState $state = new MyState()`) -- state is `null` before the first event
 - Always increment revision when changing event schema
-- Never modify stored events -- transform on read via upcasters
+- Never modify stored events -- branch on the injected `#[Header(MessageHeaders::REVISION)]` in the
+  `#[EventSourcingHandler]` that applies them (there is no separate "upcaster" step)
 
 ## Enterprise Upgrade Paths
 
@@ -257,6 +263,6 @@ final class OrderService {
 
 - [API reference](references/api-reference.md) -- Attribute signatures for `Projection`, `FromStream`, `FromAggregateStream`, `Partitioned`, `Polling`, `Streaming`, lifecycle attributes (`ProjectionInitialization`, `ProjectionDelete`, `ProjectionReset`, `ProjectionFlush`), configuration attributes (`ProjectionExecution`, `ProjectionBackfill`, `ProjectionDeployment`), `ProjectionState`, `Revision`, `NamedEvent`, and `EventStore` interface. Load when you need exact constructor parameters, attribute targets, or API method signatures.
 
-- [Usage examples](references/usage-examples.md) -- Complete projection implementations (partitioned, polling, streaming, multi-stream, with EventStreamEmitter), state management patterns, `FromAggregateStream` usage, blue/green deployment configuration, upcasting patterns (adding fields, renaming fields, splitting events, removing fields), DCB multi-stream consistency projections, and event schema evolution strategies. Load when you need full working class implementations or advanced patterns.
+- [Usage examples](references/usage-examples.md) -- Complete projection implementations (partitioned, polling, streaming, multi-stream, with EventStreamEmitter), state management patterns, `FromAggregateStream` usage, blue/green deployment configuration, handling old event revisions via the injected `MessageHeaders::REVISION` header, DCB multi-stream consistency projections, and event schema evolution strategies. Load when you need full working class implementations or advanced patterns.
 
 - [Testing patterns](references/testing-patterns.md) -- Testing event-sourced aggregates with `withEventsFor()`, projection testing with `bootstrapFlowTestingWithEventStore()`, projection lifecycle methods (`initializeProjection`, `triggerProjection`, `resetProjection`, `deleteProjection`), testing with `withEventStream` for isolated projection tests without aggregates, and testing versioned events with upcasters. Load when writing tests for event-sourced code.

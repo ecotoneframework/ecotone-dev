@@ -48,18 +48,22 @@ class ValidationInterceptor
 
 ## Audit Logging Interceptor (After)
 
+`#[After]`'s first parameter is the handler's **return value**, not the original request -- and it only runs at
+all when the handler returns something. A `void` `#[CommandHandler]` never triggers it; target a
+`#[QueryHandler]`, or a command handler with a return type, instead.
+
 ```php
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Header;
 
 class AuditInterceptor
 {
-    #[After(pointcut: CommandHandler::class)]
+    #[After(pointcut: QueryHandler::class)]
     public function audit(
-        object $payload,
+        mixed $result,
         #[Header('correlationId')] string $correlationId
     ): void {
-        $this->auditLog->record($correlationId, $payload);
+        $this->auditLog->record($correlationId, $result);
     }
 }
 ```
@@ -232,7 +236,7 @@ Targets a specific method in a specific class:
 Excludes specific targets:
 
 ```php
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 #[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
 #[Before(pointcut: 'not(App\Internal\*)')]
 ```
@@ -247,7 +251,7 @@ Excludes specific targets:
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
 
 // Complex: (attribute OR bus) AND NOT excluded
-#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Real-World Example: Dynamic Transaction Pointcut
@@ -264,7 +268,7 @@ if ($config->isTransactionOnConsoleCommands()) {
     $pointcut .= '||(' . ConsoleCommand::class . ')';
 }
 // Exclude opt-outs
-$pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
+$pointcut = '(' . $pointcut . ')&&not(' . WithoutDatabaseTransaction::class . ')';
 ```
 
 ### Auto-Inference from Parameter Types
@@ -328,4 +332,4 @@ class AuthInterceptor
 | Specific aggregate | `Order::class` |
 | Async handlers only | `Asynchronous::class` |
 | All bus calls | `Gateway::class` |
-| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutTransaction::class . ')'` |
+| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')'` |

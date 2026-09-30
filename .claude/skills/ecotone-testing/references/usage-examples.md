@@ -176,6 +176,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 // Available package constants:
 // ModulePackageList::CORE_PACKAGE
 // ModulePackageList::AMQP_PACKAGE
+// ModulePackageList::DATA_PROTECTION_PACKAGE
 // ModulePackageList::DBAL_PACKAGE
 // ModulePackageList::REDIS_PACKAGE
 // ModulePackageList::SQS_PACKAGE
@@ -183,6 +184,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 // ModulePackageList::EVENT_SOURCING_PACKAGE
 // ModulePackageList::JMS_CONVERTER_PACKAGE
 // ModulePackageList::TRACING_PACKAGE
+// ModulePackageList::LARAVEL_PACKAGE
+// ModulePackageList::SYMFONY_PACKAGE
+// ModulePackageList::TEMPEST_PACKAGE
 // ModulePackageList::TEST_PACKAGE
 
 $config = ServiceConfiguration::createWithDefaults()
@@ -195,9 +199,12 @@ $config = ServiceConfiguration::createWithDefaults()
 ## Projection Testing with Inline Class
 
 ```php
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+
 public function test_projection_builds_read_model(): void
 {
-    $projection = new class {
+    $projection = new #[Projection('ticket_list')] #[FromAggregateStream(Ticket::class)] class {
         public array $tickets = [];
 
         #[ProjectionInitialization]

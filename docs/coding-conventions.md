@@ -239,8 +239,25 @@ The canonical set, all in `packages/Ecotone/src/Modelling/EventSourcingExecutor/
 - wired in `EventSourcingHandlerExecutorBuilder.php:72` with
   `LicenceDecider::prepareDefinition(AggregateMethodInvoker::class, ...)`
 
-Every PHP file under `packages/*/src` and `packages/*/Api` carries a licence docblock, placed immediately above the
-`class`/`interface`/`trait` line (so, in an attribute class, *after* the `#[Attribute(...)]`):
+### The licence header
+
+Every PHP file under `packages/*/src` and `packages/*/Api` carries a licence docblock. There are two of them, and
+the only difference is the word:
+
+```php
+/**
+ * licence Apache-2.0
+ */
+```
+
+```php
+/**
+ * licence Enterprise
+ */
+```
+
+It goes immediately above the `class`/`interface`/`trait` line — so, in an attribute class, *after* the
+`#[Attribute(...)]`:
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -250,8 +267,20 @@ Every PHP file under `packages/*/src` and `packages/*/Api` carries a licence doc
 class CommandHandler extends InputOutputEndpointAnnotation
 ```
 
-Open-source files say `licence Apache-2.0`, Enterprise files `licence Enterprise`. `bin/add-apache-licence.php` and
-`bin/add-enterprise-licence.php` add them; `bin/check-licence.php` fails CI without one (rule 21).
+That placement is not a preference: `bin/add-apache-licence.php` inserts the block directly before the first line
+matching `abstract class|final class|class|interface|trait`, and `bin/add-enterprise-licence.php` is the same script
+with the other word. Run them rather than typing the header, and `bin/check-licence.php` to check
+(silent, exit 0 when every file has one — it is the CI gate, rule 21).
+
+Some older files carry the same text as a `/* ... */` block at the top of the file, before
+`declare(strict_types=1)` — `packages/Ecotone/Api/Projecting/PartitionProvider.php` is one.
+`bin/check-licence.php` accepts that form, so do not sweep them, but write the docblock form in new files.
+
+1009 files carry `licence Apache-2.0` and 227 carry `licence Enterprise`. **When in doubt, `Apache-2.0`** — a
+feature is Enterprise by decision, not by which namespace it landed in, and the maintainer will say so.
+
+Test files carry `/** licence Apache-2.0 @internal */` too (php-cs-fixer adds the `@internal`, not the licence),
+but they are a convention rather than a gate: `bin/check-licence.php` only walks `packages/*/src`.
 
 Extracting Enterprise logic out of a shared class is a normal refactor here: `a7f08f6a7`
 ("extract `DbalEventStore`'s DCB tag logic into Enterprise classes"), `7bf1082a2`, `3a6134d18`.
@@ -646,11 +675,13 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 
 - `bin/check-licence.php` runs on every push and pull request (`.github/workflows/file-licence.yml`) over
   `packages/*/src`. `Api/` files all carry headers too, though the script does not yet check them.
-- `phpstan` is **level 1** and covers `packages/*/src` only — not `Api/`, not `tests/`, and not `Tempest`,
-  `Redis`, `Sqs` or `DataProtection`. It will not catch a wrong class in an attribute argument. Do not treat a
-  green phpstan as evidence of anything beyond syntax.
-- `composer tests:ci` = phpstan, then `packages/DataProtection/tests/before-tests.sh` (it generates a 200 MB
-  fixture), then phpunit, then the quickstart examples.
+- `phpstan` is **level 1** and covers `src` plus `Monorepo` — not `Api/`, not `tests/`, and not the `Tempest`,
+  `Redis`, `Sqs` or `DataProtection` packages. It will not catch a wrong class in an attribute argument. Do not
+  treat a green phpstan as evidence of anything beyond syntax.
+  [dev-workflow.md](./dev-workflow.md#static-analysis-licence-headers-code-style) has the exact path list.
+- `composer tests:ci` **at the root** = phpstan, then `packages/DataProtection/tests/before-tests.sh` (it generates
+  a 200 MB fixture), then phpunit, then the quickstart examples. Four packages have their own additions to it;
+  [dev-workflow.md](./dev-workflow.md#what-composer-testsci-runs) lists them.
 
 **Landmines.**
 
@@ -670,12 +701,13 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 
 ## Where the rest lives
 
-These skills state their areas in more detail. Where they cover something, read them rather than re-deriving it —
+These state their areas in more detail. Where something is covered there, read it rather than re-deriving it —
 two copies of a rule drift apart.
 
-| Skill | Covers |
+| Where | Covers |
 |---|---|
-| `ecotone-contributor` | dev environment, per-package test commands, PR workflow, package split |
+| [AGENTS.md](../AGENTS.md) | what the project is, the monorepo layout, the test-first loop, committing, opening a PR |
+| [docs/dev-workflow.md](./dev-workflow.md) | containers, per-package test commands, database DSNs, licence and style tooling, what CI runs |
 | `ecotone-testing` | `EcotoneLite` patterns, async-tested-synchronously, projection tests, diagnosing failures |
 | `ecotone-module-creator` | `AnnotationModule` scaffold, `AnnotationFinder`, `ExtensionObjectResolver`, new packages |
 | `ecotone-enterprise` | which features are Enterprise and why |

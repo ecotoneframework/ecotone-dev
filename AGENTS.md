@@ -1,6 +1,33 @@
-# Ecotone Framework - AI Agent Guidelines
+# Ecotone Framework — AI Agent Guidelines
 
-> Guidelines for AI agents contributing to or working with the Ecotone framework codebase.
+This is the guide for anyone, human or agent, writing code in this repository. It is the only one — `CLAUDE.md`,
+`.cursorrules` and `.augment-guidelines` all point here rather than restating anything, so there is one copy of
+each rule and nothing to drift. Read it before the first edit, not after review.
+
+## Read before writing code
+
+1. **[docs/coding-conventions.md](./docs/coding-conventions.md)** — 21 rules, each one a contributor got wrong at
+   least once, each with the file or commit that evidences it. This is the source of truth for *how* to write here.
+2. **This file** — what the project is, where things are, and how to run and ship the work.
+3. **[docs/dev-workflow.md](./docs/dev-workflow.md)** — the exact commands: containers, per-package test runs,
+   database DSNs, the licence and style tooling, what CI does.
+
+The five that cost the most when they are wrong, because each one means throwing work away rather than adjusting it:
+
+- **Tests validate at the userland level only.** No SQL against Ecotone's own tables, no reflection, no statement
+  counting, no internal service references. Fetch a gateway and assert on what the application observes. Fifteen
+  commits in one feature did nothing but pull tests back to the public surface
+  ([rule 10](./docs/coding-conventions.md#10-tests-validate-at-the-userland-level-only))
+- **Exceptions drive the solution.** Name what was wrong, why it cannot work, and *every* way out — the exact API
+  call, attribute, option or command. The message is the deliverable; assert it in a test
+  ([rule 1](./docs/coding-conventions.md#1-exceptions-drive-the-solution))
+- **Never take a nullable service dependency.** Register unconditionally, decide at runtime. A `?Service = null` is
+  a mode switch in disguise ([rule 2](./docs/coding-conventions.md#2-never-take-a-nullable-service-dependency))
+- **Write the test first**, with `EcotoneLite::bootstrapFlowTesting()`: RED, then GREEN, then refactor, one
+  increment per commit ([rule 11](./docs/coding-conventions.md#11-test-shape))
+- **Verify every name against the tree before you write it.** The API moved in 2.0 —
+  `Ecotone\Api\Attribute\CommandHandler`, not the old flat namespace. Three invented facts reached the first draft
+  of the 2.0 docs this way (`upgrade/namespace-map-2.0.csv` has the full mapping)
 
 ## Quick Start
 
@@ -9,27 +36,46 @@
 docker compose up -d
 docker compose exec app composer install
 
-# Run one package's full test suite
+# Run one package's full test suite — inside the container, one package at a time, never in parallel
 docker compose exec app bash -lc "cd packages/PackageName && composer install && composer tests:ci"
+
+# Run one test — --no-coverage, or PHPUnit 12's coverage requirement aborts the run
+docker compose exec -T app vendor/bin/phpunit --no-coverage --filter test_method_name
+
+# php-cs-fixer runs ON THE HOST, never in the container: git is unavailable there, so the
+# fixer loses its file filter and rewrites the whole repository
+vendor/bin/php-cs-fixer fix
 ```
 
-See [Development Environment](#development-environment) and [Running Tests](#running-tests) below for details, and `docs/dev-environment-cold-start-findings.md` for the full list of gaps a fresh checkout used to hit.
-
-**Before writing code, read [docs/coding-conventions.md](./docs/coding-conventions.md)** — the rules are summarized
-under [Code Conventions](#code-conventions) below and stated in full there.
+Do not pass `-u root` to `composer` or the test scripts — it leaves `vendor/` root-owned on the host.
+[docs/dev-workflow.md](./docs/dev-workflow.md) has the rest;
+`docs/dev-environment-cold-start-findings.md` lists the gaps a fresh checkout used to hit.
 
 ## Project Overview
 
 Ecotone is the enterprise architecture layer for Laravel and Symfony.
-One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via declarative PHP 8 attributes.
-Works with Symfony, Laravel, or standalone via Ecotone Lite (any PSR-11 container).
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via declarative
+PHP 8 attributes.
+Works with Symfony, Laravel, Tempest, or standalone via Ecotone Lite (any PSR-11 container).
 
 ## Monorepo Structure
 
-- Core package: `packages/Ecotone` - foundation for all other packages
-- Each package under `packages/*` is a separate Composer package
-- Packages are split to read-only repos during release
-- Template for new packages: `_PackageTemplate/`
+Every directory under `packages/` is a separate Composer package with its own `composer.json`, `phpstan.neon`,
+`phpunit.xml.dist` and `vendor/`, split to a read-only repository on release:
+
+| | |
+|---|---|
+| `Ecotone` | the core package — every other package depends on it |
+| `Dbal`, `PdoEventSourcing` | database abstraction; event sourcing and the event store |
+| `Amqp`, `Sqs`, `Redis`, `Kafka`, `Enqueue` | broker and queue integrations |
+| `Laravel`, `Symfony`, `Tempest` | framework integrations |
+| `JmsConverter`, `OpenTelemetry`, `DataProtection` | serialization, tracing, encryption |
+
+- **A change to `packages/Ecotone` can affect every package**, so run the downstream suites too, and a
+  cross-package change needs tests in both packages
+- Splits are managed by `symplify/monorepo-builder` (`monorepo-builder.php`)
+- Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
+  `ModulePackageList` and its module class to the right `ModuleClassList` constant
 
 ## Code Conventions
 
@@ -57,6 +103,7 @@ commit that evidences it. The summary:
 | 15 | **Orchestrating methods read as step lists**; SQL belongs to the collaborator that owns the table | |
 | 16 | **DDL never runs inside a message transaction** | MySQL/MariaDB implicitly commit on DDL |
 | 17 | New files are `final` and `declare(strict_types=1)` | |
+| 18 | PHP 8.1+ features where they say something; named arguments once past two parameters | |
 
 **Verify every attribute, parameter, method and console option against the current tree before writing it.** The
 API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat namespace), so recall is unreliable.
@@ -75,87 +122,36 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 
 ## Testing Guidelines
 
-### General Approach
-- Write the test first: RED, then GREEN, then refactor, one increment per commit
-- Tests use **`EcotoneLite::bootstrapFlowTesting()`** to bootstrap isolated Ecotone instances
+- **Write the test first**: RED, then GREEN, then refactor, one increment per commit, and prove the test is red
+  against the base commit before making it pass. A pure refactor with no behaviour change rides on the tests that
+  already cover it
+- Tests use **`EcotoneLite::bootstrapFlowTesting()`**, or `bootstrapFlowTestingWithEventStore()` when the test
+  needs a real event store
 - **Assert only on what the application observes.** No SQL against Ecotone's own tables, no reflection, no
   statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`)
   and drive the public API. This is the most-corrected rule in the repository; see conventions rule 10
 - **Fixtures live in the test file**: an anonymous class when it only holds handler methods, named classes below
-  the `TestCase` when the class name is part of what is under test (aggregates, events, commands). Not a shared
-  `Fixture/` directory
+  the `TestCase` when the class name is part of what is under test (aggregates, events, commands) — the dominant
+  form in 2.0, in 92 of the 141 test files added since 1.x. Not a shared `Fixture/` directory
 - `snake_case` method names, named after the behaviour rather than the class that implements it
-- Run tests for the specific package you modified, **one package at a time, never in parallel** — the packages
-  share the compose services and a parallel run produces false failures
+- No comments, no docblocks, no assertion messages. The method name is the description
+- Run the suite of the package you modified, **one package at a time, never in parallel** — the packages share the
+  compose services and a parallel run produces false failures
 
-### Running Tests
-```bash
-# Enter development container
-docker compose exec app /bin/bash
+Conventions [rule 11](./docs/coding-conventions.md#11-test-shape) has a full worked example.
+[docs/dev-workflow.md](./docs/dev-workflow.md) has every command, the database DSNs, and what each package's
+`composer tests:ci` actually runs.
 
-# Run package tests — each package has its own vendor/, install it first
-cd packages/PackageName
-composer install
-composer tests:ci
-
-# Run specific test — --no-coverage, or PHPUnit 12's coverage requirement trips the run
-vendor/bin/phpunit --no-coverage --filter test_method_name tests/Path/To/TestFile.php
-```
-
-Only use `-u root` for things that genuinely need elevated OS-level access. Running
-`composer install`/`composer tests:*` as root leaves the files it writes (`vendor/`, phpunit's
-cache) owned by root on the host, which then blocks the default non-root user (and your editor)
-from writing to them.
-
-The root `vendor/` (installed by the `composer install` above) is separate from each package's own `vendor/`.
-Ecotone's annotation finder always loads the monorepo root `vendor/autoload.php`, so keep the
-root install in sync even when you only intend to run one package's tests.
-
-### Database-Specific Tests
-
-The container exports a DSN per engine; override `DATABASE_DSN` to run a suite against another one. A change to
-event sourcing, the event store or DBAL needs all three, because their DDL and locking behaviour differ.
-
-```bash
-# PostgreSQL (the default DATABASE_DSN in the container)
-vendor/bin/phpunit packages/PdoEventSourcing/tests/
-
-# MySQL
-DATABASE_DSN="$DATABASE_MYSQL" vendor/bin/phpunit packages/PdoEventSourcing/tests/
-
-# MariaDB
-DATABASE_DSN="$DATABASE_MARIADB" vendor/bin/phpunit packages/PdoEventSourcing/tests/
-```
-
-Also available: `SQLITE_DATABASE_DSN`, `SECONDARY_DATABASE_DSN` (a genuinely separate database, for
-two-connection tests), `SQS_DSN`, `REDIS_DSN`, `KAFKA_DSN`.
-
-### Test Types
-- `composer tests:phpunit` - Unit/integration tests
-- `composer tests:behat` - BDD feature tests
-- `composer tests:phpstan` - Static analysis. **Level 1, over `packages/*/src` only** — not `Api/`, not `tests/`,
-  and not the `Tempest`, `Redis`, `Sqs` or `DataProtection` packages. It will not catch a wrong class name in an
-  attribute argument, because attribute arguments resolve lazily via reflection. A green phpstan is not evidence
-- `composer tests:ci` - phpstan, then `packages/DataProtection/tests/before-tests.sh` (it generates a 200 MB
-  fixture), then phpunit, then the quickstart examples
-
-### Licence headers and code style
-```bash
-# Every PHP file under packages/*/src and packages/*/Api needs a licence docblock.
-# CI enforces it on every push and pull request (.github/workflows/file-licence.yml).
-php bin/check-licence.php
-php bin/add-apache-licence.php      # open source
-php bin/add-enterprise-licence.php  # Enterprise modules
-
-# Run php-cs-fixer ON THE HOST, never inside the container: git is unavailable
-# there, so the fixer loses its file filter and rewrites the whole repository.
-vendor/bin/php-cs-fixer fix
-```
+Static analysis is **phpstan level 1 over `src` only** — not `Api/`, not `tests/`, and not every package. It will
+not catch a wrong class name in an attribute argument, because attribute arguments resolve lazily via reflection.
+**A green phpstan is not evidence.**
 
 ## Common Patterns
 
-Every user-facing class lives under `Ecotone\Api`. The imports are part of the pattern — the namespaces moved in
-2.0, so check them against the tree rather than from memory (`upgrade/namespace-map-2.0.csv` has the full mapping).
+Every user-facing class lives under `Ecotone\Api` — attributes in `Ecotone\Api\Attribute`, buses in
+`Ecotone\Api\Gateway` (`CommandBus`, `EventBus`, `QueryBus`, `DistributedBus`), projections in
+`Ecotone\Api\Projecting`. The imports are part of the pattern: the namespaces moved in 2.0, so check them against
+the tree rather than from memory (`upgrade/namespace-map-2.0.csv` has the full mapping).
 
 ### Handlers
 ```php
@@ -226,25 +222,6 @@ final class EcotoneConfiguration
 }
 ```
 
-## Documentation Resources
-
-In this repository:
-
-- [docs/coding-conventions.md](./docs/coding-conventions.md) - the conventions summarized above, in full
-- `upgrade-2.0.md` - every 1.x → 2.0 behaviour change, with Before / Now / How to adapt
-- `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
-- `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Tracked, but
-  `docs/superpowers/` is in `.gitignore`, so a new one needs `git add -f`
-- `.claude/skills/ecotone-*` - per-area guides; `ecotone-contributor` for the dev loop, `ecotone-testing` for test
-  patterns, `ecotone-module-creator` for new modules and packages
-
-Published:
-
-- [Full Documentation](https://docs.ecotone.tech)
-- [Testing Support](https://docs.ecotone.tech/modelling/testing-support)
-- [Contributing Guide](https://docs.ecotone.tech/messaging/contributing-to-ecotone)
-- [Blog & Examples](https://blog.ecotone.tech)
-
 ## Committing
 
 - Conventional subjects, scoped: `feat(dcb):`, `fix(event-sourcing):`, `refactor(modelling):`, `test(dbal):`,
@@ -255,6 +232,68 @@ Published:
   ```
 - Never commit `Monorepo/*/Symfony/config/reference.php` - they drift on their own
 
+## Opening a Pull Request
+
+For a contribution targeting `main`. Work on 2.0 is merged through its own branches instead.
+
+Run the checks in
+[docs/dev-workflow.md § Before opening a pull request](./docs/dev-workflow.md#before-opening-a-pull-request)
+first — CI is `fail-fast`, so the first failure hides everything after it.
+
+**Title and branch** use a conventional prefix, matching the commit subjects above: `feat:`, `fix:`, `refactor:`,
+`docs:`, `test:`.
+
+**Body** starts from `.github/PULL_REQUEST_TEMPLATE.md`, which has three sections — *Why is this change proposed?*,
+*Description of Changes*, and the contribution terms. Fill all three:
+
+1. **Why** — the problem, in the reporter's terms. What was not possible before
+2. **Description of Changes** — what changed, and what an application observes differently
+3. **Contribution terms** — tick the CLA checkbox. `.github/workflows/contribution-check.yml` fails the PR without
+   it, on open and on every edit
+
+Add, beyond the template, when the change warrants it:
+
+- **Usage examples** for a new or changed feature — the PHP an application would write: handler registration,
+  the attribute, the `#[ServiceContext]` configuration
+- **A Mermaid diagram** for anything that changes a message flow — handler chains, async processing, sagas,
+  interceptor pipelines:
+  ````markdown
+  ```mermaid
+  sequenceDiagram
+      participant User
+      participant CommandBus
+      participant Handler
+      User->>CommandBus: PlaceOrder
+      CommandBus->>Handler: #[CommandHandler]
+      Handler-->>User: OrderPlaced event
+  ```
+  ````
+
+**Draft the body and get it agreed before opening the PR.** Propose it, let the maintainer correct it, and do not
+publish a description they have not seen.
+
+`CONTRIBUTING.md` covers the fork-and-clone side for outside contributors.
+
+## Documentation Resources
+
+In this repository:
+
+- [docs/coding-conventions.md](./docs/coding-conventions.md) - the conventions summarized above, in full
+- [docs/dev-workflow.md](./docs/dev-workflow.md) - containers, test commands, database DSNs, tooling, CI
+- `upgrade-2.0.md` - every 1.x → 2.0 behaviour change, with Before / Now / How to adapt
+- `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
+- `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Tracked, but
+  `docs/superpowers/` is in `.gitignore`, so a new one needs `git add -f`
+- `.claude/skills/ecotone-*` - per-area guides for the user-facing API: `ecotone-testing` for test patterns,
+  `ecotone-module-creator` for new modules and packages, and one per feature area
+
+Published:
+
+- [Full Documentation](https://docs.ecotone.tech)
+- [Testing Support](https://docs.ecotone.tech/modelling/testing-support)
+- [Contributing Guide](https://docs.ecotone.tech/messaging/contributing-to-ecotone)
+- [Blog & Examples](https://blog.ecotone.tech)
+
 ## Development Environment
 
 ```bash
@@ -264,12 +303,9 @@ docker compose up -d
 # Install root dependencies
 docker compose exec app composer install
 
-# Enter dev container
+# Enter a dev container — app is PHP 8.5.3, app8_2 is the PHP 8.2 floor
 docker compose exec app /bin/bash
-
-# Verify lowest/highest dependencies
-composer update --prefer-lowest && vendor/bin/phpunit
-composer update --prefer-stable && vendor/bin/phpunit
+docker compose exec app8_2 /bin/bash
 ```
 
 `docker compose up -d` builds a local image with `ext-sockets` baked in for the `app` service the
@@ -279,3 +315,6 @@ manually afterwards. `.env` is optional: it is only read if present (`env_file: 
 so nothing needs to be created for a fresh checkout; copy `.env.dist` to `.env` only if you want to
 override a default (e.g. turn Xdebug on).
 
+The root `vendor/` is separate from each package's own `vendor/`, but it is never unused: Ecotone's
+annotation finder always loads the monorepo root `vendor/autoload.php`, so keep the root install in sync
+even when you only intend to run one package's tests.

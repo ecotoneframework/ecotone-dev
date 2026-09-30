@@ -275,22 +275,24 @@ class TicketWasRegistered
 }
 ```
 
-### Upcasting Pattern
+### Handling Old Revisions
 
-Upcasters transform old event versions to the current schema:
+There is no separate "upcaster" class the framework invokes -- `#[Revision]` only stamps
+`MessageHeaders::REVISION` on the event when it is produced. To branch on which revision produced a stored event,
+inject the header into the `#[EventSourcingHandler]` that applies it:
 
 ```php
-use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Messaging\MessageHeaders;
 
-class PersonWasRegisteredUpcaster
-{
-    public function upcast(array $payload, int $revision): array
-    {
-        if ($revision < 2) {
-            $payload['type'] = 'default';  // Provide default for new field
-        }
-        return $payload;
-    }
+#[EventSourcingHandler]
+public function applyRegistered(
+    PersonWasRegistered $event,
+    #[Header(MessageHeaders::REVISION)] int $revision
+): void {
+    $this->personId = $event->personId;
+    $this->type = $revision >= 2 ? $event->type : 'default';
 }
 ```
 
@@ -300,42 +302,20 @@ class PersonWasRegisteredUpcaster
 ```php
 // v1: { personId, name }
 // v2: { personId, name, type }
-// Upcaster sets type='default' for v1 events
+// The EventSourcingHandler supplies type='default' when $revision < 2
 ```
 
-**Renaming Fields:**
-```php
-public function upcast(array $payload, int $revision): array
-{
-    if ($revision < 2) {
-        $payload['fullName'] = $payload['name'];
-        unset($payload['name']);
-    }
-    return $payload;
-}
-```
+**Removing Fields:** a v1 event's extra property is simply never read by the current handler -- nothing to do.
 
-**Splitting Events:**
-```php
-// v1: PersonWasRegisteredAndActivated { id, name, activatedAt }
-// v2: Split into PersonWasRegistered + PersonWasActivated
-```
-
-**Removing Fields:**
-```php
-public function upcast(array $payload, int $revision): array
-{
-    unset($payload['deprecatedField']);
-    return $payload;
-}
-```
+**Splitting or renaming events:** there is no built-in replacement for splitting one stored event into two; keep
+handling the old event class (registered on the aggregate) alongside the new one, or replay-and-rewrite the stream
+via `EventStore::load()` + `create()` outside of live traffic.
 
 ### Versioning Best Practices
 
 1. **Always increment revision** when changing event schema
-2. **Never modify stored events** -- transform on read via upcasters
+2. **Never modify stored events** -- branch on the injected `MessageHeaders::REVISION` in the handler that applies them
 3. **Use `#[NamedEvent]`** to decouple storage from class names
-4. **Add defaults in upcasters** for new required fields
-5. **Keep events immutable** -- all properties `readonly`
-6. **Version from the start** -- use `#[Revision(1)]` explicitly
+4. **Keep events immutable** -- all properties `readonly`
+5. **Version from the start** -- use `#[Revision(1)]` explicitly
 7. **Test upcasters** -- verify old events can be loaded with new code

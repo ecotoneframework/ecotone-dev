@@ -74,7 +74,7 @@ public function test_projection(): void
 Use `withEventStream` to append events directly to a stream, bypassing the need for an Aggregate. This is useful when testing projections in isolation.
 
 ```php
-use Ecotone\EventSourcing\Event;
+use Ecotone\Modelling\Event;
 
 public function test_projection_with_direct_events(): void
 {
@@ -88,7 +88,7 @@ public function test_projection_with_direct_events(): void
     $ecotone->initializeProjection('ticket_list');
 
     // Append events directly to the stream -- no Aggregate required
-    $ecotone->withEventStream(StreamTableRegistry::DEFAULT_STREAM, [
+    $ecotone->withEventStream('ecotone_event_stream', [
         Event::create(new TicketWasRegistered('t-1', 'Bug')),
         Event::create(new TicketWasRegistered('t-2', 'Feature')),
         Event::create(new TicketWasClosed('t-1')),
@@ -104,9 +104,9 @@ public function test_projection_with_direct_events(): void
 
 Key points:
 - Use `bootstrapFlowTesting` (no EventStore bootstrap needed) -- the in-memory event store is registered automatically
-- Stream name in `withEventStream` must match the stream the projection reads: `ecotone_event_stream`
-  (`StreamTableRegistry::DEFAULT_STREAM`) unless the aggregate declares `#[Stream('...')]`
-- Wrap each event in `Event::create()` from `Ecotone\EventSourcing\Event`
+- Stream name in `withEventStream` must match the stream the projection reads: `'ecotone_event_stream'` unless the
+  aggregate declares `#[Stream('...')]`
+- Wrap each event in `Event::create()` from `Ecotone\Modelling\Event`
 - No Aggregate class is registered in `classesToResolve`
 
 ## Projection Lifecycle Methods
@@ -133,22 +133,25 @@ $ecotone->getGateway(ProjectionRegistry::class)->get('projection_name')->prepare
 
 This matches the `ecotone:projection:rebuild` console command behavior.
 
-## Testing Versioned Events with Upcasters
+## Testing Revision-Aware Event Sourcing Handlers
+
+There is no framework-invoked "upcaster" -- test that the `#[EventSourcingHandler]` reads the injected
+`#[Header(MessageHeaders::REVISION)]` correctly. Injecting that header requires an Enterprise licence; without
+one, bootstrap accepts the class but `sendCommand()` throws `Ecotone\Messaging\Support\InvalidArgumentException`.
 
 ```php
-public function test_old_event_version_is_upcasted(): void
+use Ecotone\Test\LicenceTesting;
+
+public function test_event_sourcing_handler_receives_revision_header(): void
 {
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-        classesToResolve: [Person::class, PersonWasRegisteredUpcaster::class],
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        [Person::class],
+        licenceKey: LicenceTesting::VALID_LICENCE,
     );
 
-    // Store v1 event (raw)
-    $ecotone->withEventsFor('person-1', Person::class, [
-        new PersonWasRegisteredV1('person-1', 'John'),
-    ]);
+    $ecotone->sendCommand(new RegisterPerson('person-1', 'premium'));
 
-    // Command handler works with v2 shape
     $person = $ecotone->getAggregate(Person::class, 'person-1');
-    $this->assertEquals('default', $person->getType());
+    $this->assertEquals(2, $person->getRegisteredWithRevision());
 }
 ```

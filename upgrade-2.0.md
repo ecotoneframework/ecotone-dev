@@ -1460,6 +1460,14 @@ signature was forcing an `@internal` import on every application that used it. T
   declaring `@return iterable<Foo>` used to receive the raw array unconverted when the handler `return`ed
   an array (only a `yield`ing handler was converted). Each element now goes through the registered converters, as the
   return type says. If you worked around it by converting in the caller, remove that step.
+- **A parameter documented as a list receives the list.** An `array` parameter documented `@param string[]`,
+  `@param int[]` or `@param array<string>` — as the payload or a `#[Header]`, reached through a bus, a
+  `#[BusinessMethod]`, an asynchronous channel or the `EventStore` gateway — failed on any non-empty array with
+  `Cannot resolve parameter '…'` and `Reason: Call to a member function accepts() on null`. One documented as a list
+  of objects (`@param Order[]`) refused a header already holding `Order`s with
+  `Can't convert … from array<Order> to array<Order>`. Both now resolve; elements that are not of the documented type
+  are still converted, or refused when no converter exists. If you removed a `@param` annotation or added
+  `#[IgnoreDocblockTypeHint]` to get past either error, you can put it back.
 - **`#[LogBefore]` / `#[LogAfter]` work.** In 1.x they threw on the first handler call and were unusable; they now log
   the payload (and headers with `logFullMessage: true`) through the configured PSR logger. They moved, with
   `#[LogError]`, to `Ecotone\Api\Attribute\LogBefore`, `Ecotone\Api\Attribute\LogAfter` and `Ecotone\Api\Attribute\LogError` (§13).

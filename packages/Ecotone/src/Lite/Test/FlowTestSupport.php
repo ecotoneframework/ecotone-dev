@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\CommandBus;
@@ -14,7 +15,6 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Projecting\ProjectionRegistry;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;

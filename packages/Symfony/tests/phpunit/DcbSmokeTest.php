@@ -6,9 +6,9 @@ namespace Test;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;

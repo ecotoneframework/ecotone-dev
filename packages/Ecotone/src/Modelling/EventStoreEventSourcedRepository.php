@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\Handler\ClassDefinition;

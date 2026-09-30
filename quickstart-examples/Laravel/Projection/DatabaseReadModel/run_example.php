@@ -10,7 +10,7 @@ use App\Domain\Command\ChangeUserName;
 use App\Domain\Command\DeactivateUser;
 use App\Domain\Command\RegisterUser;
 use App\Domain\User;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;

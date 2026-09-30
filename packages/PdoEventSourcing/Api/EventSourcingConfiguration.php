@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 

@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Projecting;
 
 use Attribute;
-use Ecotone\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStore;
 
 /**
  * Configures a projection to read from an aggregate's event stream.

@@ -7,10 +7,6 @@ namespace Ecotone\EventSourcing\Tagging;
 use Ecotone\Modelling\Event;
 
 /**
- * The tag sequences an event was matched by, carried on the event while it travels from the
- * store to the fold. It is Ecotone's own bookkeeping: it never reaches persisted event
- * metadata and never reaches a published event.
- *
  * licence Enterprise
  */
 final class MatchedTagSequences

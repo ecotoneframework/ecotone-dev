@@ -215,7 +215,7 @@ class OrchestratorModule implements AnnotationModule
         }
 
         if ($this->orchestratorsServiceActivators !== []) {
-            throw LicensingException::create('Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities.');
+            throw LicensingException::create('Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities. See https://docs.ecotone.tech/enterprise for details.');
         }
     }
 }

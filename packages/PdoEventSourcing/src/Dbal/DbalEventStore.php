@@ -264,8 +264,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
     private function legacyAggregateConstraintException(Connection $connection, string $tableName, Throwable $previous): ConfigurationException
     {
-        // The insert failed mid-transaction; PostgreSQL refuses further statements once a transaction is aborted,
-        // so the fix is built from the platform and the known 1.x constraint names rather than a live re-query.
         $platform = $connection->getDatabasePlatform();
 
         $fix = $platform instanceof PostgreSQLPlatform

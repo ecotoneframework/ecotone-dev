@@ -152,6 +152,6 @@ class InMemoryDocumentStoreTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [DocumentStore::class => InMemoryDocumentStore::createEmpty()],
-        )->getServiceFromContainer(DocumentStore::class);
+        )->getGateway(DocumentStore::class);
     }
 }

@@ -9,7 +9,7 @@ use Doctrine\DBAL\Connection;
 /**
  * licence Enterprise
  */
-class MySqlTaggedEventSchema implements TaggedEventSchema
+final class MySqlTaggedEventSchema implements TaggedEventSchema
 {
     public function createTaggedEventsTableSql(string $tableName): array
     {

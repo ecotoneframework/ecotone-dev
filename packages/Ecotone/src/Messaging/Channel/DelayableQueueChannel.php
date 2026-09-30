@@ -47,7 +47,7 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
         $payload = $message->getPayload();
         if ($payload instanceof BatchMessage) {
             if (! $this->batchMessagesSupport) {
-                throw LicensingException::create('Sending BatchMessage is available only with Ecotone Enterprise licence.');
+                throw LicensingException::create('Sending BatchMessage is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
 
             foreach ($payload->getEntries() as $entry) {

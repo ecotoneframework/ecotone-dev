@@ -26,7 +26,7 @@ final class TagAppendConditionTest extends TestCase
             classesToResolve: [CourseChangedForAppendConditionTest::class],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
-        )->getServiceFromContainer(EventStore::class);
+        )->getGateway(EventStore::class);
         $eventStore->appendTo('ecotone_event_stream', [new CourseChangedForAppendConditionTest('course-1')]);
         $loaded = $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         $eventStore->appendTo('ecotone_event_stream', [new CourseChangedForAppendConditionTest('course-1')]);

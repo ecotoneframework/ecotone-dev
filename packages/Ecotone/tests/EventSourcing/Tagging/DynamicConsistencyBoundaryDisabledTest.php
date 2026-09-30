@@ -111,7 +111,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::DISABLED_MESSAGE);
 
-        $ecotone->getServiceFromContainer(EventStore::class)->loadByCriteria(EventCriteria::tag('entity', 'entity-1'));
+        $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('entity', 'entity-1'));
     }
 
     public function test_appending_with_a_tag_append_condition_throws_when_the_boundary_is_not_enabled(): void
@@ -124,7 +124,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::DISABLED_MESSAGE);
 
-        $ecotone->getServiceFromContainer(EventStore::class)->appendTo(
+        $ecotone->getGateway(EventStore::class)->appendTo(
             'ecotone_event_stream',
             [new RenamedForDisabledBoundaryTest('entity-1')],
             AppendCondition::fromCapturedVersions([['name' => 'entity', 'value' => 'entity-1', 'expectedVersion' => 0]]),

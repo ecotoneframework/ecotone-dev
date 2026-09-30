@@ -158,7 +158,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     {
         if ($this->batchPublishing || $this->nonBlockingConfirmation) {
             if (! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-                throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
+                throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
         }
         if ($this->nonBlockingConfirmation) {
@@ -196,7 +196,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
             new Reference(PendingDeliveryRegistry::class),
-            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
+            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : new Definition(HeadersExchangeDelayStrategy::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
             $this->confirmationTimeout,

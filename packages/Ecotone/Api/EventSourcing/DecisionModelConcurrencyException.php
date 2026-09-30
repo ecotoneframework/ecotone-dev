@@ -13,7 +13,7 @@ use function sprintf;
 /**
  * licence Enterprise
  */
-class DecisionModelConcurrencyException extends ConcurrencyException
+final class DecisionModelConcurrencyException extends ConcurrencyException
 {
     public const LOG_MESSAGE = 'Dynamic Consistency Boundary conflict';
 
@@ -39,15 +39,15 @@ class DecisionModelConcurrencyException extends ConcurrencyException
     private array $decidedBy = [];
 
     /**
-     * @param string[] $decidedBy the decision models, or the #[DecisionBoundary] method, scoped by the conflicting tag
+     * @param string[] $decidedBy
      */
-    public static function forConflict(string $tagName, string $tagValue, int $capturedVersion, int $currentVersion, array $decidedBy = []): self
+    public static function forConflict(string $tagName, string $tagValue, int $expectedVersion, int $currentVersion, array $decidedBy = []): self
     {
         $message = sprintf(
             'Concurrent append conflict on tag %s:%s (expected version %d, current version %d)',
             $tagName,
             $tagValue,
-            $capturedVersion,
+            $expectedVersion,
             $currentVersion,
         );
 
@@ -59,10 +59,10 @@ class DecisionModelConcurrencyException extends ConcurrencyException
             . 'transaction did (for example a command sent from inside the handler whose own handler appends to the same tag) '
             . '-- the latter fails on every retry, so decide both in one handler instead.';
 
-        return self::describing(self::create($message), $tagName, $tagValue, $capturedVersion, $currentVersion, $decidedBy);
+        return self::describing(self::create($message), $tagName, $tagValue, $expectedVersion, $currentVersion, $decidedBy);
     }
 
-    public static function forAggregateConflict(string $aggregateType, string $aggregateId, int $capturedVersion, int $currentVersion): self
+    public static function forAggregateConflict(string $aggregateType, string $aggregateId, int $expectedVersion, int $currentVersion): self
     {
         $exception = self::create(sprintf(
             '%s %s changed since it was loaded (it was at change %d when read, it is at change %d now): another transaction saved it, '
@@ -70,11 +70,11 @@ class DecisionModelConcurrencyException extends ConcurrencyException
             . '-- the latter fails on every retry, so decide both in one handler instead.',
             $aggregateType,
             $aggregateId,
-            $capturedVersion,
+            $expectedVersion,
             $currentVersion,
         ));
 
-        return self::describing($exception, AggregateCounterTag::nameFor($aggregateType), $aggregateId, $capturedVersion, $currentVersion, []);
+        return self::describing($exception, AggregateCounterTag::nameFor($aggregateType), $aggregateId, $expectedVersion, $currentVersion, []);
     }
 
     /**

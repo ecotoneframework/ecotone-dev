@@ -16,7 +16,7 @@ final class SqsMessagePublisherConfiguration
     private string $headerMapper = '';
     private bool $batchPublishing = false;
     private bool $nonBlockingConfirmation = false;
-    private ?int $confirmationTimeout = null;
+    private ?int $confirmationTimeoutInMilliseconds = null;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -86,7 +86,7 @@ final class SqsMessagePublisherConfiguration
         $this->batchPublishing = $batchPublishing;
         $this->nonBlockingConfirmation = $nonBlockingConfirmation;
         if ($confirmationTimeoutInMilliseconds !== null) {
-            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
+            $this->confirmationTimeoutInMilliseconds = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
@@ -104,6 +104,6 @@ final class SqsMessagePublisherConfiguration
 
     public function getConfirmationTimeout(): ?int
     {
-        return $this->confirmationTimeout;
+        return $this->confirmationTimeoutInMilliseconds;
     }
 }

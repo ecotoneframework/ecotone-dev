@@ -16,7 +16,7 @@ use LogicException;
  * licence MIT
  * code comes from https://github.com/php-enqueue/sqs
  */
-class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
+final class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var array

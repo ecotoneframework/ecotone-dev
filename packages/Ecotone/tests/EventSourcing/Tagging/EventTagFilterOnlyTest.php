@@ -30,7 +30,7 @@ final class EventTagFilterOnlyTest extends TestCase
         );
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
         $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'));
 

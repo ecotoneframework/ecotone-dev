@@ -194,6 +194,6 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             return;
         }
 
-        throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence.');
+        throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence. See https://docs.ecotone.tech/enterprise for details.');
     }
 }

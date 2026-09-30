@@ -187,7 +187,7 @@ final class EventTagResolutionTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        return $ecotone->getServiceFromContainer(EventStore::class);
+        return $ecotone->getGateway(EventStore::class);
     }
 }
 

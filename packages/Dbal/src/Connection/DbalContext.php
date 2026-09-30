@@ -47,7 +47,7 @@ class DbalContext implements Context
      *
      * @param Connection|callable $connection
      */
-    public function __construct($connection, array $config = [], private ?EcotoneClockInterface $clock = null)
+    public function __construct($connection, array $config = [], private EcotoneClockInterface $clock = new NativeClock())
     {
         $this->config = array_replace([
             'table_name' => 'enqueue',
@@ -260,6 +260,6 @@ class DbalContext implements Context
 
     public function getClock(): EcotoneClockInterface
     {
-        return $this->clock ??= new NativeClock();
+        return $this->clock;
     }
 }

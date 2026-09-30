@@ -69,7 +69,7 @@ class ProjectingModule implements AnnotationModule
         if (! empty($projectionBuilders) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             foreach ($projectionBuilders as $builder) {
                 if (! $builder instanceof EcotoneProjectionExecutorBuilder || ! $builder->isOpenSourceEligible()) {
-                    throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill) require Ecotone Enterprise licence.');
+                    throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill) require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
                 }
             }
         }

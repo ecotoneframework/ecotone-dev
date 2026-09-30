@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ecotone\Amqp\Connection;
 
 use AMQPChannel;
@@ -16,7 +18,7 @@ use Interop\Queue\Context;
  * licence MIT
  * code comes from https://github.com/php-enqueue/amqp-ext
  */
-class AmqpExtConnectionFactory implements InteropAmqpConnectionFactory, DelayStrategyAware
+final class AmqpExtConnectionFactory implements InteropAmqpConnectionFactory, DelayStrategyAware
 {
     use DelayStrategyAwareTrait;
 

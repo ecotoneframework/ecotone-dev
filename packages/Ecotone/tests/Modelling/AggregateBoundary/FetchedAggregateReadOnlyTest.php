@@ -46,7 +46,7 @@ final class FetchedAggregateReadOnlyTest extends TestCase
             $this->assertStringContainsString(TicketClosed::class, $exception->getMessage());
         }
 
-        $this->assertSame(0, count($ecotone->getServiceFromContainer(EventStore::class)->loadByCriteria(EventCriteria::tag('queue', 'VIP'))->events));
+        $this->assertSame(0, count($ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('queue', 'VIP'))->events));
     }
 
     public function test_a_fetched_event_sourced_aggregate_that_recorded_nothing_lets_the_dcb_handler_append(): void
@@ -56,7 +56,7 @@ final class FetchedAggregateReadOnlyTest extends TestCase
 
         $ecotone->sendCommand(new EscalateTicket('t-1', 'VIP'));
 
-        $this->assertSame(1, count($ecotone->getServiceFromContainer(EventStore::class)->loadByCriteria(EventCriteria::tag('queue', 'VIP'))->events));
+        $this->assertSame(1, count($ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('queue', 'VIP'))->events));
     }
 
     public function test_a_fetched_aggregate_that_recorded_events_in_a_handler_outside_the_boundary_behaves_as_today(): void

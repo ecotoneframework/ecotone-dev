@@ -48,7 +48,7 @@ final class DecisionBoundaryTest extends TestCase
         $ecotone->sendCommand(new RateCourseForBoundaryTest('course-1', 5));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
     }
 
@@ -252,7 +252,7 @@ final class DecisionBoundaryTest extends TestCase
     private function eventsMatching(FlowTestSupport $ecotone, EventCriteria $criteria): array
     {
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
         return $eventStore->loadByCriteria($criteria)->events;
     }

@@ -117,6 +117,6 @@ final class VerifyEnterpriseLicenceForClosureExpressions implements CompilerPass
     {
         $declaredAt = $className !== null ? ' declared in ' . $className . ($methodName !== null ? '::' . $methodName : '') : '';
 
-        return LicensingException::create(sprintf('Closure given as expression in %s attribute%s is available as part of Ecotone Enterprise.', $attributeClassName, $declaredAt));
+        return LicensingException::create(sprintf('Closure given as expression in %s attribute%s is available as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.', $attributeClassName, $declaredAt));
     }
 }

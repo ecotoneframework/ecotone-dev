@@ -13,9 +13,6 @@ use Ecotone\Modelling\Event;
  */
 interface EventStore
 {
-    /**
-     * Registered service id for the raw store, bypassing the EventStore gateway wired under EventStore::class.
-     */
     public const RAW_REFERENCE = 'ecotone.eventSourcing.eventStore.instance';
 
     /**

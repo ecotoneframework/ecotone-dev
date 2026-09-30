@@ -26,7 +26,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
 
     private bool $batchPublishing = false;
     private bool $nonBlockingConfirmation = false;
-    private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT;
+    private int $confirmationTimeoutInMilliseconds = self::DEFAULT_CONFIRMATION_TIMEOUT;
 
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
@@ -44,7 +44,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $this->batchPublishing = $batchPublishing;
         $this->nonBlockingConfirmation = $nonBlockingConfirmation;
         if ($confirmationTimeoutInMilliseconds !== null) {
-            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
+            $this->confirmationTimeoutInMilliseconds = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
@@ -63,7 +63,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         if (($this->batchPublishing || $this->nonBlockingConfirmation) && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
@@ -90,7 +90,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             new Reference(PendingDeliveryRegistry::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
-            $this->confirmationTimeout,
+            $this->confirmationTimeoutInMilliseconds,
         ]);
     }
 }

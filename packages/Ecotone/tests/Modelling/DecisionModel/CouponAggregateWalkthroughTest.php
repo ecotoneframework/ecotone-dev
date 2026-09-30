@@ -90,7 +90,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone->sendCommand(new PlaceOrderForCouponTest('o-1', 'alice', null));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events);
     }
 
@@ -134,7 +134,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone->sendCommand(new PlaceOrderForCouponTest('o-2', 'bob', 'SUMMER24'));
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         $this->assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
         $this->assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }

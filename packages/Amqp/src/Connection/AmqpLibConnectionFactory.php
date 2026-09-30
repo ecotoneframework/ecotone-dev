@@ -23,7 +23,7 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
  * licence MIT
  * code comes from https://github.com/php-enqueue/amqp-lib
  */
-class AmqpLibConnectionFactory implements InteropAmqpConnectionFactory, DelayStrategyAware
+final class AmqpLibConnectionFactory implements InteropAmqpConnectionFactory, DelayStrategyAware
 {
     use DelayStrategyAwareTrait;
 

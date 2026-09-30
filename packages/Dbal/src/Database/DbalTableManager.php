@@ -58,11 +58,6 @@ interface DbalTableManager extends DefinedObject
      */
     public function isInitialized(Connection $connection): bool;
 
-    /**
-     * Returns whether this table should be automatically initialized at runtime.
-     * This combines global DbalConfiguration setting with feature-specific config and,
-     * on MySQL/MariaDB, is always false: automatic initialization is not supported there.
-     */
     public function shouldBeInitializedAutomatically(Connection $connection): bool;
 
     /**

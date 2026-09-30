@@ -26,7 +26,7 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Enterprise
  */
-class ChannelInterceptorModule extends NoExternalConfigurationModule implements AnnotationModule
+final class ChannelInterceptorModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param AnnotatedFinding[] $channelInterceptors

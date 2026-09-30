@@ -23,10 +23,6 @@ final class GroupedEventSourcingExecutor
 
     }
 
-    /**
-     * Identifies the fold a snapshot was taken with, so a class that gained or lost an
-     * #[EventSourcingHandler] stops matching its own stored snapshots.
-     */
     public function foldShapeOf(string $aggregateClassName): string
     {
         $handledEventTypeNames = $this->eventSourcingExecutors[$aggregateClassName]->handledEventTypeNames();

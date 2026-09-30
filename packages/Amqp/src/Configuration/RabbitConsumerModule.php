@@ -48,7 +48,7 @@ final class RabbitConsumerModule extends NoExternalConfigurationModule implement
         }
 
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('AmqpConsumer attribute is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('AmqpConsumer attribute is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         foreach ($this->amqpConsumersAnnotatedMethods as $amqpConsumerAnnotatedMethod) {

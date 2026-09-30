@@ -157,7 +157,7 @@ final class AggregateBackedDecisionModelConcurrencyTest extends TestCase
 
     private function eventStoreOf(FlowTestSupport $ecotone): EventStore
     {
-        return $ecotone->getServiceFromContainer(EventStore::class);
+        return $ecotone->getGateway(EventStore::class);
     }
 }
 

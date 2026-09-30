@@ -136,8 +136,9 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - Tests use **`EcotoneLite::bootstrapFlowTesting()`**, or `bootstrapFlowTestingWithEventStore()` when the test
   needs a real event store
 - **Assert only on what the application observes.** No SQL against Ecotone's own tables, no reflection, no
-  statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`)
-  and drive the public API. This is the most-corrected rule in the repository; see conventions rule 10
+  statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`,
+  `Ecotone\Api\EventSourcing\EventStore`) and drive the public API. This is the most-corrected rule in the
+  repository; see conventions rule 10
 - **Fixtures live in the test file, as inline anonymous classes** — aggregates included, registered through
   `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the two cases
   PHP forces: a class used as a **type declaration** (every command, event and query), and a class named inside

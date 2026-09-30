@@ -83,7 +83,7 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 PollingMetadata::create('endpointId')
     ->setHandledMessageLimit(100)              // Stop after N messages
     ->setExecutionTimeLimitInMilliseconds(60000) // Stop after N ms
-    ->setMemoryLimitInMegabytes(256)           // Stop at memory limit
+    ->setMemoryLimitInMegaBytes(256)           // Stop at memory limit
     ->setFixedRateInMilliseconds(200)          // Poll interval
     ->setStopOnError(false)                    // Continue on error
     ->setFinishWhenNoMessages(false)           // Wait for messages

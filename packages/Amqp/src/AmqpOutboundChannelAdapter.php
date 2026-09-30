@@ -55,7 +55,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
         private PendingDeliveryRegistry    $pendingDeliveryRegistry,
-        private ?DelayStrategy             $delayStrategy = null,
+        private DelayStrategy              $delayStrategy = new HeadersExchangeDelayStrategy(),
         private bool                       $batchPublishing = false,
         private bool                       $nonBlockingConfirmation = false,
         private int                        $confirmationTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
@@ -184,7 +184,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $this->connectionFactory->getProducer()
             ->setTimeToLive($timeToLive)
-            ->setDelayStrategy($this->delayStrategy ??= new HeadersExchangeDelayStrategy())
+            ->setDelayStrategy($this->delayStrategy)
             ->setDeliveryDelay($deliveryDelay)
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);

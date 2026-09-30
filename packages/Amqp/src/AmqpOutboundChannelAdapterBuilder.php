@@ -196,7 +196,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
             new Reference(PendingDeliveryRegistry::class),
-            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
+            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : new Definition(HeadersExchangeDelayStrategy::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
             $this->confirmationTimeout,

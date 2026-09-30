@@ -23,10 +23,10 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private ConnectionFactory $connectionFactory;
     private EcotoneClockInterface $clock;
 
-    public function __construct(ConnectionFactory $dbalConnectionFactory, ?EcotoneClockInterface $clock = null)
+    public function __construct(ConnectionFactory $dbalConnectionFactory, EcotoneClockInterface $clock = new NativeClock())
     {
         $this->connectionFactory = $dbalConnectionFactory;
-        $this->clock = $clock ?? new NativeClock();
+        $this->clock = $clock;
     }
 
     public function createContext(): Context

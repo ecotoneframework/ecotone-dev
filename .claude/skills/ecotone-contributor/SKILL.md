@@ -158,7 +158,8 @@ vendor/bin/phpstan analyse
 
 - `snake_case` test method names (enforced by PHP-CS-Fixer)
 - No comments in production code -- use descriptive method names
-- PHPDoc `@param`/`@return` on public API methods
+- **No descriptive docblocks.** Array shapes, generics and `@link https://docs.ecotone.tech/...` are the only
+  allowed docblocks; semantics come from names and exception messages (AGENTS.md conventions rule 6)
 - Single quotes, trailing commas in multiline arrays
 - `! $var` spacing (not `!$var`)
 
@@ -203,7 +204,7 @@ Use the repository's PR template at `.github/PULL_REQUEST_TEMPLATE.md`.
 | Single quotes | `'string'` not `"string"` |
 | Trailing commas | In multiline arrays, parameters |
 | Not operator spacing | `! $var` not `!$var` |
-| PHPDoc on public APIs | `@param`/`@return` with types |
+| Docblocks: array shapes only | `@param array<class-string, ?string> $byClass`, `@return class-string[]`, `@link https://docs.ecotone.tech/...` — never prose |
 | Licence headers | On every PHP file |
 
 ## 5. Package Split and Dependencies

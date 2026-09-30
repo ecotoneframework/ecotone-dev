@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Exception\ConnectionException;
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\EnqueueTableManager;
@@ -11,7 +12,6 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Throwable;
 

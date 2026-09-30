@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Conversion;
 
-use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Api\Conversion\ConversionService;
 
 /**
  * licence Enterprise

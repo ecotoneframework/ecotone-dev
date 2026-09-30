@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\SymfonyBundle\Messenger;
 
 use DateTimeInterface;
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;

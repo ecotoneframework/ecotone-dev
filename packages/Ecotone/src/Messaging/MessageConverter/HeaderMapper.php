@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\MessageConverter;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Conversion\ConversionService;
 
 /**
  * Interface HeaderMapper

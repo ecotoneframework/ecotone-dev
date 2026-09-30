@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessageHeaders;

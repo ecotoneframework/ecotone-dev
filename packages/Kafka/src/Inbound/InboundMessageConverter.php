@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;

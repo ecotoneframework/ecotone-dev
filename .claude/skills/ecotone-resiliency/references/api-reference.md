@@ -126,8 +126,10 @@ use Ecotone\Api\Attribute\ErrorChannel;
 ## ErrorMessage API
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
+use Ecotone\Messaging\Support\ErrorMessage;
 
-$errorMessage->getPayload();         // Returns the exception
-$errorMessage->getOriginalMessage(); // Returns the original message
+$errorMessage->getPayload();            // Original message's payload
+$errorMessage->getExceptionClass();     // Thrown exception's class name
+$errorMessage->getExceptionMessage();   // Thrown exception's message
+$errorMessage->getExceptionStackTrace(); // Thrown exception's stack trace
 ```

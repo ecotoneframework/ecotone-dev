@@ -4,6 +4,11 @@
 
 ### Full Configuration
 
+`ErrorHandlerConfiguration` only fires once an endpoint's failures are actually routed to its `errorChannelName`
+(here `'errorChannel'`) -- set that globally with `ServiceConfiguration::withDefaultErrorChannel()` (or per Symfony's
+`defaultErrorChannel` / Laravel's `default_error_channel` config), or per endpoint with
+`PollingMetadata::setErrorChannelName()`.
+
 ```php
 class ResiliencyConfig
 {
@@ -106,23 +111,20 @@ public function ordersPolling(): PollingMetadata
 }
 ```
 
-## Custom Error Processing with ServiceActivator
+## Custom Error Processing with InternalHandler
 
 ```php
-use Ecotone\Api\Attribute\ServiceActivator;
-use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Messaging\Support\ErrorMessage;
 
 class ErrorProcessor
 {
-    #[ServiceActivator(inputChannelName: 'orders_error')]
+    #[InternalHandler(inputChannelName: 'orders_error')]
     public function handleError(ErrorMessage $errorMessage): void
     {
-        $exception = $errorMessage->getPayload();
-        $originalMessage = $errorMessage->getOriginalMessage();
-
         $this->logger->error('Order processing failed', [
-            'exception' => $exception->getMessage(),
-            'payload' => $originalMessage->getPayload(),
+            'exception' => $errorMessage->getExceptionClass() . ': ' . $errorMessage->getExceptionMessage(),
+            'payload' => $errorMessage->getPayload(),
         ]);
     }
 }

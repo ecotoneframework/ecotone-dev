@@ -35,10 +35,10 @@ Source: `Ecotone\Api\Attribute\EventHandler`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class EventHandler extends InputOutputEndpointAnnotation
+class EventHandler extends IdentifiedAnnotation
 {
     public function __construct(
-        string $routingKey = '',
+        string $listenTo = '',
         string $endpointId = '',
         string $outputChannelName = '',
         bool $dropMessageOnNotFound = false,
@@ -50,7 +50,7 @@ class EventHandler extends InputOutputEndpointAnnotation
 ```
 
 Parameters:
-- `routingKey` (string) -- for `listenTo` routing: `#[EventHandler('order.*')]`
+- `listenTo` (string) -- event name to listen to, single (`'order.placed'`) or wildcard (`'order.*'`)
 - `endpointId` (string) -- unique identifier
 - `outputChannelName` (string) -- channel for output
 - `dropMessageOnNotFound` (bool) -- drop if aggregate not found
@@ -81,30 +81,33 @@ Parameters:
 - `outputChannelName` (string) -- channel for output
 - `requiredInterceptorNames` (array) -- interceptors to apply
 
-## ServiceActivator Attribute
+## InternalHandler Attribute
 
-Source: `Ecotone\Api\Attribute\ServiceActivator`
+Source: `Ecotone\Api\Attribute\InternalHandler`. Low-level handler for framework-internal message routing that is
+not exposed via a bus (`#[ServiceActivator]` was removed in 2.0 -- this is the only such attribute now).
 
 ```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class ServiceActivator extends InputOutputEndpointAnnotation
+#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
+class InternalHandler extends InputOutputEndpointAnnotation
 {
     public function __construct(
-        string $inputChannelName = '',
-        string $endpointId = '',
+        string $inputChannelName,
         string $outputChannelName = '',
+        string $endpointId = '',
         array $requiredInterceptorNames = [],
-        bool $changingHeaders = false
+        bool $changingHeaders = false,
+        bool $requiresReply = false,
     )
 }
 ```
 
 Parameters:
 - `inputChannelName` (string, required) -- channel to consume from
-- `endpointId` (string) -- unique identifier
-- `outputChannelName` (string) -- channel to send result to
+- `outputChannelName` (string) -- channel to send result to -- **positional argument 2**, not `endpointId`
+- `endpointId` (string) -- unique identifier -- must be passed as a named argument if `outputChannelName` is not also given positionally
 - `requiredInterceptorNames` (array) -- interceptors to apply
-- `changingHeaders` (bool) -- whether this changes message headers
+- `changingHeaders` (bool) -- whether this changes message headers; `true` requires an Enterprise licence
+- `requiresReply` (bool) -- whether the handler must produce a reply
 
 ## Header Parameter Attribute
 
@@ -115,12 +118,12 @@ Source: `Ecotone\Api\Attribute\Header`
 class Header
 {
     public function __construct(
-        private string $headerName = '',
-        private string $expression = ''
+        string $headerName,
+        string|Closure $expression = ''
     )
 }
 ```
 
 Parameters:
-- `headerName` (string) -- name of the message header to extract
-- `expression` (string) -- SpEL expression to evaluate on the header value
+- `headerName` (string, required) -- name of the message header to extract
+- `expression` (string|Closure) -- SpEL expression, or closure, evaluated on the header value

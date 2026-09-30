@@ -1096,17 +1096,24 @@ resulting commit failure. Deduplication additionally special-cased PostgreSQL, b
 row before running the handler without risking that insert being committed early by a table-creation statement later
 in the same transaction.
 
-**Now:** Ecotone never issues DDL while handling a message. Tables are created only through the CLI, through the
-`DatabaseSetupManager` gateway, or by your own migration tool. `ImplicitCommit` is gone, `DbalTransactionInterceptor`
-raises a hard error again if a commit genuinely fails, and one transaction wraps the whole message on every driver —
-including MySQL and MariaDB. Deduplication's concurrency guarantee (a handler running twice for the same message
-collides on the primary key instead of running twice) now works on every driver, not just PostgreSQL. Deduplication
-cleanup runs on its own endpoint, outside your handler's transaction, so it no longer holds row locks while your
-handler runs.
+**Now:** what Ecotone does with a missing table while handling a message depends on the engine and the
+`AutoCreateLevel` below:
+
+- **On MySQL and MariaDB, Ecotone never creates a table while a message is in flight**, whatever level is configured.
+- **Under `AutoCreateLevel::None`, the default, it never creates one on any engine.** Tables come from the CLI, the
+  `DatabaseSetupManager` gateway, or your own migration tool.
+- **Under `AutoCreateLevel::CreateOnly` on PostgreSQL or SQLite, a missing table is created on first use** — inside
+  the message's transaction, which is safe there because DDL on those engines is transactional.
+
+`ImplicitCommit` is gone, `DbalTransactionInterceptor` raises a hard error again if a commit genuinely fails, and one
+transaction wraps the whole message on every driver — including MySQL and MariaDB. Deduplication's concurrency
+guarantee (a handler running twice for the same message collides on the primary key instead of running twice) now
+works on every driver, not just PostgreSQL. Deduplication cleanup runs on its own endpoint, outside your handler's
+transaction, so it no longer holds row locks while your handler runs.
 
 Behaviour is controlled by `AutoCreateLevel`:
 
-- `AutoCreateLevel::None` — the new default, everywhere except test bootstraps. Ecotone never issues DDL; a missing
+- `AutoCreateLevel::None` — the new default, everywhere except test bootstraps. Ecotone never creates a table; a missing
   table raises a `ConfigurationException` naming the feature, the table, and the exact command (or, without a
   console, the code) to run for the integration your application is running under.
 - `AutoCreateLevel::CreateOnly` — create missing tables, never alter or drop an existing one. This is what 1.x always
@@ -1118,6 +1125,14 @@ On MySQL and MariaDB, `AutoCreateLevel::CreateOnly` (`withAutomaticTableInitiali
 transaction to work around it. A missing table raises the same `ConfigurationException` as `AutoCreateLevel::None`
 regardless of the level configured, naming the feature, the table, and the exact `ecotone:migration:database:setup`
 command to run instead. PostgreSQL and SQLite are unaffected and auto-create exactly as configured.
+
+Dropping a table is DDL too, and one runs when your code asks for it: `EventStore::delete()` drops the stream's table.
+On MySQL and MariaDB, calling it while a database transaction is open — from a command handler, an asynchronous
+handler or a `#[ConsoleCommand]`, each of which runs inside one by default, or from a `#[ProjectionReset]` handler,
+which always runs inside the projection's own transaction — now raises a `ConfigurationException` before anything is
+dropped. Before, the `DROP TABLE` committed everything the message had written, and the message then failed at commit
+with "There is no active transaction". Outside a transaction `delete()` works on every engine as before, and on
+PostgreSQL and SQLite it also works inside one, because DDL is transactional there.
 
 **How to adapt:**
 
@@ -1191,6 +1206,13 @@ quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDoc
   auto-create through `DbalConfiguration` only.
 - Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
   MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
+- On MySQL/MariaDB, delete an event stream outside any database transaction: mark the handler or `#[ConsoleCommand]`
+  that calls `EventStore::delete()` with `#[WithoutDatabaseTransaction]`, or turn the transaction off for that entry
+  point with `DbalConfiguration::withTransactionOnCommandBus(false)`, `withTransactionOnAsynchronousEndpoints(false)`
+  or `withTransactionOnConsoleCommands(false)`. A projection that deletes the stream it emits to does it in
+  `#[ProjectionDelete]`, not `#[ProjectionReset]`, and is deleted before it is rebuilt — through
+  `ProjectionRegistry`, or through `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since
+  that console command runs inside a transaction by default.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
   from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler

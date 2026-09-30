@@ -81,6 +81,14 @@ interface MessagePublisher
         object|array $data,
         array $metadata
     ): void;
+
+    // Publishes without blocking on delivery confirmation -- requires High Throughput
+    // Publishing with non-blocking confirmation enabled on the publisher.
+    public function publishDeferred(
+        mixed $data,
+        string $sourceMediaType = MediaType::APPLICATION_X_PHP,
+        array $metadata = []
+    ): Future;
 }
 ```
 
@@ -92,6 +100,7 @@ interface MessagePublisher
 | `sendWithMetadata(data, sourceMediaType, metadata)` | Send raw string with metadata |
 | `convertAndSend(data)` | Send object/array (auto-converted) |
 | `convertAndSendWithMetadata(data, metadata)` | Send object/array with metadata |
+| `publishDeferred(data, sourceMediaType, metadata)` | Send without blocking on delivery confirmation (requires High Throughput Publishing) |
 
 ## #[Distributed] Attribute
 
@@ -102,7 +111,7 @@ use Ecotone\Api\Attribute\Distributed;
 ```
 
 - `distributionReference` -- defaults to `DistributedBus::class`, allows custom distribution reference
-- Applied to classes, marks all handlers in the class as distributed
+- Applied per handler method (alongside `#[CommandHandler]`/`#[EventHandler]`), not at the class level
 
 ## DistributedServiceMap API
 

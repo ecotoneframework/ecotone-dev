@@ -498,40 +498,40 @@ final class BasketTest extends TestCase
 {
     public function test_adding_an_item_is_visible_to_the_query_side(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Basket::class]);
+        $basket = new #[Aggregate] class () {
+            #[Identifier]
+            private string $basketId = '';
+
+            private int $items = 0;
+
+            #[CommandHandler('basket.open')]
+            public static function open(string $basketId): self
+            {
+                $basket = new self();
+                $basket->basketId = $basketId;
+
+                return $basket;
+            }
+
+            #[CommandHandler('basket.add')]
+            public function add(): void
+            {
+                $this->items++;
+            }
+
+            #[QueryHandler('basket.items')]
+            public function items(): int
+            {
+                return $this->items;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$basket::class]);
         $ecotone->sendCommandWithRouting('basket.open', 'b-1');
 
         $ecotone->sendCommandWithRouting('basket.add', metadata: ['aggregate.id' => 'b-1']);
 
         $this->assertSame(1, $ecotone->sendQueryWithRouting('basket.items', metadata: ['aggregate.id' => 'b-1']));
-    }
-}
-
-#[Aggregate]
-final class Basket
-{
-    private int $items = 0;
-
-    private function __construct(#[Identifier] private string $basketId)
-    {
-    }
-
-    #[CommandHandler('basket.open')]
-    public static function open(string $basketId): self
-    {
-        return new self($basketId);
-    }
-
-    #[CommandHandler('basket.add')]
-    public function add(): void
-    {
-        $this->items++;
-    }
-
-    #[QueryHandler('basket.items')]
-    public function items(): int
-    {
-        return $this->items;
     }
 }
 ```
@@ -542,15 +542,49 @@ final class Basket
   `test_adding_an_item_is_visible_to_the_query_side`, not `test_basket_repository_saves`.
 - **`final class`**, with `/** licence Apache-2.0 @internal */`. php-cs-fixer adds `@internal`.
 - **No comments, no docblocks, no assertion messages.** The method name is the description.
-- **Fixtures live in the test file**, never in a shared `Fixture/` directory for new tests. Two forms:
-  - **an anonymous class** when the class only needs to hold handler methods —
-    `[new class { #[CommandHandler] public function handle(...) {} }]`
-  - **named classes below the `TestCase`** when the class name is part of what is under test: aggregates, sagas,
-    events, commands, and anything referenced by FQCN (`#[AggregateType]`, `EventCriteria`, an asserted exception
-    message). This is the dominant form in 2.0 tests — 92 of the 141 test files added since 1.x use it.
+- **Fixtures live in the test file, as inline anonymous classes.** Never a shared `Fixture/` directory — and not a
+  named class below the `TestCase` where an anonymous one does the job. Aggregates included: the example above is
+  one, and an anonymous class is registered by the generated name its own instance reports, which is all
+  `classesToResolve` needs. `packages/Ecotone/tests/Modelling/Unit/MessageBusTest.php:452` and
+  `packages/Ecotone/tests/Modelling/Unit/Causation/AggregateNotFoundCausationTest.php:25` are the committed
+  precedents: anonymous aggregates with `#[Identifier]` properties, static `#[CommandHandler]` factories, query
+  handlers, and the service handlers around them, all registered through `$fixture::class`.
 
-  Suffix named fixtures per test file (`UnlockedBasketForWithoutLock`) so two test files in one namespace cannot
-  collide. `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php` is a full example.
+  **A large share of the existing tests do not follow this.** 92 of the 141 test files added since 1.x declare
+  named fixtures below the `TestCase`. That is drift to be reduced, not a convention to copy: a new test uses an
+  anonymous class unless one of the two exceptions below applies to that particular class.
+
+  **The two exceptions.** Both are hard PHP limits rather than preferences, and nothing outside them qualifies:
+
+  1. **A class used as a type declaration** — every command, event and query, and any object a handler,
+     `#[EventSourcingHandler]` or converter names in a parameter or return type. PHP has no syntax for naming an
+     anonymous class in a type. `AggregateNotFoundCausationTest` is the shape to copy: `OrderCreated` is a named
+     class below the `TestCase`, while both aggregates and the event handler that pass it around are anonymous.
+  2. **A class named inside another fixture's attribute argument** — an attribute argument is a constant
+     expression, so `$fixture::class` cannot appear in one and the referenced class needs a name written in
+     source: `#[FromAggregateStream(EventSourcedBasket::class)]`
+     (`packages/JmsConverter/tests/Integration/InterfaceTypedPayloadTest.php:68`, where the projection carrying the
+     attribute is itself anonymous) and `#[DecisionModel(aggregate: WalletForAggregateBackedTest::class)]`
+     (`packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelTest.php:370`).
+
+  Three things that look like exceptions and are not:
+
+  - **`#[AggregateType]`** takes a string name, not a class-string
+    (`packages/Ecotone/Api/Attribute/AggregateType.php`), so it forces nothing — an anonymous aggregate carries it.
+  - **`EventCriteria`** takes its class-strings at runtime — `EventCriteria::aggregate(string $aggregateClass, ...)`,
+    `ofTypes(string ...$eventTypes)` — where `$basket::class` works. The event types it names are already named
+    under exception 1, never for `EventCriteria`'s sake.
+  - **An exception message containing the class name.** The test holds the instance, so interpolate it:
+    `$this->expectExceptionMessage($service::class . '::handle')`. Three test files do exactly that, in five places —
+    `packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverPlacementValidationTest.php:47`,
+    `WithTenantResolverLicensingTest.php:38`, and `AggregateNotFoundCausationTest.php:60`, which builds an entire
+    expected message out of `$wallet::class` and `$walletCharging::class`. Better still, assert the part of the
+    message that is the instruction and leave the class name out of it.
+
+  Where an exception does apply, suffix the named fixture per test file (`UnlockedBasketForWithoutLock`) so two
+  test files in one namespace cannot collide.
+  `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php` is a full example of the named
+  form — including, at line 81, an exception-message assertion that could have interpolated `::class` instead.
 - **No static properties or static methods** in a test class, for the same reason as rule 3.
 - A private `bootstrap()` helper on the test class is fine and common when several tests need the same wiring.
 

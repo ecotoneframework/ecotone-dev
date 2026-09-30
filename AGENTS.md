@@ -99,7 +99,7 @@ commit that evidences it. The summary:
 | 9 | **A feature needing external storage ships an in-memory implementation**, named to mirror the storage one, and one shared suite proves the two behave identically | Otherwise the feature cannot be used in an `EcotoneLite` flow test — and `InMemoryEventStore` silently diverged from DBAL three times |
 | 10 | **Tests validate at the userland level only.** No SQL on Ecotone's tables, no internal service references, no reflection, no statement counting. Fetch a **gateway** and assert on observable behaviour | A whole worktree — 22 commits — did nothing but pull one feature's tests back to the public surface |
 | 10a | **A guarantee is proved on every path that has to hold it** — direct call, class-routed bus send, routed send, gateway, console command, and the reconstruction path beside the live one | Five times in one feature, a fix covered one entry point and looked finished |
-| 11 | **`EcotoneLite`, `snake_case`, no comments, fixtures in the test file.** Test-first: RED, GREEN, refactor | |
+| 11 | **`EcotoneLite`, `snake_case`, no comments, inline anonymous fixtures in the test file** — a named class below the `TestCase` only where PHP forces one. Test-first: RED, GREEN, refactor | An anonymous fixture cannot drift out of the test that owns it |
 | 12 | **The public surface is `Api/`, a sibling of `src/`** — never `src/Api/`, which breaks Tempest discovery. Everything outside `Api` is `@internal` | |
 | 13 | **Configuration is attributes plus `#[ServiceContext]`**, compiled into a container via `DefinedObject`/`Definition`. No YAML, no XML | |
 | 14 | **A console option's name is its PHP parameter name verbatim** — camelCase, never kebab-case | |
@@ -133,9 +133,12 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - **Assert only on what the application observes.** No SQL against Ecotone's own tables, no reflection, no
   statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`)
   and drive the public API. This is the most-corrected rule in the repository; see conventions rule 10
-- **Fixtures live in the test file**: an anonymous class when it only holds handler methods, named classes below
-  the `TestCase` when the class name is part of what is under test (aggregates, events, commands) — the dominant
-  form in 2.0, in 92 of the 141 test files added since 1.x. Not a shared `Fixture/` directory
+- **Fixtures live in the test file, as inline anonymous classes** — aggregates included, registered through
+  `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the two cases
+  PHP forces: a class used as a **type declaration** (every command, event and query), and a class named inside
+  another fixture's **attribute argument**, which has to be a constant expression. 92 of the 141 test files added
+  since 1.x use named fixtures anyway; that is drift to reduce, not precedent
+  ([rule 11](./docs/coding-conventions.md#11-test-shape) has the exceptions and what is wrongly believed to be one)
 - `snake_case` method names, named after the behaviour rather than the class that implements it
 - No comments, no docblocks, no assertion messages. The method name is the description
 - **One test per path the guarantee has to hold on**, not one per change: a class-routed `CommandBus::send()`, a

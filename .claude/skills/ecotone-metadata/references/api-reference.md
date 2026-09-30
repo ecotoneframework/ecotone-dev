@@ -10,7 +10,7 @@ Extracts a single header from message metadata and injects it into a handler par
 #[Attribute(Attribute::TARGET_PARAMETER)]
 class Header
 {
-    public function __construct(string $headerName, string $expression = '')
+    public function __construct(string $headerName, string|Closure $expression = '')
 }
 ```
 
@@ -77,9 +77,9 @@ class RemoveHeader
 **Parameters:**
 - `name` (string, required) — The header key to remove
 
-## Header changing via `#[InternalHandler]`/`#[ServiceActivator]` (Enterprise)
+## Header changing via `#[InternalHandler]` (Enterprise)
 
-For programmatic, dynamic header changes as part of a workflow step (as opposed to the declarative `#[AddHeader]`/`#[RemoveHeader]` above), `#[InternalHandler]`/`#[ServiceActivator]` accept a `changingHeaders: true` constructor argument: the handler's returned `array` is merged into the message headers instead of replacing the payload. Requires an Ecotone Enterprise licence. See the `ecotone-workflow` skill's `#[InternalHandler]` reference for the full semantics.
+For programmatic, dynamic header changes as part of a workflow step (as opposed to the declarative `#[AddHeader]`/`#[RemoveHeader]` above), `#[InternalHandler]` accepts a `changingHeaders: true` constructor argument: the handler's returned `array` is merged into the message headers instead of replacing the payload. Requires an Ecotone Enterprise licence. See the `ecotone-workflow` skill's `#[InternalHandler]` reference for the full semantics.
 
 ## `#[PropagateHeaders]`
 
@@ -89,14 +89,14 @@ Controls whether userland headers propagate from the current message to downstre
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-class PropagateHeaders
+final class PropagateHeaders
 {
-    public function __construct(bool $propagate)
+    public function __construct(bool $doPropagation = true)
 }
 ```
 
 **Parameters:**
-- `propagate` (bool, required) — `false` to disable automatic header propagation
+- `doPropagation` (bool, default `true`) — pass `false` to disable automatic header propagation
 
 ## Framework Headers Constants
 

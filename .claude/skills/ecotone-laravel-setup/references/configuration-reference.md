@@ -25,8 +25,9 @@ return [
     // Connection retry on failure
     'defaultConnectionExceptionRetry' => null,
 
-    // Skip specific module packages
-    'skippedModulePackageNames' => [],
+    // Explicit list of module packages to load (e.g. ModulePackageList::DBAL_PACKAGE);
+    // absent/omitted loads every installed package
+    // 'modulePackages' => [],
 
     // Enable test mode
     'test' => false,
@@ -47,7 +48,7 @@ return [
 | `defaultSerializationMediaType` | `null` | Media type for async serialization |
 | `defaultErrorChannel` | `null` | Error channel name |
 | `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
+| `modulePackages` | every installed package | Explicit list of module packages to load; the key must be present to restrict loading at all |
 | `test` | `false` | Enable test mode |
 | `licenceKey` | `null` | Enterprise licence key |
 

@@ -16,7 +16,7 @@ use LogicException;
  * licence MIT
  * code comes from https://github.com/php-enqueue/redis
  */
-class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
+final class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var array

@@ -13,7 +13,7 @@ use function sprintf;
 /**
  * licence Enterprise
  */
-class DecisionModelConcurrencyException extends ConcurrencyException
+final class DecisionModelConcurrencyException extends ConcurrencyException
 {
     public const LOG_MESSAGE = 'Dynamic Consistency Boundary conflict';
 

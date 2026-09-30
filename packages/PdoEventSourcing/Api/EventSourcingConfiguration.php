@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
@@ -10,7 +12,7 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 /**
  * licence Apache-2.0
  */
-class EventSourcingConfiguration extends BaseEventSourcingConfiguration
+final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
     public const INITIALIZE_ON_STARTUP = true;
     public const LOAD_BATCH_SIZE = 1000;

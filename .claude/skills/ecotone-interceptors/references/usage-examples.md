@@ -232,7 +232,7 @@ Targets a specific method in a specific class:
 Excludes specific targets:
 
 ```php
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 #[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
 #[Before(pointcut: 'not(App\Internal\*)')]
 ```
@@ -247,7 +247,7 @@ Excludes specific targets:
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
 
 // Complex: (attribute OR bus) AND NOT excluded
-#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Real-World Example: Dynamic Transaction Pointcut
@@ -264,7 +264,7 @@ if ($config->isTransactionOnConsoleCommands()) {
     $pointcut .= '||(' . ConsoleCommand::class . ')';
 }
 // Exclude opt-outs
-$pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
+$pointcut = '(' . $pointcut . ')&&not(' . WithoutDatabaseTransaction::class . ')';
 ```
 
 ### Auto-Inference from Parameter Types
@@ -328,4 +328,4 @@ class AuthInterceptor
 | Specific aggregate | `Order::class` |
 | Async handlers only | `Asynchronous::class` |
 | All bus calls | `Gateway::class` |
-| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutTransaction::class . ')'` |
+| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')'` |

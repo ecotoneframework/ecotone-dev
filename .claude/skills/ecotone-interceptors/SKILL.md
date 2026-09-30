@@ -138,7 +138,7 @@ Pointcuts target which handlers an interceptor applies to:
 
 // AND / OR / NOT
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Auto-Inference

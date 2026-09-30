@@ -17,13 +17,16 @@ $gateway->send('Hello', 'user@example.com');
 
 ## Testing DBAL Interfaces
 
-For DBAL interfaces, provide `DbalConnectionFactory` and converters as services and use `withNamespaces()`:
+For DBAL interfaces, register the connection under `DbalConnectionReference::DEFAULT` and provide converters as
+services:
 
 ```php
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [ProductRepository::class, ProductConverter::class],
     containerOrAvailableServices: [
-        DbalConnectionFactory::class => $connectionFactory,
+        DbalConnectionReference::DEFAULT => $connectionFactory,
         new ProductConverter(),
     ],
     configuration: ServiceConfiguration::createWithDefaults()

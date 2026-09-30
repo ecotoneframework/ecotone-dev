@@ -8,7 +8,7 @@ pair sits next to it; the wrong side is real code that was corrected.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
-13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
+12a, 13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
 > or documentation you edit must be checked against the current tree first. The 2.0 API moved
@@ -676,6 +676,46 @@ Two rules resolve the overlaps:
 
 Full reasoning and the old→new mapping: `docs/superpowers/specs/2026-09-16-api-namespace-layout-mapping.md` and
 `upgrade/namespace-map-2.0.csv`.
+
+### 12a. The boundary holds in both directions
+
+The placement table says where a user-facing class goes. Two invariants say what may cross the line at all, and the
+second one is the easier to break, because adding to `Api/` never fails a build.
+
+**Nothing an application writes stays outside `Api`.** Every attribute, every `#[ServiceContext]` extension object,
+every gateway interface, every enum or value object named in a configuration call. If a user has to type the name,
+it is public surface, and leaving it in `src` makes the whole of `src` look quotable.
+
+**Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
+services, compiler passes or container plumbing. 167 files live under `packages/*/Api` today; the reason the number
+stays honest is that a class is added there on purpose, never because it was convenient.
+
+**The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
+framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder
+$builder): Definition` appears in `Api` on purpose in `SimpleMessageChannelBuilder.php:159`,
+`Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153` and each framework package's channel builder. The same
+goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 39 of the 167
+`Api` files and none of that is a leak.
+
+It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to
+construct, a default it has to name, a return type it has to import. Three of those are in the tree now:
+
+| Internal type | Where an application meets it | Why it is a leak |
+|---|---|---|
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Api/ExtensionObject/ServiceConfiguration.php:210` (`withConnectionRetryTemplate()`), `Api/ExtensionObject/ErrorHandlerConfiguration.php:26` (`create()`) | Configuring retries means importing from an `@internal` namespace |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Api/ExtensionObject/SimpleMessageChannelBuilder.php:52,75` — a default parameter value | Overriding the default means naming an internal enum |
+| `Ecotone\Messaging\Conversion\MediaType` | the `string\|MediaType\|null $conversionMediaType` unions on the same two factories | Same, in a union the user may satisfy either way |
+
+None of the three is in `upgrade/namespace-map-2.0.csv`, so none was considered during the 2.0 move. Do not sweep
+them on the way past — moving a class an application imports is a breaking change and the maintainer's call — but
+do not add a fourth.
+
+**`#[ModuleAnnotation]` is the deliberate edge case**, and worth knowing so it is not read as precedent: no
+application writes it, only a module does, and modules are written in packages outside this monorepo too. Extension
+authors are users. Anything whose only caller is Ecotone itself is not.
+
+**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan excludes `Api/`
+(rule 21). The boundary is held in review, which is why it is written down.
 
 **Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
 the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,

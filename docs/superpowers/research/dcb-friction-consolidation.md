@@ -124,10 +124,10 @@ lines, and four of them inline would have pushed the file past the point where a
 
 ## 4. Final line counts
 
-| Guide | Before | After the consolidation | After the two rules in §6 |
+| Guide | Before | After the consolidation | After the three rules in §6 |
 |---|---|---|---|
-| `AGENTS.md` | 320 | 356 | 360 |
-| `docs/coding-conventions.md` | 718 | 839 | 926 |
+| `AGENTS.md` | 320 | 356 | 361 |
+| `docs/coding-conventions.md` | 718 | 839 | 966 |
 | `docs/dev-workflow.md` | 186 | 315 | 315 |
 
 `CLAUDE.md` is untouched and still a symlink to `AGENTS.md`.
@@ -163,10 +163,10 @@ which took 133 of the 345 lines added across the three guides.
 
 ---
 
-## 6. Two rules added afterwards, at the maintainer's request
+## 6. Three rules added afterwards, at the maintainer's request
 
-Neither came from the friction reports; both were asked for directly once the consolidation was in. They are
-sub-rules for the same reason `10a` is — `1c` and `13a` renumber nothing.
+None came from the friction reports; all were asked for directly once the consolidation was in. They are sub-rules
+for the same reason `10a` is — `1c`, `12a` and `13a` renumber nothing.
 
 **1c. A check that can run at compile time runs at compile time.** Rule 1a already said *when* a wrong
 configuration fails; 1c says *where the check lives*. `Module::prepare()` receives the `InterfaceToCallRegistry` as
@@ -199,3 +199,41 @@ nothing on the message path reflects and nothing re-derives what the registry al
 The two rules share one mechanism, which is why they read as a pair: the compiled container is where both the check
 and the metadata belong. The runtime escape hatch is deliberately unattractive — read on demand and do not cache,
 because a cache on a container service is rule 3, and both attempts at one were deleted (`a98c23fa8`, `4bb23eb51`).
+
+**12a. The `Api` boundary holds in both directions.** Rule 12 already said where a user-facing class goes; it did
+not say that nothing internal may move the other way. Written as two invariants plus a test that settles the cases
+that look ambiguous — **who calls it**:
+
+- An `Api` class naming an internal type in a method *the framework* calls is the `DefinedObject`/channel-builder
+  contract working as intended: `compile(MessagingContainerBuilder $builder): Definition` in
+  `Api/ExtensionObject/SimpleMessageChannelBuilder.php:159`,
+  `Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153`, and each framework package's channel builder. So is what
+  a method body reaches for — `Assert`, `Definition`, `DefinedObject`, imported by 39 of the 167 `Api` files.
+- It is a leak when the **application** is the caller. Three exist in the tree, found while checking rather than
+  assumed, and all three are the *first* invariant failing — a user-facing type still sitting in `src`:
+
+| Internal type | Where an application meets it |
+|---|---|
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `ServiceConfiguration::withConnectionRetryTemplate()` (`Api/ExtensionObject/ServiceConfiguration.php:210`), `ErrorHandlerConfiguration::create()` (`:26`) |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | a default parameter value on `SimpleMessageChannelBuilder::create()` and `::createQueueChannel()` (`:52,75`) |
+| `Ecotone\Messaging\Conversion\MediaType` | the `string|MediaType|null $conversionMediaType` unions on those same two factories |
+
+None of the three appears in `upgrade/namespace-map-2.0.csv`, so none was weighed during the 2.0 `Api` move. They
+are recorded as follow-up 5 below rather than moved: a class an application imports cannot be relocated without a
+breaking change, and that is the maintainer's call, not a documentation task's.
+
+`#[ModuleAnnotation]` is written up as the deliberate edge case — only a module writes it, and modules live in
+packages outside this monorepo, so extension authors count as users. Stating it stops it being read as precedent for
+putting the next internal attribute in `Api`.
+
+Worth noting for whoever picks up the follow-up: **nothing mechanical checks this boundary.**
+`bin/check-licence.php` walks `packages/*/src` only and phpstan excludes `Api/`, so adding a class to `Api/` never
+fails a build. A `bin/` script asserting that no `Api` class names a non-`Api` Ecotone type outside `compile()` and
+`getDefinition()` would turn 12a into a gate; it is not one today.
+
+### Follow-up 5 — three user-facing types still in `src`
+
+`RetryTemplateBuilder`, `FinalFailureStrategy` and `MediaType` are named in `Api` signatures an application calls,
+so configuring retries, a channel's failure strategy or a conversion media type means importing from an `@internal`
+namespace. Moving them to `Api` is a breaking change for 1.x-era code and was not part of the 2.0 mapping; it needs
+a maintainer decision on whether 2.0 is still the window for it.

@@ -6,6 +6,10 @@ Every rule below is one the codebase already follows and that a contributor got 
 a *why* and a citation — a file, or a commit you can `git show`. Where a rule is easy to misread, a wrong/right
 pair sits next to it; the wrong side is real code that was corrected.
 
+Four independent audits have measured the tree against these rules. What they found and has **not** been
+actioned yet — with each item's disposition, and the four places an audit's own claim turned out to be wrong —
+is in [docs/conventions-outstanding.md](./conventions-outstanding.md).
+
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
 12a, 13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.

@@ -73,7 +73,7 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
 
         if ($dynamicConsistencyBoundary->isEnabled() && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Dynamic Consistency Boundary (DynamicConsistencyBoundaryConfiguration) requires Ecotone Enterprise Licence.');
+            throw LicensingException::create('Dynamic Consistency Boundary (DynamicConsistencyBoundaryConfiguration) requires Ecotone Enterprise Licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $this->assertEveryFilterOnlyTagIsCarriedByAnEvent($dynamicConsistencyBoundary->filterOnlyTagNames());

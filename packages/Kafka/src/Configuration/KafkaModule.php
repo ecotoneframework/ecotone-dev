@@ -73,7 +73,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());

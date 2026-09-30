@@ -50,7 +50,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         if ($this->batchPublishing && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [

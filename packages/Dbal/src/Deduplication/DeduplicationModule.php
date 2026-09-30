@@ -163,7 +163,7 @@ class DeduplicationModule implements AnnotationModule
 
         if (! empty($deduplicatedClasses)) {
             $classNames = implode(', ', $deduplicatedClasses);
-            throw LicensingException::create("Deduplicated attribute on interfaces/gateways ({$classNames}) is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper gateway-level deduplication.");
+            throw LicensingException::create("Deduplicated attribute on interfaces/gateways ({$classNames}) is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper gateway-level deduplication. See https://docs.ecotone.tech/enterprise for details.");
         }
     }
 }

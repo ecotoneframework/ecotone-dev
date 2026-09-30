@@ -194,13 +194,13 @@ class ProjectingAttributeModule implements AnnotationModule
     {
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             if (! empty($this->pollingProjections)) {
-                throw LicensingException::create('#[Polling] projections require Ecotone Enterprise licence.');
+                throw LicensingException::create('#[Polling] projections require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
             if (! empty($this->eventStreamingProjections)) {
-                throw LicensingException::create('#[Streaming] projections require Ecotone Enterprise licence.');
+                throw LicensingException::create('#[Streaming] projections require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
             if ($this->hasFlushWithProjectionState) {
-                throw LicensingException::create('Using #[ProjectionState] in #[ProjectionFlush] methods requires Ecotone Enterprise licence.');
+                throw LicensingException::create('Using #[ProjectionState] in #[ProjectionFlush] methods requires Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
         }
 

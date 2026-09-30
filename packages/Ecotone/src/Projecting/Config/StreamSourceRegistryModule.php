@@ -48,7 +48,7 @@ class StreamSourceRegistryModule extends NoExternalConfigurationModule implement
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if (! empty($this->userlandStreamSourceReferences) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Custom #[StreamSource] implementations require Ecotone Enterprise licence.');
+            throw LicensingException::create('Custom #[StreamSource] implementations require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $streamSourceReferences = ExtensionObjectResolver::resolve(

@@ -125,7 +125,7 @@ class MessagingGatewayModule extends NoExternalConfigurationModule implements An
             /** @var Asynchronous[] $asynchronous */
             $asynchronous = $interfaceToCallRegistry->getFor($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName())->getAnnotationsByImportanceOrder(Type::attribute(Asynchronous::class));
             if ($asynchronous && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-                throw LicensingException::create("Gateway {$gatewayBuilder->getInterfaceName()}::{$gatewayBuilder->getRelatedMethodName()} is marked as asynchronous. This functionality is available as part of Ecotone Enterprise.");
+                throw LicensingException::create("Gateway {$gatewayBuilder->getInterfaceName()}::{$gatewayBuilder->getRelatedMethodName()} is marked as asynchronous. This functionality is available as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.");
             }
             $errorChannel = $interfaceToCallRegistry->getFor($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName())->getAnnotationsByImportanceOrder(Type::attribute(ErrorChannel::class));
             if ($errorChannel && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {

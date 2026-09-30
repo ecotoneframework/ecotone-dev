@@ -111,7 +111,7 @@ class AmqpModule implements AnnotationModule
         }
 
         if ($hasAmqpStreamChannelBuilder && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         foreach ($this->amqpQueuesFromMessageConsumers as $amqpQueue) {

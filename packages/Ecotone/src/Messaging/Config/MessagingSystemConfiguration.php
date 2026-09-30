@@ -438,7 +438,7 @@ final class MessagingSystemConfiguration implements Configuration
         $asyncHandlerAnnotations = [];
 
         if ($this->batchForwardingSourceChannels !== [] && ! $this->isRunningForEnterpriseLicence) {
-            throw LicensingException::create(sprintf('Batch forwarding for Message Channel `%s` is available only with Ecotone Enterprise licence.', array_key_first($this->batchForwardingSourceChannels)));
+            throw LicensingException::create(sprintf('Batch forwarding for Message Channel `%s` is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.', array_key_first($this->batchForwardingSourceChannels)));
         }
         foreach ($this->declaredBatchForwardingChannels as $declaredBatchForwardingChannel) {
             if (! isset($this->batchForwardingSourceChannels[$declaredBatchForwardingChannel])) {

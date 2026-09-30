@@ -52,7 +52,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
 
         foreach ($distributedServiceMaps as $distributedServiceMap) {
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-                throw LicensingException::create('Distributed Bus with Service Map is available only as part of Ecotone Enterprise.');
+                throw LicensingException::create('Distributed Bus with Service Map is available only as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.');
             }
 
             foreach ($distributedServiceMap->getCommandMapping() as $serviceName => $channelName) {

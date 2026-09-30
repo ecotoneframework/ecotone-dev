@@ -257,7 +257,7 @@ class EventSourcingProjectingModule implements AnnotationModule
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         if (! empty($multiTenantConfigurations) && ! empty($this->projectionNames) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Using Multi-Tenant connection with Projection requires Ecotone Enterprise licence.');
+            throw LicensingException::create('Using Multi-Tenant connection with Projection requires Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         foreach ($extensionObjects as $extensionObject) {

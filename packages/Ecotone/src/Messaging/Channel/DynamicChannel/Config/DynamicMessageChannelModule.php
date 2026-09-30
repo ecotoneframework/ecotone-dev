@@ -32,7 +32,7 @@ final class DynamicMessageChannelModule extends NoExternalConfigurationModule im
         $dynamicMessageChannelBuilders = ExtensionObjectResolver::resolve(DynamicMessageChannelBuilder::class, $extensionObjects);
 
         if (! $messagingConfiguration->isRunningForEnterpriseLicence() && ! empty($dynamicMessageChannelBuilders)) {
-            throw LicensingException::create('Dynamic message channels are available only as part of Ecotone Enterprise.');
+            throw LicensingException::create('Dynamic message channels are available only as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.');
         }
     }
 

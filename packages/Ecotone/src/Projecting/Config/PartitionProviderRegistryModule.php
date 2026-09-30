@@ -58,7 +58,7 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if (! empty($this->userlandPartitionProviderReferences) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Custom #[PartitionProvider] implementations require Ecotone Enterprise licence.');
+            throw LicensingException::create('Custom #[PartitionProvider] implementations require Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $partitionProviderReferences = ExtensionObjectResolver::resolve(

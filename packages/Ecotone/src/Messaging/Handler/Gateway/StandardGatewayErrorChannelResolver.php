@@ -18,7 +18,7 @@ final class StandardGatewayErrorChannelResolver implements GatewayErrorChannelRe
     {
         $errorChannelAttributes = $interfaceToCall->getAnnotationsByImportanceOrder(Type::attribute(ErrorChannel::class));
         if ($errorChannelAttributes) {
-            throw LicensingException::create('ErrorChannel attribute is available only as part of Ecotone Enterprise');
+            throw LicensingException::create('ErrorChannel attribute is available only as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         return $errorChannelName;

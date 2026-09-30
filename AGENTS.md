@@ -89,6 +89,7 @@ commit that evidences it. The summary:
 |---|---|---|
 | 1 | **Exceptions drive the solution** — name what was wrong, why it cannot work, and *every* way out (the exact API call, attribute, option or command). Assert the message in a test | The message is what the agent or developer reacts to; it is the deliverable |
 | 1a | A configuration mistake is **refused at bootstrap**, never at runtime, and never read as an empty result — the guard and the message test ship in the commit that states the rule | One worktree of 18 fix commits paid for the rules that shipped without one |
+| 1c | **A check that can run at compile time runs at compile time** — in a guard the module calls from `prepare()`, which is handed the `InterfaceToCallRegistry` for exactly that. Only message *content* is left to runtime | The compile-time guard removes the runtime branch entirely: there is no unresolvable case left to handle |
 | 2 | **Never take a nullable service dependency.** Register unconditionally, decide at runtime. Split the class, add a null-object factory, make the parameter required, or pick between two services in the container | A `?Service = null` is a mode switch in disguise, and the two modes drift |
 | 3 | **Constructor-injected services are stateless** — no accumulating properties, no static caches, no per-message collectors. Mutable state goes in a function-scoped immutable value object carried on a message header | A container service is a singleton; anything it remembers leaks into the next message, transaction and retry |
 | 4 | **Do not mix queries with writes.** A read never runs DDL, a mutator returns `void`, and the name says which it is | `getRecordedEvents()` cleared its buffer and became `popRecordedEvents()` for exactly this reason |
@@ -102,6 +103,7 @@ commit that evidences it. The summary:
 | 11 | **`EcotoneLite`, `snake_case`, no comments, inline anonymous fixtures in the test file** — a named class below the `TestCase` only where PHP forces one. Test-first: RED, GREEN, refactor | An anonymous fixture cannot drift out of the test that owns it |
 | 12 | **The public surface is `Api/`, a sibling of `src/`** — never `src/Api/`, which breaks Tempest discovery. Everything outside `Api` is `@internal` | |
 | 13 | **Configuration is attributes plus `#[ServiceContext]`**, compiled into a container via `DefinedObject`/`Definition`. No YAML, no XML | |
+| 13a | **Class metadata comes from `InterfaceToCall`/`ClassDefinition` via `InterfaceToCallRegistry`, never fresh reflection.** On the message path take it as a constructor argument — `InterfaceToCallReference` in a `Definition` is resolved once by a compiler pass | The registry memoizes; a service cannot memoize, because a cache on a service is rule 3 |
 | 14 | **A console option's name is its PHP parameter name verbatim** — camelCase, never kebab-case | |
 | 15 | **Orchestrating methods read as step lists**; SQL belongs to the collaborator that owns the table | |
 | 16 | **DDL never runs inside a message transaction** | MySQL/MariaDB implicitly commit on DDL |
@@ -116,7 +118,9 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - **Messages first** - Commands, Events, Queries are first-class citizens
 - **Declarative configuration** - PHP attributes and `#[ServiceContext]`, never YAML/XML
 - **`#[InternalHandler]`** - for a framework-internal message handler (`#[ServiceActivator]` was removed in 2.0)
-- **`InterfaceToCall`** - for reflection and method metadata
+- **`InterfaceToCall`** / **`ClassDefinition`** - method and class metadata, obtained from the memoizing
+  `InterfaceToCallRegistry` that `Module::prepare()` receives — never a fresh `ReflectionClass`
+  ([rule 13a](./docs/coding-conventions.md#13a-class-metadata-comes-from-the-registry-not-from-fresh-reflection))
 - **`MessageHeaders`** - for message metadata propagation
 - **`Definition` / `DefinedObject`** - configuration is compiled into a container, so what a module registers must
   be expressible as a `Definition`

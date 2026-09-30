@@ -7,7 +7,8 @@ a *why* and a citation — a file, or a commit you can `git show`. Where a rule 
 pair sits next to it; the wrong side is real code that was corrected.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines.
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
+13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
 > or documentation you edit must be checked against the current tree first. The 2.0 API moved
@@ -87,6 +88,46 @@ Do not assemble location strings at the throw site. `packages/Ecotone/src/Messag
 is compiled into the container with the attribute name, target and owner already in it, and every expression
 failure in the framework goes through it, producing
 `#[Fetch] on $activity in Handler::count failed. Expression: ... . <cause>` (`c45cf02bd`).
+
+### 1c. A check that can run at compile time runs at compile time
+
+Rule 1a says *when* a wrong configuration fails. This is *where the check lives*: in the module, during
+configuration building, not in a service on the message path.
+
+`Module::prepare()` is handed the `InterfaceToCallRegistry` as its fourth parameter for exactly this — it can see
+every handler, its parameters and its attributes before a single message exists:
+
+```php
+public function prepare(
+    Configuration $messagingConfiguration,
+    array $extensionObjects,
+    ModuleReferenceSearchService $moduleReferenceSearchService,
+    InterfaceToCallRegistry $interfaceToCallRegistry,
+): void
+```
+
+The shape is a **guard**: a class of static assertions the module calls, each throwing `ConfigurationException`.
+`packages/Ecotone/src/Modelling/DecisionModel/Config/DecisionModelModule.php:113` calls two of them from
+`prepare()` — `CrossConnectionDecisionModelGuard::assertNoCrossConnectionInjection()` (:126) and
+`DecisionModelTagResolvabilityGuard::assertEveryModelTagResolvableFromItsMessage()` (:133), the second taking the
+annotation finder and the registry so it can answer the question over every model in the application.
+`packages/Ecotone/src/EventSourcing/Tagging/Config/EventTaggingModule.php:71` does the same with
+`AggregateCounterTagGuard` (:82-83).
+
+**The same knowledge answers both questions, so ask it early.** `MessageTagValueResolver` has two entry points:
+`canResolve($tagName, $messageClass)`, which the resolvability guard calls at compile time, and
+`resolve($tagName, $payload)`, which `DecisionModelParameterLoader` calls per message. Because the guard refuses an
+unresolvable tag at bootstrap, the runtime path has no unresolvable case to handle — no branch, no fallback, and no
+silently empty result (rule 1a).
+
+**What is left to runtime is message content, and only that.** The shape of the configuration is knowable while
+compiling; the value carried by a particular message is not. A tag value's length in characters and its UTF-8
+validity are runtime checks for that reason (`d92883148`) — everything about *which* tag, on *which* model, from
+*which* property is compile-time.
+
+So, before adding a check: ask whether it could have been answered from the class, the method, the parameter types
+and the attributes alone. If it could, it belongs in a guard the module calls, and the test that proves it boots
+Ecotone and expects a `ConfigurationException`.
 
 ---
 
@@ -673,6 +714,52 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 `getModuleClassesForPackage()` match arm). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
 are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
+
+### 13a. Class metadata comes from the registry, not from fresh reflection
+
+`InterfaceToCall` and `ClassDefinition` are the metadata layer. They exist so nothing else has to build a
+`ReflectionClass`, and `InterfaceToCallRegistry` memoizes both —
+`packages/Ecotone/src/Messaging/Handler/InterfaceToCallRegistry.php` keys `getFor($class, $method)` and
+`getClassDefinitionFor($type)` by name and returns the same instance on every later ask. A module or builder that
+reflects for itself pays the cost again and gets an object the rest of the framework cannot reuse.
+
+So during configuration building, ask the registry `prepare()` already gave you:
+
+```php
+// wrong — the same facts the registry already holds, re-derived
+$attributes = (new ReflectionClass($className))->getAttributes(EventTag::class);
+
+// right
+$interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
+$interfaceToCall->getMethodAnnotationsOf(EventTag::class);
+$interfaceToCallRegistry->getClassDefinitionFor(Type::object($className));
+```
+
+`packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/AggregateResolver/AggregateDefinitionResolver.php:29`
+and `packages/Ecotone/src/Modelling/Config/Routing/BusRoutingMapBuilder.php:94` are the shape for the second one.
+
+**And on the message path, take the metadata as a constructor argument rather than reading it.** A `Definition`
+that needs an `InterfaceToCall`, one of its parameters, or an attribute instance names it as a reference —
+`InterfaceToCallReference`, `InterfaceParameterReference`, `AttributeReference` — and the
+`RegisterInterfaceToCallReferences` compiler pass
+(`packages/Ecotone/src/Messaging/Config/Container/Compiler/RegisterInterfaceToCallReferences.php`) walks every
+definition's arguments and method calls and registers each one as its own container definition. The reflection runs
+once, while compiling; the compiled container holds the result, and the runtime service receives it already built.
+`packages/Ecotone/src/Modelling/AggregateFlow/LoadAggregate/LoadAggregateServiceBuilder.php:77` and
+`packages/Ecotone/src/Projecting/Config/ProjectingAttributeModule.php:184` are the pattern; 36 places in
+`packages/*/src` build an `InterfaceToCallReference` this way.
+
+Raw reflection has not disappeared — 31 files under `packages/*/src` still build a `ReflectionClass` — but look at
+which ones: the layer that *produces* this metadata (`TypeResolver`, `ClassDefinition`, `InterfaceToCall`,
+`AttributeResolver`, the annotation finders), and compile-phase modules, builders and guards asking something the
+metadata layer does not expose, such as `class_exists()` or `isAbstract()`. The line is not "never reflect". It is
+**nothing on the message path reflects, and nothing re-derives what the registry already holds.**
+
+If a value genuinely is not knowable until a message arrives, read it on demand and **do not cache it** — a cache
+on a container service is rule 3, and both attempts at one were deleted rather than kept: `a98c23fa8` removed
+`DecisionModelReflection`'s static caches, and `4bb23eb51` stopped `MessageTagValueResolver` mutating one. That is
+the reason to move the lookup to compile time rather than to memoize it at runtime: the memo is not available to
+you.
 
 ---
 

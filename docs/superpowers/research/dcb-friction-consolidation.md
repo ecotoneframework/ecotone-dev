@@ -124,11 +124,11 @@ lines, and four of them inline would have pushed the file past the point where a
 
 ## 4. Final line counts
 
-| Guide | Before | After |
-|---|---|---|
-| `AGENTS.md` | 320 | 356 |
-| `docs/coding-conventions.md` | 718 | 839 |
-| `docs/dev-workflow.md` | 186 | 315 |
+| Guide | Before | After the consolidation | After the two rules in §6 |
+|---|---|---|---|
+| `AGENTS.md` | 320 | 356 | 360 |
+| `docs/coding-conventions.md` | 718 | 839 | 926 |
+| `docs/dev-workflow.md` | 186 | 315 | 315 |
 
 `CLAUDE.md` is untouched and still a symlink to `AGENTS.md`.
 
@@ -160,3 +160,42 @@ which took 133 of the 345 lines added across the three guides.
    proposals 3–6): type the design's nouns instead of arrays, collapse `AppendStrategy` into the tag collaborator,
    stop passing the store into its own collaborators, and name the DCB-handler concept. Deferred deliberately for
    touching public `Api/` or maintainer-decided names — listed here so they stay findable, not as friction.
+
+---
+
+## 6. Two rules added afterwards, at the maintainer's request
+
+Neither came from the friction reports; both were asked for directly once the consolidation was in. They are
+sub-rules for the same reason `10a` is — `1c` and `13a` renumber nothing.
+
+**1c. A check that can run at compile time runs at compile time.** Rule 1a already said *when* a wrong
+configuration fails; 1c says *where the check lives*. `Module::prepare()` receives the `InterfaceToCallRegistry` as
+its fourth parameter precisely so it can see every handler, parameter and attribute before a message exists, and
+the shape is a guard of static assertions throwing `ConfigurationException`:
+`DecisionModelModule.php:113` calls `CrossConnectionDecisionModelGuard` (:126) and
+`DecisionModelTagResolvabilityGuard` (:133); `EventTaggingModule.php:71` calls `AggregateCounterTagGuard` (:82-83).
+
+The evidence that made the rule worth stating is `MessageTagValueResolver`'s two entry points: `canResolve()`, which
+the guard calls at compile time, and `resolve()`, which `DecisionModelParameterLoader` calls per message. Because
+the guard refuses an unresolvable tag at bootstrap, the runtime path has no unresolvable case — no branch, no
+fallback, no silently empty result. What stays at runtime is message *content* only; a tag value's character length
+and UTF-8 validity are runtime checks for that reason (`d92883148`).
+
+**13a. Class metadata comes from the registry, not from fresh reflection.** `InterfaceToCallRegistry` memoizes both
+`getFor()` and `getClassDefinitionFor()` by name
+(`packages/Ecotone/src/Messaging/Handler/InterfaceToCallRegistry.php`), so a module that builds its own
+`ReflectionClass` pays the cost again and produces something nothing else can reuse. On the message path the
+metadata is a constructor argument instead: an `InterfaceToCallReference`, `InterfaceParameterReference` or
+`AttributeReference` inside a `Definition` is turned into its own container definition by the
+`RegisterInterfaceToCallReferences` compiler pass, so the reflection happens once during compilation and the
+compiled container holds the result. 36 places in `packages/*/src` build such a reference.
+
+Stated as a boundary rather than a prohibition, because 31 files under `packages/*/src` do still construct a
+`ReflectionClass` and it would be false to claim otherwise: they are the metadata layer itself (`TypeResolver`,
+`ClassDefinition`, `InterfaceToCall`, `AttributeResolver`, the annotation finders) plus compile-phase guards and
+builders asking something that layer does not expose, such as `class_exists()` or `isAbstract()`. The rule is that
+nothing on the message path reflects and nothing re-derives what the registry already holds.
+
+The two rules share one mechanism, which is why they read as a pair: the compiled container is where both the check
+and the metadata belong. The runtime escape hatch is deliberately unattractive — read on demand and do not cache,
+because a cache on a container service is rule 3, and both attempts at one were deleted (`a98c23fa8`, `4bb23eb51`).

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\Serialization;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;

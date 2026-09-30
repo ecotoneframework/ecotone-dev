@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;

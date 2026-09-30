@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;
 use Ecotone\Modelling\MessageHandling\Distribution\RoutingKeyIsNotDistributed;
 use PHPUnit\Framework\TestCase;

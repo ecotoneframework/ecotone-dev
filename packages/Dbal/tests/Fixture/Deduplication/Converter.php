@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Dbal\Fixture\Deduplication;
 
 use Ecotone\Api\Attribute\MediaTypeConverter;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 use function json_decode;

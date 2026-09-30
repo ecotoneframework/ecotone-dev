@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 
 /**

@@ -4,6 +4,7 @@ namespace Test\Ecotone\Lite\Test;
 
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -13,7 +14,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;

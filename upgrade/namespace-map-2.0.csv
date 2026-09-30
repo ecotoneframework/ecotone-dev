@@ -116,6 +116,9 @@ Ecotone\Messaging\Endpoint\ExecutionPollingMetadata,Ecotone\Api\ExtensionObject\
 Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration,Ecotone\Api\ExtensionObject\InstantRetryConfiguration
 Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration,Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration
 Ecotone\Lite\Test\TestConfiguration,Ecotone\Api\ExtensionObject\TestConfiguration
+Ecotone\Messaging\Conversion\MediaType,Ecotone\Api\ExtensionObject\MediaType
+Ecotone\Messaging\Endpoint\FinalFailureStrategy,Ecotone\Api\ExtensionObject\FinalFailureStrategy
+Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder,Ecotone\Api\ExtensionObject\RetryTemplateBuilder
 Ecotone\Dbal\Configuration\DbalConfiguration,Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration
 Ecotone\Dbal\DbalBackedMessageChannelBuilder,Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder
 Ecotone\Dbal\Configuration\DbalMessagePublisherConfiguration,Ecotone\Api\Dbal\ExtensionObject\DbalMessagePublisherConfiguration

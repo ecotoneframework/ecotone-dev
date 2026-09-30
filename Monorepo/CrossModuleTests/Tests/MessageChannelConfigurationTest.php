@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;

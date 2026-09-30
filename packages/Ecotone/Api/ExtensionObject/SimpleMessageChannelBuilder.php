@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
@@ -17,8 +19,6 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;

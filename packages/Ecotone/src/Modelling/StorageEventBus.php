@@ -2,8 +2,8 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Messaging\Conversion\MediaType;
 
 /**
  * licence Apache-2.0

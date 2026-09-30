@@ -6,11 +6,11 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ErrorHandler;
 
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Test\LicenceTesting;

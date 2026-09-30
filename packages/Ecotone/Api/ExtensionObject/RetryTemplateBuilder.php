@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Handler\Recoverability;
+namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Support\Assert;
 
 /**

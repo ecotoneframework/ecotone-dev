@@ -1391,6 +1391,49 @@ Examples:
 
 The full mapping is in `upgrade/namespace-map-2.0.csv`.
 
+### 13a. `MediaType`, `FinalFailureStrategy` and `RetryTemplateBuilder` moved into `Api` too
+
+**Before:** three value objects an application has to write sat in `@internal` namespaces, even though the `Api`
+classes that take them are public:
+
+```php
+use Ecotone\Messaging\Conversion\MediaType;                              // internal
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;                     // internal
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;       // internal
+
+ServiceConfiguration::createWithDefaults()
+    ->addExtensionObject(ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::exponentialBackOff(1000, 2)))
+    ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+        'orders',
+        conversionMediaType: MediaType::createApplicationXPHP(),
+        finalFailureStrategy: FinalFailureStrategy::STOP,
+    ));
+```
+
+**Now:** all three are `Ecotone\Api\ExtensionObject\*`, beside the `ServiceConfiguration`,
+`ErrorHandlerConfiguration` and `SimpleMessageChannelBuilder` that take them:
+
+```php
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Conversion\MediaType` | `Ecotone\Api\ExtensionObject\MediaType` |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` |
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` |
+
+**How to adapt:** replace the three imports. Nothing else changes — same class names, same methods, same enum cases.
+
+Only the builder moved, not what it builds: `RetryTemplateBuilder::build()` still returns
+`Ecotone\Messaging\Handler\Recoverability\RetryTemplate`, which stays internal because the framework, not the
+application, calls `build()`. `MediaType` is also still what `CommandBus`, `QueryBus`, `EventBus`,
+`DistributedBus`, `MessagePublisher` and `#[ContentType]` name, which is why it could not stay in `src`: a public
+signature was forcing an `@internal` import on every application that used it. The rule this closes is
+[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+
 ## 14. Smaller behaviour changes
 
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).

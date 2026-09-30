@@ -6,8 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;

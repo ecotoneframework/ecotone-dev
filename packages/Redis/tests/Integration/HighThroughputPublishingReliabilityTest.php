@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;

@@ -6,11 +6,11 @@ namespace Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Api\Attribute\DelayedRetry;
 use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;

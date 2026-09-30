@@ -7,10 +7,10 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 

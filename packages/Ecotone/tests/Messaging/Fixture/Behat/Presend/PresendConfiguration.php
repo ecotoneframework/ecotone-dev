@@ -3,9 +3,9 @@
 namespace Test\Ecotone\Messaging\Fixture\Behat\Presend;
 
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Conversion\MediaType;
 
 /**
  * licence Apache-2.0

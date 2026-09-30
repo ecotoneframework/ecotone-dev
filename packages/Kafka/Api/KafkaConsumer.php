@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Api\Kafka;
 
 use Attribute;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\Assert;
 
 /**

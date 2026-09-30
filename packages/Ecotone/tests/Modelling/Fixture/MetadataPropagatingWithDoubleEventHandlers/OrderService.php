@@ -7,9 +7,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Messaging\Conversion\MediaType;
 
 use function end;
 

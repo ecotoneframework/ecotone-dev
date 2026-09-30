@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
@@ -13,7 +14,6 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Scheduling\StubUTCClock;

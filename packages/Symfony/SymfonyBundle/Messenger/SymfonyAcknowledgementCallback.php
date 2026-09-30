@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 

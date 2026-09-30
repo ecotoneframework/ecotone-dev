@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 final class EcotoneConfiguration
 {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\MessageHeaders;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]

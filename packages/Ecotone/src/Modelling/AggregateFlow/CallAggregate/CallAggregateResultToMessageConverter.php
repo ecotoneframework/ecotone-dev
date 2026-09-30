@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;

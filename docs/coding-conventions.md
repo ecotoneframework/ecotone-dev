@@ -698,17 +698,20 @@ goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObje
 `Api` files and none of that is a leak.
 
 It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to
-construct, a default it has to name, a return type it has to import. Three of those are in the tree now:
+construct, a default it has to name, a return type it has to import. Three of those were in the tree, and the way
+they were found is the way to find the next one: read the imports of `packages/*/Api`, and for each internal type
+ask which method exposes it and who calls that method.
 
-| Internal type | Where an application meets it | Why it is a leak |
+| Was | Now | How an application met it |
 |---|---|---|
-| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Api/ExtensionObject/ServiceConfiguration.php:210` (`withConnectionRetryTemplate()`), `Api/ExtensionObject/ErrorHandlerConfiguration.php:26` (`create()`) | Configuring retries means importing from an `@internal` namespace |
-| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Api/ExtensionObject/SimpleMessageChannelBuilder.php:52,75` — a default parameter value | Overriding the default means naming an internal enum |
-| `Ecotone\Messaging\Conversion\MediaType` | the `string\|MediaType\|null $conversionMediaType` unions on the same two factories | Same, in a union the user may satisfy either way |
+| `Ecotone\Messaging\Conversion\MediaType` | `Ecotone\Api\ExtensionObject\MediaType` | `CommandBus`, `QueryBus`, `EventBus`, `DistributedBus`, `MessagePublisher` and `#[ContentType]` all name it |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` | a default parameter value on `SimpleMessageChannelBuilder::create()`/`::createQueueChannel()`, and on `#[KafkaConsumer]`/`#[RabbitConsumer]` |
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` | `ServiceConfiguration::withConnectionRetryTemplate()`, `ErrorHandlerConfiguration::create()` |
 
-None of the three is in `upgrade/namespace-map-2.0.csv`, so none was considered during the 2.0 move. Do not sweep
-them on the way past — moving a class an application imports is a breaking change and the maintainer's call — but
-do not add a fourth.
+`upgrade-2.0.md` §13a and the three new rows in `upgrade/namespace-map-2.0.csv` are the record. Note what did
+**not** move with them: `RetryTemplateBuilder::build()` still returns
+`Ecotone\Messaging\Handler\Recoverability\RetryTemplate`, and that is correct — the framework calls `build()`,
+the application only calls the static factories. The who-calls-it test decides the class *and* each of its methods.
 
 **`#[ModuleAnnotation]` is the deliberate edge case**, and worth knowing so it is not read as precedent: no
 application writes it, only a module does, and modules are written in packages outside this monorepo too. Extension

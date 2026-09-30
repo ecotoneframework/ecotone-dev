@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\MethodArgument;

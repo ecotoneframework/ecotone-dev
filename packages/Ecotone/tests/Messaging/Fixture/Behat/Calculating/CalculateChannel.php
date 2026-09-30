@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Messaging\Fixture\Behat\Calculating;
 
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Conversion\MediaType;
 
 /**
  * licence Apache-2.0

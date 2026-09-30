@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;

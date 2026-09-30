@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -22,7 +23,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\Type;

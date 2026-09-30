@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
 use RdKafka\KafkaConsumer;

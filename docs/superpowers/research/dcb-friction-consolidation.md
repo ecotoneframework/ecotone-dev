@@ -209,8 +209,9 @@ that look ambiguous — **who calls it**:
   `Api/ExtensionObject/SimpleMessageChannelBuilder.php:159`,
   `Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153`, and each framework package's channel builder. So is what
   a method body reaches for — `Assert`, `Definition`, `DefinedObject`, imported by 39 of the 167 `Api` files.
-- It is a leak when the **application** is the caller. Three exist in the tree, found while checking rather than
-  assumed, and all three are the *first* invariant failing — a user-facing type still sitting in `src`:
+- It is a leak when the **application** is the caller. Three existed, found while checking rather than assumed, and
+  all three were the *first* invariant failing — a user-facing type still sitting in `src`. All three have since
+  been moved (see below):
 
 | Internal type | Where an application meets it |
 |---|---|
@@ -218,9 +219,9 @@ that look ambiguous — **who calls it**:
 | `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | a default parameter value on `SimpleMessageChannelBuilder::create()` and `::createQueueChannel()` (`:52,75`) |
 | `Ecotone\Messaging\Conversion\MediaType` | the `string|MediaType|null $conversionMediaType` unions on those same two factories |
 
-None of the three appears in `upgrade/namespace-map-2.0.csv`, so none was weighed during the 2.0 `Api` move. They
-are recorded as follow-up 5 below rather than moved: a class an application imports cannot be relocated without a
-breaking change, and that is the maintainer's call, not a documentation task's.
+None of the three appeared in `upgrade/namespace-map-2.0.csv`, so none was weighed during the 2.0 `Api` move. They
+were first recorded as a follow-up, because relocating a class an application imports is a breaking change and the
+maintainer's call — and then the maintainer made it. §7 is what that took.
 
 `#[ModuleAnnotation]` is written up as the deliberate edge case — only a module writes it, and modules live in
 packages outside this monorepo, so extension authors count as users. Stating it stops it being read as precedent for
@@ -231,9 +232,80 @@ Worth noting for whoever picks up the follow-up: **nothing mechanical checks thi
 fails a build. A `bin/` script asserting that no `Api` class names a non-`Api` Ecotone type outside `compile()` and
 `getDefinition()` would turn 12a into a gate; it is not one today.
 
-### Follow-up 5 — three user-facing types still in `src`
+### Follow-up 5 — closed, see §7
 
-`RetryTemplateBuilder`, `FinalFailureStrategy` and `MediaType` are named in `Api` signatures an application calls,
-so configuring retries, a channel's failure strategy or a conversion media type means importing from an `@internal`
-namespace. Moving them to `Api` is a breaking change for 1.x-era code and was not part of the 2.0 mapping; it needs
-a maintainer decision on whether 2.0 is still the window for it.
+The three user-facing types are now in `Api`; the follow-up is discharged rather than outstanding.
+
+---
+
+## 7. The three leaks closed
+
+Maintainer decision, taken after 12a was written: move all three into `Ecotone\Api\ExtensionObject\*`, beside the
+`ServiceConfiguration`, `ErrorHandlerConfiguration` and `SimpleMessageChannelBuilder` that take them. `Api` has no
+folder for a plain value object, and of the three candidates — flat at the `Api` root, namespaces mirroring the
+internal ones (`Api\Conversion`, `Api\Endpoint`, `Api\Recoverability`), or the existing `ExtensionObject` — the
+maintainer chose the third: no new namespaces for three classes.
+
+| Was | Now |
+|---|---|
+| `Ecotone\Messaging\Conversion\MediaType` | `Ecotone\Api\ExtensionObject\MediaType` |
+| `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` |
+| `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` |
+
+**Scope: 236 files.** Three `git mv`s, 230 files whose imports changed, and four skill reference files whose copyable
+examples carried the old FQCN. One test file used inline fully-qualified names rather than imports
+(`packages/Dbal/tests/Integration/DocumentStore/DbalDocumentStoreTest.php`), which a `use`-statement-only rewrite
+would have missed — worth knowing before the next namespace move.
+
+**The hazard rule 12 already records, and how it was handled.** A class that moves out of a namespace breaks every
+*same-namespace* sibling that referenced it without an import — the thing that "broke fifteen classes during the
+namespace split". Handled by rewriting each file from its own namespace outward: replace the import where there was
+one, and add an import where the reference had been resolving implicitly. 16 files in `Messaging\Conversion` and 4 in
+`Messaging\Endpoint` needed the addition. A verifier then walked all `packages`, `Monorepo` and
+`quickstart-examples` PHP files looking for a bare reference with no matching import and found one hit, inside a
+commented-out line in `MessagingSystemConfiguration.php:1072`.
+
+Files now in `Api\ExtensionObject` import their own siblings explicitly (`use Ecotone\Api\ExtensionObject\MediaType;`
+inside `SimpleMessageChannelBuilder`, itself in that namespace) because rule 12 requires it: a bare sibling reference
+works until the namespace is split again, and phpstan at level 1 will not catch it.
+
+**What did not move.** `RetryTemplateBuilder::build()` still returns
+`Ecotone\Messaging\Handler\Recoverability\RetryTemplate`. The framework calls `build()`, the application only
+calls the static factories, so by 12a's own test the return type is not public surface. The who-calls-it test applies
+per method, not just per class.
+
+**Verification.** 233 changed PHP files lint clean; root phpstan green; and these suites run from the root config,
+sequentially, in the container:
+
+| Suite | Result |
+|---|---|
+| Core (`packages/Ecotone/tests`) | 1639 tests, OK, 1 skipped |
+| Dbal | 303 tests, OK |
+| Event Sourcing | 421 tests, OK, 13 skipped |
+| Jms Converter | 54 tests, OK |
+| Enqueue | 1 test, OK |
+| Monorepo cross-module | 76 tests, OK |
+| Amqp | 132 tests, OK, 33 skipped |
+| SQS | 33 tests, OK |
+| Redis | 16 tests, OK |
+| Kafka | 63 tests, OK (16m23s — it looks hung long before it is) |
+| OpenTelemetry | 35 tests, OK |
+| Tempest | 66 tests, OK |
+| DataProtection | 1395 tests, OK, 207743 assertions — after `tests/before-tests.sh` generates its 200 MB fixture; without it, 4 `fopen` errors that have nothing to do with this change |
+| Symfony | 2 errors — **pre-existing**, identical on the base commit (`DcbSmokeTest`, a Symfony DI resource-loading failure unrelated to this change) |
+| Laravel | 2 errors — **pre-existing**, identical on the base commit (`DcbSmokeTest`) |
+
+Both failing suites were re-run on `30d714f1b`, the commit before the move, and produced the same two failures, so
+neither is a regression. Two things worth recording from that exercise:
+
+- One further Symfony error (`EnvPlaceholderKafkaConsumerTest`) appeared on the first run only and did not
+  reproduce — a cold Kafka broker, not the change. A suite run within a minute of `docker compose up` can fail for
+  that reason alone even though the healthchecks have passed.
+- Running the baseline left a **stale compiled container** in Laravel's gitignored cache
+  (`packages/Laravel/tests/Application/storage/framework/cache/data/ecotone/…`) holding the pre-move FQCNs. It is
+  untracked, so it never reached the diff, but it is the kind of artifact that makes a later run fail for a reason
+  that is not in the source. Laravel was re-run with that directory deleted, and produced the same two pre-existing
+  errors.
+
+**Still not verified:** the PHP 8.2 floor (`app8_2`), and the quickstart examples. Both exercise the same import
+rewrite the 14 suites above already cover, so the risk is low, but neither was run.

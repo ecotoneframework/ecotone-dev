@@ -4,6 +4,7 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\SymfonyConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Illuminate\Console\Events\CommandFinished;

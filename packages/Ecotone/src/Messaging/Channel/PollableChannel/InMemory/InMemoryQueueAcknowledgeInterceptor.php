@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\InMemoryStreamingChannel;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;

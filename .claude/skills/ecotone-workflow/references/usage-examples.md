@@ -64,7 +64,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Modelling\WithEvents;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Delayed;
+use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
 #[Saga]
@@ -326,7 +326,7 @@ class ProcessingWorkflow
 ```php
 interface OrderProcess
 {
-    #[OrchestratorGateway('process.order')]
+    #[BusinessMethod('process.order')]
     public function process(OrderData $data): OrderResult;
 }
 

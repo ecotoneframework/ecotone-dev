@@ -98,7 +98,8 @@ public function test_saga_retries_payment_after_delay(): void
 
     $ecotone
         ->publishEvent(new OrderWasPlaced('123'))
-        ->run('async', new TimeSpan(hours: 1));
+        ->advanceTimeBy(new TimeSpan(hours: 1))
+        ->run('async');
 
     $saga = $ecotone->getSaga(OrderProcess::class, '123');
     $this->assertEquals(2, $saga->getPaymentAttempt());
@@ -146,7 +147,8 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 
 $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->run('async', new TimeSpan(hours: 1));
+    ->advanceTimeBy(new TimeSpan(hours: 1))
+    ->run('async');
 ```
 
 ## Testing Stateless Workflow Chains
@@ -220,7 +222,7 @@ Orchestrator tests require Enterprise licence configuration.
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Testing\LicenceTesting;
+use Ecotone\Test\LicenceTesting;
 
 public function test_orchestrator_executes_steps_in_order(): void
 {
@@ -238,7 +240,7 @@ public function test_orchestrator_executes_steps_in_order(): void
 }
 ```
 
-### Testing Orchestrator via Business Interface (OrchestratorGateway)
+### Testing Orchestrator via Business Interface (`#[BusinessMethod]`)
 
 ```php
 public function test_orchestrator_via_business_interface(): void

@@ -59,7 +59,8 @@ Methods:
 
 Source: `Ecotone\Api\Attribute\InternalHandler`
 
-Extends `ServiceActivator`. For internal message routing not exposed via bus.
+Extends `InputOutputEndpointAnnotation` directly. For internal message routing not exposed via a bus
+(`#[ServiceActivator]` was removed in 2.0 -- this is the only such attribute now).
 
 ```php
 #[InternalHandler(
@@ -83,7 +84,7 @@ By default (`changingHeaders: false`), if the handler returns `null`, the chain 
 
 ### Header-changer mode (`changingHeaders: true`, Enterprise)
 
-Source: `Ecotone\Api\Attribute\ServiceActivator` / `Ecotone\Api\Attribute\InternalHandler`
+Source: `Ecotone\Api\Attribute\InternalHandler`
 
 With `changingHeaders: true`, the handler's return value is treated as headers to merge, not as the new payload:
 
@@ -128,21 +129,39 @@ Parameters:
 - `inputChannelName` (string, required) -- channel that triggers the orchestrator
 - `endpointId` (string, optional) -- required when used with `#[Asynchronous]`
 
-## #[OrchestratorGateway] Attribute (Enterprise)
+## Invoking a Fixed Orchestrator via Business Interface
 
-Source: `Ecotone\Api\Attribute\OrchestratorGateway`
-
-Method-level attribute on interface methods. Creates business interface gateway.
+A fixed orchestrator (one with an `#[Orchestrator(inputChannelName: ...)]` entry point) is invoked like any other
+endpoint, through `#[BusinessMethod]` targeting that channel:
 
 ```php
-use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface MyWorkflowProcess
 {
-    #[OrchestratorGateway('workflow.start')]
+    #[BusinessMethod('workflow.start')]
     public function start(mixed $data): mixed;
 }
 ```
 
-Parameters:
-- First argument (string, required) -- the input channel name of the orchestrator to invoke
+## #[OrchestratorGateway] Attribute (Enterprise)
+
+Source: `Ecotone\Api\Attribute\OrchestratorGateway`
+
+Method-level attribute on interface methods. Takes **no arguments** -- unlike `#[BusinessMethod]`, it lets the
+*caller* supply the routing slip itself at call time instead of routing to a fixed `#[Orchestrator]` method.
+
+```php
+use Ecotone\Api\Attribute\OrchestratorGateway;
+
+interface MyDynamicWorkflowProcess
+{
+    #[OrchestratorGateway]
+    public function start(array $routingSlip, mixed $data, array $metadata): mixed;
+}
+```
+
+Parameters (fixed method shape -- all three are required):
+- `$routingSlip` (`string[]`) -- ordered list of internal channel names to execute
+- `$data` (`mixed`) -- payload passed to the first step
+- `$metadata` (`array`) -- message headers

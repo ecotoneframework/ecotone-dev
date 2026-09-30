@@ -6,10 +6,8 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Config\EventStoreReference;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\Event;
 use Symfony\Component\Uid\Uuid;
@@ -76,10 +74,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true
         );
 
-        /** @var EventStore $eventStore */
-        $eventStore = $ecotone->getServiceFromContainer(EventStoreReference::EVENT_STORE_INSTANCE);
-
-        return $eventStore;
+        return $ecotone->getGateway(EventStore::class);
     }
 
     private function createStreamTable(string $streamName): void

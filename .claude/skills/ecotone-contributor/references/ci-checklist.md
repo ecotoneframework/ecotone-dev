@@ -114,5 +114,5 @@ composer tests:ci
 5. [ ] PHPStan passes: `vendor/bin/phpstan analyse`
 6. [ ] Test methods use `snake_case`
 7. [ ] No comments in production code
-8. [ ] PHPDoc on new public API methods
+8. [ ] No descriptive docblocks on new code (array shapes and `@link` only)
 9. [ ] PR description with Why/What/CLA

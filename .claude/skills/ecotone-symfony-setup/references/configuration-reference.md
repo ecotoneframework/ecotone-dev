@@ -32,8 +32,9 @@ ecotone:
         maxAttempts: 3
         multiplier: 2
 
-    # Skip specific module packages
-    skippedModulePackageNames: []
+    # Explicit list of module packages to load (e.g. dbal, amqp); omit the key
+    # entirely to load every installed package
+    modulePackages: []
 
     # Enterprise licence key
     licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
@@ -51,7 +52,7 @@ ecotone:
 | `defaultErrorChannel` | `null` | Error channel name |
 | `defaultMemoryLimit` | `null` | Consumer memory limit (MB) |
 | `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
+| `modulePackages` | every installed package | Explicit list of module packages to load; the key must be present to restrict loading at all |
 | `licenceKey` | `null` | Enterprise licence key |
 | `test` | `false` | Enable test mode |
 

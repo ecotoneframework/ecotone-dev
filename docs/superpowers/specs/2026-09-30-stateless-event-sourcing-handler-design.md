@@ -11,7 +11,7 @@ benchmarks in the scratchpad, described in Part 5 and deleted.*
 **Ship the stateless fold by allowing an `#[EventSourcingHandler]` to declare the model's own type as its return
 type, and thread that returned value through the fold.** Detection is the declared return type, and it is free of
 back-compatibility risk because Ecotone *already rejects* a non-void event sourcing handler at configuration time
-(`EventSourcingHandlerExecutorBuilder.php:54`) — a repo-wide scan of all 307 `#[EventSourcingHandler]` occurrences
+(`EventSourcingHandlerExecutorBuilder.php:54`) — a repo-wide scan of every `#[EventSourcingHandler]` in the tree
 found no returning handler outside the fixtures that exist to assert that rejection. Ship it for **decision models
 first**, because a decision model is already a pure fold result handed to a handler as a parameter, with no
 `#[Identifier]`, no `#[Version]`, and no save path — the change there is genuinely small. For **aggregates**, ship the
@@ -481,9 +481,10 @@ is right for Axon because Axon 4 handlers could legally return things; that is n
 **Is this a breaking change? No.** Concretely:
 
 - For aggregates, a returning handler throws `ConfigurationException` today, so no working application has one.
-- Repo-wide, all 307 `#[EventSourcingHandler]` occurrences were scanned across `packages/`, `quickstart-examples/`,
-  `Monorepo/`, `docs/` and `upgrade/`. The only non-void signatures are the two fixtures that exist to assert the
-  rejection, plus two false positives where the signature spans lines because of a `#[Header]` parameter.
+- Repo-wide, every `#[EventSourcingHandler]` was scanned outside `vendor/` — 277 in 129 PHP files and 30 in
+  documentation samples, across `packages/`, `quickstart-examples/`, `Monorepo/`, `docs/` and `upgrade/`. The only
+  non-void signatures are the two fixtures that exist to assert the rejection, plus two matches where the signature
+  spans lines because of a `#[Header]` parameter and the scan's regex stopped early.
 - For decision models there is one genuine gap: `DecisionModelDefinitionBuilder` never checked for a void return, so
   a returning handler is accepted and ignored. Since decision models ship for the first time in 2.0, the installed
   base is zero, but the *semantics* of such a handler would change from "ignored" to "threaded". Adding the same
@@ -579,7 +580,7 @@ behaviourally equivalent.
 | `#[Identifier]` | Read *after* the fold, off the final instance, by `SaveAggregateServiceTemplate::getAggregateIds` via property read or a getter — works unchanged on `readonly` properties. A promoted `#[Identifier] public readonly string $id` is read the same way. |
 | `#[Version]` / `#[TargetVersion]` | The blocker of Part 4.3. `#[Version]` must stay writable. `#[TargetVersion]` is unaffected: it is read off the *command*, not the aggregate. |
 | `#[AggregateType]` | Unaffected — a class-level declaration, not state. |
-| Recorded events | `WithEvents::popRecordedEvents()` mutates `$this->recordedEvents` and is therefore incompatible with a fully immutable object. Stateless aggregates should use the pure flavour (return events) — which is the Part 4.4 recommendation anyway. The two features are naturally paired; say so in the docs rather than trying to make `recordThat()` immutable. |
+| Recorded events | Mechanically compatible: the trait's `$recordedEvents` is an ordinary mutable private property, and `AggregateResolver::resolveSingleAggregate` pops the events off the called instance *before* folding the new events forward, so nothing is lost. Conceptually it is a mismatch — an immutable state object with a mutating event buffer — and the pure flavour (return events) is the Part 4.4 recommendation. Document the pairing rather than making `recordThat()` immutable. |
 | Snapshots | See 4.6. |
 
 ### 4.6 Snapshots

@@ -1434,6 +1434,50 @@ application, calls `build()`. `MediaType` is also still what `CommandBus`, `Quer
 signature was forcing an `@internal` import on every application that used it. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
+### 13b. `EventStore` and `ConversionService` moved into `Api` too
+
+**Before:** the event store gateway and the conversion service sat in `@internal` namespaces, although an
+application fetches the first and has the second injected:
+
+```php
+use Ecotone\EventSourcing\EventStore;                  // internal
+use Ecotone\Messaging\Conversion\ConversionService;    // internal
+```
+
+**Now:** `EventStore` lives beside the `AppendCondition`, `EventCriteria` and `LoadedEvents` it takes and returns,
+so a typical usage imports from one namespace. `ConversionService` has its own area namespace:
+
+```php
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\Conversion\ConversionService;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` |
+| `Ecotone\Messaging\Conversion\ConversionService` | `Ecotone\Api\Conversion\ConversionService` |
+
+**How to adapt:** replace the two imports; both rows are in `upgrade/namespace-map-2.0.csv`. Same interface names,
+same methods. The event store's container id is unchanged: `EventStore::RAW_REFERENCE` is still
+`'ecotone.eventSourcing.eventStore.instance'`.
+
+**The conversion service's container id did change.** `ConversionService::REFERENCE_NAME` is `self::class`, so the
+id is the class name and moved with it, from `'Ecotone\Messaging\Conversion\ConversionService'` to
+`'Ecotone\Api\Conversion\ConversionService'`. An application that names the service id as a literal string — in
+`getServiceFromContainer()`, a `#[Reference('...')]`, or a framework alias or binding — has to change that string.
+Resolve it by type instead, so the id can never drift from the class again:
+
+```php
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Conversion\ConversionService;
+
+$conversionService = $ecotone->getGateway(ConversionService::class);
+
+#[CommandHandler]
+public function handle(ConvertOrder $command, #[Reference] ConversionService $conversionService): void
+```
+
 ## 14. Smaller behaviour changes
 
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).

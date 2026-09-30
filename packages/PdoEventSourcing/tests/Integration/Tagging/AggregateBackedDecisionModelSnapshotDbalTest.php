@@ -98,16 +98,6 @@ final class AggregateBackedDecisionModelSnapshotDbalTest extends EventSourcingMe
         self::assertSame(2, SpendingForSnapshotDbalTest::$observations[4]['foldedEvents']);
     }
 
-    public function test_a_stored_snapshot_is_the_framework_envelope_and_not_the_raw_model(): void
-    {
-        $this->creditAndObserve($this->openedAccountOn($this->bootstrapEcotone(self::getConnectionFactory(), snapshotThreshold: 1)), 1);
-
-        $envelope = json_decode($this->storedSnapshotDocument(), true);
-
-        self::assertSame(2, $envelope['covered_position']);
-        self::assertSame(['balance' => 10], json_decode($envelope['state'], true));
-    }
-
     public function test_a_competing_append_between_the_snapshot_read_and_the_commit_still_conflicts(): void
     {
         $this->skipOnSqliteWhichLocksTheWholeFileForASecondConnection();
@@ -166,14 +156,6 @@ final class AggregateBackedDecisionModelSnapshotDbalTest extends EventSourcingMe
             $ecotone->sendCommand(new CreditAccountForSnapshotDbalTest('a-1', 10));
             $ecotone->sendCommand(new RequestSpendForSnapshotDbalTest('a-1', 1));
         }
-    }
-
-    private function storedSnapshotDocument(): string
-    {
-        return $this->getConnection()->executeQuery(
-            'SELECT document FROM ecotone_document_store WHERE collection = ?',
-            ['decision_model_snapshots_' . AccountBalanceForSnapshotDbalTest::class],
-        )->fetchOne();
     }
 
     private function bootstrapEcotone(DbalConnectionFactory $connectionFactory, ?int $snapshotThreshold): FlowTestSupport

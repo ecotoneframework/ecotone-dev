@@ -40,20 +40,22 @@ public static function bootstrapFlowTestingWithEventStore(
 ): FlowTestSupport
 ```
 
-### `EcotoneLite::bootstrapFlowTesting()`
+### `EcotoneLite::bootstrap()`
 
-Low-level bootstrap with full control. Does not skip any packages automatically.
+Production/standalone bootstrap (not a test helper) -- loads every installed module package and returns the live
+messaging system rather than `FlowTestSupport`.
 
 ```php
-public static function bootstrapFlowTesting(
+public static function bootstrap(
     array                    $classesToResolve = [],
     ContainerInterface|array $containerOrAvailableServices = [],
     ?ServiceConfiguration    $configuration = null,
     array                    $configurationVariables = [],
+    bool                     $useCachedVersion = false,
     ?string                  $pathToRootCatalog = null,
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     ?string                  $licenceKey = null,
-): FlowTestSupport
+): ConfiguredMessagingSystem
 ```
 
 ## FlowTestSupport Methods
@@ -115,11 +117,13 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `initializeProjection(string $name, array $metadata = [])` | `self` | Initialize projection |
+| `initializeProjection(string $name)` | `self` | Initialize projection |
 | `triggerProjection(string\|array $name)` | `self` | Trigger projection catch-up |
 | `resetProjection(string $name)` | `self` | Reset projection (clear + reinit) |
 | `deleteProjection(string $name)` | `self` | Delete projection |
-| `stopProjection(string $name)` | `self` | Stop projection |
+
+`stopProjection()` was removed in 2.0 with no replacement: stop a `#[Polling]` projection in a test by simply not
+calling `->run($endpointId)` again; a synchronous or async-channel projection has no "stop" concept to begin with.
 
 ### Time Control
 
@@ -134,4 +138,6 @@ public static function bootstrapFlowTesting(
 |--------|---------|-------------|
 | `getGateway(string $gatewayClass)` | `object` | Get gateway instance |
 | `getServiceFromContainer(string $serviceId)` | `object` | Get service from container. Not for reaching Ecotone's own internals in a test -- use `getGateway()`; see `docs/coding-conventions.md` rule 10 |
-| `getMessagingSystem()` | `ConfiguredMessagingSystem` | Get messaging system |
+| `getCommandBus()` / `getEventBus()` / `getQueryBus()` | `CommandBus` / `EventBus` / `QueryBus` | Get the bus gateway directly |
+| `runConsoleCommand(string $name, array $parameters = [])` | `mixed` | Run a registered console command |
+| `initializeDatabase()` | `self` | Create every registered feature's DB tables -- tables are no longer created on the fly (see `docs/coding-conventions.md` rule 16) |

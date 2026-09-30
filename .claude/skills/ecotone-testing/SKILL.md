@@ -37,14 +37,14 @@ $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
 );
 ```
 
-## 3. Core Testing Patterns
+## 2. Core Testing Patterns
 
 ### Simple Handler
 
 ```php
 public function test_handling_command(): void
 {
-    $handler = new #[CommandHandler] class {
+    $handler = new class {
         public bool $called = false;
         #[CommandHandler]
         public function handle(PlaceOrder $command): void
@@ -165,7 +165,7 @@ public function test_with_service_dependency(): void
 }
 ```
 
-## 4. Debugging Test Failures
+## 3. Debugging Test Failures
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|

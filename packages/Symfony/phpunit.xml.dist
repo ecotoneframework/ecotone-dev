@@ -11,6 +11,7 @@
     <php>
         <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
         <server name="APP_SECRET" value="test" />
+        <env name="APP_ENV" value="test" force="true" />
     </php>
     <source>
         <include>

@@ -26,12 +26,14 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\Converter;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
@@ -165,6 +167,19 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
             $withoutDcb->sendQueryWithRouting('docPurse.version', metadata: ['aggregate.id' => 'without-dcb']),
             $withDcb->sendQueryWithRouting('docPurse.version', metadata: ['aggregate.id' => 'with-dcb']),
         );
+    }
+
+    public function test_a_state_stored_aggregate_save_after_the_tag_tables_are_deleted_in_the_same_process_raises_the_missing_table_instruction(): void
+    {
+        $ecotone = $this->bootstrapEcotone(self::getConnectionFactory());
+        $ecotone->sendCommand(new OpenPurseForCounterDbalTest('p-1'));
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [TagTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(TagTableManager::FEATURE_NAME, TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE, null));
+
+        $ecotone->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 30));
     }
 
     public function test_a_state_stored_aggregate_save_without_a_transaction_is_rejected_naming_how_to_enable_one(): void

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging;
+namespace Ecotone\Api\Interceptor;
 
 /**
  * The lower value, the quicker interceptor will be run

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\TracerProviderInterface as SdkTracerProviderInterface;
 

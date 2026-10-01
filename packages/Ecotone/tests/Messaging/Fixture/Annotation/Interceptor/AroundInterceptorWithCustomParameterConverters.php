@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Payload;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use stdClass;
 
 /**

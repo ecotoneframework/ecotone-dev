@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Closure;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use stdClass;
 
 /**

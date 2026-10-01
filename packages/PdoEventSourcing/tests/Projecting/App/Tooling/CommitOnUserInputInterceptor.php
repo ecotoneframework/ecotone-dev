@@ -9,8 +9,8 @@ namespace Test\Ecotone\EventSourcing\Projecting\App\Tooling;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Precedence;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Transaction\Transactional;
 
 class CommitOnUserInputInterceptor

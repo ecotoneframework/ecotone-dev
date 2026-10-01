@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGateway;
 use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Before;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 /**
  * licence Apache-2.0

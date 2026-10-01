@@ -5,7 +5,7 @@ namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 use Closure;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\PropagateHeaders;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;

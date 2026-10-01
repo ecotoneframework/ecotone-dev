@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalTransaction\DbalTransaction;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -19,7 +20,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Precedence;
 
 #[ModuleAnnotation]
 /**

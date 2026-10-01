@@ -9,8 +9,8 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**
  * licence Apache-2.0

@@ -6,8 +6,8 @@ Source pattern: `Ecotone\Messaging\Transaction\TransactionInterceptor`
 
 ```php
 use Ecotone\Api\Attribute\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Precedence;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 
 class TransactionInterceptor
 {
@@ -173,7 +173,7 @@ class HeaderEnricher
 
 ```php
 use Ecotone\Api\Attribute\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 class EnrichmentInterceptor
 {

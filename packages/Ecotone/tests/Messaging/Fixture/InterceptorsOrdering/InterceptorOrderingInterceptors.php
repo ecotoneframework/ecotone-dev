@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 /**
  * licence Apache-2.0

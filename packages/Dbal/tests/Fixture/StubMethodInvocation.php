@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Dbal\Fixture;
 
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use stdClass;
 
 /**

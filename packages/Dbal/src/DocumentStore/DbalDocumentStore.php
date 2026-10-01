@@ -17,6 +17,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
 use Ecotone\Messaging\Support\ConcurrencyException;
@@ -370,7 +371,7 @@ final class DbalDocumentStore implements DocumentStore
                 $select['document'],
                 Type::string(),
                 MediaType::createApplicationJson(),
-                $documentType,
+                $this->typeToReadBackAs($documentType),
                 MediaType::createApplicationXPHP()
             );
         } catch (ConversionException $conversionException) {
@@ -378,5 +379,29 @@ final class DbalDocumentStore implements DocumentStore
         }
 
         return $data;
+    }
+
+    private function typeToReadBackAs(Type $recordedType): Type
+    {
+        if ($recordedType->isIterable() && $this->namesNoClass($recordedType)) {
+            return Type::array();
+        }
+
+        return $recordedType;
+    }
+
+    private function namesNoClass(Type $type): bool
+    {
+        if (! $type instanceof GenericType) {
+            return ! $type->isClassOrInterface();
+        }
+
+        foreach ([$type->type, ...$type->genericTypes] as $genericType) {
+            if (! $this->namesNoClass($genericType)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

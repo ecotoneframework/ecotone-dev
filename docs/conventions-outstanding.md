@@ -54,7 +54,7 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 
 | Rule | Decision |
 |---|---|
-| 9 | **Conformance suite shipped; its findings are the queue.** `EventStoreConformanceTest`, `TaggedEventStoreConformanceTest` (`packages/PdoEventSourcing/tests/Conformance/`) and `DocumentStoreConformanceTest` (`packages/Dbal/tests/Conformance/`) run every case against each in-memory wiring and DBAL, on PostgreSQL, MySQL, MariaDB and SQLite. Each suite's `KNOWN_DIVERGENCES` ratchet skips a recorded case and fails once it stops diverging. What the suite found, what each side does, and the two seams below are in `docs/superpowers/specs/2026-10-01-conformance-suite-report.md`. **T1 is closed** — `bootstrapFlowTestingWithEventStore()` indexes `#[EventTag]` again; the report says how. **Next, in order:** (1) the user-facing bugs **D5** (a mixed-type array document cannot be read back through JMS) and **D4** (MySQL/MariaDB document ids collide on case); (2) a maintainer decision per remaining divergence (E1–E9, E11, E13, D1, D3). **Deduplication and dead letter are not seams yet:** `DeduplicationInterceptor` and `DbalDeadLetterHandler` are concrete DBAL classes, so an in-memory implementation first needs an interface extracted and the policy moved to core — a design change sketched in the report, not built |
+| 9 | **Conformance suite shipped; its findings are the queue.** `EventStoreConformanceTest`, `TaggedEventStoreConformanceTest` (`packages/PdoEventSourcing/tests/Conformance/`) and `DocumentStoreConformanceTest` (`packages/Dbal/tests/Conformance/`) run every case against each in-memory wiring and DBAL, on PostgreSQL, MySQL, MariaDB and SQLite. Each suite's `KNOWN_DIVERGENCES` ratchet skips a recorded case and fails once it stops diverging. What the suite found, what each side does, and the two seams below are in `docs/superpowers/specs/2026-10-01-conformance-suite-report.md`. **T1 is closed** — `bootstrapFlowTestingWithEventStore()` indexes `#[EventTag]` again; the report says how. **D5 is closed** — a DBAL array document naming no class is read back as a plain array, so mixed value types survive; the report says how. **D4 is decided as a documented engine limitation** — the id inherits the database's default collation, `upgrade-2.0.md` states it with the opt-in `ALTER`, and the entry stays with the engines named; the report weighs the options. **Next:** a maintainer decision per remaining divergence (E1–E9, E11, E13, D1, D3). **Deduplication and dead letter are not seams yet:** `DeduplicationInterceptor` and `DbalDeadLetterHandler` are concrete DBAL classes, so an in-memory implementation first needs an interface extracted and the policy moved to core — a design change sketched in the report, not built |
 | 8 | **Shipped where a version can be observed; four limits of the rule and one misnamed opt-out found.** See *Rule 8* below |
 
 ### Rule 8 — what shipped, and four limits of the rule as written
@@ -104,9 +104,29 @@ committed, it would pin the no-op): a model hydrated by `EloquentRepository::fin
 **`0` on every load** — the declared property's default, never hydrated from the column — and
 `EloquentRepository::save()` with the property at `7` leaves the `version` column at **`0`**: Ecotone's enrichment
 writes the declared PHP property, which Eloquent never persists. So `$versionBeforeHandling` is `0` on every load
-and a check has nothing to compare. The fix is a maintainer decision with three shapes — a convention mapping
-`#[Version]` onto an attribute, a bootstrap refusal (rule 1a; it would break every application carrying a harmless,
-inert `#[Version]` on an Eloquent model today), or a documented limitation. `upgrade-2.0.md` states the limitation.
+and a check has nothing to compare. **Decided by the storage-defects unit: a documented limitation**, after the two
+shapes ahead of it were measured and ruled out:
+
+- *Making it work* needs a persistence convention an application has to know. Ecotone reads and writes `#[Version]`
+  through `getVersion()` / `setVersion()` or else the declared property (`PropertyReaderAccessor`,
+  `PropertyEditorAccessor`), and the attribute only targets a property, so the repository would have to copy a column
+  named after that property into it on `findBy()` — a declared property shadowing an Eloquent attribute of the same
+  name. And the guarded write cannot go through `Model::save()`: `performUpdate()` discards the affected-row count, so
+  `UPDATE … AND version = ?` matching nothing is indistinguishable from success, and bypassing `save()` drops the
+  model's `saving` / `updating` / `saved` events and its timestamps
+- *A bootstrap refusal* cannot tell when it applies. The repository serving an aggregate is chosen at runtime, by the
+  first `canHandle()` in `AllAggregateRepository` — an application's own `#[Repository]` first — so compile time cannot
+  know whether Eloquent will store a given model, and the refusal would fire on the very configuration it should point
+  to. Blast radius, measured anyway: the quickstarts hold 2 Eloquent aggregates
+  (`Laravel/Projection/EloquentReadModel` `UserReadModel`, `MultiTenant/Laravel/Aggregate` `Customer`) and `#[Version]`
+  appears nowhere in `quickstart-examples`, so it would have broken none of them
+
+`upgrade-2.0.md` states the no-op and the two ways out: a plain class in the document-store repository, or the
+application's own `#[Repository]` for the model, running the guarded update itself.
+`EloquentRepositoryTest::test_an_application_repository_for_an_eloquent_model_is_chosen_over_eloquent_and_given_the_version_it_loaded`
+pins what that second way out relies on — the application's repository wins over Eloquent's, and `save()` receives the
+version `findBy()` loaded with the property moved past it; with the application's `canHandle()` returning `false`, the
+same test reaches `EloquentRepository` and fails on the table.
 
 **Limit 4 — Tempest cannot observe a guarded update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
 `Database::execute()` returns `void`, `GenericDatabase` keeps the `PDOStatement` in a private property, and

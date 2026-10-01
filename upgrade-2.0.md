@@ -1687,6 +1687,14 @@ repository of a flow test, is now checked against the version it was loaded at:
   `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
   it back as `0` on every load. Tempest persists it, but its database API does not report whether a guarded update
   matched a row, so a conflict cannot be observed. Concurrent saves of either still overwrite each other.
+  `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
+  Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
+  table and register a repository of your own for the model: a `#[Repository]` class implementing
+  `Ecotone\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
+  `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
+  `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
+  `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
+  `Ecotone\Messaging\Support\ConcurrencyException::forStaleAggregate()`, as every other backend does.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
 `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;
@@ -1704,6 +1712,23 @@ It is safe to run on a populated table, on PostgreSQL, MySQL, MariaDB and SQLite
 document at version 1, which is what `getDocumentVersion()` then reports and what the next write expects. Reads —
 `getDocument()`, `findDocument()`, `getAllDocuments()`, `countDocuments()` — work on the 1.x table before the column is
 added. Tables created by 2.0 already have it.
+
+**Unchanged, and stated here because the conformance suite measured it: on MySQL and MariaDB a document id compares
+under the database's collation.** Ecotone creates the table without a collation of its own, so `collection` and
+`document_id` inherit the database default — `utf8mb4_0900_ai_ci` on MySQL 8.0, `utf8mb4_uca1400_ai_ci` on MariaDB
+11.4 — which ignores case and accents. Ids such as `order-a` and `ORDER-A`, or `cafe` and `café`, are then one
+document: adding the second is refused with a `DocumentException`, and `findDocument('orders', 'ORDER-A')` returns
+`order-a`. MariaDB also ignores trailing spaces. PostgreSQL, SQLite and the in-memory document store keep them apart.
+If your ids must stay distinct, convert both columns to a binary collation yourself:
+
+```sql
+ALTER TABLE ecotone_document_store
+    MODIFY collection VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    MODIFY document_id VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;
+```
+
+Neither engine can change a key column's collation in place, so the statement copies the table, and writes to it wait
+until it finishes. Afterwards a lookup has to use the id exactly as it was stored. Ecotone does not run it for you.
 
 **The DBAL event store checks `AppendCondition::forAggregate()`.** It used to rely only on its unique index on
 aggregate type, id and version, so an append under a stale expected version whose new event carried a version not yet

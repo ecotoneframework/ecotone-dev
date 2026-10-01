@@ -40,12 +40,8 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             'cases' => ['test_changing_an_object_after_storing_it_does_not_change_the_stored_document' => ['in-memory']],
         ],
         'D4' => [
-            'sides' => 'document ids differing only in case — MySQL and MariaDB collide on them through the case-insensitive collation of the primary key, in-memory, PostgreSQL and SQLite keep two documents',
+            'sides' => 'document ids differing only in case — the table takes the database default collation, case- and accent-insensitive on MySQL (utf8mb4_0900_ai_ci) and MariaDB (utf8mb4_uca1400_ai_ci), so the second id collides with the first; in-memory, PostgreSQL and SQLite keep two documents. Kept as a documented engine limitation (upgrade-2.0.md): a binary collation is an ALTER the application opts into, not one Ecotone runs',
             'cases' => ['test_document_ids_differing_only_in_case_are_distinct_documents' => ['dbal:mysql', 'dbal:mariadb']],
-        ],
-        'D5' => [
-            'sides' => 'an array document mixing value types — in-memory returns it, DBAL stores it as array<string,mixed> and cannot read it back through JMS (Class "mixed" does not exist)',
-            'cases' => ['test_an_array_document_mixing_value_types_is_returned_as_it_was_stored' => ['dbal']],
         ],
     ];
 
@@ -85,7 +81,37 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
         $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
             $documentStore->addDocument('orders', 'o-1', ['product' => 'milk', 'quantity' => 2]);
 
-            self::assertEquals(['product' => 'milk', 'quantity' => 2], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(['product' => 'milk', 'quantity' => 2], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(['product' => 'milk', 'quantity' => 2], $documentStore->findDocument('orders', 'o-1'));
+            self::assertSame([['product' => 'milk', 'quantity' => 2]], $documentStore->getAllDocuments('orders'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_array_document_keeps_the_type_of_every_value_not_only_of_its_first_and_last(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk', 'quantity' => 2, 'lines' => ['a', 'b'], 'size' => 'large']);
+
+            $document = $documentStore->getDocument('orders', 'o-1');
+            ksort($document);
+
+            self::assertSame(['lines' => ['a', 'b'], 'product' => 'milk', 'quantity' => 2, 'size' => 'large'], $document);
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_array_document_of_objects_is_returned_as_objects(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', [new OrderForDocumentStoreConformance('milk', 2), new OrderForDocumentStoreConformance('water', 1)]);
+            $documentStore->addDocument('orders', 'o-2', [[new OrderForDocumentStoreConformance('bread', 3)]]);
+
+            self::assertEquals(
+                [new OrderForDocumentStoreConformance('milk', 2), new OrderForDocumentStoreConformance('water', 1)],
+                $documentStore->getDocument('orders', 'o-1'),
+            );
+            self::assertEquals([[new OrderForDocumentStoreConformance('bread', 3)]], $documentStore->getDocument('orders', 'o-2'));
         });
     }
 

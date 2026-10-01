@@ -57,10 +57,55 @@ the tagged path; `dbal` is removed from E10, and the entry is gone. The rule 8 r
 through JMS throws `ReflectionException: Class "mixed" does not exist` (`DbalDocumentStore.php:300`). In-memory
 returns it. User-facing, DBAL-only, all four engines.
 
+**Closed by the storage-defects unit.** The recorded type was the narrower half of the defect: it is sampled from an
+array's first and last values only (`Type::createFromVariable()`), so `['product' => 'milk', 'quantity' => 2,
+'lines' => ['a', 'b'], 'size' => 'large']` is recorded as `array<string,string>` and could not be read back either —
+a new case, `test_an_array_document_keeps_the_type_of_every_value_not_only_of_its_first_and_last`, was red on DBAL
+before the fix. `DbalDocumentStore` now reads a recorded type that names no class — `array<string,mixed>`,
+`array<string,string>`, any nesting of those — as a plain `array`, which JMS decodes exactly; a type naming a class,
+`array<Order>` or `array<array<Order>>`, is read as before, pinned by
+`test_an_array_document_of_objects_is_returned_as_objects`. The write path and the stored `document_type` are
+unchanged, so rows written before the fix read back too. D5 is gone from `KNOWN_DIVERGENCES`, and the D5 case now
+also reads through `findDocument()` and `getAllDocuments()` and compares with `assertSame`, so a value cast to
+another type fails it. Green on PostgreSQL, MySQL, MariaDB and SQLite.
+
 ### D4 — MySQL and MariaDB treat document ids differing only in case as the same document
 
 The primary key's collation is case-insensitive, so `addDocument('orders', 'ORDER-A', …)` after `'order-a'` fails
 with a duplicate-key `DocumentException`. In-memory, PostgreSQL and SQLite keep two documents. User-facing.
+
+**Decided by the storage-defects unit: a documented engine limitation, kept in `KNOWN_DIVERGENCES`.** Measured on
+MySQL 8.0.46 and MariaDB 11.4.12 before choosing:
+
+- The collation is not Ecotone's. `DocumentStoreTableManager` sets none, so the key inherits the database default:
+  `utf8mb4_0900_ai_ci` and `utf8mb4_uca1400_ai_ci`. Both ignore accents as well as case (`cafe` / `café` collide),
+  and MariaDB's also ignores trailing spaces (`a` / `a `). A database created with a binary default already behaves
+  like PostgreSQL
+- The divergence cuts both ways. On today's tables `findDocument('orders', 'ORDER-A')` returns the document stored as
+  `order-a`, so an application may depend on the case-insensitive lookup without knowing it
+- Converting the key to `utf8mb4_bin` is refused `ALGORITHM=INPLACE` on both engines ("Cannot change column type"):
+  it is a full table copy that blocks writes. After it, ids differing in case, accent or collection name are
+  distinct, proved by a throwaway test through `DocumentStore` on both engines (not committed)
+
+The options and their cost:
+
+1. **Binary collation for new tables, an `ALTER` for existing ones.** New installations match the other engines. An
+   existing table keeps colliding until someone runs the copy, so one application behaves differently by table age,
+   and the conformance case — which always runs on a fresh table — would go green while production does not. Once
+   altered, every lookup that relied on case or accent folding stops finding its document, silently. Doing it safely
+   needs a collation check on the table, as `ecotone:event-store:verify-schema` does for the tag tables, and an
+   upgrade step that rewrites users' tables
+2. **Normalising ids** (lower-casing them on every engine). Changes behaviour on PostgreSQL, SQLite and in-memory
+   too, needs a data migration on every engine for ids already stored, and still leaves accents folded on MySQL.
+   Rejected
+3. **Document the constraint, keep the divergence recorded with the engine named.** Nothing changes for an existing
+   application; one that needs distinct ids runs the `ALTER` itself, knowing what it costs. Chosen
+
+`upgrade-2.0.md` now states the constraint, the measured collations, and the opt-in statement with its cost; D4's
+`sides` names the collations and the decision. **If the maintainer wants option 1**, the cheapest moment is before 2.0
+ships: every 1.x table must already run an `ALTER` for the `version` column, and no 2.0 table exists yet, so the
+collation could ride the same upgrade step — the lookup change would still need saying, and existing tables still
+need detecting. For reference, the event stream and tag tables already create their id columns `utf8mb4_bin`.
 
 ### The remaining divergences
 

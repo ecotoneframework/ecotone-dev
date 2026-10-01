@@ -49,7 +49,7 @@ final class ExpressionLocation
         return sprintf('%s failed. Expression: %s. %s', $this->describe(), $this->expression, $cause);
     }
 
-    private function describe(): string
+    public function describe(): string
     {
         $describedTarget = $this->target === '' ? $this->attributeName : sprintf('%s on %s', $this->attributeName, $this->target);
 

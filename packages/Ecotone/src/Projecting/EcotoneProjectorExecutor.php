@@ -10,7 +10,6 @@ namespace Ecotone\Projecting;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -25,7 +24,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         private MessageHeadersPropagatorInterceptor $messageHeadersPropagatorInterceptor,
         private string $projectionName,
         private MessageProcessor $routerProcessor,
-        private LicenceDecider $licenceDecider,
+        private ProjectionNameHeader $projectionNameHeader,
         private ?string $initChannel = null,
         private ?string $deleteChannel = null,
         private ?string $flushChannel = null,
@@ -39,9 +38,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $metadata = $event->getMetadata();
         $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState ?? null;
         $metadata[ProjectingHeaders::PROJECTION_EVENT_NAME] = $event->getEventName();
-        if ($this->licenceDecider->hasEnterpriseLicence()) {
-            $metadata[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;
-        }
+        $metadata = $this->withProjectionName($metadata);
         $metadata[ProjectingHeaders::PROJECTION_LIVE] = $this->isLive && ! $isRebuilding;
         $metadata[MessageHeaders::STREAM_BASED_SOURCED] = true; // this one is required for correct header propagation in EventStreamEmitter...
         $metadata[MessageHeaders::REPLY_CHANNEL] = $responseQueue = new QueueChannel('response_channel');
@@ -126,9 +123,6 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
 
     private function withProjectionName(array $headers): array
     {
-        if ($this->licenceDecider->hasEnterpriseLicence()) {
-            $headers[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;
-        }
-        return $headers;
+        return $this->projectionNameHeader->applyTo($headers, $this->projectionName);
     }
 }

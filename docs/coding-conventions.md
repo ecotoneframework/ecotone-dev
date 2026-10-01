@@ -347,7 +347,7 @@ Some older files carry the same text as a `/* ... */` block at the top of the fi
 `declare(strict_types=1)` — `packages/Ecotone/Api/Projecting/PartitionProvider.php` is one.
 `bin/check-licence.php` accepts that form, so do not sweep them, but write the docblock form in new files.
 
-1009 files carry `licence Apache-2.0` and 227 carry `licence Enterprise`. **When in doubt, `Apache-2.0`** — a
+Across `packages/*/src` and `packages/*/Api`, 1014 files carry `licence Apache-2.0` and 228 carry `licence Enterprise`. **When in doubt, `Apache-2.0`** — a
 feature is Enterprise by decision, not by which namespace it landed in, and the maintainer will say so.
 
 Test files carry `/** licence Apache-2.0 @internal */` too (php-cs-fixer adds the `@internal`, not the licence),

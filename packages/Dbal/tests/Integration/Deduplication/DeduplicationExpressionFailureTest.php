@@ -6,9 +6,9 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

@@ -103,7 +103,7 @@ bin/console ecotone:run reportScheduler
 ## 5. Dynamic Channel (Enterprise)
 
 ```php
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 
 class ChannelConfig
 {

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\JMSConverter\Integration;
 
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Test\StaticPsrClock;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;

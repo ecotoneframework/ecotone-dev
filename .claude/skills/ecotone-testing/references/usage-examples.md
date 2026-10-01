@@ -170,7 +170,7 @@ public function test_inspect_recorded_messages(): void
 ## ModulePackageList Configuration
 
 ```php
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
 // Available package constants:

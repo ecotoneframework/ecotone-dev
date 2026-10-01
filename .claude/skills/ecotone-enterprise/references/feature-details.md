@@ -23,7 +23,7 @@ Without Dynamic Message Channels, multi-tenant routing means building custom que
 
 **Round-Robin Strategy** -- distribute load across channels:
 ```php
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 
 DynamicMessageChannelBuilder::createRoundRobin('orders', [
     'orders_channel_a',

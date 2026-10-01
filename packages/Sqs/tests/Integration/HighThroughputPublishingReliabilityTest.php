@@ -6,6 +6,7 @@ namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
@@ -14,7 +15,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;

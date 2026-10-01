@@ -170,7 +170,7 @@ class WarmupTask
 Distributes messages evenly across channels:
 
 ```php
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 
 #[ServiceContext]
 public function dynamicChannel(): DynamicMessageChannelBuilder

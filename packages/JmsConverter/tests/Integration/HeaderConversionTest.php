@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\BasicEnum;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;

@@ -6,9 +6,9 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 

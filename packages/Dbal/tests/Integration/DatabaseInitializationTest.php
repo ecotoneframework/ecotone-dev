@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
@@ -13,7 +14,6 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -27,7 +28,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;

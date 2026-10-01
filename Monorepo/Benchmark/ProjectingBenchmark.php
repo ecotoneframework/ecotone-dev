@@ -4,13 +4,13 @@ namespace Monorepo\Benchmark;
 
 use Closure;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectionRegistry;
-use Ecotone\Test\LicenceTesting;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Test\LicenceTesting;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;

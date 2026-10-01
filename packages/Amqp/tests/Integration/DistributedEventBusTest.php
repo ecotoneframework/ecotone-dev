@@ -6,10 +6,10 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler\TicketNotificationSubscriber;

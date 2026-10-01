@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;

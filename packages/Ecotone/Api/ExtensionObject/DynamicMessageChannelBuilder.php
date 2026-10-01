@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Channel\DynamicChannel;
+namespace Ecotone\Api\ExtensionObject;
 
+use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannel;
+use Ecotone\Messaging\Channel\DynamicChannel\InternalChannelResolver;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\CustomReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\NoReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;

@@ -94,7 +94,7 @@ PollingMetadata::create('endpointId')
 ## DynamicMessageChannelBuilder Factory Methods
 
 ```php
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 ```
 
 | Method | Description |

@@ -1,8 +1,8 @@
 <?php
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $containerConfigurator): void {

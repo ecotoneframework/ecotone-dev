@@ -59,6 +59,24 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
         self::assertSame(['ada'], $this->claimedUsernamesOf($ecotone, 'ada'));
     }
 
+    public function test_an_append_whose_event_cannot_be_recorded_on_the_default_in_memory_event_store_leaves_the_tag_unmoved(): void
+    {
+        $ecotone = $this->bootstrap($this->registration());
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        $eventStore->appendTo('usernames', [new UsernameClaimedOnInMemoryEventStore('ada')]);
+        $loaded = $eventStore->loadByCriteria(EventCriteria::tag('username', 'ada'));
+
+        try {
+            $eventStore->appendTo('usernames', [new UsernameReleasedOnInMemoryEventStore('ada')], $loaded->appendCondition);
+            self::fail('Expected an event its converter refuses to be refused');
+        } catch (UnrecordableEventOnInMemoryEventStore) {
+        }
+
+        $eventStore->appendTo('usernames', [new UsernameClaimedOnInMemoryEventStore('ada')], $loaded->appendCondition);
+
+        self::assertSame(['ada', 'ada'], $this->claimedUsernamesOf($ecotone, 'ada'));
+    }
+
     private function registration(): object
     {
         return new class () {
@@ -95,10 +113,16 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
             {
                 return new UsernameClaimedOnInMemoryEventStore($event['username']);
             }
+
+            #[Converter]
+            public function fromReleased(UsernameReleasedOnInMemoryEventStore $event): array
+            {
+                throw new UnrecordableEventOnInMemoryEventStore();
+            }
         };
 
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, $registration::class, $converter::class],
+            classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, UsernameReleasedOnInMemoryEventStore::class, $registration::class, $converter::class],
             containerOrAvailableServices: [$registration, $converter],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
@@ -141,7 +165,24 @@ final readonly class UsernameClaimedOnInMemoryEventStore
 /**
  * @internal
  */
+final readonly class UsernameReleasedOnInMemoryEventStore
+{
+    public function __construct(#[EventTag('username')] public string $username)
+    {
+    }
+}
+
+/**
+ * @internal
+ */
 final class UsernameTakenOnInMemoryEventStore extends RuntimeException
+{
+}
+
+/**
+ * @internal
+ */
+final class UnrecordableEventOnInMemoryEventStore extends RuntimeException
 {
 }
 

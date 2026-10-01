@@ -26,6 +26,9 @@ does, resolves their tags, and converts them to its recorded form only when it r
 with it. What it records is unchanged; the wrapper keeps only the read side and is now `DeserializingEventStore`. T1
 is gone from `KNOWN_DIVERGENCES`, and its 13 cases pass on the `in-memory` row on all four engines.
 `DecisionModelOnInMemoryEventStoreTest` proves it through a `#[DecisionModel]` handler on the default bootstrap.
+Converting at record time moved a converter's refusal after the tag version bump, so a refused append left the tag
+moved; the in-memory tag collaborator now records before it bumps, as DBAL converts its rows before it bumps
+(`8da3eb43d`).
 
 Two corrections to the finding as written above. *No append condition can ever conflict* was too strong: the
 in-memory tag version register bumps the tags an append condition names even when its events resolve none, so two

@@ -57,6 +57,18 @@ the tagged path; `dbal` is removed from E10, and the entry is gone. The rule 8 r
 through JMS throws `ReflectionException: Class "mixed" does not exist` (`DbalDocumentStore.php:300`). In-memory
 returns it. User-facing, DBAL-only, all four engines.
 
+**Closed by the storage-defects unit.** The recorded type was the narrower half of the defect: it is sampled from an
+array's first and last values only (`Type::createFromVariable()`), so `['product' => 'milk', 'quantity' => 2,
+'lines' => ['a', 'b'], 'size' => 'large']` is recorded as `array<string,string>` and could not be read back either —
+a new case, `test_an_array_document_keeps_the_type_of_every_value_not_only_of_its_first_and_last`, was red on DBAL
+before the fix. `DbalDocumentStore` now reads a recorded type that names no class — `array<string,mixed>`,
+`array<string,string>`, any nesting of those — as a plain `array`, which JMS decodes exactly; a type naming a class,
+`array<Order>` or `array<array<Order>>`, is read as before, pinned by
+`test_an_array_document_of_objects_is_returned_as_objects`. The write path and the stored `document_type` are
+unchanged, so rows written before the fix read back too. D5 is gone from `KNOWN_DIVERGENCES`, and the D5 case now
+also reads through `findDocument()` and `getAllDocuments()` and compares with `assertSame`, so a value cast to
+another type fails it. Green on PostgreSQL, MySQL, MariaDB and SQLite.
+
 ### D4 — MySQL and MariaDB treat document ids differing only in case as the same document
 
 The primary key's collation is case-insensitive, so `addDocument('orders', 'ORDER-A', …)` after `'order-a'` fails

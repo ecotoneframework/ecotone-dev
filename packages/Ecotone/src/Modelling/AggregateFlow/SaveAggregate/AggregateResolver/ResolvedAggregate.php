@@ -100,7 +100,7 @@ final class ResolvedAggregate
         ))->withCounterCapturedAtLoad($this->getCounterCapturedAtLoad());
     }
 
-    public function withVersionAfterHandling(int $versionAfterHandling): self
+    public function withVersionAfterHandling(?int $versionAfterHandling): self
     {
         $clone = clone $this;
         $clone->versionAfterHandling = $versionAfterHandling;

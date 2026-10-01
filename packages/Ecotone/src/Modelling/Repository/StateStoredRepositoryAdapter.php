@@ -49,7 +49,7 @@ class StateStoredRepositoryAdapter implements AggregateRepository
         ))->withCounterCapturedAtLoad($counterCapturedAtLoad);
     }
 
-    public function save(ResolvedAggregate $aggregate, array $metadata): int
+    public function save(ResolvedAggregate $aggregate, array $metadata): ?int
     {
         $this->aggregateCounter->bumpGuarded($aggregate->getAggregateClassName(), $aggregate->getIdentifiers(), $aggregate->getCounterCapturedAtLoad());
 
@@ -60,6 +60,6 @@ class StateStoredRepositoryAdapter implements AggregateRepository
             $aggregate->getVersionBeforeHandling()
         );
 
-        return $aggregate->getVersionBeforeHandling() ? $aggregate->getVersionBeforeHandling() + 1 : 0;
+        return $aggregate->getVersionBeforeHandling() === null ? null : $aggregate->getVersionBeforeHandling() + 1;
     }
 }

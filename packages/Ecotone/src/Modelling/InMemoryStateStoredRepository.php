@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Repository;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Support\ConcurrencyException;
 
 /**
  * licence Apache-2.0
@@ -21,6 +22,10 @@ class InMemoryStateStoredRepository implements StateStoredRepository
      */
     private array $aggregates;
     private ?array $aggregateTypes;
+    /**
+     * @var array<string, array<string, int>>
+     */
+    private array $versions = [];
 
     public function __construct(array $aggregates = [], ?array $aggregateTypes = [])
     {
@@ -72,8 +77,13 @@ class InMemoryStateStoredRepository implements StateStoredRepository
     public function save(array $identifiers, object $aggregate, array $metadata, ?int $expectedVersion): void
     {
         $key = $this->getKey($identifiers);
+        $currentVersion = $this->versions[$aggregate::class][$key] ?? 0;
+        if ($expectedVersion !== null && $expectedVersion !== $currentVersion) {
+            throw ConcurrencyException::forStaleAggregate($aggregate::class, AggregateIdString::from($identifiers), $expectedVersion, $currentVersion);
+        }
 
-        $this->aggregates[get_class($aggregate)][$key] = $aggregate;
+        $this->aggregates[$aggregate::class][$key] = $aggregate;
+        $this->versions[$aggregate::class][$key] = $currentVersion + 1;
     }
 
     private function getKey(array $identifiers): string

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
@@ -13,7 +15,6 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -22,7 +23,6 @@ use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Symfony\Component\Uid\Uuid;
 

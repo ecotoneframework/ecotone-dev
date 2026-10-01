@@ -100,7 +100,7 @@ final class PropagateHeaders
 
 ## Framework Headers Constants
 
-Source: `Ecotone\Messaging\MessageHeaders`
+Source: `Ecotone\Api\Messaging\MessageHeaders`
 
 | Constant | Value | Description |
 |----------|-------|-------------|

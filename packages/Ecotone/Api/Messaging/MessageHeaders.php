@@ -1,12 +1,15 @@
 <?php
 
-namespace Ecotone\Messaging;
+namespace Ecotone\Api\Messaging;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\InvalidMessageHeaderException;
+use Ecotone\Messaging\MessageHeaderDoesNotExistsException;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -16,11 +19,6 @@ use function json_encode;
 
 use Symfony\Component\Uid\Uuid;
 
-/**
- * Class MessageHeaders
- * @package Ecotone\Messaging
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
 /**
  * licence Apache-2.0
  */

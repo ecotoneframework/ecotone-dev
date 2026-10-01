@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

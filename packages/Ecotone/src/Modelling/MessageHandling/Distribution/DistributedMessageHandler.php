@@ -6,8 +6,8 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 

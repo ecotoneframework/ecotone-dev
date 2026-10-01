@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\UuidInterface;
 
 #[EventSourcingAggregate]

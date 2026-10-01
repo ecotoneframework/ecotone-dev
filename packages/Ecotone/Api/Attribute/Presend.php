@@ -3,7 +3,7 @@
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
-use Ecotone\Messaging\Precedence;
+use Ecotone\Api\Interceptor\Precedence;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**

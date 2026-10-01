@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -14,19 +15,19 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\ProjectionRegistry;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
@@ -34,7 +35,6 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\AggregrateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Event;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 

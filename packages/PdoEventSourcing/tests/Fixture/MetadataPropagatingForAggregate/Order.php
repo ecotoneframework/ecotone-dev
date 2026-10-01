@@ -6,8 +6,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Modelling\Event;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 /**

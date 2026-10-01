@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 

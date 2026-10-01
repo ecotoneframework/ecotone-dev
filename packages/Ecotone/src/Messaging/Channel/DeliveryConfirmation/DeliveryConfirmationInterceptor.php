@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 

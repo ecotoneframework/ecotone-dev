@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Projecting\AggregatePartitionKey;
 
 class PartitionHeaderConverter implements ParameterConverter

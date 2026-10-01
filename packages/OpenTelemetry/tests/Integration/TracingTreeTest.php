@@ -6,10 +6,10 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\OTelTracer;
 use InvalidArgumentException;

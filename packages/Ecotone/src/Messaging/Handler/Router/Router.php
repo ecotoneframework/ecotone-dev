@@ -2,11 +2,11 @@
 
 namespace Ecotone\Messaging\Handler\Router;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

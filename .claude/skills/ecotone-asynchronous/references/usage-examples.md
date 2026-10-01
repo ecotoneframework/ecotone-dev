@@ -101,7 +101,7 @@ class OrderService
 
 ```php
 use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 class NotificationService
 {
@@ -170,7 +170,7 @@ class WarmupTask
 Distributes messages evenly across channels:
 
 ```php
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 
 #[ServiceContext]
 public function dynamicChannel(): DynamicMessageChannelBuilder

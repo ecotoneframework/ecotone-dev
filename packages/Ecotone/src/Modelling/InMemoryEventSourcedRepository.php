@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling;
 
 use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\EventSourcing\Event;
 
 /**
  * Class InMemoryEventSourcedRepository

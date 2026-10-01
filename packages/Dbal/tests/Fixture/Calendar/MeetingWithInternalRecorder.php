@@ -6,7 +6,7 @@ namespace Test\Ecotone\Dbal\Fixture\Calendar;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Aggregate]
 /**

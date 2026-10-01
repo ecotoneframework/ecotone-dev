@@ -3,9 +3,9 @@
 namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\MessageHeaders;
 
 /**
  * licence Apache-2.0

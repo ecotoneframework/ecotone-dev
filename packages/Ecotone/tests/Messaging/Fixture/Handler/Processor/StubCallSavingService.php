@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor;
 
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Message;
 use stdClass;
 

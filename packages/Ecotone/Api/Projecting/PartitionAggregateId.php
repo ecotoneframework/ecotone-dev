@@ -9,7 +9,7 @@ namespace Ecotone\Api\Projecting;
 
 use Attribute;
 use Ecotone\Api\Attribute\Header;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 class PartitionAggregateId extends Header

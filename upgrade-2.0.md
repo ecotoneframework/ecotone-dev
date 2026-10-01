@@ -1504,6 +1504,69 @@ $conversionService = $ecotone->getGateway(ConversionService::class);
 public function handle(ConvertOrder $command, #[Reference] ConversionService $conversionService): void
 ```
 
+### 13c. Aggregate traits, `Event`, interceptor types, `TimeSpan`, `MessageHeaders`, `ModulePackageList` and `DynamicMessageChannelBuilder` moved into `Api` too
+
+**Before:** nine types an application writes sat in `@internal` namespaces. Several were already named by a public
+`Api` signature — `EventStore` returned `Event`, `#[Around]` and its siblings defaulted to a `Precedence` constant,
+`#[Delayed]` and `#[TimeToLive]` took a `TimeSpan` — so an application using the public class still had to import
+an internal one:
+
+```php
+use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;    // internal
+use Ecotone\Messaging\Config\ModulePackageList;                              // internal
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;      // internal
+use Ecotone\Messaging\MessageHeaders;                                        // internal
+use Ecotone\Messaging\Precedence;                                            // internal
+use Ecotone\Messaging\Scheduling\TimeSpan;                                   // internal
+use Ecotone\Modelling\Event;                                                 // internal
+use Ecotone\Modelling\WithAggregateVersioning;                               // internal
+use Ecotone\Modelling\WithEvents;                                            // internal
+```
+
+**Now:** each sits beside the public types that take or return it. The aggregate traits get a `Modelling` area,
+`Event` joins the `EventStore` and `LoadedEvents` that return it, the two types every interceptor writes get an
+`Interceptor` area, and the two `#[ServiceContext]` values join the other extension objects:
+
+```php
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
+use Ecotone\Api\Scheduling\TimeSpan;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Modelling\WithEvents` | `Ecotone\Api\Modelling\WithEvents` |
+| `Ecotone\Modelling\WithAggregateVersioning` | `Ecotone\Api\Modelling\WithAggregateVersioning` |
+| `Ecotone\Modelling\Event` | `Ecotone\Api\EventSourcing\Event` |
+| `Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation` | `Ecotone\Api\Interceptor\MethodInvocation` |
+| `Ecotone\Messaging\Precedence` | `Ecotone\Api\Interceptor\Precedence` |
+| `Ecotone\Messaging\Scheduling\TimeSpan` | `Ecotone\Api\Scheduling\TimeSpan` |
+| `Ecotone\Messaging\MessageHeaders` | `Ecotone\Api\Messaging\MessageHeaders` |
+| `Ecotone\Messaging\Config\ModulePackageList` | `Ecotone\Api\ExtensionObject\ModulePackageList` |
+| `Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder` | `Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder` |
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Same class names, same
+methods, same constants with the same values — a header named with `MessageHeaders::MESSAGE_ID` is still `'id'`, a
+skip list built from `ModulePackageList::DBAL_PACKAGE` is still `'dbal'`, and `Precedence::DATABASE_TRANSACTION_PRECEDENCE`
+is still `-2000`. None of the nine is a container service, so no service id changes with them.
+
+A trait is resolved when its class is loaded, so an aggregate that still says `use Ecotone\Modelling\WithEvents;`
+fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`, not at bootstrap; a stale
+`Precedence` or `MessageHeaders` import fails as soon as the attribute or constant is read. `Event` stays
+extendable — its constructor is still `protected`.
+
+Only these nine moved. `EcotoneLite` is still `Ecotone\Lite\EcotoneLite`, and `ErrorMessage` is still
+`Ecotone\Messaging\Support\ErrorMessage`: each hands the application a type that is itself still internal
+(`FlowTestSupport` and `ConfiguredMessagingSystem`; `ErrorContext`), so moving either alone would relocate the
+boundary without closing it. The rule this closes is
+[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+
 ## 14. Smaller behaviour changes
 
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).

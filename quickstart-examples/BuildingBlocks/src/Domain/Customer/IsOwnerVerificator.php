@@ -4,7 +4,7 @@ namespace App\Domain\Customer;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Headers;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 class IsOwnerVerificator
 {

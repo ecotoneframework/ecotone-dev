@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;

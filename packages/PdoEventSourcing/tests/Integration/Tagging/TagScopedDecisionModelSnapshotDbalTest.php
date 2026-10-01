@@ -21,14 +21,14 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\Converter as MediaTypeAwareConverter;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 
 use function json_decode;

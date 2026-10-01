@@ -74,7 +74,7 @@ public function test_projection(): void
 Use `withEventStream` to append events directly to a stream, bypassing the need for an Aggregate. This is useful when testing projections in isolation.
 
 ```php
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 public function test_projection_with_direct_events(): void
 {
@@ -106,7 +106,7 @@ Key points:
 - Use `bootstrapFlowTesting` (no EventStore bootstrap needed) -- the in-memory event store is registered automatically
 - Stream name in `withEventStream` must match the stream the projection reads: `'ecotone_event_stream'` unless the
   aggregate declares `#[Stream('...')]`
-- Wrap each event in `Event::create()` from `Ecotone\Modelling\Event`
+- Wrap each event in `Event::create()` from `Ecotone\Api\EventSourcing\Event`
 - No Aggregate class is registered in `classesToResolve`
 
 ## Projection Lifecycle Methods

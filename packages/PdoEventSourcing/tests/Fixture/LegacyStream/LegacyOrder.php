@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\Stream;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 #[Stream(legacyStreamName: self::LEGACY_STREAM_NAME)]

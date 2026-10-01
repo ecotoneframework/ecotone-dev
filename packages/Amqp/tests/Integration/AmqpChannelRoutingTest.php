@@ -12,8 +12,8 @@ use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
 use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 

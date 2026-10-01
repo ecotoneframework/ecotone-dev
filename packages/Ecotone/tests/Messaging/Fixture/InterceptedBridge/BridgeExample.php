@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 /**
  * licence Apache-2.0

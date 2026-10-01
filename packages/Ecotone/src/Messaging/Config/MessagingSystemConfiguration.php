@@ -11,6 +11,7 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;

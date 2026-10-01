@@ -6,6 +6,7 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -18,7 +19,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 
 /**

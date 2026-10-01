@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\SingleTenant;
 
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

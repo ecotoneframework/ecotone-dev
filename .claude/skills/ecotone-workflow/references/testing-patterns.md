@@ -80,7 +80,7 @@ $this->assertEquals(OrderProcessStatus::PLACED, $status);
 ## Testing Saga with Async and Delayed Messages
 
 ```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 public function test_saga_retries_payment_after_delay(): void
 {
@@ -220,7 +220,7 @@ Orchestrator tests require Enterprise licence configuration.
 
 ```php
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 

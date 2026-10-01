@@ -9,13 +9,13 @@ use function array_values;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Tagging\MatchedEvents;
 use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\EventSourcing\Tagging\TagResolver;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Enterprise

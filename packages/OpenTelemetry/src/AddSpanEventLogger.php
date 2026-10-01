@@ -8,7 +8,7 @@ namespace Ecotone\OpenTelemetry;
 
 use function array_filter;
 
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 use function in_array;
 

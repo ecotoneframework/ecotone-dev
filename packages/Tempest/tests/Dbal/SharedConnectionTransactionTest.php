@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Dbal;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;

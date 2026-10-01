@@ -45,7 +45,7 @@ $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(
 `advanceTimeBy()` first, then run:
 
 ```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 $ecotone
     ->advanceTimeBy(TimeSpan::withSeconds(60))

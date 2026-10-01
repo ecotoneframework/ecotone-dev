@@ -10,19 +10,19 @@ use Ecotone\Api\Attribute\LogBefore;
 use Ecotone\Api\Attribute\LogError;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Precedence;
 
 #[ModuleAnnotation]
 /**

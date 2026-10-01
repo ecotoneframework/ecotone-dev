@@ -8,10 +8,10 @@ use function array_push;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Tagging\TagKey;
-use Ecotone\Modelling\Event;
 
 use function implode;
 

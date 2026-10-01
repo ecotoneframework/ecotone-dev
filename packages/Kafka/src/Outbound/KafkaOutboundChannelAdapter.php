@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Outbound;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;

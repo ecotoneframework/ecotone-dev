@@ -7,7 +7,7 @@ namespace Ecotone\EventSourcing\Tagging;
 use function array_map;
 use function array_values;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 use function uasort;
 

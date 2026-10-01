@@ -9,12 +9,12 @@ use App\Workflow\Saga\Application\Order\OrderService;
 use App\Workflow\Saga\Application\OrderProcess\Event\OrderProcessWasStarted;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcess;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
-use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Application\Payment\PaymentProcessor;
+use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 

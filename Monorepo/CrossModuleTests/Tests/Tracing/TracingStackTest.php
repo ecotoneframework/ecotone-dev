@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests\Tracing;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;

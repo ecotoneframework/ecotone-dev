@@ -7,8 +7,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

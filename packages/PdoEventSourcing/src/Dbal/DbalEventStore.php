@@ -19,9 +19,11 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -39,10 +41,8 @@ use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Event;
 
 use function implode;
 

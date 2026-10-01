@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Redis;
 
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
 use Enqueue\Redis\RedisMessage;

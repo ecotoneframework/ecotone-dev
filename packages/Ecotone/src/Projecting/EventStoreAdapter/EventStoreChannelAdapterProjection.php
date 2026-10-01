@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\EventStoreAdapter;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
-use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectorExecutor;
 
 /**
@@ -50,8 +50,8 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         $payload = $event->getPayload();
         $metadata = $event->getMetadata();
 
-        if (! isset($metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE])) {
-            $metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';
+        if (! isset($metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE])) {
+            $metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';
         }
 
         $this->outputChannel->send(

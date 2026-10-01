@@ -7,6 +7,7 @@ namespace Ecotone\Modelling\DecisionModel;
 use function array_is_list;
 use function array_map;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelFoldShape;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
 use function implode;

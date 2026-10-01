@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\EventSourcing;
 
-use Ecotone\Modelling\Event;
-
 /**
  * licence Enterprise
  */

@@ -9,10 +9,10 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\WithAggregateVersioning;
 use PHPUnit\Framework\TestCase;
 
 /**

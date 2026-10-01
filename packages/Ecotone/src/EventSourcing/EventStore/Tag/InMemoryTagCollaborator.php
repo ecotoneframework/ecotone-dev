@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\EventStore\Tag;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Apache-2.0

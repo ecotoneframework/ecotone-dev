@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
-use Ecotone\Messaging\Config\ModulePackageList;
 use PHPUnit\Framework\TestCase;
 
 /**

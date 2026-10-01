@@ -43,7 +43,7 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
 
 ## ModulePackageList Constants
 
-Source: `Ecotone\Messaging\Config\ModulePackageList`
+Source: `Ecotone\Api\ExtensionObject\ModulePackageList`
 
 ```php
 final class ModulePackageList

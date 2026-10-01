@@ -4,9 +4,9 @@ namespace Ecotone\Enqueue;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Queue\Consumer as EnqueueConsumer;
 use Interop\Queue\Message as EnqueueMessage;

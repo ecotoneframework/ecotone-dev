@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use function array_values;
 
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Message;
 
 /**

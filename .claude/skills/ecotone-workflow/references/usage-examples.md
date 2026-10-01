@@ -10,7 +10,7 @@ A complete saga that coordinates an order fulfillment process by reacting to mul
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 class OrderFulfillmentProcess
@@ -62,10 +62,10 @@ A complete saga demonstrating `outputChannelName` to trigger commands from event
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Delayed;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 #[Saga]
 class OrderProcess

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Test;
 
 use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 

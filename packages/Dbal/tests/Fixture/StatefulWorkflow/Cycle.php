@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 class Cycle

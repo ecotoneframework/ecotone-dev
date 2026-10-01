@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Aggregate]
 /**

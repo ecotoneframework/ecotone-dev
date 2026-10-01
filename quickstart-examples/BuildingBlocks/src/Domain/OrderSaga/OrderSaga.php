@@ -12,7 +12,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 
 /**

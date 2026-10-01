@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
+use Illuminate\Http\Request as LaravelRequest;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
@@ -18,7 +19,6 @@ use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
-use Illuminate\Http\Request as LaravelRequest;
 
 final class HttpStackTest extends FullAppTestCase
 {

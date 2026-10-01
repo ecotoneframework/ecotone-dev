@@ -13,9 +13,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 

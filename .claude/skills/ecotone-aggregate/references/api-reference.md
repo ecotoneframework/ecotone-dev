@@ -66,7 +66,7 @@ Property-level attribute. Marks the version property used for optimistic concurr
 
 ## WithAggregateVersioning Trait
 
-Source: `Ecotone\Modelling\WithAggregateVersioning`
+Source: `Ecotone\Api\Modelling\WithAggregateVersioning`
 
 Provides automatic version tracking for event-sourced aggregates. Adds a version property with `#[Version]`.
 
@@ -80,7 +80,7 @@ class MyAggregate
 
 ## WithEvents Trait
 
-Source: `Ecotone\Modelling\WithEvents`
+Source: `Ecotone\Api\Modelling\WithEvents`
 
 Allows state-stored aggregates to publish domain events.
 

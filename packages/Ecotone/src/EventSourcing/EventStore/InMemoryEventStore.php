@@ -8,16 +8,16 @@ use function array_map;
 use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Event;
 
 use function in_array;
 use function is_scalar;

@@ -7,12 +7,12 @@ namespace App\Domain\Order;
 use App\Domain\Order\Command\PlaceOrder;
 use App\Domain\Product\ProductService;
 use Assert\Assert;
-use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 

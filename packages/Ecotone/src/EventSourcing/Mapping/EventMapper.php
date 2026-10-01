@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Mapping;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Apache-2.0

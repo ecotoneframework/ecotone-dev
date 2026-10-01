@@ -77,7 +77,8 @@ Every directory under `packages/` is a separate Composer package with its own `c
   cross-package change needs tests in both packages
 - Splits are managed by `symplify/monorepo-builder` (`monorepo-builder.php`)
 - Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
-  `ModulePackageList` and its module class to the right `ModuleClassList` constant
+  `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`) and its module class to the right
+  `ModuleClassList` constant
 
 ## Code Conventions
 
@@ -122,7 +123,7 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - **`InterfaceToCall`** / **`ClassDefinition`** - method and class metadata, obtained from the memoizing
   `InterfaceToCallRegistry` that `Module::prepare()` receives — never a fresh `ReflectionClass`
   ([rule 13a](./docs/coding-conventions.md#13a-class-metadata-comes-from-the-registry-not-from-fresh-reflection))
-- **`MessageHeaders`** - for message metadata propagation
+- **`MessageHeaders`** (`Ecotone\Api\Messaging\MessageHeaders`) - for message metadata propagation
 - **`Definition` / `DefinedObject`** - configuration is compiled into a container, so what a module registers must
   be expressible as a `Definition`
 - **Modules** - implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and are registered **explicitly**: the

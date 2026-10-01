@@ -34,10 +34,10 @@ class MyProcess
 
 ## WithEvents Trait
 
-Source: `Ecotone\Modelling\WithEvents`
+Source: `Ecotone\Api\Modelling\WithEvents`
 
 ```php
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 class OrderProcess

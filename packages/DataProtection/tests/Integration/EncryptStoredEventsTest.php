@@ -6,6 +6,7 @@ namespace Integration;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
@@ -14,7 +15,6 @@ use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents\AggregateEvent;

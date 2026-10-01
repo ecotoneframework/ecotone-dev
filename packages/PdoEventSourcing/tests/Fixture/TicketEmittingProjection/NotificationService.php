@@ -5,8 +5,8 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Modelling\Event;
 
 use function end;
 

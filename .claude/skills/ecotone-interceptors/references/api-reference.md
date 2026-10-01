@@ -115,7 +115,7 @@ No `pointcut` parameter — matching is by exact channel name only, not by handl
 
 ## `MethodInvocation` Interface
 
-Source: `Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation`
+Source: `Ecotone\Api\Interceptor\MethodInvocation`
 
 Used exclusively in `#[Around]` interceptors to control handler execution.
 
@@ -142,7 +142,7 @@ interface MethodInvocation
 
 ## Precedence Constants
 
-Source: `Ecotone\Messaging\Precedence`
+Source: `Ecotone\Api\Interceptor\Precedence`
 
 | Constant | Value | Purpose |
 |----------|-------|---------|

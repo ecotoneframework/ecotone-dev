@@ -9,9 +9,9 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Precedence;
 use RuntimeException;
 
 /**

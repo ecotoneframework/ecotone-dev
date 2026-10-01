@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -15,10 +16,8 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 
 use function get_class;

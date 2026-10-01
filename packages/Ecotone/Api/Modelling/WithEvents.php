@@ -1,14 +1,9 @@
 <?php
 
-namespace Ecotone\Modelling;
+namespace Ecotone\Api\Modelling;
 
 use Ecotone\Api\Attribute\AggregateEvents;
 
-/**
- * Class WithEvents
- * @package Ecotone\Modelling
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
 /**
  * licence Apache-2.0
  */

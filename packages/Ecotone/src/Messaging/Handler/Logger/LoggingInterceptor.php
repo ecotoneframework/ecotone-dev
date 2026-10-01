@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\LogBefore;
 use Ecotone\Api\Attribute\LogError;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Psr\Log\LogLevel;

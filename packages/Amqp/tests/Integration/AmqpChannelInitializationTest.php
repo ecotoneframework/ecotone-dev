@@ -263,8 +263,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE, ])
+                ->withModulePackages([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -279,8 +279,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE, ])
+                ->withModulePackages([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
@@ -295,8 +295,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
+                ->withModulePackages([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE,
                 ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([

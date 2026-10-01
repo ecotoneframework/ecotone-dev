@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\DynamicChannel\ChannelSendingStrategy;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Apache-2.0

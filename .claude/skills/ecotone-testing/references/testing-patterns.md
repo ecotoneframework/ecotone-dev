@@ -70,7 +70,7 @@ $ecotone->deleteProjection('name');      // Cleanup
 
 ```php
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 public function test_with_dbal_module(): void
 {

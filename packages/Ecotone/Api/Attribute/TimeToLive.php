@@ -6,8 +6,8 @@ namespace Ecotone\Api\Attribute;
 
 use Attribute;
 use Closure;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**

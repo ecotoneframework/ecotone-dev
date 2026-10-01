@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 use Composer\Autoload\ClassLoader;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\OrderListProjection;

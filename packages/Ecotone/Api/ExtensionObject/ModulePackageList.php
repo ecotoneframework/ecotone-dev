@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config;
+namespace Ecotone\Api\ExtensionObject;
+
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ModuleClassList;
 
 /**
  * licence Apache-2.0

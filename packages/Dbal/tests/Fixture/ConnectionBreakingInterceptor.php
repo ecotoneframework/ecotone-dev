@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 
 /**

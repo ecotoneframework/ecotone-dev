@@ -3,10 +3,10 @@
 namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;

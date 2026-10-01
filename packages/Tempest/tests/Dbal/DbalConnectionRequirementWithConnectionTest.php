@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Dbal;
 
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;

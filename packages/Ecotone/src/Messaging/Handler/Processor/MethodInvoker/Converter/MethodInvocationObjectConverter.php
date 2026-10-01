@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 
 use function is_string;

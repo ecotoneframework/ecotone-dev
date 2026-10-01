@@ -4,8 +4,8 @@ namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Exception;

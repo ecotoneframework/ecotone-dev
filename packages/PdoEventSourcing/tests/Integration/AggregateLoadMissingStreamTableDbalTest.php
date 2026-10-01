@@ -13,14 +13,14 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**

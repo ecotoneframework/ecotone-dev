@@ -11,11 +11,11 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\LegacyStream\CancelLegacyOrder;
 use Test\Ecotone\EventSourcing\Fixture\LegacyStream\LegacyOrder;
@@ -90,7 +90,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
         $this->expectException(\Ecotone\Messaging\Support\ConcurrencyException::class);
 
         $ecotone->getGateway(EventStore::class)->appendTo(LegacyOrder::LEGACY_STREAM_NAME, [
-            \Ecotone\Modelling\Event::createWithType(
+            \Ecotone\Api\EventSourcing\Event::createWithType(
                 LegacyOrderCancelled::class,
                 ['orderId' => 'order-3'],
                 [

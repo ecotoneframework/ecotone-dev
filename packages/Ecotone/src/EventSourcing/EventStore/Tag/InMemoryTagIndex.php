@@ -9,12 +9,12 @@ use function array_intersect_key;
 use function array_slice;
 use function array_values;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\Tagging\MatchedEvents;
 use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\EventSourcing\Tagging\TagResolver;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Enterprise

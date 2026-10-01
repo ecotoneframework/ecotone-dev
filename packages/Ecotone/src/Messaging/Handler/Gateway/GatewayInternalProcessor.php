@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Handler\MessageHandlingException;
@@ -11,7 +12,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\ErrorMessage;

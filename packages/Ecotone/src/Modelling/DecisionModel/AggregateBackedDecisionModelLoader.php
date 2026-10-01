@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
 use function implode;

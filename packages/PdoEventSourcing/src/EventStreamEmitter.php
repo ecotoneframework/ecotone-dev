@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 /**
  * licence Apache-2.0

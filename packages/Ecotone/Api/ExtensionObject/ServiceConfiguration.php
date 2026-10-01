@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Support\Assert;
 

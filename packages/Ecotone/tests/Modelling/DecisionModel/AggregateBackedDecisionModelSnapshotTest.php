@@ -16,6 +16,7 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -23,7 +24,6 @@ use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
-use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 
 use function json_decode;

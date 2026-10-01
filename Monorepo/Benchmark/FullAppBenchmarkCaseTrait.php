@@ -2,9 +2,9 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;

@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.328.0] - 2026-10-01
+
+## What's Changed
+* fix: consume all tenant channels when a dynamic channel polls Kafka by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/706
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.327.0...1.328.0
+
 ## [1.327.0] - 2026-09-27
 
 ## What's Changed

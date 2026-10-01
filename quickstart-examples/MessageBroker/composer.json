@@ -17,10 +17,10 @@
         }
     ],
     "require": {
-        "ecotone/amqp": "~1.327.0",
-        "ecotone/jms-converter": "~1.327.0",
+        "ecotone/amqp": "~1.328.0",
+        "ecotone/jms-converter": "~1.328.0",
         "ecotone/lite-amqp-starter": "^1.0.1",
-        "ecotone/lite-application": "~1.327.0",
+        "ecotone/lite-application": "~1.328.0",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

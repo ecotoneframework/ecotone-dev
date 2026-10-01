@@ -22,9 +22,9 @@
         }
     },
     "require": {
-        "ecotone/tempest": "~1.327.0",
-        "ecotone/dbal": "~1.327.0",
-        "ecotone/jms-converter": "~1.327.0",
+        "ecotone/tempest": "~1.328.0",
+        "ecotone/dbal": "~1.328.0",
+        "ecotone/jms-converter": "~1.328.0",
         "tempest/framework": "^3.11",
         "ramsey/uuid": "^4.0"
     },

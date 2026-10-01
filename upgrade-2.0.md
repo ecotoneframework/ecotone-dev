@@ -1626,6 +1626,97 @@ This applies to `#[EventTag]` values as well, for the same reason: a boolean tag
 comparison written where a value was meant.
 
 
+### `DocumentStore` writes name the version they replace, and document-store aggregates are version-checked
+
+**Before:** `DocumentStore::updateDocument()` and `DocumentStore::upsertDocument()` took the collection, the id and
+the document, and replaced whatever was stored. Two writers that read the same document both succeeded, and the one
+that wrote last silently discarded the other's change. The document-store aggregate repository and the in-memory
+repository `EcotoneLite::bootstrapFlowTesting()` uses behaved the same way: a command carrying a stale
+`#[TargetVersion]`, or two handlers saving one aggregate at once, overwrote each other.
+
+**Now:** every document has a version. `addDocument()` stores it at version 1, and each write moves it by one.
+`updateDocument()` and `upsertDocument()` take a **required** fourth parameter, `int $expectedVersion` — the version
+the caller read — and refuse the write with `Ecotone\Messaging\Support\ConcurrencyException` when the document has
+moved since. `0` means "must not be stored yet". `DocumentStore::getDocumentVersion()` returns the current version,
+`0` for a document that is not stored. A write that should replace whatever is stored says so explicitly:
+
+```php
+use Ecotone\Api\Gateway\DocumentStore;
+
+$version = $documentStore->getDocumentVersion('baskets', $userId);
+$basket = $documentStore->getDocument('baskets', $userId);
+$documentStore->updateDocument('baskets', $userId, $basket->withProduct($productId), $version);
+
+$documentStore->upsertDocument('wallet_balances', $walletId, $balance, DocumentStore::LAST_WRITE_WINS);
+```
+
+The parameter is required rather than optional so that no call can skip the check without saying so:
+an application that calls these methods fails loudly at the call site after upgrading, instead of keeping 1.x
+semantics silently. `addDocument()` is unchanged — adding already means the document must not exist.
+
+**State-stored aggregates:** an aggregate or saga saved through the document-store repository
+(`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), or through the in-memory
+repository of a flow test, is now checked against the version it was loaded at:
+
+- **With `#[Version]` on the aggregate**, a save from a stale load — another handler saved it in between, or the
+  command's `#[TargetVersion]` names an older version — is refused with a `ConcurrencyException` naming the aggregate,
+  the version it was loaded at and the version it is at now.
+- **Without `#[Version]`, a document-store aggregate is last-write-wins**, exactly as in 1.x: there is no version to
+  compare, so two concurrent saves still overwrite each other. Add `#[Version]` to the aggregate to turn the check on:
+
+  ```php
+  use Ecotone\Api\Attribute\Aggregate;
+  use Ecotone\Api\Attribute\Version;
+
+  #[Aggregate]
+  final class Basket
+  {
+      #[Version]
+      private int $version = 0;
+  }
+  ```
+
+- **Creating an aggregate under an id that is already stored is refused**, with or without `#[Version]`. In 1.x the
+  document-store and in-memory repositories silently replaced the stored aggregate. A flow test that creates the same
+  aggregate twice now fails with a `ConcurrencyException`.
+- **Eloquent and Tempest aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
+  `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
+  it back as `0` on every load. Tempest persists it, but its database API does not report whether a guarded update
+  matched a row, so a conflict cannot be observed. Concurrent saves of either still overwrite each other.
+
+A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
+`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;
+asynchronous endpoints already retry. A save made earlier in the same transaction — a command sent from inside the
+handler whose own handler saves the same aggregate — fails on every retry; decide both in one handler instead.
+
+**The document store table gains a `version` column.** A table created by Ecotone 1.x is refused on the first write
+(and on `getDocumentVersion()`) with a `ConfigurationException` naming the statement to run:
+
+```sql
+ALTER TABLE ecotone_document_store ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+```
+
+It is safe to run on a populated table, on PostgreSQL, MySQL, MariaDB and SQLite alike: the default puts every stored
+document at version 1, which is what `getDocumentVersion()` then reports and what the next write expects. Reads —
+`getDocument()`, `findDocument()`, `getAllDocuments()`, `countDocuments()` — work on the 1.x table before the column is
+added. Tables created by 2.0 already have it.
+
+**The DBAL event store checks `AppendCondition::forAggregate()`.** It used to rely only on its unique index on
+aggregate type, id and version, so an append under a stale expected version whose new event carried a version not yet
+recorded went through. It now reads the aggregate's current version first, as the in-memory event store always did,
+and refuses with the same `ConcurrencyException`. Event-sourced aggregates saved through Ecotone already carried
+consecutive versions, so for them nothing changes; an application appending through `EventStore::appendTo()` with a
+hand-built `AppendCondition::forAggregate()` may now see the refusal it was always meant to get.
+
+**How to adapt:**
+
+1. Run the `ALTER TABLE` above on every database holding an `ecotone_document_store` table — before deploying 2.0.
+2. At every `updateDocument()` / `upsertDocument()` call, pass the version you read with `getDocumentVersion()`, or
+   `DocumentStore::LAST_WRITE_WINS` where the document is a cache, a projection row or anything else with a single
+   writer.
+3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
+4. Fix flow tests that create one aggregate id twice.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
@@ -1845,4 +1936,5 @@ normal section with "How to adapt" steps when it ships.
 13. Adopting DCB decision models: create the `event_tags` tables and, only for a 1.x table a model writes into,
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
-14. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
+15. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).

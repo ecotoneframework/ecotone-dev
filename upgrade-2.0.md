@@ -1687,6 +1687,14 @@ repository of a flow test, is now checked against the version it was loaded at:
   `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
   it back as `0` on every load. Tempest persists it, but its database API does not report whether a guarded update
   matched a row, so a conflict cannot be observed. Concurrent saves of either still overwrite each other.
+  `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
+  Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
+  table and register a repository of your own for the model: a `#[Repository]` class implementing
+  `Ecotone\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
+  `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
+  `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
+  `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
+  `Ecotone\Messaging\Support\ConcurrencyException::forStaleAggregate()`, as every other backend does.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
 `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;

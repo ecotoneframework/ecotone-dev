@@ -104,9 +104,29 @@ committed, it would pin the no-op): a model hydrated by `EloquentRepository::fin
 **`0` on every load** — the declared property's default, never hydrated from the column — and
 `EloquentRepository::save()` with the property at `7` leaves the `version` column at **`0`**: Ecotone's enrichment
 writes the declared PHP property, which Eloquent never persists. So `$versionBeforeHandling` is `0` on every load
-and a check has nothing to compare. The fix is a maintainer decision with three shapes — a convention mapping
-`#[Version]` onto an attribute, a bootstrap refusal (rule 1a; it would break every application carrying a harmless,
-inert `#[Version]` on an Eloquent model today), or a documented limitation. `upgrade-2.0.md` states the limitation.
+and a check has nothing to compare. **Decided by the storage-defects unit: a documented limitation**, after the two
+shapes ahead of it were measured and ruled out:
+
+- *Making it work* needs a persistence convention an application has to know. Ecotone reads and writes `#[Version]`
+  through `getVersion()` / `setVersion()` or else the declared property (`PropertyReaderAccessor`,
+  `PropertyEditorAccessor`), and the attribute only targets a property, so the repository would have to copy a column
+  named after that property into it on `findBy()` — a declared property shadowing an Eloquent attribute of the same
+  name. And the guarded write cannot go through `Model::save()`: `performUpdate()` discards the affected-row count, so
+  `UPDATE … AND version = ?` matching nothing is indistinguishable from success, and bypassing `save()` drops the
+  model's `saving` / `updating` / `saved` events and its timestamps
+- *A bootstrap refusal* cannot tell when it applies. The repository serving an aggregate is chosen at runtime, by the
+  first `canHandle()` in `AllAggregateRepository` — an application's own `#[Repository]` first — so compile time cannot
+  know whether Eloquent will store a given model, and the refusal would fire on the very configuration it should point
+  to. Blast radius, measured anyway: the quickstarts hold 2 Eloquent aggregates
+  (`Laravel/Projection/EloquentReadModel` `UserReadModel`, `MultiTenant/Laravel/Aggregate` `Customer`) and `#[Version]`
+  appears nowhere in `quickstart-examples`, so it would have broken none of them
+
+`upgrade-2.0.md` states the no-op and the two ways out: a plain class in the document-store repository, or the
+application's own `#[Repository]` for the model, running the guarded update itself.
+`EloquentRepositoryTest::test_an_application_repository_for_an_eloquent_model_is_chosen_over_eloquent_and_given_the_version_it_loaded`
+pins what that second way out relies on — the application's repository wins over Eloquent's, and `save()` receives the
+version `findBy()` loaded with the property moved past it; with the application's `canHandle()` returning `false`, the
+same test reaches `EloquentRepository` and fails on the table.
 
 **Limit 4 — Tempest cannot observe a guarded update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
 `Database::execute()` returns `void`, `GenericDatabase` keeps the `PDOStatement` in a private property, and

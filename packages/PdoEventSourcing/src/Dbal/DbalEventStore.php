@@ -16,6 +16,7 @@ use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -153,10 +154,33 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
+        $this->refuseDroppingTableThatWouldCommitTheSurroundingTransaction($connection, $streamName, $tableName);
         $this->tagCollaborator->deleteTagIndexFor($connection, $tableName);
 
         $connection->executeStatement($schema->dropTableSql($tableName));
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
+    }
+
+    private function refuseDroppingTableThatWouldCommitTheSurroundingTransaction(Connection $connection, string $streamName, string $tableName): void
+    {
+        if (! $connection->isTransactionActive() || ! $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "Event stream '{$streamName}' cannot be deleted inside a database transaction on MySQL/MariaDB: "
+            . "deleting a stream drops its table '{$tableName}', and DDL implicitly commits the surrounding transaction there, "
+            . 'so everything written before it would be committed even if the message fails afterwards. '
+            . 'Delete the stream outside any database transaction instead: '
+            . 'mark the command handler, asynchronous handler or #[ConsoleCommand] that deletes it with #[WithoutDatabaseTransaction] '
+            . '(each runs inside a transaction by default), '
+            . 'turn the transaction off for that entry point with DbalConfiguration::withTransactionOnCommandBus(false), '
+            . 'withTransactionOnAsynchronousEndpoints(false) or withTransactionOnConsoleCommands(false), '
+            . 'commit your own transaction before calling EventStore::delete(), '
+            . 'or move the deletion out of #[ProjectionReset], which always runs inside the projection\'s transaction, '
+            . 'into #[ProjectionDelete] and delete the projection before rebuilding it. '
+            . 'Otherwise run the event store on PostgreSQL or SQLite, where DDL is transactional.'
+        );
     }
 
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents

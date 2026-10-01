@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore;
 
+use function array_map;
 use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
@@ -19,7 +20,6 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
 use function in_array;
-use function is_array;
 use function is_scalar;
 use function preg_match;
 
@@ -34,6 +34,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     public function __construct(
         private readonly AppendStrategy $appendStrategy,
         private readonly InMemoryTagCollaborator $tagCollaborator,
+        private readonly RecordedEventFormat $recordedEventFormat,
     ) {
     }
 
@@ -49,7 +50,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
         ];
 
         if ($streamEvents !== []) {
-            $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), null);
+            $this->appendStrategy->append($this, $streamName, $streamEvents, null);
         }
     }
 
@@ -66,7 +67,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
             return;
         }
 
-        $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), $appendCondition);
+        $this->appendStrategy->append($this, $streamName, $streamEvents, $appendCondition);
     }
 
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents
@@ -132,12 +133,13 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     }
 
     /**
-     * @param Event[] $events
+     * @param Event[]|object[]|array[] $events
      */
     private function appendPlainEvents(string $streamName, array $events): void
     {
-        foreach ($events as $event) {
-            $this->streams[$streamName]['events'][] = $event;
+        $recordedEvents = array_map($this->recordedEventFormat->recordedFrom(...), $events);
+        foreach ($recordedEvents as $recordedEvent) {
+            $this->streams[$streamName]['events'][] = $recordedEvent;
         }
     }
 
@@ -273,26 +275,6 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     public function getAllStreams(): array
     {
         return $this->streams;
-    }
-
-    /**
-     * @param Event[]|object[]|array[] $events
-     * @return Event[]
-     */
-    private function convertToEvents(array $events): array
-    {
-        $result = [];
-        foreach ($events as $event) {
-            if ($event instanceof Event) {
-                $result[] = $event;
-            } elseif (is_array($event)) {
-                // Arrays are not supported directly, they need to be wrapped in an object
-                $result[] = Event::createWithType('array', $event);
-            } else {
-                $result[] = Event::create($event);
-            }
-        }
-        return $result;
     }
 
     private function loadEvents(

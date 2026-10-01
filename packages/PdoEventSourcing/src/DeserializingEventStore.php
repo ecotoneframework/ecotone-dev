@@ -14,7 +14,7 @@ use Ecotone\Modelling\Event;
 /**
  * licence Apache-2.0
  */
-final class SerializingEventStore implements EventStore
+final class DeserializingEventStore implements EventStore
 {
     public function __construct(
         private EventStore $eventStore,
@@ -24,12 +24,12 @@ final class SerializingEventStore implements EventStore
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
-        $this->eventStore->create($streamName, $this->serialize($streamEvents), $streamMetadata);
+        $this->eventStore->create($streamName, $streamEvents, $streamMetadata);
     }
 
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
-        $this->eventStore->appendTo($streamName, $this->serialize($streamEvents), $appendCondition);
+        $this->eventStore->appendTo($streamName, $streamEvents, $appendCondition);
     }
 
     public function delete(string $streamName): void
@@ -107,14 +107,5 @@ final class SerializingEventStore implements EventStore
         }
 
         return new LoadedEvents($events, $loadedEvents->appendCondition);
-    }
-
-    /**
-     * @param Event[]|object[]|array[] $streamEvents
-     * @return Event[]
-     */
-    private function serialize(array $streamEvents): array
-    {
-        return array_map(fn (object|array $event) => $this->eventSerializer->serialize($event), $streamEvents);
     }
 }

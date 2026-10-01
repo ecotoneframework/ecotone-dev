@@ -44,10 +44,10 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
         $expected = $appended->expectedVersions($this->versions->capture($appended->needingCapture()));
 
         $this->versions->assertUnchanged($expected);
-        $this->versions->bump($expected);
 
         $firstEventNo = $eventStore->nextEventNumber($streamName);
         $eventStore->appendEventsUnconditionally($streamName, $events);
+        $this->versions->bump($expected);
         $this->index->record($streamName, $firstEventNo, $appended->sequencedAfterBump($expected));
     }
 

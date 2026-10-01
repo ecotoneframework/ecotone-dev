@@ -65,7 +65,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Delayed;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 #[Saga]
 class OrderProcess

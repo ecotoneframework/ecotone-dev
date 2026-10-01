@@ -101,7 +101,7 @@ class OrderService
 
 ```php
 use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 class NotificationService
 {

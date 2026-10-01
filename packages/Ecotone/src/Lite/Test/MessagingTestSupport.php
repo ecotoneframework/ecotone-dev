@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeInterface;
+use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Scheduling\TimeSpan;
 
 /**
  * licence Apache-2.0

@@ -80,7 +80,7 @@ $this->assertEquals(OrderProcessStatus::PLACED, $status);
 ## Testing Saga with Async and Delayed Messages
 
 ```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 public function test_saga_retries_payment_after_delay(): void
 {

@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Scheduling;
+namespace Ecotone\Api\Scheduling;
 
 use DateInterval;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Scheduling\Duration;
 
 /**
  * licence Apache-2.0

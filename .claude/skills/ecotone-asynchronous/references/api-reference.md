@@ -49,7 +49,7 @@ use Ecotone\Api\Attribute\Priority;
 
 ```php
 use Ecotone\Api\Attribute\TimeToLive;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 // Integer (milliseconds)
 #[TimeToLive(60000)]
@@ -68,7 +68,7 @@ use Ecotone\Messaging\Scheduling\TimeSpan;
 ## TimeSpan Factory Methods
 
 ```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 TimeSpan::withMilliseconds(500)
 TimeSpan::withSeconds(30)

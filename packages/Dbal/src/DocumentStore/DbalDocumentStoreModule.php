@@ -33,9 +33,11 @@ class DbalDocumentStoreModule implements AnnotationModule
 {
     public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone.dbal.documentStore.collectionName';
     public const ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID = 'ecotone.dbal.documentStore.documentId';
+    public const ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION = 'ecotone.dbal.documentStore.expectedVersion';
     public const COLLECTION_NAME_PARAMETER = 'collectionName';
     public const DOCUMENT_ID_PARAMETER = 'documentId';
     public const DOCUMENT_PARAMETER = 'document';
+    public const EXPECTED_VERSION_PARAMETER = 'expectedVersion';
 
     /**
      * @inheritDoc
@@ -95,6 +97,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                             GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                             GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                             GatewayPayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                            GatewayHeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                         ]
                     )
             )
@@ -105,6 +108,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                             GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                             GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                             GatewayPayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                            GatewayHeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                         ]
                     )
             )
@@ -128,6 +132,15 @@ class DbalDocumentStoreModule implements AnnotationModule
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($referenceName, DocumentStore::class, 'findDocument', DocumentStoreMessageChannel::findDocument($referenceName))
+                    ->withParameterConverters(
+                        [
+                            GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
+                            GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
+                        ]
+                    )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($referenceName, DocumentStore::class, 'getDocumentVersion', DocumentStoreMessageChannel::getDocumentVersion($referenceName))
                     ->withParameterConverters(
                         [
                             GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
@@ -168,6 +181,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                     PayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                    HeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                 ])
             )
             ->registerMessageHandler(
@@ -175,6 +189,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                     PayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                    HeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                 ])
             )
             ->registerMessageHandler(
@@ -191,6 +206,12 @@ class DbalDocumentStoreModule implements AnnotationModule
             )
             ->registerMessageHandler(
                 new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::findDocument($referenceName), 'findDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                    HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
+                    HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
+                ])
+            )
+            ->registerMessageHandler(
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getDocumentVersion($referenceName), 'getDocumentVersion', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                 ])

@@ -73,10 +73,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'sides' => 'an append repeating a recorded event id — DBAL rejects it through its unique event_id, in-memory stores the duplicate',
             'cases' => ['test_appending_an_event_id_that_was_already_recorded_is_rejected' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
-        'E10' => [
-            'sides' => 'AppendCondition::forAggregate() with a stale expected version and an aggregate version not yet recorded — in-memory rejects it, DBAL appends it because it checks only its unique index (rule 8)',
-            'cases' => ['test_appending_under_a_stale_aggregate_version_is_rejected' => ['dbal']],
-        ],
         'E11' => [
             'sides' => 'create() or appendTo() on a stream no #[Stream] or aggregate declares — MySQL and MariaDB refuse to create its table at runtime (rule 16), in-memory, PostgreSQL and SQLite create it',
             'cases' => [
@@ -604,6 +600,30 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             }
 
             self::assertCount(2, $eventStore->load(self::STREAM));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_stale_aggregate_version_names_both_versions_and_the_way_out(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            $eventStore->appendTo(self::STREAM, [
+                $this->ticketEvent(new TicketOpenedForEventStoreConformance('t-1', 'One'), 't-1', 1),
+                $this->ticketEvent(new TicketRenamedForEventStoreConformance('t-1', 'Renamed'), 't-1', 2),
+            ]);
+
+            try {
+                $eventStore->appendTo(
+                    self::STREAM,
+                    [$this->ticketEvent(new TicketClosedForEventStoreConformance('t-1'), 't-1', 3)],
+                    AppendCondition::forAggregate('ticket', 't-1', 1),
+                );
+                self::fail('Expected the stale aggregate version to be rejected');
+            } catch (ConcurrencyException $exception) {
+                self::assertStringContainsString('Aggregate ticket t-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
+                self::assertStringContainsString('Load it again and retry', $exception->getMessage());
+                self::assertStringContainsString('InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])', $exception->getMessage());
+            }
         });
     }
 

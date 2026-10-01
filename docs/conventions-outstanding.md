@@ -58,7 +58,112 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 | Rule | Decision |
 |---|---|
 | 9 | **Conformance suite shipped; its findings are the queue.** `EventStoreConformanceTest`, `TaggedEventStoreConformanceTest` (`packages/PdoEventSourcing/tests/Conformance/`) and `DocumentStoreConformanceTest` (`packages/Dbal/tests/Conformance/`) run every case against each in-memory wiring and DBAL, on PostgreSQL, MySQL, MariaDB and SQLite. Each suite's `KNOWN_DIVERGENCES` ratchet skips a recorded case and fails once it stops diverging. What the suite found, what each side does, and the two seams below are in `docs/superpowers/specs/2026-10-01-conformance-suite-report.md`. **Next, in order:** (1) **T1, its own unit, no design question** — `bootstrapFlowTestingWithEventStore()` indexes no `#[EventTag]`, because `SerializingEventStore` hands `InMemoryEventStore` array payloads, so every DCB flow test on it is vacuous; (2) the user-facing bugs **D5** (a mixed-type array document cannot be read back through JMS) and **D4** (MySQL/MariaDB document ids collide on case); (3) a maintainer decision per remaining divergence (E1–E9, E11, E13, D1, D3). **Deduplication and dead letter are not seams yet:** `DeduplicationInterceptor` and `DbalDeadLetterHandler` are concrete DBAL classes, so an in-memory implementation first needs an interface extracted and the policy moved to core — a design change sketched in the report, not built |
-| 8 | **Fix all, accept the break.** Version checks in `EloquentRepository`, `TempestRepository`, `DocumentStoreAggregateRepository` and `InMemoryStateStoredRepository`; replace `DbalProjectionStateStorage`'s `SELECT … FOR UPDATE`. `DocumentStore` gains a version parameter — a breaking `Api/` change, which 2.0 is the right moment for. Sequenced after rule 9, so the conformance suite proves the check holds in **every** implementation rather than only the one edited. **Inherits a failing case:** E10, `EventStoreConformanceTest::test_appending_under_a_stale_aggregate_version_is_rejected` — `DbalEventStore` appends under a stale `AppendCondition::forAggregate()` because it checks only its unique index; the fix removes `dbal` from E10 |
+| 8 | **Shipped where a version can be observed; four limits of the rule and one misnamed opt-out found.** See *Rule 8* below |
+
+### Rule 8 — what shipped, and four limits of the rule as written
+
+**The finding: "always use optimistic locking" is achievable today on two of five storage paths** — the DBAL event
+store and the document store. On the other three it describes an aspiration, not a convention the tree follows:
+projection state is a work lease, not a record; three of the four state-stored backends have no version to compare
+for an aggregate without `#[Version]`; Eloquent never persists `#[Version]`; and Tempest cannot observe whether a
+guarded update matched. Each limit below carries its evidence, so none of them is re-filed as a violation.
+
+**Shipped** (`0f47c62f6`, `b403ebfb8`, `4036d4c20`, `8c2d96d8b`):
+
+- **E10 closed.** `DbalEventStore` reads the aggregate's current version before appending under
+  `AppendCondition::forAggregate()`, on the plain path and on the tagged (DCB) path — the tagged path had the same
+  hole and was recorded nowhere; `TaggedEventStoreConformanceTest::test_appending_a_tagged_event_under_a_stale_aggregate_version_is_rejected`
+  proves it. `dbal` is removed from E10, which is now gone from `KNOWN_DIVERGENCES`; the case runs on PostgreSQL,
+  MySQL, MariaDB and SQLite. Both stores raise `ConcurrencyException::forStaleAggregate()`
+- **`DocumentStore` break.** `updateDocument()` / `upsertDocument()` take a required `int $expectedVersion`;
+  `DocumentStore::LAST_WRITE_WINS` is the named opt-out, `getDocumentVersion()` the reload read, a `version` column the
+  DBAL storage (a 1.x table is refused with the `ALTER TABLE`). Nine cases in `DocumentStoreConformanceTest`
+- **Document-store and in-memory aggregate repositories** check `$versionBeforeHandling`, proved by
+  `StateStoredRepositoryConformanceTest` (new; in-memory, document store over in-memory and over DBAL). It exposed a
+  fake version: `StateStoredRepositoryAdapter::save()` reported `0` after a creation and for every aggregate without
+  `#[Version]`, which `outputChannelName` chains read back as `TARGET_VERSION` — fixed. It also records **R1**: a
+  refused save leaves the handler's change in the stored instance on both in-memory rows (D3's root cause)
+
+**Limit 1 — projection state is a work lease, not a record write. `DbalProjectionStateStorage` keeps `FOR UPDATE`.**
+The second run of a partition must *wait and continue from where the first got to*, not fail; a version predicate
+turns that benign catch-up into a failed command for a synchronous projection, whose transaction is the command's.
+On MySQL and MariaDB the lock also makes the read current: under REPEATABLE READ a plain `SELECT` returns the
+transaction's old snapshot. Proved by a prototype (not committed): `FOR UPDATE` removed and the save guarded on the
+position read, `ProjectingConcurrencyTest::test_interleaved_commands_sees_gaps` went **red on MySQL and MariaDB** —
+TX1's `PlaceOrder` failed with the prototype's `ConcurrencyException` where it succeeds today — and stayed green on
+PostgreSQL (READ COMMITTED re-reads). The brief's "pessimistic locking was tried here and removed" did not hold:
+`c064ca8b5` and `ca8a1b0fc` are event-store and tag locking, not projection state.
+
+**Limit 2 — an aggregate without `#[Version]` has no version to check, on every backend.** Its
+`$versionBeforeHandling` is `null` after a load. The document-store repository passes `LAST_WRITE_WINS` for it, named
+at the call site rather than laundered through a fetched version; in-memory skips the check; Eloquent and Tempest
+have no column. Refusing such aggregates at bootstrap was weighed and rejected: all 11 aggregates and sagas the 7
+quickstarts store in the document store lack `#[Version]`, and refusing in one backend while the in-memory one every
+flow test uses does not would pass tests and fail at boot. Creation is still checked where the repository runs
+before the row exists (document store, in-memory).
+
+**Limit 3 — `#[Version]` on an Eloquent aggregate is a silent no-op.** Measured with a throwaway test (not
+committed, it would pin the no-op): a model hydrated by `EloquentRepository::findBy()` reads its `#[Version]` as
+**`0` on every load** — the declared property's default, never hydrated from the column — and
+`EloquentRepository::save()` with the property at `7` leaves the `version` column at **`0`**: Ecotone's enrichment
+writes the declared PHP property, which Eloquent never persists. So `$versionBeforeHandling` is `0` on every load
+and a check has nothing to compare. The fix is a maintainer decision with three shapes — a convention mapping
+`#[Version]` onto an attribute, a bootstrap refusal (rule 1a; it would break every application carrying a harmless,
+inert `#[Version]` on an Eloquent model today), or a documented limitation. `upgrade-2.0.md` states the limitation.
+
+**Limit 4 — Tempest cannot observe a guarded update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
+`Database::execute()` returns `void`, `GenericDatabase` keeps the `PDOStatement` in a private property, and
+`grep -rn "rowCount\|affected" vendor/tempest/framework/packages/database/src` has **0 hits** — so
+`UPDATE … WHERE version = ?` matching nothing is indistinguishable from success, and a stale write is lost silently.
+`RETURNING` works on PostgreSQL, SQLite and MariaDB but not MySQL; driving Tempest's raw `Connection::prepare()`
+means re-implementing its private, serializer-aware `resolveBindings()` and losing `onDatabase()` tags; read-then-write
+leaves the race rule 8 forbids. `ecotone/dbal` is only a composer *suggest* of `ecotone/tempest`, so DBAL is no
+fallback. **Ready to send upstream** (the maintainer's call, not filed):
+
+> **Expose the affected-row count of an update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
+> `Database::execute()` returns `void`, and `GenericDatabase` keeps the executed `PDOStatement` private, so a caller
+> cannot learn how many rows an `UPDATE` matched. Optimistic locking needs exactly that: `UPDATE … WHERE id = ? AND
+> version = ?` matching zero rows is the conflict signal. Ecotone wants to version-check aggregates stored as Tempest
+> models and cannot without it. A `Database::execute()` returning the affected-row count, or an
+> `UpdateQueryBuilder::executeAndCount(): int`, would be enough.
+
+**Defect 5 — `withoutOptimisticLockFor()` is misnamed. Found by the full-suite gate, not by reading the code** — the
+other four were visible to inspection, this one needed the suite. It opts an aggregate out of the DCB **counter tag**,
+not out of optimistic locking: its own refusals say so (`AggregateCounterTagGuard`: "only a state-stored aggregate
+has a counter tag to opt out of"), while its name and
+`StateStoredAggregateCounterDbalTest::test_an_aggregate_excluded_from_the_optimistic_lock_keeps_last_write_wins_across_two_connections`
+promised last-write-wins. Once the document-store repository checked `#[Version]`, that test failed: the excluded
+aggregate declares `#[Version]`, and the repository refused the stale save. Decided: `#[Version]`, declared on the
+class, wins over an exclusion listed on a distant Enterprise configuration — the alternative would make open-core
+`StateStoredRepositoryAdapter` read an Enterprise setting (rule 7). The test is renamed to assert the refusal
+(`test_a_versioned_aggregate_excluded_from_the_counter_tag_is_still_version_checked_across_two_connections`) and
+`test_an_aggregate_without_a_version_excluded_from_the_counter_tag_keeps_last_write_wins_across_two_connections` pins
+the other half. **Recommended rename** (breaking Enterprise API, the maintainer's call, not done):
+`DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor()`, with the guard messages and `upgrade-2.0.md`
+following it.
+
+**Draft sentences for rule 8** (for the maintainer; the rule is not edited here):
+
+> Optimistic locking governs **writes to a record that two writers can decide on**. It does not govern a **work
+> lease** — a row that serialises one worker over a queue, such as a projection partition's position — where the
+> second worker must wait and continue rather than fail; there, `SELECT … FOR UPDATE` is the correct tool, and on
+> MySQL/MariaDB also what makes the read current.
+
+> A version check needs a version to check. An aggregate without `#[Version]` is last-write-wins on every backend, and
+> a call that deliberately writes unchecked says so by name (`DocumentStore::LAST_WRITE_WINS`) rather than by
+> fetching the current version and passing it back. A backend that cannot report whether a guarded write matched —
+> Tempest today — cannot hold the rule, and a check it cannot observe is worse than none.
+
+**Noticed on the way, left alone:**
+
+- The Laravel test application (`packages/Laravel/tests/Application`) saved the measurement's Eloquent aggregate
+  through the **in-memory** repository, not `EloquentRepository` — with `'test' => true` and still with it switched to
+  `false` — and the renamed title never reached the table. `EloquentIntegrationTest::test_executing_command_action`
+  runs in the same application, so its cancel round trip most likely proves `InMemoryStateStoredRepository` rather
+  than Eloquent persistence. Not verified on that test, and why the switch did not change the repository was not
+  chased
+- `upsertDocument()` under `expectedVersion: 0` that loses a race to a concurrent insert reports "at version 1 now";
+  the duplicate key aborts a PostgreSQL transaction, so the current version cannot be re-read there
 
 ## Deliberately last — judgement-heavy
 

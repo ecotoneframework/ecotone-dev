@@ -85,6 +85,7 @@ final class DocumentStoreTableManager implements DbalTableManager
         $table->addColumn('document_type', 'text');
         $table->addColumn('document', 'json');
         $table->addColumn('updated_at', 'float', ['length' => 53]);
+        $table->addColumn('version', 'integer', ['default' => 1]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 

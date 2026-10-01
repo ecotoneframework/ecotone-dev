@@ -15,6 +15,6 @@ final class MerchantSubscriberTwo
     #[EventHandler]
     public function merchantToUser(MerchantCreated $event, CommandBus $commandBus): void
     {
-        $commandBus->send(new RegisterUser($event->merchantId));
+        $commandBus->send(new RegisterUser($event->merchantId . '-second'));
     }
 }

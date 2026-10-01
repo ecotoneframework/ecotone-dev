@@ -100,6 +100,7 @@ final class TagScopedDecisionModelSnapshotTest extends TestCase
             DecisionModelSnapshotStore::collectionFor(SpentTodayForTagSnapshotTest::class),
             self::SCOPE_KEY,
             '{"state":"not the model","covered_position":"not a position"}',
+            DocumentStore::LAST_WRITE_WINS,
         );
 
         $this->credit($ecotone, 1);
@@ -176,6 +177,7 @@ final class TagScopedDecisionModelSnapshotTest extends TestCase
                 'covered_position' => $coveredPosition,
                 'fold_shape' => $foldShape ?? $this->foldShapeAlreadyStored(),
             ]),
+            DocumentStore::LAST_WRITE_WINS,
         );
     }
 

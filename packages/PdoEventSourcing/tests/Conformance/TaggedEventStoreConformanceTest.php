@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -22,6 +23,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ConcurrencyException;
+use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -312,6 +316,30 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
         });
     }
 
+    #[DataProvider('implementations')]
+    public function test_appending_a_tagged_event_under_a_stale_aggregate_version_is_rejected(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [
+                $this->courseEvent(new CourseCapacityChangedForTaggedConformance('course-1', 10), 1),
+                $this->courseEvent(new CourseCapacityChangedForTaggedConformance('course-1', 20), 2),
+            ]));
+
+            try {
+                self::inTransaction(fn () => $eventStore->appendTo(
+                    self::STREAM,
+                    [$this->courseEvent(new CourseCapacityChangedForTaggedConformance('course-1', 30), 3)],
+                    AppendCondition::forAggregate('course', 'course-1', 1),
+                ));
+                self::fail('Expected the stale aggregate version to be rejected');
+            } catch (ConcurrencyException $exception) {
+                self::assertStringContainsString('Aggregate course course-1 was loaded at version 1, but it is at version 2 now', $exception->getMessage());
+            }
+
+            self::assertCount(2, $eventStore->load(self::STREAM));
+        });
+    }
+
     private function append(EventStore $eventStore, string $streamName, array $events, ?LoadedEvents $capturedBy = null): void
     {
         self::inTransaction(fn () => $eventStore->appendTo($streamName, $events, $capturedBy?->appendCondition));
@@ -425,6 +453,15 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->initializeDatabase()->getGateway(EventStore::class);
+    }
+
+    private function courseEvent(CourseCapacityChangedForTaggedConformance $payload, int $version): Event
+    {
+        return Event::create($payload, [
+            MessageHeaders::EVENT_AGGREGATE_TYPE => 'course',
+            MessageHeaders::EVENT_AGGREGATE_ID => $payload->courseId,
+            MessageHeaders::EVENT_AGGREGATE_VERSION => $version,
+        ]);
     }
 
     private function payloadsOf(array $events): array

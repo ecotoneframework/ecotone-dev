@@ -120,6 +120,7 @@ final class DecisionModelSnapshotStore
             self::collectionFor($pending->modelClass),
             $pending->scopeKey,
             $pending->envelopeJson,
+            DocumentStore::LAST_WRITE_WINS,
         );
     }
 

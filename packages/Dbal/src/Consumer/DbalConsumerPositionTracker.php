@@ -27,7 +27,7 @@ class DbalConsumerPositionTracker implements ConsumerPositionTracker
 
     public function savePosition(string $consumerId, string $position): void
     {
-        $this->documentStore->upsertDocument(self::COLLECTION_NAME, $consumerId, $position);
+        $this->documentStore->upsertDocument(self::COLLECTION_NAME, $consumerId, $position, DocumentStore::LAST_WRITE_WINS);
     }
 
     public function deletePosition(string $consumerId): void

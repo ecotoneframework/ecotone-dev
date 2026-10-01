@@ -6,7 +6,6 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Store\Document\DocumentException;
@@ -71,7 +70,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
-        $documentStore->updateDocument('users', '123', '{"name":"Franco"}');
+        $documentStore->updateDocument('users', '123', '{"name":"Franco"}', expectedVersion: 1);
 
         $this->assertJsons('{"name":"Franco"}', $documentStore->getDocument('users', '123'));
     }
@@ -84,7 +83,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
-        $documentStore->updateDocument('users', '123', '{"name":"Johny"}');
+        $documentStore->updateDocument('users', '123', '{"name":"Johny"}', expectedVersion: 1);
 
         $this->assertJsons('{"name":"Johny"}', $documentStore->getDocument('users', '123'));
     }
@@ -369,7 +368,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
-        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}');
+        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}', expectedVersion: 1);
 
         $this->assertJsons('{"name":"Johny Mac"}', $documentStore->getDocument('users', '123'));
     }
@@ -381,7 +380,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
-        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}');
+        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}', expectedVersion: 0);
 
         $this->assertJsons('{"name":"Johny Mac"}', $documentStore->getDocument('users', '123'));
     }

@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Store\Document;
 
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Messaging\Support\ConcurrencyException;
 
 use function json_decode;
 
@@ -19,6 +20,11 @@ final class InMemoryDocumentStore implements DocumentStore
      */
     private array $collection = [];
 
+    /**
+     * @var array<string, array<string, int>>
+     */
+    private array $versions = [];
+
     private function __construct()
     {
     }
@@ -30,7 +36,7 @@ final class InMemoryDocumentStore implements DocumentStore
 
     public function dropCollection(string $collectionName): void
     {
-        unset($this->collection[$collectionName]);
+        unset($this->collection[$collectionName], $this->versions[$collectionName]);
     }
 
     public function addDocument(string $collectionName, string $documentId, object|array|string $document): void
@@ -47,25 +53,31 @@ final class InMemoryDocumentStore implements DocumentStore
         }
 
         $this->collection[$collectionName][$documentId] = $document;
+        $this->versions[$collectionName][$documentId] = 1;
     }
 
-    public function updateDocument(string $collectionName, string $documentId, object|array|string $document): void
+    public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
         if (! isset($this->collection[$collectionName][$documentId])) {
             throw DocumentNotFound::create(sprintf('Collection %s does not contains document with id %s', $collectionName, $documentId));
         }
 
-        $this->collection[$collectionName][$documentId] = $document;
+        $this->storeUnderVersion($collectionName, $documentId, $document, $expectedVersion);
     }
 
-    public function upsertDocument(string $collectionName, string|int $documentId, object|array|string $document): void
+    public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->collection[$collectionName][$documentId] = $document;
+        $this->storeUnderVersion($collectionName, $documentId, $document, $expectedVersion);
     }
 
     public function deleteDocument(string $collectionName, string $documentId): void
     {
-        unset($this->collection[$collectionName][$documentId]);
+        unset($this->collection[$collectionName][$documentId], $this->versions[$collectionName][$documentId]);
+    }
+
+    public function getDocumentVersion(string $collectionName, string $documentId): int
+    {
+        return $this->versions[$collectionName][$documentId] ?? 0;
     }
 
     public function getDocument(string $collectionName, string $documentId): array|object|string
@@ -109,5 +121,16 @@ final class InMemoryDocumentStore implements DocumentStore
         }
 
         return count($this->collection[$collectionName]);
+    }
+
+    private function storeUnderVersion(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
+    {
+        $currentVersion = $this->getDocumentVersion($collectionName, $documentId);
+        if ($expectedVersion !== self::LAST_WRITE_WINS && $expectedVersion !== $currentVersion) {
+            throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, $currentVersion);
+        }
+
+        $this->collection[$collectionName][$documentId] = $document;
+        $this->versions[$collectionName][$documentId] = $currentVersion + 1;
     }
 }

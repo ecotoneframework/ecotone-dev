@@ -131,11 +131,12 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                     $documentStore = $this->container->get(
                         $this->eventSourcingConfiguration->getDocumentStoreReferenceFor($aggregate->getAggregateClassName())
                     );
-                    $documentStore->upsertDocument(self::getSnapshotCollectionName($aggregate->getAggregateClassName()), self::getSnapshotDocumentId($aggregate->getIdentifiers()), $aggregate->getAggregateInstance());
+                    $documentStore->upsertDocument(self::getSnapshotCollectionName($aggregate->getAggregateClassName()), self::getSnapshotDocumentId($aggregate->getIdentifiers()), $aggregate->getAggregateInstance(), DocumentStore::LAST_WRITE_WINS);
                     $documentStore->upsertDocument(
                         self::getSnapshotFoldShapeCollectionName($aggregate->getAggregateClassName()),
                         self::getSnapshotDocumentId($aggregate->getIdentifiers()),
                         json_encode(['foldShape' => $this->eventSourcingHandlerExecutor->foldShapeOf($aggregate->getAggregateClassName())]),
+                        DocumentStore::LAST_WRITE_WINS,
                     );
                 }
             }

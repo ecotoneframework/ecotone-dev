@@ -105,6 +105,7 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
             DecisionModelSnapshotStore::collectionFor(WalletBalanceForSnapshotTest::class),
             self::SCOPE_KEY,
             '{"state":"not the model","covered_position":"not a position"}',
+            DocumentStore::LAST_WRITE_WINS,
         );
 
         $this->creditAndObserve($ecotone, 1);
@@ -195,6 +196,7 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
                 'covered_position' => $coveredPosition,
                 'fold_shape' => $foldShape ?? $this->foldShapeAlreadyStored(),
             ]),
+            DocumentStore::LAST_WRITE_WINS,
         );
     }
 

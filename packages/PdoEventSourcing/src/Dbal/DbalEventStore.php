@@ -136,16 +136,53 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
     public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
     {
+        $this->assertAggregateVersionMatches($streamName, $appendCondition);
         $this->appendEventsUnconditionally($streamName, $events);
     }
 
     public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
     {
+        if ($appendCondition !== null && $appendCondition->hasAggregateCondition()) {
+            $this->assertAggregateVersionMatches($streamName, $appendCondition);
+        }
+
         $connection = $this->connectionFor($streamName);
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
         $this->tagCollaborator->appendEventsWithTagCondition($this, $connection, $schema, $tableName, $streamName, $events, $appendCondition);
+    }
+
+    private function assertAggregateVersionMatches(string $streamName, AppendCondition $appendCondition): void
+    {
+        $aggregateType = $appendCondition->aggregateType();
+        $aggregateId = (string) $appendCondition->aggregateId();
+        $expectedVersion = (int) $appendCondition->expectedAggregateVersion();
+
+        $currentVersion = $this->currentAggregateVersion($streamName, $aggregateType, $aggregateId);
+        if ($currentVersion !== $expectedVersion) {
+            throw ConcurrencyException::forStaleAggregate((string) $aggregateType, $aggregateId, $expectedVersion, $currentVersion);
+        }
+    }
+
+    private function currentAggregateVersion(string $streamName, ?string $aggregateType, string $aggregateId): int
+    {
+        $connection = $this->connectionFor($streamName);
+        $schema = EventStreamSchemaFactory::for($connection);
+
+        $where = [$schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false) . ' = ?'];
+        $parameters = [$aggregateId];
+        if ($aggregateType !== null) {
+            $where[] = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false) . ' = ?';
+            $parameters[] = $aggregateType;
+        }
+
+        return (int) $connection->fetchOne(
+            'SELECT MAX(' . $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_VERSION, true) . ') FROM '
+            . $schema->quoteIdentifier($this->streamTableRegistry->tableFor($streamName))
+            . ' WHERE ' . implode(' AND ', $where),
+            $parameters,
+        );
     }
 
     public function delete(string $streamName): void

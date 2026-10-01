@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
-
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDefaultDeduplicationExample;

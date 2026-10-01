@@ -5,8 +5,8 @@ namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGatewayWithMessages;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**

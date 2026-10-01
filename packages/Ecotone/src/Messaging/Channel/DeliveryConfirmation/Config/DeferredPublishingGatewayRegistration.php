@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\DeliveryConfirmation\Config;
 
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeferredPublishingGateway;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Config\Configuration;
@@ -17,7 +18,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHeaders;
 
 /**
  * licence Enterprise

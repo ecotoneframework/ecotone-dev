@@ -6,12 +6,12 @@ namespace Ecotone\Messaging\Channel;
 
 use DateTimeInterface;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Support\LicensingException;

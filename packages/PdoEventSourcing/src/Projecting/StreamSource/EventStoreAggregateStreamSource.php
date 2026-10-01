@@ -10,7 +10,7 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use function count;
 
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;

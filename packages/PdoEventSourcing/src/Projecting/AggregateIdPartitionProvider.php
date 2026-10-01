@@ -9,13 +9,13 @@ namespace Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
 

@@ -7,9 +7,9 @@ namespace Test\Ecotone\Modelling\Unit;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 

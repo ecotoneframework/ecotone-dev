@@ -10,9 +10,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
 /**

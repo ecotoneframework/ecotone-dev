@@ -50,8 +50,8 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         $payload = $event->getPayload();
         $metadata = $event->getMetadata();
 
-        if (! isset($metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE])) {
-            $metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';
+        if (! isset($metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE])) {
+            $metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';
         }
 
         $this->outputChannel->send(

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;

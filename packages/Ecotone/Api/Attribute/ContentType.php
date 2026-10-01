@@ -6,7 +6,7 @@ namespace Ecotone\Api\Attribute;
 
 use Attribute;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**

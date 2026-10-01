@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\AuditLog;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;

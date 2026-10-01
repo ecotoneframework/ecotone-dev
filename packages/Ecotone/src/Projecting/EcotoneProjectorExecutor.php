@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace Ecotone\Projecting;
 
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 

@@ -2,11 +2,11 @@
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

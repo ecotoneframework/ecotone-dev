@@ -7,8 +7,8 @@ namespace Ecotone\Api\Attribute;
 use Attribute;
 use Closure;
 use DateTimeInterface;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]

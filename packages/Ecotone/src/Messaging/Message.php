@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging;
 
+use Ecotone\Api\Messaging\MessageHeaders;
+
 /**
  * licence Apache-2.0
  */

@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**

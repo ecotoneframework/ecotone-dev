@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Store;
 
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\SimpleMessageStore;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;

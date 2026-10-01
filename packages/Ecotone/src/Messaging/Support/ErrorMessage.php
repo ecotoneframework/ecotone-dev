@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Support;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Throwable;
 

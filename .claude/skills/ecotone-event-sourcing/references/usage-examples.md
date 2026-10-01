@@ -284,7 +284,7 @@ inject the header into the `#[EventSourcingHandler]` that applies it:
 ```php
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 #[EventSourcingHandler]
 public function applyRegistered(

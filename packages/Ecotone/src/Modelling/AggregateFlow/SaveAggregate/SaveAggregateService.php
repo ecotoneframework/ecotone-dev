@@ -6,10 +6,10 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;

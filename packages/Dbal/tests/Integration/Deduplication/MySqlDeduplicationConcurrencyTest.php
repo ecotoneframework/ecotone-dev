@@ -10,12 +10,12 @@ use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
 /**

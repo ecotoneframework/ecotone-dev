@@ -3,15 +3,15 @@
 use App\Application\PlaceOrder;
 use App\Domain\ShippingService;
 use App\Infrastructure\NetworkFailingShippingService;
-use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
-use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

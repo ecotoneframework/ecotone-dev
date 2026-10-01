@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

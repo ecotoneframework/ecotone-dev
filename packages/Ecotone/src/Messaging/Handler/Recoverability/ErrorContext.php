@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Recoverability;
 
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 /**
  * licence Apache-2.0

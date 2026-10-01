@@ -3,6 +3,7 @@
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
 
 /**
  * licence Apache-2.0

@@ -7,10 +7,10 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
-use Ecotone\Messaging\MessageHeaders;
 
 use function is_array;
 

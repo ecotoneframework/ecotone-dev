@@ -9,11 +9,11 @@ use App\Domain\OrderRepository;
 use App\Domain\OrderWasPlaced;
 use App\Domain\ShippingService;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Header;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 
 final class OrderService
 {

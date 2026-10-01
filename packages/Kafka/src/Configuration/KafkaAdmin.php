@@ -80,7 +80,8 @@ final class KafkaAdmin
 
     public function getConsumer(string $endpointId, string $channelName): KafkaConsumer
     {
-        if (! array_key_exists($endpointId, $this->initializedConsumers)) {
+        $consumerKey = $this->consumerKey($endpointId, $channelName);
+        if (! array_key_exists($consumerKey, $this->initializedConsumers)) {
             $configuration = $this->getRdKafkaConfiguration($channelName);
             $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
             $conf = $configuration->getConfig();
@@ -94,32 +95,42 @@ final class KafkaAdmin
             $topics = $this->getMappedTopicNames($this->resolveExpressions($kafkaConsumerConfig->getTopics()));
             $consumer->subscribe($topics);
 
-            $this->initializedConsumers[$endpointId] = $consumer;
+            $this->initializedConsumers[$consumerKey] = $consumer;
         }
 
-        return $this->initializedConsumers[$endpointId];
+        return $this->initializedConsumers[$consumerKey];
     }
 
     public function closeAllConsumers(): void
     {
-        foreach ($this->initializedConsumers as $endpointId => $consumer) {
-            $this->closeConsumer($endpointId);
+        foreach (array_keys($this->initializedConsumers) as $consumerKey) {
+            $this->closeConsumerByKey($consumerKey);
         }
     }
 
-    public function closeConsumer(string $endpointId): void
+    public function closeConsumer(string $endpointId, string $channelName): void
     {
-        if (! array_key_exists($endpointId, $this->initializedConsumers)) {
+        $this->closeConsumerByKey($this->consumerKey($endpointId, $channelName));
+    }
+
+    private function closeConsumerByKey(string $consumerKey): void
+    {
+        if (! array_key_exists($consumerKey, $this->initializedConsumers)) {
             return;
         }
 
         try {
-            $this->initializedConsumers[$endpointId]->close();
+            $this->initializedConsumers[$consumerKey]->close();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to close consumer: ' . $exception->getMessage(), ['exception' => $exception]);
         } finally {
-            unset($this->initializedConsumers[$endpointId]);
+            unset($this->initializedConsumers[$consumerKey]);
         }
+    }
+
+    private function consumerKey(string $endpointId, string $channelName): string
+    {
+        return $endpointId . "\0" . $channelName;
     }
 
     public function getProducer(string $referenceName): Producer

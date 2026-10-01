@@ -28,6 +28,10 @@ appended. In-memory rejects it. This is the hole rule 8 is sequenced to close, f
 `EventStoreConformanceTest::test_appending_under_a_stale_aggregate_version_is_rejected` is the failing case the rule 8
 unit inherits, recorded under `dbal` in `KNOWN_DIVERGENCES`.
 
+**Closed by the rule 8 unit** (`0f47c62f6`): DBAL now reads the aggregate's current version first, on the plain and
+the tagged path; `dbal` is removed from E10, and the entry is gone. The rule 8 record in
+`docs/conventions-outstanding.md` lists what that unit shipped and the four limits of rule 8 it found.
+
 ### D5 — the DBAL document store cannot read back an array mixing value types
 
 `['product' => 'milk', 'quantity' => 2]` is stored with document type `array<string,mixed>`, and reading it back

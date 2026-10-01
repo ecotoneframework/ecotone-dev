@@ -260,6 +260,12 @@ class FetchAggregateTest extends TestCase
             self::fail('Should throw exception');
         } catch (MethodInvocationException $e) {
             $this->assertInstanceOf(LicensingException::class, $e->getPrevious());
+            $this->assertStringStartsWith(
+                '#[Fetch] on $user in ' . ComplexService::class . '::handleComplexCommand is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. '
+                . 'Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), '
+                . 'or remove #[Fetch] and load ' . User::class . ' in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.',
+                $e->getPrevious()->getMessage(),
+            );
 
             throw $e;
         }

@@ -35,7 +35,11 @@ class FetchAggregateConverter implements ParameterConverter
     public function getArgumentFrom(Message $message): ?object
     {
         if (! $this->licenceDecider->hasEnterpriseLicence()) {
-            throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.');
+            throw LicensingException::create(sprintf(
+                '%s is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), or remove #[Fetch] and load %s in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.',
+                $this->expressionExecutor->location()->describe(),
+                $this->aggregateClassName,
+            ));
         }
 
         $resolvedIdentifiers = $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]);

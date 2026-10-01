@@ -34,7 +34,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Projecting\EnterpriseProjectionNameHeader;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
+use Ecotone\Projecting\OpenCoreProjectionNameHeader;
 use Ecotone\Projecting\PartitionBatchExecutorHandler;
 use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\ProjectingHeaders;
@@ -77,6 +79,14 @@ class ProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             SinglePartitionProvider::class,
             new Definition(SinglePartitionProvider::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreProjectionNameHeader::class,
+            new Definition(OpenCoreProjectionNameHeader::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EnterpriseProjectionNameHeader::class,
+            new Definition(EnterpriseProjectionNameHeader::class)
         );
 
         $projectionRegistryMap = [];

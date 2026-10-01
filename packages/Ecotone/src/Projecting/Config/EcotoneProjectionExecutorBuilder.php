@@ -23,7 +23,10 @@ use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
+use Ecotone\Projecting\EnterpriseProjectionNameHeader;
+use Ecotone\Projecting\OpenCoreProjectionNameHeader;
 use Ecotone\Projecting\ProjectingHeaders;
+use Ecotone\Projecting\ProjectionNameHeader;
 
 class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
 {
@@ -169,7 +172,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
             new Reference(MessageHeadersPropagatorInterceptor::class),
             $this->projectionName,
             $routerProcessor,
-            Reference::to(LicenceDecider::class),
+            LicenceDecider::prepareDefinition(ProjectionNameHeader::class, OpenCoreProjectionNameHeader::class, EnterpriseProjectionNameHeader::class),
             $this->initChannel,
             $this->deleteChannel,
             $this->flushChannel,

@@ -20,6 +20,22 @@ The same `InMemoryEventStore` passes all 15 tagged cases when `EcotoneLite::boot
 registers it unwrapped). That is why the core DCB tests pass, and it shows the in-memory tag logic matches DBAL:
 **T1 is purely wiring**. It is a plain bug with no design question in it, and it needs its own unit.
 
+**Closed by the T1 unit** (`3db06fc57`): `InMemoryEventStore` now takes the application's events, as `DbalEventStore`
+does, resolves their tags, and converts them to its recorded form only when it records them, through a
+`RecordedEventFormat` — `AsGivenRecordedEventFormat` without the event-sourcing module, `SerializedRecordedEventFormat`
+with it. What it records is unchanged; the wrapper keeps only the read side and is now `DeserializingEventStore`. T1
+is gone from `KNOWN_DIVERGENCES`, and its 13 cases pass on the `in-memory` row on all four engines.
+`DecisionModelOnInMemoryEventStoreTest` proves it through a `#[DecisionModel]` handler on the default bootstrap.
+
+Two corrections to the finding as written above. *No append condition can ever conflict* was too strong: the
+in-memory tag version register bumps the tags an append condition names even when its events resolve none, so two
+decisions on the same tag did conflict. What stayed vacuous was every tagged load — so every decision model was
+rebuilt from nothing — and any conflict with a tagged event appended without a condition. And no DCB test in this
+repository was vacuous: every one on `bootstrapFlowTestingWithEventStore()` boots DBAL, so the exposure was to
+applications' own flow tests and to the conformance row. The design's tag carrier through `SerializingEventStore`
+(`2026-09-20-dcb-design.md`) was never built; it is not needed now that both stores resolve tags from the event they
+are given.
+
 ### E10 — DBAL never checks `AppendCondition::forAggregate()`'s expected version (rule 8)
 
 `DbalEventStore::appendEventsWithAggregateCondition()` appends unconditionally. It relies on the unique index on

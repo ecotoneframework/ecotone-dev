@@ -27,16 +27,18 @@ use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\EnterpriseDbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\OpenCoreDbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
+use Ecotone\EventSourcing\DeserializingEventStore;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
-use Ecotone\EventSourcing\SerializingEventStore;
+use Ecotone\EventSourcing\SerializedRecordedEventFormat;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
@@ -227,12 +229,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
+                RecordedEventFormat::class,
+                new Definition(SerializedRecordedEventFormat::class, [new Reference(EventSerializer::class)])
+            );
+            $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)])
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class)])
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,
-                new Definition(SerializingEventStore::class, [
+                new Definition(DeserializingEventStore::class, [
                     new Reference(InMemoryEventStore::class),
                     new Reference(EventSerializer::class),
                 ])

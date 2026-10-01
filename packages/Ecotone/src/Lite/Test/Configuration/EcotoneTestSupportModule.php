@@ -19,8 +19,10 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AsGivenRecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\Lite\Test\MessagingTestSupport;
@@ -441,7 +443,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class)]),
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
@@ -462,7 +464,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                     if ($extensionObject->isInMemory()) {
                         $messagingConfiguration->registerServiceDefinition(
                             InMemoryEventStore::class,
-                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
+                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class)]),
                         );
                         $messagingConfiguration->registerServiceDefinition(
                             GuardedTagBump::class,

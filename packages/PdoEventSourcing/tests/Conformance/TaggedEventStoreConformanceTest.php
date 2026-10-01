@@ -37,26 +37,7 @@ use Throwable;
  */
 final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCase
 {
-    private const KNOWN_DIVERGENCES = [
-        'T1' => [
-            'sides' => 'the in-memory store of EventSourcingConfiguration::createInMemory() — the default of bootstrapFlowTestingWithEventStore() — sits behind SerializingEventStore, so it sees array payloads and indexes no #[EventTag]: tagged loads return nothing and no condition ever conflicts; DBAL indexes and guards them',
-            'cases' => [
-                'test_events_carrying_a_tag_load_in_the_order_they_were_appended' => ['in-memory'],
-                'test_tag_values_differing_only_in_case_are_distinct' => ['in-memory'],
-                'test_every_tag_of_a_narrowed_criterion_must_be_carried' => ['in-memory'],
-                'test_an_event_matching_several_combined_criteria_loads_once' => ['in-memory'],
-                'test_an_event_type_filter_excludes_the_other_types_carrying_the_tag' => ['in-memory'],
-                'test_loading_after_a_tag_sequence_skips_the_events_up_to_it' => ['in-memory'],
-                'test_events_of_two_streams_load_in_the_order_their_tag_was_appended' => ['in-memory'],
-                'test_a_condition_captured_by_a_load_lets_the_next_append_through' => ['in-memory'],
-                'test_a_condition_is_rejected_once_its_tag_moved_and_appends_nothing' => ['in-memory'],
-                'test_a_condition_captured_by_an_empty_load_is_rejected_once_the_tag_appears' => ['in-memory'],
-                'test_a_condition_guards_its_tag_even_when_the_appended_events_carry_another_value' => ['in-memory'],
-                'test_appending_no_events_under_a_stale_condition_changes_nothing' => ['in-memory'],
-                'test_a_deleted_stream_no_longer_contributes_to_tag_loads' => ['in-memory'],
-            ],
-        ],
-    ];
+    private const KNOWN_DIVERGENCES = [];
 
     public const SECOND_STREAM = 'tagged_conformance_second_stream';
     private const STREAM = 'ecotone_event_stream';

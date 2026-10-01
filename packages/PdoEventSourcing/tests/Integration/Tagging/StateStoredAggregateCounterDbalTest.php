@@ -33,6 +33,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -75,7 +76,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         self::assertSame(50, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
     }
 
-    public function test_an_aggregate_excluded_from_the_optimistic_lock_keeps_last_write_wins_across_two_connections(): void
+    public function test_a_versioned_aggregate_excluded_from_the_counter_tag_is_still_version_checked_across_two_connections(): void
     {
         $this->skipUnlessTwoConnectionsCanRace();
 
@@ -86,10 +87,35 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
             fn () => $ben->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 50))
         );
 
-        $anna->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 30));
+        try {
+            $anna->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 30));
+            $this->fail('Expected a ConcurrencyException');
+        } catch (ConcurrencyException $exception) {
+            self::assertMatchesRegularExpression(
+                '/p-1 was loaded at version 1, but (it is at version 2 now|it has been saved since and this transaction still reads the earlier version \(a REPEATABLE READ snapshot, as on MySQL and MariaDB\))/',
+                $exception->getMessage(),
+            );
+        }
 
-        self::assertSame(70, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
+        self::assertSame(50, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
         self::assertSame([], $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('aggregate_DocPurse', 'p-1'))->events);
+    }
+
+    public function test_an_aggregate_without_a_version_excluded_from_the_counter_tag_keeps_last_write_wins_across_two_connections(): void
+    {
+        $this->skipUnlessTwoConnectionsCanRace();
+
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutOptimisticLock: true);
+        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutOptimisticLock: true);
+        $anna->sendCommand(new OpenUnversionedPurseForCounterDbalTest('p-1'));
+        $anna->getServiceFromContainer(CompetingWithdrawalForCounterDbalTest::class)->arm(
+            fn () => $ben->sendCommand(new WithdrawFromUnversionedPurseForCounterDbalTest('p-1', 50))
+        );
+
+        $anna->sendCommand(new WithdrawFromUnversionedPurseForCounterDbalTest('p-1', 30));
+
+        self::assertSame(70, $anna->sendQueryWithRouting('unversionedDocPurse.balance', metadata: ['aggregate.id' => 'p-1']));
+        self::assertSame([], $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('aggregate_UnversionedDocPurse', 'p-1'))->events);
     }
 
     public function test_an_aggregate_only_decision_boundary_fails_the_append_when_another_connection_saves_the_aggregate_during_the_decision(): void
@@ -177,11 +203,11 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
             DbalConfiguration::createWithDefaults()
                 ->withAutomaticTableInitialization(true)
                 ->withTransactionOnCommandBus($withTransactionOnCommandBus)
-                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, connectionReference: $documentStoreConnectionReference, documentStoreRelatedAggregates: [PurseForCounterDbalTest::class]),
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, connectionReference: $documentStoreConnectionReference, documentStoreRelatedAggregates: [PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class]),
         ];
         if ($withDynamicConsistencyBoundary) {
             $extensionObjects[] = $withoutOptimisticLock
-                ? DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(PurseForCounterDbalTest::class)
+                ? DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor([PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class])
                 : DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
 
@@ -189,12 +215,15 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
             classesToResolve: [
                 PurseForCounterDbalTest::class,
                 PurseJsonConverterForCounterDbalTest::class,
+                UnversionedPurseForCounterDbalTest::class,
+                UnversionedPurseJsonConverterForCounterDbalTest::class,
                 ...($withDynamicConsistencyBoundary && ! $withoutOptimisticLock ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
             ],
             containerOrAvailableServices: [
                 $connectionFactory,
                 'reporting_connection' => $connectionFactory,
                 new PurseJsonConverterForCounterDbalTest(),
+                new UnversionedPurseJsonConverterForCounterDbalTest(),
                 new CompetingWithdrawalForCounterDbalTest(),
                 new PurseAuditorForCounterDbalTest(),
                 new PurseAuditedConverterForCounterDbalTest(),
@@ -326,6 +355,72 @@ final class PurseJsonConverterForCounterDbalTest implements Converter
     {
         return ($sourceType->getTypeHint() === PurseForCounterDbalTest::class && $targetMediaType->isCompatibleWith(MediaType::createApplicationJson()))
             || ($sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $targetType->getTypeHint() === PurseForCounterDbalTest::class);
+    }
+}
+
+#[Aggregate]
+#[AggregateType('UnversionedDocPurse')]
+final class UnversionedPurseForCounterDbalTest
+{
+    public function __construct(
+        #[Identifier] public string $purseId,
+        public int $balance,
+    ) {
+    }
+
+    #[CommandHandler]
+    public static function open(OpenUnversionedPurseForCounterDbalTest $command): self
+    {
+        return new self($command->purseId, 100);
+    }
+
+    #[CommandHandler]
+    public function withdraw(WithdrawFromUnversionedPurseForCounterDbalTest $command, #[Reference] CompetingWithdrawalForCounterDbalTest $competingWithdrawal): void
+    {
+        $competingWithdrawal->commitIfArmed();
+
+        $this->balance -= $command->amount;
+    }
+
+    #[QueryHandler('unversionedDocPurse.balance')]
+    public function balance(): int
+    {
+        return $this->balance;
+    }
+}
+
+final readonly class OpenUnversionedPurseForCounterDbalTest
+{
+    public function __construct(public string $purseId)
+    {
+    }
+}
+
+final readonly class WithdrawFromUnversionedPurseForCounterDbalTest
+{
+    public function __construct(#[Identifier] public string $purseId, public int $amount)
+    {
+    }
+}
+
+#[MediaTypeConverter]
+final class UnversionedPurseJsonConverterForCounterDbalTest implements Converter
+{
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
+    {
+        if ($sourceMediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
+            return json_encode(['purseId' => $source->purseId, 'balance' => $source->balance]);
+        }
+
+        $data = json_decode($source, true);
+
+        return new UnversionedPurseForCounterDbalTest($data['purseId'], $data['balance']);
+    }
+
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
+    {
+        return ($sourceType->getTypeHint() === UnversionedPurseForCounterDbalTest::class && $targetMediaType->isCompatibleWith(MediaType::createApplicationJson()))
+            || ($sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $targetType->getTypeHint() === UnversionedPurseForCounterDbalTest::class);
     }
 }
 

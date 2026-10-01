@@ -1705,6 +1705,23 @@ document at version 1, which is what `getDocumentVersion()` then reports and wha
 `getDocument()`, `findDocument()`, `getAllDocuments()`, `countDocuments()` — work on the 1.x table before the column is
 added. Tables created by 2.0 already have it.
 
+**Unchanged, and stated here because the conformance suite measured it: on MySQL and MariaDB a document id compares
+under the database's collation.** Ecotone creates the table without a collation of its own, so `collection` and
+`document_id` inherit the database default — `utf8mb4_0900_ai_ci` on MySQL 8.0, `utf8mb4_uca1400_ai_ci` on MariaDB
+11.4 — which ignores case and accents. Ids such as `order-a` and `ORDER-A`, or `cafe` and `café`, are then one
+document: adding the second is refused with a `DocumentException`, and `findDocument('orders', 'ORDER-A')` returns
+`order-a`. MariaDB also ignores trailing spaces. PostgreSQL, SQLite and the in-memory document store keep them apart.
+If your ids must stay distinct, convert both columns to a binary collation yourself:
+
+```sql
+ALTER TABLE ecotone_document_store
+    MODIFY collection VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    MODIFY document_id VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;
+```
+
+Neither engine can change a key column's collation in place, so the statement copies the table, and writes to it wait
+until it finishes. Afterwards a lookup has to use the id exactly as it was stored. Ecotone does not run it for you.
+
 **The DBAL event store checks `AppendCondition::forAggregate()`.** It used to rely only on its unique index on
 aggregate type, id and version, so an append under a stale expected version whose new event carried a version not yet
 recorded went through. It now reads the aggregate's current version first, as the in-memory event store always did,

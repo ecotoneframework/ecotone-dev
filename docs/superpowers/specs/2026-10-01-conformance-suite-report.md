@@ -74,6 +74,39 @@ another type fails it. Green on PostgreSQL, MySQL, MariaDB and SQLite.
 The primary key's collation is case-insensitive, so `addDocument('orders', 'ORDER-A', …)` after `'order-a'` fails
 with a duplicate-key `DocumentException`. In-memory, PostgreSQL and SQLite keep two documents. User-facing.
 
+**Decided by the storage-defects unit: a documented engine limitation, kept in `KNOWN_DIVERGENCES`.** Measured on
+MySQL 8.0.46 and MariaDB 11.4.12 before choosing:
+
+- The collation is not Ecotone's. `DocumentStoreTableManager` sets none, so the key inherits the database default:
+  `utf8mb4_0900_ai_ci` and `utf8mb4_uca1400_ai_ci`. Both ignore accents as well as case (`cafe` / `café` collide),
+  and MariaDB's also ignores trailing spaces (`a` / `a `). A database created with a binary default already behaves
+  like PostgreSQL
+- The divergence cuts both ways. On today's tables `findDocument('orders', 'ORDER-A')` returns the document stored as
+  `order-a`, so an application may depend on the case-insensitive lookup without knowing it
+- Converting the key to `utf8mb4_bin` is refused `ALGORITHM=INPLACE` on both engines ("Cannot change column type"):
+  it is a full table copy that blocks writes. After it, ids differing in case, accent or collection name are
+  distinct, proved by a throwaway test through `DocumentStore` on both engines (not committed)
+
+The options and their cost:
+
+1. **Binary collation for new tables, an `ALTER` for existing ones.** New installations match the other engines. An
+   existing table keeps colliding until someone runs the copy, so one application behaves differently by table age,
+   and the conformance case — which always runs on a fresh table — would go green while production does not. Once
+   altered, every lookup that relied on case or accent folding stops finding its document, silently. Doing it safely
+   needs a collation check on the table, as `ecotone:event-store:verify-schema` does for the tag tables, and an
+   upgrade step that rewrites users' tables
+2. **Normalising ids** (lower-casing them on every engine). Changes behaviour on PostgreSQL, SQLite and in-memory
+   too, needs a data migration on every engine for ids already stored, and still leaves accents folded on MySQL.
+   Rejected
+3. **Document the constraint, keep the divergence recorded with the engine named.** Nothing changes for an existing
+   application; one that needs distinct ids runs the `ALTER` itself, knowing what it costs. Chosen
+
+`upgrade-2.0.md` now states the constraint, the measured collations, and the opt-in statement with its cost; D4's
+`sides` names the collations and the decision. **If the maintainer wants option 1**, the cheapest moment is before 2.0
+ships: every 1.x table must already run an `ALTER` for the `version` column, and no 2.0 table exists yet, so the
+collation could ride the same upgrade step — the lookup change would still need saying, and existing tables still
+need detecting. For reference, the event stream and tag tables already create their id columns `utf8mb4_bin`.
+
 ### The remaining divergences
 
 The suite records each of these as a skipped case with its id. Which side is right is a maintainer decision; each

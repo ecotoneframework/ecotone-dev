@@ -115,7 +115,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        $this->insertEventRows($connection, $schema, $tableName, $this->rowsToAppend($streamName, $events));
+        $this->insertEventRows($connection, $schema, $streamName, $tableName, $this->rowsToAppend($streamName, $events));
     }
 
     /**
@@ -177,12 +177,18 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             $parameters[] = $aggregateType;
         }
 
-        return (int) $connection->fetchOne(
-            'SELECT MAX(' . $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_VERSION, true) . ') FROM '
-            . $schema->quoteIdentifier($this->streamTableRegistry->tableFor($streamName))
-            . ' WHERE ' . implode(' AND ', $where),
-            $parameters,
-        );
+        $tableName = $this->streamTableRegistry->tableFor($streamName);
+
+        try {
+            return (int) $connection->fetchOne(
+                'SELECT MAX(' . $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_VERSION, true) . ') FROM '
+                . $schema->quoteIdentifier($tableName)
+                . ' WHERE ' . implode(' AND ', $where),
+                $parameters,
+            );
+        } catch (TableNotFoundException) {
+            throw $this->missingStreamTableException($connection, $tableName, $streamName);
+        }
     }
 
     public function delete(string $streamName): void
@@ -295,7 +301,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
     /**
      * @param array<array{0: string, 1: string, 2: string, 3: string, 4: string}> $rows
      */
-    public function insertEventRows(Connection $connection, EventStreamSchema $schema, string $tableName, array $rows): void
+    public function insertEventRows(Connection $connection, EventStreamSchema $schema, string $streamName, string $tableName, array $rows): void
     {
         $rowPlaces = '(' . implode(', ', array_fill(0, count(self::COLUMNS), '?')) . ')';
         $sql = 'INSERT INTO ' . $schema->quoteIdentifier($tableName) . ' (' . implode(', ', self::COLUMNS) . ') VALUES '
@@ -310,6 +316,8 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
         try {
             $connection->executeStatement($sql, $parameters);
+        } catch (TableNotFoundException) {
+            throw $this->missingStreamTableException($connection, $tableName, $streamName);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         } catch (NotNullConstraintViolationException $exception) {

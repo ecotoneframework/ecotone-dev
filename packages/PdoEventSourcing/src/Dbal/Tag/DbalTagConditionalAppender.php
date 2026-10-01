@@ -43,7 +43,7 @@ final class DbalTagConditionalAppender
         $appended = $this->tagResolver->resolveAppend($events, $appendCondition);
 
         if (! $appended->involvesAnyTag()) {
-            $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
+            $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
 
             return;
         }
@@ -53,7 +53,7 @@ final class DbalTagConditionalAppender
 
         $expected = $this->tables->raisingMissingTablesInstruction($eventStore, $connection, fn () => $this->bumpGuarded($connection, $appended));
 
-        $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
+        $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
         $this->index->insertRows($connection, $tableName, array_column($rows, 0), $appended->sequencedAfterBump($expected));
     }
 

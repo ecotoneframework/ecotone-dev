@@ -12,7 +12,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use RuntimeException;
 use Symfony\App\MultiTenant\Application\Command\RegisterCustomer;
 use Symfony\App\MultiTenant\Application\Event\CustomerWasRegistered;

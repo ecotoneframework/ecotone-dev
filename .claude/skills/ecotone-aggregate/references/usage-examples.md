@@ -65,7 +65,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 class Product
@@ -171,7 +171,7 @@ State-stored aggregates that also publish domain events using the `WithEvents` t
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Aggregate]
 class Order

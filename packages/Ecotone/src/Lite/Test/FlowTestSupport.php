@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -34,7 +35,6 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\AggregrateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Event;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Integration;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -11,7 +12,6 @@ use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\ConcurrencyException;
-use Ecotone\Modelling\Event;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;

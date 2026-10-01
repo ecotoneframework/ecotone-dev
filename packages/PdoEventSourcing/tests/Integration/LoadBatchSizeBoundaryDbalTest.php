@@ -12,9 +12,9 @@ use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**

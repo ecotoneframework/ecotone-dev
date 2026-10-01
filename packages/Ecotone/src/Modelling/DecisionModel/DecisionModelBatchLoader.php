@@ -9,6 +9,7 @@ use function array_values;
 use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
@@ -20,7 +21,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshot;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
 use Ecotone\Modelling\DecisionModel\Snapshot\PendingDecisionModelSnapshot;
-use Ecotone\Modelling\Event;
 
 use function in_array;
 use function is_object;

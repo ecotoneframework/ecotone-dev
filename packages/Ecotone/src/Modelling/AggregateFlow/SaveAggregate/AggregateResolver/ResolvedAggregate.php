@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 /**
  * licence Apache-2.0

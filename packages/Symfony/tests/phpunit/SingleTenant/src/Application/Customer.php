@@ -14,7 +14,7 @@ use Ecotone\Api\Attribute\ConfigurationVariable;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
 use Symfony\App\SingleTenant\Application\Event\CustomerWasRegistered;

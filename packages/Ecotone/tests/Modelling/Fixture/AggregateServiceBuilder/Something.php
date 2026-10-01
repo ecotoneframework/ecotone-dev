@@ -7,8 +7,8 @@ namespace Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[AggregateType('something')]
 #[Aggregate]

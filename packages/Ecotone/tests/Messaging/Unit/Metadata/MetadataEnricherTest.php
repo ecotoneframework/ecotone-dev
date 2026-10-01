@@ -8,9 +8,9 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\WithEvents;
 use PHPUnit\Framework\TestCase;
 
 /**

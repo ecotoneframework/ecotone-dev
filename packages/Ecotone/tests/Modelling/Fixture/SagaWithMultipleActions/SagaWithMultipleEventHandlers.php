@@ -7,7 +7,7 @@ namespace Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Saga;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 /**

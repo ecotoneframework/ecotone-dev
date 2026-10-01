@@ -12,13 +12,13 @@ use App\Testing\Domain\Verification\Command\VerifyPhoneNumber;
 use App\Testing\Domain\Verification\Event\VerificationProcessStarted;
 use App\Testing\Infrastructure\MessagingConfiguration;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Delayed;
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Saga]

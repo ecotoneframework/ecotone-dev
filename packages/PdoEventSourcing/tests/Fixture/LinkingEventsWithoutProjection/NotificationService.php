@@ -7,8 +7,8 @@ namespace Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Modelling\Event;
 
 /**
  * licence Apache-2.0

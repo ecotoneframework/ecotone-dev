@@ -7,8 +7,8 @@ namespace Ecotone\EventSourcing\Tagging;
 use function array_diff_key;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Modelling\Event;
 
 use function is_object;
 use function min;

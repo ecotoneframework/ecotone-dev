@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Domain\Order;
 
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithEvents;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Money;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\Event\OrderWasPlaced;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductDetails;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
-use Ecotone\Api\Attribute\Deduplicated;
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Aggregate]

@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -14,7 +15,6 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

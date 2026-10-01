@@ -4,10 +4,10 @@ namespace Ecotone\Modelling\EventSourcingExecutor;
 
 use function array_map;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingHandlerMethod;
 
 /**

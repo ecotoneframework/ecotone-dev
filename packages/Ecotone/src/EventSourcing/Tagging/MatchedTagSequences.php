@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Tagging;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 /**
  * licence Enterprise

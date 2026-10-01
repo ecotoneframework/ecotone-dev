@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\IgnorePayload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Version;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Aggregate]
 /**

@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\InMemory;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Api\EventSourcing\Event;
 
 use function implode;
 use function sha1;

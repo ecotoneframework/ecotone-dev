@@ -6,11 +6,11 @@ use App\EventSourcing\Command\ChangePrice;
 use App\EventSourcing\Command\RegisterProduct;
 use App\EventSourcing\Event\PriceWasChanged;
 use App\EventSourcing\Event\ProductWasRegistered;
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 class Product

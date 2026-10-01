@@ -2,11 +2,11 @@
 
 namespace Ecotone\Projecting\EventStoreAdapter;
 
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectorExecutor;
 
 /**

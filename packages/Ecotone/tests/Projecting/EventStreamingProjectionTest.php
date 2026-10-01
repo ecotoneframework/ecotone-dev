@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting;
 
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Event;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

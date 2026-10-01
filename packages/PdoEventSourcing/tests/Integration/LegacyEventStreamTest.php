@@ -90,7 +90,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
         $this->expectException(\Ecotone\Messaging\Support\ConcurrencyException::class);
 
         $ecotone->getGateway(EventStore::class)->appendTo(LegacyOrder::LEGACY_STREAM_NAME, [
-            \Ecotone\Modelling\Event::createWithType(
+            \Ecotone\Api\EventSourcing\Event::createWithType(
                 LegacyOrderCancelled::class,
                 ['orderId' => 'order-3'],
                 [

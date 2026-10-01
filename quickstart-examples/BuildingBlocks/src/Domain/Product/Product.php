@@ -10,12 +10,12 @@ use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Event\ProductPriceWasChanged;
 use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 

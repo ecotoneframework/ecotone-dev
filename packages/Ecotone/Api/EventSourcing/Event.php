@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Modelling;
+namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Messaging\Support\Assert;
 

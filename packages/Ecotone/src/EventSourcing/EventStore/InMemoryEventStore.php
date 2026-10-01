@@ -149,13 +149,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
         $currentVersion = $this->currentAggregateVersion($streamName, $aggregateType, $aggregateId);
         if ($currentVersion !== $expectedVersion) {
-            throw ConcurrencyException::create(sprintf(
-                'Aggregate %s:%s expected version %d, but current version is %d',
-                $aggregateType,
-                $aggregateId,
-                $expectedVersion,
-                $currentVersion,
-            ));
+            throw ConcurrencyException::forStaleAggregate((string) $aggregateType, $aggregateId, $expectedVersion, $currentVersion);
         }
     }
 

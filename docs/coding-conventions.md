@@ -435,6 +435,12 @@ So: a behaviour of a seam with two implementations is asserted once, in a suite 
 a DBAL-only or an in-memory-only test. New behaviour goes into that shared suite, and which fixture a test picks
 stops being somewhere a bug can hide.
 
+The suites are `packages/PdoEventSourcing/tests/Conformance/` (event store, tagged and untagged) and
+`packages/Dbal/tests/Conformance/` (document store); copy their shape for a new seam. A data provider yields one row
+per way an application gets the seam, each case fetches the gateway through `EcotoneLite`, and a divergence nobody has
+decided yet goes into the suite's `KNOWN_DIVERGENCES`: the case is skipped with the divergence named, and fails the
+suite once it stops diverging. Never make a case assert the divergent behaviour — that locks the bug in.
+
 ---
 
 ## 10. Tests validate at the userland level only

@@ -11,6 +11,7 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Lite\EcotoneLite;
@@ -123,6 +124,35 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $loaded = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
         self::assertCount(1, $loaded->events);
         self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion']);
+    }
+
+    public function test_deleting_the_stream_in_the_same_process_keeps_the_tag_index_working_for_the_next_append(): void
+    {
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
+        $ecotone->initializeDatabase();
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
+
+        $eventStore->delete('ecotone_event_stream');
+        $ecotone->initializeDatabase();
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 3)]));
+
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
+    public function test_appending_after_the_tag_tables_are_deleted_in_the_same_process_raises_the_missing_table_instruction(): void
+    {
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class], automaticTableInitialization: false);
+        $ecotone->initializeDatabase();
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
+
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['feature' => [TagTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(TagTableManager::FEATURE_NAME, TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE, null));
+
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 3)]));
     }
 
     public function test_tag_values_are_case_sensitive(): void

@@ -189,6 +189,20 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $this->runBackfill($ecotone, []);
     }
 
+    public function test_backfilling_after_the_tag_tables_are_deleted_in_the_same_process_raises_the_missing_table_instruction(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $this->insertHistoricalEvent('SUMMER24', 2);
+        $this->runBackfill($ecotone, []);
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [TagTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(TagTableManager::FEATURE_NAME, TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE, null));
+
+        $this->runBackfill($ecotone, []);
+    }
+
     private function insertUndeserializableEvent(): void
     {
         $this->getConnection()->executeStatement(

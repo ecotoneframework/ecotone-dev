@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
+use Closure;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
@@ -32,6 +34,20 @@ final class DbalTagTables
         }
 
         $this->ensuredTables[$contextKey] = true;
+    }
+
+    /**
+     * @template T
+     * @param Closure(): T $operation
+     * @return T
+     */
+    public function raisingMissingTablesInstruction(DbalEventStore $eventStore, Connection $connection, Closure $operation): mixed
+    {
+        try {
+            return $operation();
+        } catch (TableNotFoundException) {
+            throw $this->missingTablesException($eventStore, $connection);
+        }
     }
 
     public function missingTablesException(DbalEventStore $eventStore, Connection $connection): ConfigurationException

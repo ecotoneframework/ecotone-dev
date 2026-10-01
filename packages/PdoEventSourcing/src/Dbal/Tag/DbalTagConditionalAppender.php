@@ -11,6 +11,7 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\AppendedTags;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 
 /**
@@ -42,7 +43,7 @@ final class DbalTagConditionalAppender
         $appended = $this->tagResolver->resolveAppend($events, $appendCondition);
 
         if (! $appended->involvesAnyTag()) {
-            $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
+            $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
 
             return;
         }
@@ -50,11 +51,9 @@ final class DbalTagConditionalAppender
         TagTransactionRequirement::assertActiveForTaggedAppend($connection);
         $this->tables->ensureExist($eventStore, $connection, $streamName);
 
-        $captured = $this->versions->capture($connection, $appended->needingCapture());
-        $expected = $appended->expectedVersions($captured);
-        $this->versions->bumpGuarded($connection, $expected);
+        $expected = $this->tables->raisingMissingTablesInstruction($eventStore, $connection, fn () => $this->bumpGuarded($connection, $appended));
 
-        $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
+        $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
         $this->index->insertRows($connection, $tableName, array_column($rows, 0), $appended->sequencedAfterBump($expected));
     }
 
@@ -65,6 +64,17 @@ final class DbalTagConditionalAppender
         TagTransactionRequirement::assertActiveForTaggedAppend($connection);
         $this->tables->ensureExist($eventStore, $connection, StreamTableRegistry::DEFAULT_STREAM);
 
-        $this->versions->bumpGuarded($connection, $appended->expectedVersions($this->versions->capture($connection, $appended->needingCapture())));
+        $this->bumpGuarded($connection, $appended);
+    }
+
+    /**
+     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string, decidedBy?: string[]}>
+     */
+    private function bumpGuarded(Connection $connection, AppendedTags $appended): array
+    {
+        $expected = $appended->expectedVersions($this->versions->capture($connection, $appended->needingCapture()));
+        $this->versions->bumpGuarded($connection, $expected);
+
+        return $expected;
     }
 }

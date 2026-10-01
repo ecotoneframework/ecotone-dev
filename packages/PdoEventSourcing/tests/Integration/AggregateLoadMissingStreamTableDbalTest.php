@@ -19,6 +19,7 @@ use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -50,6 +51,20 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
         $ecotone->sendCommand(new AddSeatsToScreeningWithoutStreamTable('screening-1', 3));
 
         self::assertSame(5, $ecotone->getAggregate(ScreeningWithoutStreamTable::class, 'screening-1')->capacity());
+    }
+
+    public function test_creating_an_aggregate_after_the_stream_table_is_deleted_in_the_same_process_names_the_setup_command(): void
+    {
+        $ecotone = $this->bootstrapWithoutTheEventStreamTable();
+        $ecotone->initializeDatabase();
+        $ecotone->sendCommand(new OpenScreeningWithoutStreamTable('screening-1', 2));
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, self::STREAM, null));
+
+        $ecotone->sendCommand(new OpenScreeningWithoutStreamTable('screening-2', 2));
     }
 
     private function bootstrapWithoutTheEventStreamTable(): FlowTestSupport

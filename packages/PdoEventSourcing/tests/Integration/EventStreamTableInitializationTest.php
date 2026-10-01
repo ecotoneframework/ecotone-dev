@@ -8,11 +8,13 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
@@ -46,6 +48,21 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
         $this->expectExceptionMessage(EventStreamTableManager::FEATURE_NAME);
 
         $eventStore->appendTo(Uuid::v7()->toRfc4122(), [new TicketWasRegistered('123', 'Johnny', 'alert')]);
+    }
+
+    public function test_append_to_after_the_stream_table_is_deleted_in_the_same_process_raises_the_missing_table_instruction(): void
+    {
+        $ecotone = $this->bootstrapWithAutomaticTableInitialization(false);
+        $ecotone->initializeDatabase();
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        $eventStore->appendTo('ecotone_event_stream', [new TicketWasRegistered('123', 'Johnny', 'alert')]);
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, 'ecotone_event_stream', null));
+
+        $eventStore->appendTo('ecotone_event_stream', [new TicketWasRegistered('124', 'Johnny', 'alert')]);
     }
 
     private function bootstrapWithAutomaticTableInitialization(bool $isEnabled): FlowTestSupport

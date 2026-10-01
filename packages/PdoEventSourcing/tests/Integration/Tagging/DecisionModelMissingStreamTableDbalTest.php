@@ -16,12 +16,14 @@ use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -62,6 +64,20 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
         $ecotone->sendCommand(new ReserveSeatForMissingStreamTableTest('screening-1'));
 
         self::assertSame([2], SeatReservationsForMissingStreamTableTest::$observedCapacities);
+    }
+
+    public function test_a_tagged_append_after_the_stream_table_is_deleted_in_the_same_process_names_the_setup_command(): void
+    {
+        $ecotone = $this->bootstrapWithoutTheEventStreamTable();
+        $ecotone->initializeDatabase();
+        $ecotone->sendCommand(new OpenScreeningForMissingStreamTableTest('screening-1', 2));
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, self::STREAM, null));
+
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo(self::STREAM, [new SeatReservedForMissingStreamTableTest('screening-1')]));
     }
 
     protected function setUp(): void

@@ -59,7 +59,7 @@ final class DbalTagBackfiller
             $batch = $this->deserialize($eventStore, $rows, $streamName, $skipUndeserializable);
 
             $report->recordScanned($batch);
-            $this->indexBatch($connection, $tableName, $batch, $dryRun, $report);
+            $this->tables->raisingMissingTablesInstruction($eventStore, $connection, fn () => $this->indexBatch($connection, $tableName, $batch, $dryRun, $report));
 
             $position = $report->lastNo() + 1;
         } while ($rows !== [] && count($rows) === $batchSize);

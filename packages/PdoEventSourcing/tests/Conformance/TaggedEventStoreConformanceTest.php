@@ -70,11 +70,12 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
 
     public function test_every_known_divergence_names_a_case_of_this_suite(): void
     {
-        foreach (self::KNOWN_DIVERGENCES as $knownDivergence) {
-            foreach (array_keys($knownDivergence['cases']) as $case) {
-                self::assertContains($case, get_class_methods($this));
-            }
-        }
+        $recordedCases = array_merge(...array_map(
+            static fn (array $knownDivergence): array => array_keys($knownDivergence['cases']),
+            array_values(self::KNOWN_DIVERGENCES),
+        ));
+
+        self::assertSame([], array_values(array_diff($recordedCases, get_class_methods($this))));
     }
 
     #[DataProvider('implementations')]

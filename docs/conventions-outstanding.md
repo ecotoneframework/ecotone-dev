@@ -58,7 +58,7 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 | Rule | Decision |
 |---|---|
 | 9 | **Conformance suite shipped; its findings are the queue.** `EventStoreConformanceTest`, `TaggedEventStoreConformanceTest` (`packages/PdoEventSourcing/tests/Conformance/`) and `DocumentStoreConformanceTest` (`packages/Dbal/tests/Conformance/`) run every case against each in-memory wiring and DBAL, on PostgreSQL, MySQL, MariaDB and SQLite. Each suite's `KNOWN_DIVERGENCES` ratchet skips a recorded case and fails once it stops diverging. What the suite found, what each side does, and the two seams below are in `docs/superpowers/specs/2026-10-01-conformance-suite-report.md`. **Next, in order:** (1) **T1, its own unit, no design question** — `bootstrapFlowTestingWithEventStore()` indexes no `#[EventTag]`, because `SerializingEventStore` hands `InMemoryEventStore` array payloads, so every DCB flow test on it is vacuous; (2) the user-facing bugs **D5** (a mixed-type array document cannot be read back through JMS) and **D4** (MySQL/MariaDB document ids collide on case); (3) a maintainer decision per remaining divergence (E1–E9, E11, E13, D1, D3). **Deduplication and dead letter are not seams yet:** `DeduplicationInterceptor` and `DbalDeadLetterHandler` are concrete DBAL classes, so an in-memory implementation first needs an interface extracted and the policy moved to core — a design change sketched in the report, not built |
-| 8 | **Shipped where a version can be observed; four limits of the rule found.** See *Rule 8* below |
+| 8 | **Shipped where a version can be observed; four limits of the rule and one misnamed opt-out found.** See *Rule 8* below |
 
 ### Rule 8 — what shipped, and four limits of the rule as written
 
@@ -126,6 +126,21 @@ fallback. **Ready to send upstream** (the maintainer's call, not filed):
 > version = ?` matching zero rows is the conflict signal. Ecotone wants to version-check aggregates stored as Tempest
 > models and cannot without it. A `Database::execute()` returning the affected-row count, or an
 > `UpdateQueryBuilder::executeAndCount(): int`, would be enough.
+
+**Defect 5 — `withoutOptimisticLockFor()` is misnamed. Found by the full-suite gate, not by reading the code** — the
+other four were visible to inspection, this one needed the suite. It opts an aggregate out of the DCB **counter tag**,
+not out of optimistic locking: its own refusals say so (`AggregateCounterTagGuard`: "only a state-stored aggregate
+has a counter tag to opt out of"), while its name and
+`StateStoredAggregateCounterDbalTest::test_an_aggregate_excluded_from_the_optimistic_lock_keeps_last_write_wins_across_two_connections`
+promised last-write-wins. Once the document-store repository checked `#[Version]`, that test failed: the excluded
+aggregate declares `#[Version]`, and the repository refused the stale save. Decided: `#[Version]`, declared on the
+class, wins over an exclusion listed on a distant Enterprise configuration — the alternative would make open-core
+`StateStoredRepositoryAdapter` read an Enterprise setting (rule 7). The test is renamed to assert the refusal
+(`test_a_versioned_aggregate_excluded_from_the_counter_tag_is_still_version_checked_across_two_connections`) and
+`test_an_aggregate_without_a_version_excluded_from_the_counter_tag_keeps_last_write_wins_across_two_connections` pins
+the other half. **Recommended rename** (breaking Enterprise API, the maintainer's call, not done):
+`DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor()`, with the guard messages and `upgrade-2.0.md`
+following it.
 
 **Draft sentences for rule 8** (for the maintainer; the rule is not edited here):
 

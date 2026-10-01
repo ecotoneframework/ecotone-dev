@@ -400,7 +400,8 @@ own stream or repository, snapshots included.
   `findBy()` and bumped guarded before the repository's `save()`. Two concurrent commands on one instance, which
   used to end in a silent last-write-wins, now let one succeed and fail the other with
   `DecisionModelConcurrencyException` — configure retry (below). The aggregate's own `#[Version]` property is not
-  used for this and behaves as before. The repository must write on the event store's connection so the counter
+  used for this counter; on a document-store aggregate it is a separate check of its own (see "`DocumentStore` writes
+  name the version they replace" in §14). The repository must write on the event store's connection so the counter
   and the aggregate commit together: a Dbal document-store or Doctrine ORM repository on another connection is a
   bootstrap `ConfigurationException`; for a repository Ecotone cannot inspect (your own, Eloquent, Tempest) this is
   your responsibility.
@@ -418,6 +419,9 @@ own stream or repository, snapshots included.
   the decision would rest on state nothing guards. A `#[DecisionBoundary]` whose criteria name only excluded
   aggregates is refused the same way, when it is evaluated rather than at bootstrap, because the criteria are built
   at runtime; mixing in a counted tag or an aggregate outside the opt-out is allowed and guards on those.
+  **`withoutOptimisticLockFor()` switches off the counter tag only.** A document-store aggregate that also declares
+  `#[Version]` is still version-checked by its repository: when both are present, `#[Version]` wins and a stale save
+  fails with a `ConcurrencyException`. Remove `#[Version]` from the aggregate to get last write wins.
   Naming an `#[EventSourcingAggregate]` is a bootstrap error too —
   its stream's own version check is its lock and cannot be switched off — and so is naming a saga or a class that is
   no aggregate at all.

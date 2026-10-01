@@ -28,6 +28,20 @@ class ConcurrencyException extends MessagingException
         ));
     }
 
+    public static function forStaleDocument(string $collectionName, string $documentId, int $expectedVersion, int $currentVersion): static
+    {
+        return static::create(sprintf(
+            'Document %s in collection %s was expected at version %d, but it is at version %d now (version 0 means it is not stored): '
+            . 'another write changed it after it was read. Read it again with DocumentStore::getDocument() and DocumentStore::getDocumentVersion(), '
+            . 'apply the change to what is stored now and write it under that version, '
+            . 'or pass DocumentStore::LAST_WRITE_WINS as the expected version when this write should replace whatever is stored.',
+            $documentId,
+            $collectionName,
+            $expectedVersion,
+            $currentVersion,
+        ));
+    }
+
     protected static function errorCode(): int
     {
         return self::MESSAGE_HANDLING_EXCEPTION;

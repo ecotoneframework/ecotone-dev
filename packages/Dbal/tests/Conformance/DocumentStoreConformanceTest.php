@@ -16,6 +16,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
@@ -136,7 +137,7 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             $documentStore->addDocument('orders', 'o-1', '{"product":"milk"}');
 
             try {
-                $documentStore->updateDocument('orders', 'o-1', 'not a json');
+                $documentStore->updateDocument('orders', 'o-1', 'not a json', expectedVersion: 1);
                 self::fail('Expected a string that is not JSON to be refused');
             } catch (DocumentException) {
             }
@@ -151,7 +152,7 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
         $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
             $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
 
-            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water']);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
 
             self::assertSame(['product' => 'water'], $documentStore->getDocument('orders', 'o-1'));
             self::assertSame(1, $documentStore->countDocuments('orders'));
@@ -163,7 +164,7 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
     {
         $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
             try {
-                $documentStore->updateDocument('orders', 'o-1', ['product' => 'milk']);
+                $documentStore->updateDocument('orders', 'o-1', ['product' => 'milk'], expectedVersion: 1);
                 self::fail('Expected the missing document to be reported');
             } catch (DocumentNotFound) {
             }
@@ -176,12 +177,156 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
     public function test_upserting_adds_a_missing_document_and_replaces_a_stored_one(string $implementation): void
     {
         $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
-            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'milk'], expectedVersion: 0);
             self::assertSame(['product' => 'milk'], $documentStore->getDocument('orders', 'o-1'));
 
-            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'water']);
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
             self::assertSame(['product' => 'water'], $documentStore->getDocument('orders', 'o-1'));
             self::assertSame(1, $documentStore->countDocuments('orders'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_added_document_is_at_version_one_and_a_missing_one_at_version_zero(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+
+            self::assertSame(1, $documentStore->getDocumentVersion('orders', 'o-1'));
+            self::assertSame(0, $documentStore->getDocumentVersion('orders', 'o-404'));
+            self::assertSame(0, $documentStore->getDocumentVersion('invoices', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_each_write_under_the_current_version_moves_the_version_by_one(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'milk'], expectedVersion: 0);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'bread'], expectedVersion: 2);
+
+            self::assertSame(3, $documentStore->getDocumentVersion('orders', 'o-1'));
+            self::assertSame(['product' => 'bread'], $documentStore->getDocument('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_updating_under_a_stale_version_is_refused_and_keeps_the_stored_document(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+
+            try {
+                $documentStore->updateDocument('orders', 'o-1', ['product' => 'bread'], expectedVersion: 1);
+                self::fail('Expected the stale version to be refused');
+            } catch (ConcurrencyException) {
+            }
+
+            self::assertSame(['product' => 'water'], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(2, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_upserting_under_a_stale_version_is_refused_and_keeps_the_stored_document(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+
+            try {
+                $documentStore->upsertDocument('orders', 'o-1', ['product' => 'bread'], expectedVersion: 1);
+                self::fail('Expected the stale version to be refused');
+            } catch (ConcurrencyException) {
+            }
+
+            self::assertSame(['product' => 'water'], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(2, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_upserting_a_new_document_under_an_id_that_is_already_stored_is_refused(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+
+            try {
+                $documentStore->upsertDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 0);
+                self::fail('Expected the stored document to be kept');
+            } catch (ConcurrencyException) {
+            }
+
+            self::assertSame(['product' => 'milk'], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(1, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_upserting_under_a_version_of_a_document_that_is_no_longer_stored_is_refused_and_stores_nothing(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->deleteDocument('orders', 'o-1');
+
+            try {
+                $documentStore->upsertDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+                self::fail('Expected the version of a deleted document to be refused');
+            } catch (ConcurrencyException) {
+            }
+
+            self::assertNull($documentStore->findDocument('orders', 'o-1'));
+            self::assertSame(0, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_document_added_again_after_its_deletion_starts_at_version_one(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+            $documentStore->deleteDocument('orders', 'o-1');
+
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'bread']);
+
+            self::assertSame(1, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_last_write_wins_replaces_whatever_is_stored_and_still_moves_the_version(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'milk'], expectedVersion: DocumentStore::LAST_WRITE_WINS);
+            self::assertSame(1, $documentStore->getDocumentVersion('orders', 'o-1'));
+
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+            $documentStore->upsertDocument('orders', 'o-1', ['product' => 'bread'], expectedVersion: DocumentStore::LAST_WRITE_WINS);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'cheese'], expectedVersion: DocumentStore::LAST_WRITE_WINS);
+
+            self::assertSame(['product' => 'cheese'], $documentStore->getDocument('orders', 'o-1'));
+            self::assertSame(4, $documentStore->getDocumentVersion('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_stale_version_names_both_versions_and_the_way_out(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', ['product' => 'milk']);
+            $documentStore->updateDocument('orders', 'o-1', ['product' => 'water'], expectedVersion: 1);
+
+            try {
+                $documentStore->updateDocument('orders', 'o-1', ['product' => 'bread'], expectedVersion: 1);
+                self::fail('Expected the stale version to be refused');
+            } catch (ConcurrencyException $exception) {
+                self::assertStringContainsString('Document o-1 in collection orders was expected at version 1, but it is at version 2 now', $exception->getMessage());
+                self::assertStringContainsString('DocumentStore::getDocument() and DocumentStore::getDocumentVersion()', $exception->getMessage());
+                self::assertStringContainsString('DocumentStore::LAST_WRITE_WINS', $exception->getMessage());
+            }
         });
     }
 
@@ -248,7 +393,7 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             $documentStore->addDocument('orders', 'o-1', ['product' => 'water']);
             $documentStore->addDocument('orders', 'o-3', ['product' => 'bread']);
 
-            $documentStore->updateDocument('orders', 'o-2', ['product' => 'cheese']);
+            $documentStore->updateDocument('orders', 'o-2', ['product' => 'cheese'], expectedVersion: 1);
 
             self::assertEqualsCanonicalizing(
                 [['product' => 'cheese'], ['product' => 'water'], ['product' => 'bread']],

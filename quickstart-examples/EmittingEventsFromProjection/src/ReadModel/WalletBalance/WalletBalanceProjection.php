@@ -51,6 +51,6 @@ final class WalletBalanceProjection
 
     private function saveWallet(WalletBalanceState $wallet): void
     {
-        $this->documentStore->upsertDocument(self::PROJECTION_NAME, $wallet->walletId, $wallet);
+        $this->documentStore->upsertDocument(self::PROJECTION_NAME, $wallet->walletId, $wallet, DocumentStore::LAST_WRITE_WINS);
     }
 }

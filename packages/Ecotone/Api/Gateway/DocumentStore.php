@@ -7,6 +7,8 @@ namespace Ecotone\Api\Gateway;
  */
 interface DocumentStore
 {
+    public const LAST_WRITE_WINS = -1;
+
     public function dropCollection(string $collectionName): void;
 
     /**
@@ -17,14 +19,14 @@ interface DocumentStore
     /**
      * @throws DocumentException
      */
-    public function updateDocument(string $collectionName, string $documentId, object|array|string $document): void;
+    public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void;
 
     /**
      * Same as replaceDoc except that doc is added to collection if it does not exist.
      *
      * @throws DocumentException
      */
-    public function upsertDocument(string $collectionName, string $documentId, object|array|string $document): void;
+    public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void;
 
     /**
      * @throws DocumentException
@@ -35,6 +37,8 @@ interface DocumentStore
      * @throws DocumentException
      */
     public function getDocument(string $collectionName, string $documentId): array|object|string;
+
+    public function getDocumentVersion(string $collectionName, string $documentId): int;
 
     /**
      * Contrary to getDocument in case of not found document it will return null

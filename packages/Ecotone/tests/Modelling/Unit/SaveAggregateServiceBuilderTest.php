@@ -118,7 +118,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new StartTicketCommand($ticketId = 1))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
-        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), new stdClass());
+        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), new stdClass(), DocumentStore::LAST_WRITE_WINS);
 
         $ecotoneLite->sendCommand(new AssignWorkerCommand($ticketId, 'johny'));
 
@@ -147,7 +147,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new StartTicketCommand($ticketId = 1))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
-        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), DocumentException::create('failure on conversion'));
+        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), DocumentException::create('failure on conversion'), DocumentStore::LAST_WRITE_WINS);
 
         $ecotoneLite->sendCommand(new AssignWorkerCommand($ticketId, 'johny'));
 

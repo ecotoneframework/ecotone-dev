@@ -36,7 +36,7 @@ final class DocumentStoreAggregateRepository implements StateStoredRepository
     {
         $aggregateId = array_pop($identifiers);
 
-        $this->documentStore->upsertDocument($this->getCollectionName($aggregate::class), $aggregateId, $aggregate);
+        $this->documentStore->upsertDocument($this->getCollectionName($aggregate::class), $aggregateId, $aggregate, DocumentStore::LAST_WRITE_WINS);
     }
 
     private function getCollectionName(string $aggregateClassName): string

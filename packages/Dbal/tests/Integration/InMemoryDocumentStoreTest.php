@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
@@ -26,10 +25,10 @@ final class InMemoryDocumentStoreTest extends DbalMessagingTestCase
         $documentStore = $this->bootstrapDocumentStore();
 
         $documentStore->addDocument('shop', '100', $this->convertOrderToJson('milk'));
-        $documentStore->updateDocument('shop', '100', $this->convertOrderToJson('water'));
+        $documentStore->updateDocument('shop', '100', $this->convertOrderToJson('water'), expectedVersion: 1);
         $this->assertOrder($documentStore, 'shop', '100', 'water');
 
-        $documentStore->upsertDocument('shop', '101', $this->convertOrderToJson('coffee'));
+        $documentStore->upsertDocument('shop', '101', $this->convertOrderToJson('coffee'), expectedVersion: 0);
         $this->assertOrder($documentStore, 'shop', '101', 'coffee');
 
         self::assertEquals(2, $documentStore->countDocuments('shop'));

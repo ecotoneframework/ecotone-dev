@@ -71,11 +71,13 @@ final class AggregateSnapshotFoldShapeTest extends TestCase
             SaveAggregateService::getSnapshotCollectionName(Ticket::class),
             SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
             $this->ticketAssignedTo($ecotone, 'someone-who-never-was'),
+            DocumentStore::LAST_WRITE_WINS,
         );
         $this->documentStore->upsertDocument(
             EventSourcedRepositoryAdapter::getSnapshotFoldShapeCollectionName(Ticket::class),
             SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
             json_encode(['foldShape' => 'the aggregate folded other events back then']),
+            DocumentStore::LAST_WRITE_WINS,
         );
 
         $ecotone->sendCommand(new AssignWorkerCommand('1', 'johny'));
@@ -98,6 +100,7 @@ final class AggregateSnapshotFoldShapeTest extends TestCase
             SaveAggregateService::getSnapshotCollectionName(Ticket::class),
             SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
             $ticket,
+            DocumentStore::LAST_WRITE_WINS,
         );
         $this->documentStore->dropCollection(EventSourcedRepositoryAdapter::getSnapshotFoldShapeCollectionName(Ticket::class));
     }

@@ -48,7 +48,7 @@ class InMemoryDocumentStoreTest extends TestCase
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
-        $documentStore->updateDocument('users', '123', '{"name":"Franco"}');
+        $documentStore->updateDocument('users', '123', '{"name":"Franco"}', expectedVersion: 1);
 
         $this->assertEquals('{"name":"Franco"}', $documentStore->getDocument('users', '123'));
     }
@@ -61,7 +61,7 @@ class InMemoryDocumentStoreTest extends TestCase
 
         $this->expectException(DocumentException::class);
 
-        $documentStore->updateDocument('users', '123', '{"name":"Franco"}');
+        $documentStore->updateDocument('users', '123', '{"name":"Franco"}', expectedVersion: 1);
     }
 
     public function test_adding_document_as_object_should_return_object()
@@ -132,7 +132,7 @@ class InMemoryDocumentStoreTest extends TestCase
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
-        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}');
+        $documentStore->upsertDocument('users', '123', '{"name":"Johny Mac"}', expectedVersion: 1);
 
         $this->assertEquals('{"name":"Johny Mac"}', $documentStore->getDocument('users', '123'));
     }

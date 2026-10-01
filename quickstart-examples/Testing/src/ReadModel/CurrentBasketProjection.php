@@ -44,7 +44,8 @@ final class CurrentBasketProjection
         $documentStore->upsertDocument(
             self::BASKET_COLLECTION,
             $event->getUserId()->toString(),
-            $basket
+            $basket,
+            DocumentStore::LAST_WRITE_WINS
         );
     }
 
@@ -55,12 +56,12 @@ final class CurrentBasketProjection
 
         unset($basket[$event->getProductId()->toString()]);
 
-        $documentStore->updateDocument(self::BASKET_COLLECTION, $event->getUserId()->toString(), $basket);
+        $documentStore->updateDocument(self::BASKET_COLLECTION, $event->getUserId()->toString(), $basket, DocumentStore::LAST_WRITE_WINS);
     }
 
     #[EventHandler]
     public function whenOrderWasPlaced(OrderWasPlaced $event, DocumentStore $documentStore): void
     {
-        $documentStore->updateDocument(self::BASKET_COLLECTION, $event->getUserId()->toString(), []);
+        $documentStore->updateDocument(self::BASKET_COLLECTION, $event->getUserId()->toString(), [], DocumentStore::LAST_WRITE_WINS);
     }
 }

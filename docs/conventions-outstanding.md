@@ -237,7 +237,7 @@ earlier "31 / 24 / ~7" read two disjoint audit counts as a set and its subset; a
 | `CommandBus`, `EventBus`, `InboundGatewayEntrypoint` | `StorageCommandBus`, `StorageEventBus`, `NullInboundGatewayEntrypoint` | **The interfaces are gateways and stay; the three classes were dead stubs nothing constructed, deleted** (`1cd6093b5`) |
 | `InboundChannelAdapterEntrypoint` | `NullEntrypointGateway` | **Kept: two implementations.** A runtime gateway when the adapter has a request channel, the null object when it has none (`KafkaInboundChannelAdapterBuilder`, `EnqueueInboundChannelAdapterBuilder`) |
 | `MessageStore`, `MessageGroupStore`, `MessageGroup` | `SimpleMessageStore`, `InMemoryMessageGroup` | **Recorded.** `Messaging\Store` is used only by its own two unit tests. Delete the package or give it a caller — the maintainer's call |
-| `Transaction`, `TransactionFactory`, `WithRequiredReferenceNameList` | `NullTransaction`, `NullTransactionFactory`, `Transactional` | **Recorded as a public-surface decision, not as dead code.** `#[Transactional]` is a real attribute with **no** counterpart in `Api/Attribute` and no row in `upgrade/namespace-map-2.0.csv`, while its sibling `WithoutDatabaseTransaction` moved to `Ecotone\Api\Attribute` and has one. Either it is still supported — a rule 12a leak that belongs in `Api` with a map row — or `#[WithoutDatabaseTransaction]` superseded it and it goes, with an `upgrade-2.0.md` note. Only `GatewayProxyBuilderTest` uses it today |
+| `Transaction`, `TransactionFactory`, `WithRequiredReferenceNameList` | `NullTransaction`, `NullTransactionFactory`, `Transactional` | **Removed: `#[WithoutDatabaseTransaction]` and `DbalConfiguration` superseded it.** The maintainer chose removal over moving it into `Api`. All seven files of `Messaging\Transaction` are gone; nothing under any `src/` or `Api/` referenced them from outside the directory, and nothing registered `TransactionInterceptor`, so `#[Transactional]` alone was already a no-op. `GatewayProxyBuilderTest` and `InboundChannelAdapterBuilderTest` used it as a sample attribute for the around-interceptor mechanism; they now use a test-owned `RecordOutcomeIn` with the same endpoint, method and class precedence. **Left behind, for the maintainer:** `WithRequiredReferenceNameList` (`Messaging\Attribute`) now has no implementation and no reader anywhere in the tree — `Transactional` was its last — so it is dead too; it was outside this unit's file list and stays until someone decides. `upgrade-2.0.md` §7b records what an application sees |
 | `Configuration`, `ProjectionRegistry`, `MultiTenantConnectionFactory`, `HeaderMapper` | `MessagingSystemConfiguration`, `InMemoryProjectionRegistry`, `HeaderBasedMultiTenantConnectionFactory`, `DefaultHeaderMapper` | **Recorded.** Module- and application-facing types; reshaping them is not a cleanup |
 
 `ProjectionNameHeader` (`OpenCoreProjectionNameHeader`, `EnterpriseProjectionNameHeader`) is a two-implementation
@@ -267,8 +267,8 @@ already did.
 `SplitterHandler` (`?MessageChannel $outputChannel`), `MessageFilter` (`?MessageChannel $discardChannel`),
 `GatewayInternalProcessor` (`?PollableChannel $replyChannel`), `InMemoryReferenceSearchService` and
 `ValidateRequiredReferencesPass` (`?ContainerInterface`), `InterfaceToCallRegistry` (`?AnnotationResolver`),
-`ClosureParameterResolver` (`?ParameterConverter`), `NullTransactionFactory` (`?Transaction`, in the
-`Messaging\Transaction` question above) and `ConnectionExceptionRetryInterceptor` (`?RetryTemplateBuilder`, likely a
+`ClosureParameterResolver` (`?ParameterConverter`), `NullTransactionFactory` (`?Transaction`, removed
+with `Messaging\Transaction` above) and `ConnectionExceptionRetryInterceptor` (`?RetryTemplateBuilder`, likely a
 value). The `?MessageChannel` ones look like rule 2's "no value here" shape — "no output channel" — and may want a
 null channel rather than a branch.
 

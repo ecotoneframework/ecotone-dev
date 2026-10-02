@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -14,16 +15,15 @@ use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Messaging\Transaction\Null\NullTransaction;
-use Ecotone\Messaging\Transaction\Null\NullTransactionFactory;
-use Ecotone\Messaging\Transaction\Transactional;
-use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\RecordOutcomeIn;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
+use Throwable;
 
 /**
  * Class InboundChannelAdapterBuilderTest
@@ -49,13 +49,12 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         $requestChannel = QueueChannel::create();
         $inboundChannelAdapterStoppingService = ConsumerContinuouslyWorkingService::createWithReturn($payload);
 
-        $transactionOne = NullTransaction::start();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
 
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withReference('transactionFactory2', $transactionFactoryOne)
+            ->withReference('methodRecorder', $recorder)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
@@ -65,12 +64,12 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
                 )
                 ->withEndpointId('test')
             )
-            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, $inboundChannelAdapterStoppingService::class))
+            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $this->outcomeRecordingInterceptor(), 'record', 1, $inboundChannelAdapterStoppingService::class))
             ->build();
 
         $messaging->run('test');
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     /**
@@ -84,13 +83,12 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         $requestChannel = QueueChannel::create();
         $inboundChannelAdapterStoppingService = ConsumerContinuouslyWorkingService::createWithReturn($payload);
 
-        $transactionOne = NullTransaction::start();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
 
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withReference('transactionFactory1', $transactionFactoryOne)
+            ->withReference('classRecorder', $recorder)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
@@ -100,12 +98,12 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
                 )
                     ->withEndpointId('test')
             )
-            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, $inboundChannelAdapterStoppingService::class))
+            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $this->outcomeRecordingInterceptor(), 'record', 1, $inboundChannelAdapterStoppingService::class))
             ->build();
 
         $messaging->run('test');
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     /**
@@ -119,13 +117,12 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         $requestChannel = QueueChannel::create();
         $inboundChannelAdapterStoppingService = ConsumerContinuouslyWorkingService::createWithReturn($payload);
 
-        $transactionOne = NullTransaction::start();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
 
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withReference('transactionFactory0', $transactionFactoryOne)
+            ->withReference('endpointRecorder', $recorder)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
@@ -134,14 +131,14 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
                     InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturnWithInterceptor')
                 )
                 ->withEndpointId('test')
-                ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory0']])])
+                ->withEndpointAnnotations([new AttributeDefinition(RecordOutcomeIn::class, ['endpointRecorder'])])
             )
-            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, $inboundChannelAdapterStoppingService::class))
+            ->withAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $this->outcomeRecordingInterceptor(), 'record', 1, $inboundChannelAdapterStoppingService::class))
             ->build();
 
         $messaging->run('test');
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     /**
@@ -237,5 +234,32 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
                 )
             )
             ->build();
+    }
+
+    private function outcomeRecorder(): object
+    {
+        return new class () {
+            public ?string $outcome = null;
+        };
+    }
+
+    private function outcomeRecordingInterceptor(): object
+    {
+        return new class () {
+            public function record(MethodInvocation $methodInvocation, ReferenceSearchService $referenceSearchService, RecordOutcomeIn $recordOutcomeIn): mixed
+            {
+                $recorder = $referenceSearchService->get($recordOutcomeIn->recorderReferenceName);
+                try {
+                    $result = $methodInvocation->proceed();
+                } catch (Throwable $throwable) {
+                    $recorder->outcome = 'failed';
+
+                    throw $throwable;
+                }
+                $recorder->outcome = 'completed';
+
+                return $result;
+            }
+        };
     }
 }

@@ -1055,6 +1055,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `CronExpression::factory()` | `new CronExpression()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
+| `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 
 Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
 `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
@@ -1083,6 +1084,37 @@ attribute — `InternalHandler extends ServiceActivator` and both worked identic
   execution log line and OpenTelemetry's per-handler tracing span — now also apply to any handler that used to be
   `#[ServiceActivator]`-only and therefore invisible to them. If you assert on exact log/span sequences in tests that
   exercise such a handler, expect the extra entries.
+
+### 7b. `#[Transactional]` and `Ecotone\Messaging\Transaction` are removed
+
+**Before:** `Ecotone\Messaging\Transaction` held a `#[Transactional]` attribute taking a list of `TransactionFactory`
+reference names, together with `Transaction`, `TransactionFactory`, `TransactionInterceptor`, `TransactionException`,
+`NullTransaction` and `NullTransactionFactory`. Nothing in Ecotone registered `TransactionInterceptor`, so
+`#[Transactional]` on a handler started no transaction, and the only `TransactionFactory` was the null one. Database
+and broker transactions have always come from `DbalTransactionInterceptor` and `AmqpTransactionInterceptor`, which
+never read `#[Transactional]`.
+
+**Now:** the namespace is gone; no class replaces it, so `upgrade/namespace-map-2.0.csv` has no row for it.
+
+- `#[Transactional([...])]` written on a handler and nothing else: the application still boots and handles messages
+  exactly as before. PHP resolves an attribute class only when it is instantiated, and Ecotone never instantiates
+  this one. Delete the attribute and its `use` statement; it did nothing.
+- A pointcut naming it, for example `#[Around(pointcut: Transactional::class)]`, fails at bootstrap with
+  `IncorrectPointcutException` (`'Ecotone\Messaging\Transaction\Transactional' is not a valid token`).
+- An interceptor parameter typed with it fails at bootstrap with `InvalidArgumentException`
+  (`Unknown type or class 'Ecotone\Messaging\Transaction\Transactional'`).
+- A class implementing `Transaction` or `TransactionFactory`, or code calling `Transactional::createWith()` or
+  `NullTransactionFactory`, fails with PHP's class-not-found error when it is loaded.
+
+**How to adapt:**
+- For database transactions, configure them on `DbalConfiguration` from a `#[ServiceContext]` method —
+  `withTransactionOnCommandBus()`, `withTransactionOnAsynchronousEndpoints()` and `withTransactionOnConsoleCommands()`,
+  all enabled by default — and opt a single handler out with `#[WithoutDatabaseTransaction]`
+  (`Ecotone\Api\Attribute\WithoutDatabaseTransaction`). AMQP channel transactions are configured with the same three methods on
+  `AmqpConfiguration`, where they are disabled by default.
+- If you implemented `TransactionFactory` for some other resource, replace it with your own `#[Around]` interceptor
+  that begins, commits and rolls back around `MethodInvocation::proceed()`, ordered with
+  `Precedence::DATABASE_TRANSACTION_PRECEDENCE`, and pointed at an attribute your application owns.
 
 If you implemented a custom `Module` / `AnnotationModule`, delete the `canHandle()` method and filter extension objects
 with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` inside `prepare()`. The base and marker

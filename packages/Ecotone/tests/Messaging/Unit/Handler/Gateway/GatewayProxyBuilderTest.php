@@ -5,6 +5,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -17,6 +18,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
@@ -24,10 +26,6 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Messaging\Transaction\Null\NullTransaction;
-use Ecotone\Messaging\Transaction\Null\NullTransactionFactory;
-use Ecotone\Messaging\Transaction\Transactional;
-use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\InMemoryConversionService;
 use RuntimeException;
@@ -36,9 +34,10 @@ use Test\Ecotone\Messaging\Fixture\Channel\PollingChannelThrowingException;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MixedReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassAndMethodExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayMethodExample;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordingOutcomeOnClass;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordingOutcomeOnClassAndMethod;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordingOutcomeOnMethod;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\RecordOutcomeIn;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverter;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverterGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
@@ -54,6 +53,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSend
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
+use Throwable;
 
 /**
  * Class GatewayProxyBuilderTest
@@ -367,12 +367,11 @@ class GatewayProxyBuilderTest extends MessagingTestCase
 
     public function test_calling_interface_with_around_interceptor_from_endpoint_annotation()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
-            ->withReference('transactionFactory', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('endpointRecorder', $recorder)
+            ->withReference('outcomeRecordingInterceptor', $interceptor)
             ->withGateway(
                 GatewayProxyBuilder::create(
                     ServiceInterfaceSendOnly::class,
@@ -380,9 +379,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                     'sendMail',
                     $inputChannel = 'inputChannel'
                 )
-                    ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
+                    ->withEndpointAnnotations([new AttributeDefinition(RecordOutcomeIn::class, ['endpointRecorder'])])
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
+                        AroundInterceptorBuilder::create('outcomeRecordingInterceptor', InterfaceToCall::create($interceptor::class, 'record'), 1, RecordOutcomeIn::class, [])
                     )
             )
             ->withMessageHandler(
@@ -393,26 +392,24 @@ class GatewayProxyBuilderTest extends MessagingTestCase
 
         $messaging->getGateway(ServiceInterfaceSendOnly::class)->sendMail('test');
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     public function test_calling_interface_with_around_interceptor_from_method_annotation()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
-            ->withReference('transactionFactory', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('methodRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
-                    TransactionalInterceptorOnGatewayMethodExample::class,
-                    TransactionalInterceptorOnGatewayMethodExample::class,
+                    GatewayRecordingOutcomeOnMethod::class,
+                    GatewayRecordingOutcomeOnMethod::class,
                     'invoke',
                     $inputChannel = 'inputChannel'
                 )
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -421,28 +418,26 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getGateway(TransactionalInterceptorOnGatewayMethodExample::class)->invoke();
+        $messaging->getGateway(GatewayRecordingOutcomeOnMethod::class)->invoke();
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     public function test_calling_interface_with_around_interceptor_from_class_annotation()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
-            ->withReference('transactionFactory', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('classRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
-                    TransactionalInterceptorOnGatewayClassExample::class,
-                    TransactionalInterceptorOnGatewayClassExample::class,
+                    GatewayRecordingOutcomeOnClass::class,
+                    GatewayRecordingOutcomeOnClass::class,
                     'invoke',
                     $inputChannel = 'inputChannel'
                 )
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -451,28 +446,26 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getGateway(TransactionalInterceptorOnGatewayClassExample::class)->invoke();
+        $messaging->getGateway(GatewayRecordingOutcomeOnClass::class)->invoke();
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     public function test_calling_interface_with_around_interceptor_and_choosing_method_annotation_over_class()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
-            ->withReference('transactionFactory2', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('methodRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
-                    TransactionalInterceptorOnGatewayClassAndMethodExample::class,
-                    TransactionalInterceptorOnGatewayClassAndMethodExample::class,
+                    GatewayRecordingOutcomeOnClassAndMethod::class,
+                    GatewayRecordingOutcomeOnClassAndMethod::class,
                     'invoke',
                     $inputChannel = 'inputChannel'
                 )
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -481,29 +474,27 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getGateway(TransactionalInterceptorOnGatewayClassAndMethodExample::class)->invoke();
+        $messaging->getGateway(GatewayRecordingOutcomeOnClassAndMethod::class)->invoke();
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     public function test_calling_interface_with_around_interceptor_and_choosing_endpoint_annotation_over_method()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
-            ->withReference('transactionFactory3', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('endpointRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
-                    TransactionalInterceptorOnGatewayClassAndMethodExample::class,
-                    TransactionalInterceptorOnGatewayClassAndMethodExample::class,
+                    GatewayRecordingOutcomeOnClassAndMethod::class,
+                    GatewayRecordingOutcomeOnClassAndMethod::class,
                     'invoke',
                     $inputChannel = 'inputChannel'
                 )
-                    ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory3']])])
+                    ->withEndpointAnnotations([new AttributeDefinition(RecordOutcomeIn::class, ['endpointRecorder'])])
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -512,9 +503,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getGateway(TransactionalInterceptorOnGatewayClassAndMethodExample::class)->invoke();
+        $messaging->getGateway(GatewayRecordingOutcomeOnClassAndMethod::class)->invoke();
 
-        $this->assertTrue($transactionOne->isCommitted());
+        $this->assertSame('completed', $recorder->outcome);
     }
 
     public function test_calling_interface_with_before_and_after_interceptors()
@@ -588,23 +579,21 @@ class GatewayProxyBuilderTest extends MessagingTestCase
 
     public function test_calling_around_interceptors_before_sending_to_error_channel()
     {
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('some'))
-            ->withReference('transactionFactory', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('classRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
-                    TransactionalInterceptorOnGatewayClassExample::class,
-                    TransactionalInterceptorOnGatewayClassExample::class,
+                    GatewayRecordingOutcomeOnClass::class,
+                    GatewayRecordingOutcomeOnClass::class,
                     'invoke',
                     $inputChannel = 'inputChannel'
                 )
                     ->withErrorChannel('some')
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -613,10 +602,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getGateway(TransactionalInterceptorOnGatewayClassExample::class)->invoke();
+        $messaging->getGateway(GatewayRecordingOutcomeOnClass::class)->invoke();
 
-        $this->assertFalse($transactionOne->isCommitted());
-        $this->assertTrue($transactionOne->isRolledBack());
+        $this->assertSame('failed', $recorder->outcome);
         $this->assertNotNull($messaging->receiveMessageFrom('some'));
     }
 
@@ -627,14 +615,12 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         $exception = new RuntimeException();
         $replyChannel->withException($exception);
 
-        $transactionOne = NullTransaction::start();
-        $transactionInterceptor = new TransactionInterceptor();
-        $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
+        $recorder = $this->outcomeRecorder();
+        $interceptor = $this->outcomeRecordingInterceptor();
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $replyChannel))
             ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('some'))
-            ->withReference('transactionFactory', $transactionFactoryOne)
-            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->withReference('endpointRecorder', $recorder)
             ->withGateway(
                 GatewayProxyBuilder::create(
                     ServiceInterfaceReceiveOnlyWithNull::class,
@@ -642,11 +628,11 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                     'sendMail',
                     $inputChannel = 'inputChannel'
                 )
-                    ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
+                    ->withEndpointAnnotations([new AttributeDefinition(RecordOutcomeIn::class, ['endpointRecorder'])])
                     ->withErrorChannel('some')
                     ->withReplyChannel($requestChannelName)
                     ->addAroundInterceptor(
-                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $interceptor, 'record', 1, RecordOutcomeIn::class)
                     )
             )
             ->withMessageHandler(
@@ -657,8 +643,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
 
         $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail();
 
-        $this->assertFalse($transactionOne->isCommitted());
-        $this->assertTrue($transactionOne->isRolledBack());
+        $this->assertSame('failed', $recorder->outcome);
         $this->assertNotNull($messaging->receiveMessageFrom('some'));
     }
 
@@ -743,4 +728,30 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         );
     }
 
+    private function outcomeRecorder(): object
+    {
+        return new class () {
+            public ?string $outcome = null;
+        };
+    }
+
+    private function outcomeRecordingInterceptor(): object
+    {
+        return new class () {
+            public function record(MethodInvocation $methodInvocation, ReferenceSearchService $referenceSearchService, RecordOutcomeIn $recordOutcomeIn): mixed
+            {
+                $recorder = $referenceSearchService->get($recordOutcomeIn->recorderReferenceName);
+                try {
+                    $result = $methodInvocation->proceed();
+                } catch (Throwable $throwable) {
+                    $recorder->outcome = 'failed';
+
+                    throw $throwable;
+                }
+                $recorder->outcome = 'completed';
+
+                return $result;
+            }
+        };
+    }
 }

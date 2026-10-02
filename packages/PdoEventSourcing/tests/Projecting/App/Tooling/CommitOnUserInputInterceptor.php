@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Messaging\Transaction\Transactional;
 
 class CommitOnUserInputInterceptor
 {
@@ -19,7 +18,7 @@ class CommitOnUserInputInterceptor
 
     #[Around(
         precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-        pointcut: CommandBus::class . '||' . Transactional::class
+        pointcut: CommandBus::class
     )]
     public function interceptor(MethodInvocation $methodInvocation): mixed
     {

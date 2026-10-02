@@ -2,7 +2,7 @@
 
 ## Transaction Interceptor (Around)
 
-Source pattern: `Ecotone\Messaging\Transaction\TransactionInterceptor`
+Source pattern: `Ecotone\Dbal\DbalTransaction\DbalTransactionInterceptor`
 
 ```php
 use Ecotone\Api\Attribute\Around;

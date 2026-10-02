@@ -97,6 +97,7 @@ Ecotone\EventSourcing\Attribute\ProjectionState,Ecotone\Api\Projecting\Projectio
 Ecotone\EventSourcing\Attribute\ProjectionStateGateway,Ecotone\Api\Projecting\ProjectionStateGateway
 Ecotone\Dbal\Attribute\DbalParameter,Ecotone\Api\Dbal\Attribute\DbalParameter
 Ecotone\Dbal\Attribute\DbalQuery,Ecotone\Api\Dbal\Attribute\DbalQuery
+Ecotone\Dbal\DbaBusinessMethod\FetchMode,Ecotone\Api\Dbal\FetchMode
 Ecotone\Dbal\Attribute\DbalWrite,Ecotone\Api\Dbal\Attribute\DbalWrite
 Ecotone\Dbal\Attribute\MultiTenantConnection,Ecotone\Api\Dbal\Attribute\MultiTenantConnection
 Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager

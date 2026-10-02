@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\FetchMode;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 /**
  * licence Apache-2.0

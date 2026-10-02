@@ -6,7 +6,7 @@
 
 ```php
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\FetchMode;
 
 interface ProductRepository
 {

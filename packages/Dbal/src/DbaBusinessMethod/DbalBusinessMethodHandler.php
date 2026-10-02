@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\Dbal\FetchMode;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;

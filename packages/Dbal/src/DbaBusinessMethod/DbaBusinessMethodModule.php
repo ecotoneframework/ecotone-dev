@@ -20,8 +20,10 @@ use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionContextExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
@@ -237,7 +239,21 @@ final class DbaBusinessMethodModule implements AnnotationModule
     private static function dbalParameterConfig(DbalParameter $dbalParameterAttribute, InterfaceToCall $interface, ?string $methodName, ?string $parameterName, int $index): Definition
     {
         if ($dbalParameterAttribute->getExpression() === null) {
-            return new Definition(DbalParameterConfig::class, [$dbalParameterAttribute, null], [DbalParameterConfig::class, 'fromAttribute']);
+            return new Definition(
+                DbalParameterConfig::class,
+                [
+                    $dbalParameterAttribute,
+                    new Definition(
+                        AttributeExpressionContextExecutor::class,
+                        [
+                            Reference::to(ExpressionEvaluationService::REFERENCE),
+                            ExpressionLocation::definitionForParameter(DbalParameter::class, $parameterName, $interface->getInterfaceName(), $methodName, null),
+                        ],
+                        [AttributeExpressionContextExecutor::class, 'withoutExpression'],
+                    ),
+                ],
+                [DbalParameterConfig::class, 'fromAttribute'],
+            );
         }
 
         $attributeDeclaration = new AttributeDeclaration(

@@ -39,7 +39,7 @@ use Throwable;
  *
  * licence Enterprise
  */
-class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
+class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
     private bool $initialized = false;

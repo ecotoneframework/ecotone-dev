@@ -18,7 +18,6 @@ use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
@@ -49,7 +48,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * licence Apache-2.0
  */
-class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, ProxyBuilder
+class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
 {
     public const DEFAULT_REPLY_MILLISECONDS_TIMEOUT = -1;
 

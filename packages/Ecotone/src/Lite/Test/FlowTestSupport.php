@@ -33,7 +33,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Config\AggregrateModule;
+use Ecotone\Modelling\Config\AggregateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
@@ -286,7 +286,7 @@ final class FlowTestSupport
                 AggregateMessage::TEST_SETUP_AGGREGATE_INSTANCE => new $aggregateClass(),
                 AggregateMessage::TEST_SETUP_AGGREGATE_EVENTS => $events,
             ],
-            AggregrateModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass, forTesting: true)
+            AggregateModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass, forTesting: true)
         );
 
         return $this;
@@ -300,7 +300,7 @@ final class FlowTestSupport
                 AggregateMessage::TEST_SETUP_AGGREGATE_INSTANCE => $aggregate,
                 AggregateMessage::TEST_SETUP_AGGREGATE_CLASS => $aggregate::class,
             ],
-            AggregrateModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class, forTesting: true)
+            AggregateModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class, forTesting: true)
         );
 
         return $this;
@@ -450,7 +450,7 @@ final class FlowTestSupport
             [
                 AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
             ],
-            AggregrateModule::getRegisterAggregateLoadRepositoryInputChannel($className, false)
+            AggregateModule::getRegisterAggregateLoadRepositoryInputChannel($className, false)
         );
     }
 

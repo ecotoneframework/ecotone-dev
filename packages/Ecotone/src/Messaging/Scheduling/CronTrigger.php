@@ -39,7 +39,7 @@ class CronTrigger implements Trigger
     /**
      * @inheritDoc
      */
-    public function nextExecutionTime(EcotoneClockInterface $clock, TriggerContext $triggerContext): DatePoint
+    public function nextExecutionTime(EcotoneClockInterface $clock, SimpleTriggerContext $triggerContext): DatePoint
     {
         $cron = new CronExpression($this->cronExpression);
 
@@ -75,10 +75,10 @@ class CronTrigger implements Trigger
     }
 
     /**
-     * @param TriggerContext $triggerContext
+     * @param SimpleTriggerContext $triggerContext
      * @return bool
      */
-    private function hasScheduledButNotYetExecuted(TriggerContext $triggerContext): bool
+    private function hasScheduledButNotYetExecuted(SimpleTriggerContext $triggerContext): bool
     {
         return
             ($triggerContext->lastActualExecutionTime() && $triggerContext->lastScheduledTime())

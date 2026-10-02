@@ -18,14 +18,11 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 class MessagingContainerBuilder
 {
-    private InterfaceToCallRegistry $interfaceToCallRegistry;
-
     /**
      * Map of endpointId => endpointRunnerReferenceName
      * @var array<string, string> $pollingEndpoints
      */
     private array $pollingEndpoints = [];
-    private ServiceConfiguration $applicationConfiguration;
 
     /**
      * @param array<MethodInterceptorBuilder> $beforeInterceptors
@@ -34,15 +31,13 @@ class MessagingContainerBuilder
      */
     public function __construct(
         private ContainerBuilder $builder,
-        ?InterfaceToCallRegistry $interfaceToCallRegistry = null,
-        ?ServiceConfiguration $serviceConfiguration = null,
+        private InterfaceToCallRegistry $interfaceToCallRegistry,
+        private ServiceConfiguration $applicationConfiguration,
         private array $pollingMetadata = [],
         private array $beforeInterceptors = [],
         private array $aroundInterceptors = [],
         private array $afterInterceptors = [],
     ) {
-        $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
-        $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall

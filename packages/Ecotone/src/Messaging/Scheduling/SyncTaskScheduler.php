@@ -15,9 +15,9 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 /**
  * licence Apache-2.0
  */
-class SyncTaskScheduler implements TaskScheduler
+class SyncTaskScheduler
 {
-    private function __construct(private EcotoneClockInterface $clock, private TriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
+    private function __construct(private EcotoneClockInterface $clock, private SimpleTriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
     {
     }
 

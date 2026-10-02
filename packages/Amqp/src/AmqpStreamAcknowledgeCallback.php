@@ -28,7 +28,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         private ConsumerPositionTracker $positionTracker,
         private string $consumerId,
         private ?string $streamOffset,
-        private CancellableAmqpStreamConsumer $streamConsumer,
+        private AmqpStreamInboundChannelAdapter $streamConsumer,
         private string $queueName,
         private CachedConnectionFactory $publisherConnectionFactory,
         private BatchCommitCoordinator $batchCommitCoordinator
@@ -44,7 +44,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         ConsumerPositionTracker $positionTracker,
         string $consumerId,
         ?string $streamOffset,
-        CancellableAmqpStreamConsumer $streamConsumer,
+        AmqpStreamInboundChannelAdapter $streamConsumer,
         string $queueName,
         CachedConnectionFactory $publisherConnectionFactory,
         BatchCommitCoordinator $batchCommitCoordinator

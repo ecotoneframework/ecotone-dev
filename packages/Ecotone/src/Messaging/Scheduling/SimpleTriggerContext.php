@@ -12,7 +12,7 @@ namespace Ecotone\Messaging\Scheduling;
 /**
  * licence Apache-2.0
  */
-class SimpleTriggerContext implements TriggerContext
+class SimpleTriggerContext
 {
     /**
      * SimpleTriggerContext constructor.

@@ -11,8 +11,8 @@ Sources, all committed:
 - `docs/superpowers/research/conventions-audit-c/report.md` — rules 6/6a, 7, 10/10a, 11, 14
 - `docs/superpowers/research/guideline-conformance-audit.md` — a fourth, independent sweep over all 21 rules
 
-**Read the audits as claims to verify, not as a work queue.** They have been wrong six times so far, and each error
-would have cost real work:
+**Read the audits as claims to verify, not as a work queue.** Every row below is one they, or this document, got
+wrong, and each error would have cost real work:
 
 | Audit claim | Reality |
 |---|---|
@@ -23,6 +23,8 @@ would have cost real work:
 | `TracingChannelInterceptor` desynchronises every later span once a `preSend` misses its `afterSendCompletion` | Not reachable, and backwards: an unpopped push sits at the bottom of the stack and later pairs stay balanced. The proposed per-message keying breaks an existing test. See the rule-3 rows under *Shipped since the audits* |
 | Rule 7's mixed-licence counts | Derived from a grep approximation; `bin/check-licence.php` was never executed (no PHP on host, no containers in that worktree) |
 | A gateway named-argument bug: `EventStore::loadAggregateEvents()` fails through the gateway when a named argument skips defaulted parameters | A fully positional call failed identically — PHP resolves named arguments against the generated proxy's own signature before Ecotone sees them. The defect was `GenericType::accepts()`, and it broke every parameter documented as a list, not one gateway (see the row under *Open, no owner*) |
+| Rule 5: "31 raw candidates, 24 zero-implementation, leaving ~7" | Audit a's 31 (exactly one implementor) and 24 (none) are **disjoint** counts, and this document read them as one set and a subset of it. Re-derived: 150 interfaces, 22 with no production implementation, 24 with exactly one — so the triage was 24 interfaces, not ~7. See *Rules 5 and 2 — triaged* |
+| Rule 2: 9 nullable service dependencies | The detector only matched `?Service $x = null`. Eleven more constructors take a nullable service with **no default**, where every caller passes the `null` explicitly. Listed, not triaged, under *Rules 5 and 2 — triaged* |
 
 The two rule-3 audits also **contradict each other** on `PendingDeliveryRegistry`, and each missed a class the other
 found. Where this document and an audit disagree, this document was verified against the code.
@@ -49,6 +51,9 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 | Rule | Finding | Disposition |
 |---|---|---|
 | 12a | **What the nine-type move deliberately left.** `EcotoneLite` returns `FlowTestSupport` and `ConfiguredMessagingSystem`, which every test calls and which are still `@internal`; `ErrorMessage` returns `ErrorContext`, used in 9 test files. `MessageHeaders` is in `Api` but still carries about ten framework-only statics (`unsetFrameworkKeys`, `unsetAsyncKeys`, `unsetTransportMessageKeys` and the like), and `ModulePackageList::getModuleClassesForPackage()` and `allPackages()` are module-registration plumbing now living in `Api` | Each is its own unit. **`EcotoneLite` + `FlowTestSupport` + `ConfiguredMessagingSystem` move together or not at all** — moving the factory alone would hand every test a public entry point that returns an internal type, which is worse than today because it looks resolved; that unit should also decide whether phpstan ought to analyse `Api/` at all, since `EcotoneLite` is 289 lines of container-factory logic and adding to `Api/` never fails a build. **`ErrorMessage` + `ErrorContext` likewise, both or neither.** The `MessageHeaders` statics and the `ModulePackageList` match arm move to internal collaborators — untidiness, not a leak, since only the framework calls them |
+| 1 | **Unlicensed `EventStreamEmitter::emit()` fails with a raw missing-header exception.** `upgrade-2.0.md` §3 documents `emit()` (not `linkTo()`) as Enterprise. Without a licence, a projection handler calling it gets `MessageHeaderDoesNotExistsException: Header with name projection.name does not exists` from `StreamNameMapper::process()` (`packages/PdoEventSourcing/src/Config/StreamNameMapper.php:27`): the mapper reads `projection.name` unconditionally, and only `EnterpriseProjectionNameHeader` sets it. Reproduced with a throwaway copy of `EventStreamEmitterStreamTest::test_emitting_with_stream_attribute_writes_to_its_table` without `licenceKey:`, not committed. Rule 7 left this behaviour unchanged, so it predates that unit. **No test pins the unlicensed case**: every `EventStreamEmitter` test passes `VALID_LICENCE`. The interaction between `StreamNameMapper` and the open-core emit path is therefore proved, and it is a refusal that names neither the licence nor `linkTo()` | Rule 1 wants a `LicensingException` naming `emit()`, the licence and `linkTo($streamName, …)` as the open-core way out, asserted in a test. Where the refusal sits is the maintainer's call — at the emit, or at bootstrap for a projection whose handler takes `EventStreamEmitter` (rule 1c), which would catch only that path, since `emit()` can be called from any handler |
+| 6 | **`Ecotone\Dbal\DbaBusinessMethod` — "Dba" for "Dbal".** In the directory name, the namespace and `DbaBusinessMethodModule`, while `DbalBusinessMethodHandler`, `DbalParameterConfig` and `FetchMode` in the same directory are spelled correctly. 12 references across 10 files. **Not an internal rename**, unlike `AggregrateModule` (renamed in `66f2ef586`): `FetchMode` lives in this namespace and is imported by application-shaped code — `packages/Dbal/tests/Fixture/DbalBusinessInterface/PersonQueryApi.php` and `ActivityService.php`, `packages/Dbal/tests/Fixture/ClosureInAttribute/PersonClosureParameterApi.php`, `packages/Tempest/tests/Fixture/MultiTenant/CustomerRepository.php` — and by `Api/Attribute/DbalQuery.php`, so applications type the name today and a rename needs a namespace-map row | Awaiting the maintainer. Fix it when `FetchMode` moves into `Api` under the pending rule 12a decision (the outward leak recorded below): that move already rewrites what applications import, so one correction covers both. Renaming first means doing it twice |
+| — | **The AMQP stream suite fails in `AMQP_IMPLEMENTATION=lib` mode, on base `1d4d0e196`.** `AmqpStreamChannelTest` reports `Tests: 28, Assertions: 63, Failures: 6, Skipped: 1` (`test_resend_moves_failed_message_to_end`, `test_commit_interval_with_prefetch_count`, `…_lower_than_commit_interval`, `test_commit_interval_working_correctly_with_execution_time_limit`, `…_with_message_limit`, `test_two_consumers_track_positions_independently`), and `AmqpStreamPositionTrackingTest` 1 failure. Identical before and after `0cf11224b`. The root `Amqp tests` suite never shows it: without the variable all 28 skip with "Stream tests require AMQP lib"; only `packages/Amqp`'s own `composer tests:ci` runs lib mode | Not chased. Whether it is this host's RabbitMQ or a regression needs a lib-mode run on CI's setup |
 | 12a | **Inward leaks found during the nine-type move**, each an `Api` method the application calls that names an internal type: `EventStore::load()` takes `MetadataMatcher`; `ConversionService::convert()`/`canConvert()` take `Handler\Type` and `MediaType::getTypeParameter()` returns it; `EcotoneClockInterface::now()` returns `Scheduling\DatePoint` and the interface extends `SleepInterface`; `MessagePublisher::publishDeferred()` returns `Messaging\Future`; Dbal's `DeadLetterGateway::show()` returns `Message` and `list()` returns `ErrorContext[]`; `DynamicMessageChannelBuilder::createWithSendOnlyStrategy()` and `withInternalChannels()` take `MessageChannelBuilder`. Two are outward: `#[LogError]`'s level is a `Logger\LoggingLevel` constant and `#[DbalQuery]`'s `fetchMode` a `DbaBusinessMethod\FetchMode` one | Reported, not fixed. Found by reading the imports of every `packages/*/Api` file and asking who calls the method that exposes each; implementation-only imports (`Assert`, `Definition`, channel adapters built in `compile()`) were discarded as rule 12a permits. Each needs its own placement decision — `Type` and `Message` in particular are named across the whole framework |
 
 ## Decided, sequenced
@@ -186,17 +191,91 @@ following it.
 
 ## Deliberately last — judgement-heavy
 
-- **Rule 5** — 31 raw candidates, 24 zero-implementation (dynamic-proxy gateways, constant holders: outside the
-  rule), leaving ~7 for case-by-case triage.
-- **Rule 2** — 6 of 9 nullable service dependencies remain, 5 classified needs-judgement
-  (`ManagerRegistryEmulator`, `DbalParameterConfig`, `MessagingContainerBuilder` ×2, `DirectChannel`,
-  `BusRoutingMapBuilder`).
 - **Rule 11** — 100 of 141 test files added since 1.x declare a named fixture, **up from the rule's own 92/141
   baseline**: it grew while the rule was being written. Drift reduction, not correctness.
 
-Rules 5, 7 and 2 are **coupled** and should move together: splitting Enterprise behaviour behind an interface
-*creates* the two-implementation seam rule 5 permits, so triaging interfaces before deciding the Enterprise splits
-means doing it twice.
+Rules 5 and 2 were triaged together after rule 7's first split, since splitting Enterprise behaviour behind an
+interface *creates* the two-implementation seam rule 5 permits. What they found is the next section.
+
+## Rules 5 and 2 — triaged
+
+### Rule 5 — the count, re-derived
+
+**Method.** Every `interface` declared under `packages/*/src` and `packages/*/Api`, matched against every class that
+implements it **transitively** — through a parent class, through a sub-interface, and including anonymous classes —
+with production implementations (`src`, `Api`) counted apart from test ones. Names resolved through each file's
+namespace and imports. Result: **150 interfaces, 22 with no production implementation, 24 with exactly one.** The
+earlier "31 / 24 / ~7" read two disjoint audit counts as a set and its subset; audit a's own scan also walked direct
+`implements` clauses only, which is why its zero-implementation list held `MessageChannel`, `Module` and the like.
+
+**The 22 with no production implementation:**
+
+| Shape | Interfaces | Outcome |
+|---|---|---|
+| Gateway — the implementation is generated at runtime by `GatewayProxyBuilder` | `QueryBus`, `DistributedBus`, `MessagePublisher`, `SerializerGateway`, `DeadLetterGateway`, `ConsoleCommandRunner` (`Messaging\Gateway`), `EnrichGateway`, `DistributionEntrypoint`, `EventStreamEmitter`, `MessagingTestSupport` | Outside rule 5 |
+| Constant holder | `AmqpHeader`, `EnqueueHeader`, `KafkaHeader`, `DbalHeader`, `DistributedBusHeader`, `Precedence`, `PrecedenceChannelInterceptor`, `AggregateMessage` | Outside rule 5 |
+| **Neither** — referenced nowhere | `Modelling\MessageBus`, `BeforeSendGateway` | **Deleted** (`1cd6093b5`) |
+| **Neither** — an extension point nothing uses | `LazyRepositoryBuilder` (only a test fixture, `AppointmentRepositoryBuilder`, implements it; nothing in production reads it) and `MessageConverter` (reachable only through `Configuration::registerMessageConverter()`, which nothing calls; `FakeMessageConverter` in `GatewayProxyBuilderTest` is its one implementation) | **Recorded, not deleted.** An unused registration API still works; removing it is the maintainer's call |
+
+**The 24 with exactly one:**
+
+| Interface | Its one implementation | Outcome |
+|---|---|---|
+| `CancellableAmqpStreamConsumer` | `AmqpStreamInboundChannelAdapter` | **Collapsed** (`0cf11224b`) — it existed so the acknowledge callback could call back into its adapter, rule 5's own example |
+| `ConversionServiceDecorator` | `DataProtectionConversionServiceDecorator` | **Collapsed** (`6d3da194f`). Core calls `decorate()` by method name through a `Definition` and never named the interface |
+| `ProxyBuilder` | `GatewayProxyBuilder` | **Collapsed** (`15932c35e`) — nothing typed against it |
+| `TerminationListener` | `PcntlTerminationListener` | **Collapsed** (`85ca52eda`), with its container alias; half the framework already took `PcntlTerminationListener` directly |
+| `FieldFactoryInterface` | `FieldFactory` | **Collapsed** (`ceb852ee8`), with the `?FieldFactoryInterface = null` parameter no caller passed |
+| `TaskScheduler` | `SyncTaskScheduler` | **Collapsed** (`f5db099f8`) |
+| `TriggerContext` | `SimpleTriggerContext` | **Collapsed** (`7ca7fb942`) |
+| `OutboxForwardingChannel` | `OutboxForwardingMessageChannel` (Dbal `Api`) | **Kept: a package-boundary seam.** `MessagingSystemConfiguration` in core asks `instanceof OutboxForwardingChannel` so that `packages/Ecotone` never names a class from the optional Dbal package. Rule 5 names two seams and this is a third — dependency inversion across a package — which audit a's "the rule may need a third category" anticipated. For the maintainer: name it in rule 5, or move the guard |
+| `TerminationListener` | `PcntlTerminationListener` | **Kept: a layer-boundary seam.** Collapsing it changed `Api/Projecting/ProjectingManager`'s constructor to name `PcntlTerminationListener`, so the public surface declared it needs the pcntl implementation rather than something that can answer `shouldTerminate()`. Collapsed in `85ca52eda`, reverted in `2866f6794` once that reached review. The second instance of the boundary category above — core must not name a Dbal class, `Api` must not name a platform-specific `src` class. For the maintainer: the same decision as `OutboxForwardingChannel`, name the category in rule 5 or move the dependency |
+| `TerminationListener` licence header | — | **Pre-existing mislabel, not changed.** The interface carries `licence Enterprise` while its only implementation, `PcntlTerminationListener`, carries `licence Apache-2.0`, so `Api` points at an Apache file through an Enterprise-labelled type. `bin/check-licence.php` walks `src` only and validates rather than counts, so nothing ever failed on it. For the maintainer: which header is wrong |
+| `TaskExecutor` | `PollToGatewayTaskExecutor` | **Kept for now.** Its second implementation is `StubTaskExecutor`, which drives `SyncTaskSchedulerTest`, a unit test of an internal class. Collapsing the interface means rewriting that test at the userland level (rule 10), outside this unit |
+| `ContainerImplementation` | `SymfonyContainerImplementation` | **Kept.** One implementation by design since PR #675: every integration boots one shared, dumped side-car Symfony container. It sits in the container compiler, the widest-reaching code in the repository |
+| `CommandBus`, `EventBus`, `InboundGatewayEntrypoint` | `StorageCommandBus`, `StorageEventBus`, `NullInboundGatewayEntrypoint` | **The interfaces are gateways and stay; the three classes were dead stubs nothing constructed, deleted** (`1cd6093b5`) |
+| `InboundChannelAdapterEntrypoint` | `NullEntrypointGateway` | **Kept: two implementations.** A runtime gateway when the adapter has a request channel, the null object when it has none (`KafkaInboundChannelAdapterBuilder`, `EnqueueInboundChannelAdapterBuilder`) |
+| `MessageStore`, `MessageGroupStore`, `MessageGroup` | `SimpleMessageStore`, `InMemoryMessageGroup` | **Recorded.** `Messaging\Store` is used only by its own two unit tests. Delete the package or give it a caller — the maintainer's call |
+| `Transaction`, `TransactionFactory`, `WithRequiredReferenceNameList` | `NullTransaction`, `NullTransactionFactory`, `Transactional` | **Recorded as a public-surface decision, not as dead code.** `#[Transactional]` is a real attribute with **no** counterpart in `Api/Attribute` and no row in `upgrade/namespace-map-2.0.csv`, while its sibling `WithoutDatabaseTransaction` moved to `Ecotone\Api\Attribute` and has one. Either it is still supported — a rule 12a leak that belongs in `Api` with a map row — or `#[WithoutDatabaseTransaction]` superseded it and it goes, with an `upgrade-2.0.md` note. Only `GatewayProxyBuilderTest` uses it today |
+| `Configuration`, `ProjectionRegistry`, `MultiTenantConnectionFactory`, `HeaderMapper` | `MessagingSystemConfiguration`, `InMemoryProjectionRegistry`, `HeaderBasedMultiTenantConnectionFactory`, `DefaultHeaderMapper` | **Recorded.** Module- and application-facing types; reshaping them is not a cleanup |
+
+`ProjectionNameHeader` (`OpenCoreProjectionNameHeader`, `EnterpriseProjectionNameHeader`) is a two-implementation
+open-core/Enterprise seam, as rule 5 permits. All seven collapses are pure refactors; each rides the suites that
+cover its caller, and the full root gate below.
+
+### Rule 2 — the six, each with a way out
+
+All six still had the nullable parameter on base `1d4d0e196`.
+
+| Site | The null meant | Outcome |
+|---|---|---|
+| `MessagingContainerBuilder` — `?InterfaceToCallRegistry`, `?ServiceConfiguration` | Nothing: its one construction site, `MessagingSystemConfiguration::process()`, always passes both | **Made required** (`8a4d3e1f4`). One file, no signature change outside `packages/Ecotone` |
+| `DbalParameterConfig` — `?AttributeExpressionContextExecutor` | "This `#[DbalParameter]` has no expression" | **Null-object factory** (`e194fe02c`): `AttributeExpressionContextExecutor::withoutExpression()` and `hasExpression()`, the `7f7d24bc0` precedent. An empty-string expression still fails with "Attribute … has no expression to execute" |
+| `ManagerRegistryEmulator` — `?EntityManagerInterface` | Two behaviours: use the manager handed in, or build one from the mapping paths | **Split the class** (`f3679be13`), and the split fixed a defect the two modes had drifted into: `ObjectManagerInterceptor` resets a closed manager before the next command, and `resetManager()` rebuilt a handed-in one from the paths — an empty list for `createEntityManager()` — with a fresh `EventManager`, so the application's Doctrine listeners silently stopped running. `EntityManagerRegistryEmulator` now requires the manager and resets it from its own connection, configuration and event manager. `ORMTest::test_an_entity_manager_handed_to_the_registry_keeps_its_event_listeners_after_it_is_reset` was red on the base commit (the listener recorded `[]`) |
+| `DirectChannel` — `?MessageHandler` | **Not a rule 2 item.** The field is the subscription slot of a `SubscribableChannel`: `subscribe()` fills it, `unsubscribe()` empties it at runtime, and a send with no subscriber has its own `MessageDispatchingException`. The container subscribes through `addMethodCall('subscribe')` (`EventDrivenConsumerBuilder`); the constructor argument is a shortcut one caller, `InterceptedPollingConsumerBuilder`, uses | Left |
+| `BusRoutingMapBuilder` — `?Configuration` | **Not a rule 2 item.** A compile-time builder that compiles to a `BusRoutingMap` definition; `Configuration` is module-time configuration, never a container service, never on the message path. It is needed only by the routing-event handlers, and only the three builders in `MessageHandlerRoutingModule` have handlers — and pass it. The other four construction sites cannot: `EcotoneProjectionExecutorBuilder` builds one inside `compile()`, with no `Configuration` in reach | Left. The residual smell: `ServiceHandlerModule` and `AggregateModule` reach it through `$event->getBusRoutingMapBuilder()->getMessagingConfiguration()` and dereference a `?Configuration` unguarded. Carrying `Configuration` on `RoutingEvent` would make that honest |
+
+Also rule 2, found while verifying rule 7's handover: **`AggregateModule` registered only the licence-selected
+`AggregateMethodInvoker`, behind `if (isRunningForEnterpriseLicence())`.** Both are now registered unconditionally
+and `LicenceDecider::prepareDefinition()` chooses at runtime, as `DynamicConsistencyBoundary` does (`74f7bb6cc`). It
+was neither rule 1c nor a configuration condition: a compile-time licence check doing what the runtime decider
+already did.
+
+**Not triaged — the next queue.** Constructors taking a nullable service with no default, which the audit's detector
+(it matched `= null`) could not see: `InternalEnrichingService` (`?EnrichGateway`), `RequestReplyProducer` and
+`SplitterHandler` (`?MessageChannel $outputChannel`), `MessageFilter` (`?MessageChannel $discardChannel`),
+`GatewayInternalProcessor` (`?PollableChannel $replyChannel`), `InMemoryReferenceSearchService` and
+`ValidateRequiredReferencesPass` (`?ContainerInterface`), `InterfaceToCallRegistry` (`?AnnotationResolver`),
+`ClosureParameterResolver` (`?ParameterConverter`), `NullTransactionFactory` (`?Transaction`, in the
+`Messaging\Transaction` question above) and `ConnectionExceptionRetryInterceptor` (`?RetryTemplateBuilder`, likely a
+value). The `?MessageChannel` ones look like rule 2's "no value here" shape — "no output channel" — and may want a
+null channel rather than a branch.
+
+**Licence note, no action.** `AttributeExpressionContextExecutor` and `AttributeExpressionExecutor` are
+`licence Enterprise`, yet carry open-core string expressions: `EndpointHeadersInterceptor` (`licence Apache-2.0`)
+evaluates them, and so does every `#[DbalParameter(expression: '…')]`. The rule 2 null object above extends that to
+`#[DbalParameter]` without an expression. Whether those two files are Enterprise is for the maintainer; only closure
+expressions are gated (`VerifyEnterpriseLicenceForClosureExpressions`).
 
 ## Shipped since the audits
 
@@ -206,6 +285,7 @@ work, and invites a second fix.
 | Rule | Finding | Outcome |
 |---|---|---|
 | 7 | `EcotoneProjectorExecutor` (`licence Apache-2.0`) branched on `hasEnterpriseLicence()` at `:42` and `:129` to decide whether projection handlers receive the projection name | **Shipped.** The decision is a `ProjectionNameHeader` collaborator: `OpenCoreProjectionNameHeader` (`licence Apache-2.0`) leaves the headers as they are, `EnterpriseProjectionNameHeader` (`licence Enterprise`) adds `projection.name`. `EcotoneProjectionExecutorBuilder` picks one with `LicenceDecider::prepareDefinition()`, the call shape of `DynamicConsistencyBoundary.php:108`, and `ProjectingModule` registers both unconditionally (rule 2). The executor itself stays one class: splitting it whole would have copied 130 lines to vary two. Open core is unchanged on every path that sends a message — event handler, flush, initialization, delete, and reset during a rebuild — proved by `ProjectionNameHeaderTest` without and with a licence; it passes on the base commit, and forcing the old branch either way fails exactly the five cases of the other mode. `bin/check-licence.php` exits 0 before and after; across `src` and `Api` the tally moves from Apache-2.0 1012 / Enterprise 227 to 1014 / 228, the three new files and nothing else. `ProjectionNameHeader` is a two-implementation seam that rule 5 permits — **for the rule 5 unit to note, not to triage away.** Adjacent, **not** changed: the canonical example rule 7 cites, `EventSourcingHandlerExecutorBuilder.php:72`, passes `Reference` objects to `prepareDefinition(string, string, string)`, which works only because that file lacks `declare(strict_types=1)`; and `AggregrateModule.php:344` registers only the implementation the licence selects, behind an `if`, where `DynamicConsistencyBoundary` registers both |
+| 7 | The rule 7 unit's two adjacent findings: the canonical example `EventSourcingHandlerExecutorBuilder.php:72` passed `Reference` objects to `prepareDefinition(string, string, string)`, and `AggregrateModule.php:344` registered only the licence-selected invoker behind an `if` | **Shipped.** The example now passes class names (`ffc319381`). The claim held: the old call copied into a `declare(strict_types=1)` file throws `TypeError: … Argument #2 ($openCoreServiceReference) must be of type string, Ecotone\Messaging\Config\Container\Reference given`; `Reference::to(X)` stringifies to `X`, so the compiled definition is unchanged. Both invokers are now registered unconditionally (`74f7bb6cc`; see *Rule 2 — the six*). `AggregrateModule` itself is renamed `AggregateModule` (`66f2ef586`): 3 files, 7 lines, internal only |
 | 12a | The 2.0 `Api/` sweep missed two public types, `EventStore` and `ConversionService` | **Shipped** in `eb870e30f`: `Ecotone\Api\EventSourcing\EventStore` and `Ecotone\Api\Conversion\ConversionService`, with the namespace-map rows and `upgrade-2.0.md` §13b. `EventStore::RAW_REFERENCE` and `EventStoreReference::EVENT_STORE_INSTANCE` are unchanged; `ConversionService::REFERENCE_NAME` is `self::class`, so its container id moved with it, which §13b documents. The wider gap was closed for nine more types afterwards — see the next row |
 | 12a | Eleven more application-facing types were still in `src` | **Shipped** for nine: `WithEvents` and `WithAggregateVersioning` → `Ecotone\Api\Modelling`, `Event` → `Ecotone\Api\EventSourcing`, `MethodInvocation` and `Precedence` → `Ecotone\Api\Interceptor`, `TimeSpan` → `Ecotone\Api\Scheduling`, `MessageHeaders` → `Ecotone\Api\Messaging`, `ModulePackageList` and `DynamicMessageChannelBuilder` → `Ecotone\Api\ExtensionObject`, with namespace-map rows and `upgrade-2.0.md` §13c. `Event`, `Precedence`, `TimeSpan` and `MessageHeaders` were already named by `Api` signatures, so the move closed inward leaks too. None of the nine declares a container id or is registered under its class name, so no service id moved. All nine are now outside phpstan (`src` only) and `bin/check-licence.php` (`packages/*/src` only); `DynamicMessageChannelBuilder` is `licence Enterprise` and is the 38th Enterprise file under `Api/`, so the licence gate's blind spot predates it. **Deliberately not moved:** `EcotoneLite` and `ErrorMessage` — see the rule-12a rows under *Open, no owner* |
 | — | **Documented list parameters did not resolve** — filed as a "gateway named-argument bug", which it was not. `GenericType::accepts()` read every generic as `[key, value]`, so a single-generic collection such as `string[]` compared each key against the element type and then called `accepts()` on a missing value type. Any non-empty array reaching a parameter documented `@param string[]` — payload or `#[Header]`, through a bus, a `#[BusinessMethod]`, an asynchronous channel or a gateway — failed with `Call to a member function accepts() on null`, and a header documented `@param Foo[]` already holding `Foo`s was refused with `Can't convert … from array<Foo> to array<Foo>`. Present since `deecf49f7` (#523). `EventStore::loadAggregateEvents()` documents `@param string[] $eventNames`, which is how the audit met it; its `fromVersion:` sibling passed only because `eventNames` stayed `[]` and never entered the loop. The named-argument framing was wrong: a fully positional gateway call failed identically. Reproducer: `packages/PdoEventSourcing/tests/Integration/EventStreamAggregateQueryTest.php:59` | **Fixed.** Proved on each path in `packages/Ecotone/tests/Messaging/Unit/Handler/DocumentedListParameterTest.php`, and the reproducer now runs through `getGateway(EventStore::class)`. Adjacent and **not** fixed: a class named by its short name in an anonymous class's docblock resolves against the global namespace, because an anonymous class reports none |

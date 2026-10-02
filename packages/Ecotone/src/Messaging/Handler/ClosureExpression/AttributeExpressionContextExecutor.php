@@ -27,7 +27,8 @@ use Throwable;
  */
 final class AttributeExpressionContextExecutor
 {
-    private Closure|string $expression;
+    private Closure|string|null $expression;
+    private string $attributeClassName;
 
     /**
      * @param array<array{name: string, hasDefaultValue: bool, defaultValue: mixed}> $parameterSpecifications
@@ -38,16 +39,31 @@ final class AttributeExpressionContextExecutor
         private array $parameterSpecifications,
         private ExpressionLocation $location,
     ) {
-        $expression = $attribute->getExpression();
-        if ($expression === null || $expression === '') {
-            throw InvalidArgumentException::create(sprintf('Attribute %s has no expression to execute', get_class($attribute)));
-        }
+        $this->expression = $attribute->getExpression();
+        $this->attributeClassName = get_class($attribute);
+    }
 
-        $this->expression = $expression;
+    public static function withoutExpression(ExpressionEvaluationService $expressionEvaluationService, ExpressionLocation $location): self
+    {
+        return new self(new class () implements WithExpression {
+            public function getExpression(): string|Closure|null
+            {
+                return null;
+            }
+        }, $expressionEvaluationService, [], $location);
+    }
+
+    public function hasExpression(): bool
+    {
+        return $this->expression !== null;
     }
 
     public function execute(array $context): mixed
     {
+        if ($this->expression === null || $this->expression === '') {
+            throw InvalidArgumentException::create(sprintf('Attribute %s has no expression to execute', $this->attributeClassName));
+        }
+
         try {
             if (is_string($this->expression)) {
                 return $this->expressionEvaluationService->evaluateWithContext($this->expression, $context);

@@ -17,7 +17,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
  */
 class SyncTaskScheduler
 {
-    private function __construct(private EcotoneClockInterface $clock, private TriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
+    private function __construct(private EcotoneClockInterface $clock, private SimpleTriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
     {
     }
 

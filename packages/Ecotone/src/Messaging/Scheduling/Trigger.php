@@ -16,5 +16,5 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
  */
 interface Trigger
 {
-    public function nextExecutionTime(EcotoneClockInterface $clock, TriggerContext $triggerContext): DatePoint;
+    public function nextExecutionTime(EcotoneClockInterface $clock, SimpleTriggerContext $triggerContext): DatePoint;
 }

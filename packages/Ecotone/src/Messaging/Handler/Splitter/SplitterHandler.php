@@ -3,12 +3,12 @@
 namespace Ecotone\Messaging\Handler\Splitter;
 
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;

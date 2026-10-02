@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 use Ecotone\Api\Attribute\OnConsumerStop;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
 use Ecotone\Messaging\Endpoint\Interceptor\SignalInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\TimeLimitInterceptor;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\MessagePoller;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

@@ -99,7 +99,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
         return array_map(fn ($message) => $message->getPayload(), $messages);
     }
 
-    private function receiveAllFrom(\Ecotone\Messaging\PollableChannel $channel): array
+    private function receiveAllFrom(\Ecotone\Api\Messaging\PollableChannel $channel): array
     {
         $messages = [];
         while ($message = $channel->receive()) {

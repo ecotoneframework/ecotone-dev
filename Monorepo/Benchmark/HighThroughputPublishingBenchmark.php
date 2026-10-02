@@ -23,7 +23,7 @@ use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;

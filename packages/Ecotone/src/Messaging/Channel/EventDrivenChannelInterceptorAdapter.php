@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;

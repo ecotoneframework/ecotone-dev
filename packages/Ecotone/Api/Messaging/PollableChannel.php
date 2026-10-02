@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging;
+namespace Ecotone\Api\Messaging;
+
+use Ecotone\Messaging\Message;
 
 /**
  * Interface PollableChannel

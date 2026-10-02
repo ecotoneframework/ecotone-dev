@@ -6,12 +6,12 @@ namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 

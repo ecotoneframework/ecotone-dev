@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -13,7 +14,6 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\PollableChannel;
 use RuntimeException;
 
 /**

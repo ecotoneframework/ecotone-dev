@@ -6,9 +6,9 @@ namespace Ecotone\Enqueue;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;

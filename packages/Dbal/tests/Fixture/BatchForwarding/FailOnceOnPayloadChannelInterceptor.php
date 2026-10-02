@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\BatchForwarding;
 
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 
 /**
  * licence Apache-2.0

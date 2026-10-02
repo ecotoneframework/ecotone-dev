@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\HighThroughputPublishing;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDelivery;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Config;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Message;
 
 use function implode;
 

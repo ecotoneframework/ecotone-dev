@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;

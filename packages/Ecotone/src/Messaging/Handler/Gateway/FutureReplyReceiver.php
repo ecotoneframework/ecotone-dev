@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\Messaging\Future;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * Class FutureReplySender

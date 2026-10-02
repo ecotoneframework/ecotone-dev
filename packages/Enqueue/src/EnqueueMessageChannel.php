@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 
 /**

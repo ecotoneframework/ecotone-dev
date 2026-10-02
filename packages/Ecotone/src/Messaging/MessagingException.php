@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Exception;
 use Throwable;

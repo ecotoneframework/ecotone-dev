@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\DynamicChannel\ChannelSendingStrategy;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Enterprise

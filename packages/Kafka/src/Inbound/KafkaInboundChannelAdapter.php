@@ -6,11 +6,11 @@ namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 
 /**

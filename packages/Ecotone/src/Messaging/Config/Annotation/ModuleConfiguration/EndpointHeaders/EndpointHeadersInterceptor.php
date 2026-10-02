@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\Priority;
 use Ecotone\Api\Attribute\RemoveHeader;
 use Ecotone\Api\Attribute\TimeToLive;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
-use Ecotone\Messaging\Message;
 
 use function is_string;
 use function preg_match;

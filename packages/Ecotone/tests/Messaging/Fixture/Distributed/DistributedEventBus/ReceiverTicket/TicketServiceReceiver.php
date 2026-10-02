@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use RuntimeException;
 
 /**

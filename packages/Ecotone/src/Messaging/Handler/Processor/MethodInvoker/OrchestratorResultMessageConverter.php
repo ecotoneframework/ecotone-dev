@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 

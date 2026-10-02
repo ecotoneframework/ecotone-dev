@@ -8,9 +8,9 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 

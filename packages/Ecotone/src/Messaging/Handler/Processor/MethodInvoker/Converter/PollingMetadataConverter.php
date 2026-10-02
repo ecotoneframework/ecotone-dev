@@ -3,9 +3,9 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

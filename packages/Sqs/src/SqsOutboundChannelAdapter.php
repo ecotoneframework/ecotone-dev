@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Sqs;
 
 use Ecotone\Api\Conversion\ConversionService;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
@@ -13,7 +14,6 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Message;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
 use Interop\Queue\Exception\InvalidMessageException;

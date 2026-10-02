@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\BatchForwarding;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Message;
 use RuntimeException;
 
 /**

@@ -5,7 +5,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use function array_values;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * Executes endpoint with around interceptors

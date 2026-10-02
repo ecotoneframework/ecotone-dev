@@ -13,9 +13,9 @@ use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

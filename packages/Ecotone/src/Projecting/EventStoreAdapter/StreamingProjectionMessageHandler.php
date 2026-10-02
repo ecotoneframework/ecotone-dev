@@ -3,10 +3,10 @@
 namespace Ecotone\Projecting\EventStoreAdapter;
 
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Message;
 use Ecotone\Projecting\ProjectorExecutor;
 
 /**

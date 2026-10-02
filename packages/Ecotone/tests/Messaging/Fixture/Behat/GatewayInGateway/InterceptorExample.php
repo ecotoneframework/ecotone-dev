@@ -24,7 +24,7 @@ class InterceptorExample
     public function sum(MethodInvocation $methodInvocation): int
     {
         $proceed = $methodInvocation->proceed();
-        $proceed = $proceed instanceof \Ecotone\Messaging\Message ? $proceed->getPayload() : $proceed;
+        $proceed = $proceed instanceof \Ecotone\Api\Messaging\Message ? $proceed->getPayload() : $proceed;
 
         return $proceed + 1;
     }

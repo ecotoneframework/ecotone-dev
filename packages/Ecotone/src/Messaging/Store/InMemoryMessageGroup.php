@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Store;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Symfony\Component\Uid\Uuid;
 
 /**

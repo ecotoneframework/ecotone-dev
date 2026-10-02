@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DeliveryConfirmation;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Enterprise

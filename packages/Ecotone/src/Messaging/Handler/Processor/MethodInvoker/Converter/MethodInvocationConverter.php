@@ -3,8 +3,8 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

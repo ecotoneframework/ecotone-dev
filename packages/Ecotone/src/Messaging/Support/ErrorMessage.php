@@ -3,8 +3,8 @@
 namespace Ecotone\Messaging\Support;
 
 use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Throwable;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Enterprise

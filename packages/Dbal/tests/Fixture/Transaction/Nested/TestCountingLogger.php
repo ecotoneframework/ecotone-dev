@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\Transaction\Nested;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Stringable;
 
 final class TestCountingLogger implements LoggingGateway

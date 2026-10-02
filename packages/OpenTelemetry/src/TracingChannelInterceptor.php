@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 use function json_decode;

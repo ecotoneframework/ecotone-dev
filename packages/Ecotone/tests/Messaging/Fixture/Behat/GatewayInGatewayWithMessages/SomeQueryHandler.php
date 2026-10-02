@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGatewayWithMessages;
 
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

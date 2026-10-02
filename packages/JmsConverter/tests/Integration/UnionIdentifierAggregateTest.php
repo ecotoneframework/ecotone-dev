@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Error;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\InternalId;

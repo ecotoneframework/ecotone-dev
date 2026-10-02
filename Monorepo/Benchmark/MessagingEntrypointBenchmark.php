@@ -2,9 +2,9 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use PhpBench\Attributes\Iterations;

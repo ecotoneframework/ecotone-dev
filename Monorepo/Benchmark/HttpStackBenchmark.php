@@ -2,7 +2,7 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Http\Request as LaravelRequest;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;

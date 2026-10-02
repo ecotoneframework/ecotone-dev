@@ -11,7 +11,7 @@ use App\Domain\Command\DeactivateUser;
 use App\Domain\Command\RegisterUser;
 use App\Domain\User;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel;

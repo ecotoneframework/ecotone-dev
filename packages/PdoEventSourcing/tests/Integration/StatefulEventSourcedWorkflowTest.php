@@ -5,7 +5,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow\Audit;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow\AuditConducted;

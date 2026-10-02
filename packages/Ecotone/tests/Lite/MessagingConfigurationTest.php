@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Lite;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Behat\Presend\CoinGateway;

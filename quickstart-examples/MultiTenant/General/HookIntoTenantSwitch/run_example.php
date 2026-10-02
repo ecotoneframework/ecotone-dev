@@ -1,7 +1,7 @@
 <?php
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;

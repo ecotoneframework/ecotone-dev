@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\Gateway\MessagePublisher;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use PHPUnit\Framework\TestCase;

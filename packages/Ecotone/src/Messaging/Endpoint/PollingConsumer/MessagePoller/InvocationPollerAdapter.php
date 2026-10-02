@@ -4,8 +4,8 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

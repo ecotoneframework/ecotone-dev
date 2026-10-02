@@ -7,7 +7,7 @@ namespace Test\Ecotone\Lite\Test;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;

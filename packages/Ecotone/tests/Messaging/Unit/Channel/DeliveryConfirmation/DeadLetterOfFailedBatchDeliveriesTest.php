@@ -7,12 +7,12 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
@@ -71,7 +71,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         $this->assertStringNotContainsString('espresso-1', $deadLetteredPayloads[1]);
     }
 
-    private function bootstrapWithDeadLetterChannel(): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapWithDeadLetterChannel(): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         $operationsLog = new OperationsLog();
 

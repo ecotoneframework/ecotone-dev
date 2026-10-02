@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithArrayOptions;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithMessageHeaders;

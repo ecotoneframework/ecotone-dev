@@ -6,7 +6,7 @@ namespace Test\EnvPlaceholderEndpoint;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

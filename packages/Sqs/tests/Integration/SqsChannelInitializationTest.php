@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Exception;
@@ -209,7 +209,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
     }
 
-    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -227,7 +227,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         );
     }
 
-    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [

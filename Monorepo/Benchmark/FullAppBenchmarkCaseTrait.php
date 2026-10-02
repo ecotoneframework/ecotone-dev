@@ -4,7 +4,7 @@ namespace Monorepo\Benchmark;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;

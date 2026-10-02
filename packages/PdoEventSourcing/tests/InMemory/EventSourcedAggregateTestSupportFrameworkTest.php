@@ -6,8 +6,8 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;

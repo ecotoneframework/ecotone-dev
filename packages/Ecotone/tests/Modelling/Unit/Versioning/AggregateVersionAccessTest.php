@@ -8,8 +8,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
 /**

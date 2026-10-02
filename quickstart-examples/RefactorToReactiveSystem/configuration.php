@@ -1,7 +1,7 @@
 <?php
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;

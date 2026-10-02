@@ -8,8 +8,8 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

@@ -3,7 +3,7 @@
 use App\OutboxPattern\Domain\OrderRepository;
 use App\OutboxPattern\Domain\PlaceOrder;
 use App\OutboxPattern\Infrastructure\Configuration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 

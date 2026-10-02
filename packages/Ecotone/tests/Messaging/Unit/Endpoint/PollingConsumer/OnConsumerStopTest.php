@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\OnConsumerStop;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
 /**

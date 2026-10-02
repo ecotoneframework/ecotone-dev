@@ -7,7 +7,7 @@ namespace Test\Ecotone\Modelling\Unit;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;

@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingComma
 
 use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 /**

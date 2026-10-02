@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;

@@ -2,7 +2,7 @@
 
 use App\Asynchronous\NotificationService;
 use App\Asynchronous\OrderWasPlaced;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";

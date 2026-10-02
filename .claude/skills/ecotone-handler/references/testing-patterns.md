@@ -5,7 +5,7 @@ All handler tests use `EcotoneLite::bootstrapFlowTesting()` to bootstrap the fra
 ## Testing a Command Handler
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 
 public function test_command_handler(): void
 {

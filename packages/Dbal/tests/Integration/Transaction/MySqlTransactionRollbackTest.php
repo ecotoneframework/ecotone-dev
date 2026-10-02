@@ -9,9 +9,9 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Exception;
 use PHPUnit\Framework\TestCase;
 

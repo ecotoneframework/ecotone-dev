@@ -7,7 +7,7 @@ namespace Monorepo\CrossModuleTests\Tests\Tracing;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;

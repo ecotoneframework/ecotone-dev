@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

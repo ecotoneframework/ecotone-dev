@@ -117,12 +117,12 @@ abstract class AmqpMessagingTestCase extends TestCase
         bool $addInMemoryEventSourcedRepository = true,
         ?\Ecotone\Api\ExtensionObject\TestConfiguration $testConfiguration = null,
         ?string $licenceKey = null
-    ): \Ecotone\Lite\Test\FlowTestSupport {
+    ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         if ($configuration === null) {
             $configuration = \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults();
         }
 
-        return \Ecotone\Lite\EcotoneLite::bootstrapFlowTesting(
+        return \Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $containerOrAvailableServices,
             $configuration,

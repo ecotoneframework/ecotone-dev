@@ -9,7 +9,7 @@ use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Product;
 use App\Infrastructure\Converter\UuidConverter;
 use App\ReadModel\UnapprovedProductList;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

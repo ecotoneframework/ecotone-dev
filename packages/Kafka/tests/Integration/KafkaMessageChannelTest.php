@@ -15,9 +15,9 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\LicenceTesting;
@@ -301,7 +301,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
     }
 
-    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncCommandHandler::class, Calendar::class, MeetingHistory::class],
@@ -325,7 +325,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
     }
 
-    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncEventHandler::class],

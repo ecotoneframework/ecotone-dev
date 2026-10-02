@@ -7,7 +7,7 @@ namespace Ecotone\Tempest;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;

@@ -12,7 +12,7 @@ use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductService;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Money\Money;
@@ -90,7 +90,7 @@ final class OrderSagaTest extends TestCase
         );
     }
 
-    private function getBootstrapFlowTesting(false $isReservationSuccessful): \Ecotone\Lite\Test\FlowTestSupport
+    private function getBootstrapFlowTesting(false $isReservationSuccessful): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class],
             [new ProductReservationService($isReservationSuccessful)],

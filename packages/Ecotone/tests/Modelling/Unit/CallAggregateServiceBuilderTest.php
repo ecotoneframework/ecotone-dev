@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use PHPUnit\Framework\TestCase;

@@ -6,7 +6,8 @@ namespace Test\Ecotone\Messaging\Unit;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
@@ -19,7 +20,6 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -280,7 +280,7 @@ final class MessagingBasicsTest extends TestCase
         $this->assertEquals(160, $gateway->getInterceptedData());
     }
 
-    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
+    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Api\Messaging\ConfiguredMessagingSystem
     {
         return EcotoneLite::bootstrap(
             [],
@@ -293,7 +293,7 @@ final class MessagingBasicsTest extends TestCase
         );
     }
 
-    private function buildOrderingSystem(bool $isAsync, string $listenChannel): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
+    private function buildOrderingSystem(bool $isAsync, string $listenChannel): \Ecotone\Api\Messaging\ConfiguredMessagingSystem
     {
         $container = InMemoryPSRContainer::createEmpty();
         $container->set(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::noCache());

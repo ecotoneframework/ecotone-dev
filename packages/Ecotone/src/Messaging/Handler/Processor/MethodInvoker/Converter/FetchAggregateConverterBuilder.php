@@ -11,16 +11,18 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Handler\Type\UnionType;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\FetchedAggregateCounterCapture;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
+
+use function sprintf;
 
 /**
  * licence Enterprise
@@ -80,8 +82,18 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             $this->aggregateClassName,
             AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName),
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
-            Reference::to(LicenceDecider::class),
             Reference::to(AggregateDefinitionRegistry::class),
         ]);
+    }
+
+    public static function refusalWithoutEnterpriseLicence(Definition $compiledConverter): LicensingException
+    {
+        [, $aggregateClassName, $expressionExecutor] = $compiledConverter->getArguments();
+
+        return LicensingException::create(sprintf(
+            '%s is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), or remove #[Fetch] and load %s in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.',
+            AttributeExpressionExecutorCompiler::locationOf($expressionExecutor)->describe(),
+            $aggregateClassName,
+        ));
     }
 }

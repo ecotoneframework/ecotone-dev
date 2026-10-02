@@ -3,14 +3,13 @@
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
 use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Messaging\Transaction\Transactional;
 
 /**
  * licence Apache-2.0
  */
-interface TransactionalInterceptorOnGatewayMethodExample
+interface GatewayRecordingOutcomeOnMethod
 {
-    #[Transactional(['transactionFactory'])]
+    #[RecordOutcomeIn('methodRecorder')]
     #[MessageGateway('requestChannel')]
     public function invoke(): void;
 }

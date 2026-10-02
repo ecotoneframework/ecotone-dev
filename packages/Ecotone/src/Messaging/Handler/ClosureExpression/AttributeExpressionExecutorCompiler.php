@@ -61,6 +61,13 @@ final class AttributeExpressionExecutorCompiler
         );
     }
 
+    public static function locationOf(Definition $compiledExecutor): ExpressionLocation
+    {
+        [, , , $expressionLocation] = $compiledExecutor->getArguments();
+
+        return new ExpressionLocation(...$expressionLocation->getArguments());
+    }
+
     /**
      * Compiles attribute expression bound to plain context variables, for evaluation without Message.
      */

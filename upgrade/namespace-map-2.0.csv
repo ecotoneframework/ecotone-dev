@@ -194,3 +194,5 @@ Ecotone\Messaging\Config\ConfiguredMessagingSystem,Ecotone\Api\Messaging\Configu
 Ecotone\Messaging\MessageChannel,Ecotone\Api\Messaging\MessageChannel
 Ecotone\Messaging\PollableChannel,Ecotone\Api\Messaging\PollableChannel
 Ecotone\Messaging\MessagePoller,Ecotone\Api\Messaging\MessagePoller
+Ecotone\Messaging\Console\ConsoleWriter,Ecotone\Api\Console\ConsoleWriter
+Ecotone\Messaging\Console\ConsoleProgressBar,Ecotone\Api\Console\ConsoleProgressBar

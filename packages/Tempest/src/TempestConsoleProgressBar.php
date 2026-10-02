@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest;
 
-use Ecotone\Messaging\Console\ConsoleProgressBar;
+use Ecotone\Api\Console\ConsoleProgressBar;
 use Tempest\Console\Console;
 
 /**

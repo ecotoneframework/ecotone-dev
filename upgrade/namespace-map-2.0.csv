@@ -136,6 +136,9 @@ Ecotone\Kafka\Configuration\KafkaBrokerConfiguration,Ecotone\Api\Kafka\KafkaBrok
 Ecotone\Kafka\Configuration\KafkaPublisherConfiguration,Ecotone\Api\Kafka\KafkaPublisherConfiguration
 Ecotone\JMSConverter\JMSConverterConfiguration,Ecotone\Api\JMSConverter\JMSConverterConfiguration
 Ecotone\EventSourcing\EventSourcingConfiguration,Ecotone\Api\EventSourcing\EventSourcingConfiguration
+Ecotone\EventSourcing\EventStore\MetadataMatcher,Ecotone\Api\EventSourcing\MetadataMatcher
+Ecotone\EventSourcing\EventStore\Operator,Ecotone\Api\EventSourcing\Operator
+Ecotone\EventSourcing\EventStore\FieldType,Ecotone\Api\EventSourcing\FieldType
 Ecotone\Laravel\Config\LaravelConnectionReference,Ecotone\Api\Laravel\LaravelConnectionReference
 Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder,Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder
 Ecotone\SymfonyBundle\Config\SymfonyConnectionReference,Ecotone\Api\Symfony\SymfonyConnectionReference

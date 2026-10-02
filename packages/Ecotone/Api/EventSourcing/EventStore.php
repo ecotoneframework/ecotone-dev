@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\EventSourcing;
 
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 
 /**
  * licence Apache-2.0

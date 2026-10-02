@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\App\ConsoleProcessTrait;
 

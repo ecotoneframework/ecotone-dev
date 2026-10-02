@@ -4,7 +4,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 
 /** Setup */

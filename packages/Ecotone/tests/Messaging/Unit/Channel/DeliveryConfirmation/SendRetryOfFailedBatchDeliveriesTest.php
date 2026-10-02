@@ -6,12 +6,12 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Message;

@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;

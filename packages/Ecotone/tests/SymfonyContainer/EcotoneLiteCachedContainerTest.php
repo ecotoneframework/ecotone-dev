@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;

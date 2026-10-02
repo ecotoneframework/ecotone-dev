@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;

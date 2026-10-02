@@ -280,7 +280,7 @@ final class MessagingBasicsTest extends TestCase
         $this->assertEquals(160, $gateway->getInterceptedData());
     }
 
-    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
+    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Api\Messaging\ConfiguredMessagingSystem
     {
         return EcotoneLite::bootstrap(
             [],
@@ -293,7 +293,7 @@ final class MessagingBasicsTest extends TestCase
         );
     }
 
-    private function buildOrderingSystem(bool $isAsync, string $listenChannel): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
+    private function buildOrderingSystem(bool $isAsync, string $listenChannel): \Ecotone\Api\Messaging\ConfiguredMessagingSystem
     {
         $container = InMemoryPSRContainer::createEmpty();
         $container->set(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::noCache());

@@ -15,7 +15,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Test\LicenceTesting;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;

@@ -10,6 +10,7 @@ use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ConsoleCommandReference;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;

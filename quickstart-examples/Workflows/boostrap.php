@@ -7,7 +7,7 @@ namespace Workflows {
     use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
     use Ecotone\Dbal\ManagerRegistryEmulator;
     use Ecotone\Api\Lite\EcotoneLite;
-    use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+    use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
     use Ecotone\Messaging\Handler\Logger\EchoLogger;
     use Ecotone\Dbal\DbalConnection;
     use Ecotone\Dbal\Connection\DbalConnectionFactory;

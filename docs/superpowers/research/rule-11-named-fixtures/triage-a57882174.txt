@@ -1,0 +1,479 @@
+* packages/Amqp/tests/Integration/AmqpChannelRoutingTest.php
+  FREE   CustomExchangeConsumer [RabbitConsumer,Payload] {"new":1,"runtime-static":2}
+  FREE   TopicExchangeConsumers [RabbitConsumer,Payload] {"new":1,"runtime-static":3}
+  FREE   FanoutExchangeConsumers [RabbitConsumer,Payload] {"new":1,"runtime-static":3}
+* packages/Dbal/tests/Conformance/StateStoredRepositoryConformanceTest.php
+  FREE   TicketForRepositoryConformance [Aggregate,Version,Identifier,CommandHandler,Header,QueryHandler] {"runtime-static":2}
+  FREE   NoteForRepositoryConformance [Aggregate,Identifier,CommandHandler,Header,QueryHandler] {"runtime-static":1}
+* packages/Dbal/tests/Integration/Deduplication/DeduplicationExpressionFailureTest.php
+  FREE   BrokenDeduplicationExpressionHandler [Deduplicated,CommandHandler] {"runtime-static":2,"new":1}
+* packages/Ecotone/tests/EventSourcing/Tagging/DynamicConsistencyBoundaryDisabledTest.php
+  FORCED RenamesForDisabledBoundaryTest [DecisionModel,EventSourcingHandler] {"type":1,"runtime-static":2}
+  FREE   EntityForDisabledBoundaryTest [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":4}
+* packages/Ecotone/tests/EventSourcing/Tagging/InMemoryEventSourcedRepositoryRoutingTest.php
+  FREE   OrderForRoutingTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Messaging/Unit/Channel/ChannelInterceptorAttributeTest.php
+  FORCED CapturingHandler [InternalHandler,Header] {"new":5,"runtime-static":7,"attr-arg":3}
+  FORCED AsyncCapturingHandler [Asynchronous,CommandHandler] {"runtime-static":7,"new":2,"attr-arg":1}
+  FORCED OrderCapturingHandler [InternalHandler,Header] {"new":1,"runtime-static":2,"attr-arg":2}
+  FORCED TwoChannelHandler [InternalHandler] {"new":1,"runtime-static":3,"attr-arg":1}
+  FREE   UppercasingInterceptor [ChannelInterceptor,Payload] {"new":4,"runtime-static":4}
+  FREE   HeaderEnrichingInterceptor [ChannelInterceptor] {"new":1,"runtime-static":1}
+  FREE   HighPrecedenceInterceptor [ChannelInterceptor,Header] {"runtime-static":1,"new":1}
+  FREE   LowPrecedenceInterceptor [ChannelInterceptor,Header] {"runtime-static":1,"new":1}
+  FREE   ChannelAOnlyInterceptor [ChannelInterceptor,Payload] {"runtime-static":1,"new":1}
+  FREE   ReferenceAndHeaderUsingInterceptor [ChannelInterceptor,Payload,Header,Reference] {"new":1,"runtime-static":1}
+  packages/Ecotone/tests/Messaging/Unit/Channel/DelayedMessageReleaseTest.php
+  FORCED DelayedMessageHandler [Asynchronous,CommandHandler] {"new":3,"runtime-static":12,"type":1}
+* packages/Ecotone/tests/Messaging/Unit/Channel/DirectAndPublishSubscribeChannelTest.php
+  FREE   DirectChannelHandler [InternalHandler] {"new":1,"runtime-static":2}
+  FREE   PublishSubscribeChannelHandlers [InternalHandler] {"new":1,"runtime-static":3}
+* packages/Ecotone/tests/Messaging/Unit/Config/AsynchronousEndpointIdRequirementTest.php
+  FREE   GeneratedIdCommandHandler [Asynchronous,CommandHandler] {"runtime-static":1,"new":1}
+  FREE   GeneratedIdEventHandler [Asynchronous,EventHandler] {"runtime-static":1,"new":1}
+  FREE   GeneratedIdInternalHandlerMethodLevel [Asynchronous,InternalHandler] {"runtime-static":1,"new":1}
+  FREE   GeneratedIdInternalHandlerClassLevel [Asynchronous,InternalHandler] {"runtime-static":1,"new":1}
+  FREE   GeneratedIdQueryHandler [Asynchronous,QueryHandler] {"runtime-static":1,"new":1}
+  FREE   ExplicitIdCommandHandler [Asynchronous,CommandHandler] {"new":1,"runtime-static":3}
+  FREE   ExplicitIdEventHandler [Asynchronous,EventHandler] {"new":1,"runtime-static":3}
+  FREE   ExplicitIdInternalHandler [Asynchronous,InternalHandler] {"new":1,"runtime-static":4}
+* packages/Ecotone/tests/Messaging/Unit/Config/ConsumerRunningAndAsynchronousChainTest.php
+  FREE   DirectlyConsumedHandler [InternalHandler] {"new":1,"runtime-static":2}
+  FORCED SingleHopAsyncHandler [Asynchronous,CommandHandler] {"new":1,"runtime-static":4,"type":1}
+  FREE   UnregisteredAsyncChannelHandler [Asynchronous,CommandHandler] {"runtime-static":1,"new":1}
+  FREE   TwoHopAsyncHandler [Asynchronous,CommandHandler] {"new":1,"runtime-static":6}
+  FREE   ThreeHopAsyncHandler [Asynchronous,CommandHandler] {"new":1,"runtime-static":8}
+* packages/Ecotone/tests/Messaging/Unit/Config/EndpointChannelNameCollisionTest.php
+  FREE   CollidingEndpointIdHandler [InternalHandler] {"runtime-static":2,"new":1}
+  FREE   SameChannelAndEndpointIdHandler [InternalHandler] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Config/EndpointErrorChannelTest.php
+  FREE   ThrowingHandler [Asynchronous,CommandHandler] {"runtime-static":9,"new":2}
+* packages/Ecotone/tests/Messaging/Unit/Config/HandlerAndChannelNamingValidationTest.php
+  FREE   DuplicateEndpointIdHandlers [InternalHandler] {"runtime-static":1,"new":1}
+  FREE   GeneratedEndpointIdHandlers [InternalHandler] {"new":1,"runtime-static":1}
+* packages/Ecotone/tests/Messaging/Unit/Config/ImplicitChannelCreationTest.php
+  FREE   ImplicitChannelHandler [InternalHandler] {"new":3,"runtime-static":8}
+* packages/Ecotone/tests/Messaging/Unit/Endpoint/Poller/PollingConsumerAckAndRetryTest.php
+  FREE   AlwaysThrowingHandler [InternalHandler] {"new":1,"runtime-static":5}
+  FREE   NeverCalledHandler [InternalHandler] {"new":1,"runtime-static":4}
+* packages/Ecotone/tests/Messaging/Unit/Endpoint/ScheduledEndpointTest.php
+  FREE   NoArgScheduledService [Scheduled] {"new":1,"runtime-static":2}
+  FREE   ReturningScheduledService [Scheduled] {"new":2,"runtime-static":11}
+  FREE   UnresolvableParameterScheduledService [Scheduled] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/DocumentedListParameterTest.php
+  FORCED OrderTagging [BusinessMethod,Header] {"runtime-static":2}
+  FREE   DocumentedListElementRecorder [CommandHandler,Header] {"new":3}
+* packages/Ecotone/tests/Messaging/Unit/Handler/ErrorHandler/DelayedRetryDelayAndDeadLetterTest.php
+  FREE   GrowingDelayHandler [Asynchronous,CommandHandler] {"runtime-static":9,"new":1}
+  FREE   DeadLetterRoutingHandler [Asynchronous,CommandHandler] {"runtime-static":8,"new":1}
+  FREE   NoDeadLetterHandler [Asynchronous,CommandHandler] {"runtime-static":6,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/ExpressionFailureContextTest.php
+  FREE   ExpressionFailureService [CommandHandler,Payload,Header,Reference,AddHeader,QueryHandler] {"runtime-static":10,"new":2}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/GatewayParameterConverterAttributesTest.php
+  FORCED EchoGateway [MessageGateway,Headers,Payload] {"runtime-static":8,"attr-arg":1}
+  FORCED OneWayEchoGateway [MessageGateway] {"runtime-static":2,"attr-arg":1}
+  FREE   EchoHandler [InternalHandler] {"runtime-static":4,"new":4}
+  FREE   CapturingOneWayHandler [InternalHandler] {"new":1,"runtime-static":1}
+  packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/GatewayParameterConverterOrderingTest.php
+  FORCED SendMailGateway [MessageGateway,Header,Payload] {"runtime-static":2}
+  FORCED CapturingHandler [InternalHandler] {"new":1,"runtime-static":1,"attr-arg":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/GatewayReplyAndErrorHandlingTest.php
+  FORCED ReplyGateway [MessageGateway,Header,Headers] {"runtime-static":12,"attr-arg":5}
+  FORCED NullableReplyGateway [MessageGateway] {"runtime-static":2}
+  FORCED PollableReplyGateway [MessageGateway] {"runtime-static":2}
+  FORCED PollableSendOnlyGateway [MessageGateway] {"runtime-static":4}
+  FORCED ErrorChannelGateway [MessageGateway] {"runtime-static":4,"attr-arg":1}
+  FORCED InterceptedGateway [MessageGateway] {"runtime-static":2,"attr-arg":1}
+  FREE   ReplyGatewayHandler [InternalHandler] {"new":5,"runtime-static":5}
+  FREE   VoidReplyGatewayHandler [InternalHandler] {"new":2,"runtime-static":2}
+  FREE   ThrowingReplyGatewayHandler [InternalHandler] {"new":2,"runtime-static":2}
+  FREE   GatewayCallRecorder [Around] {"runtime-static":2,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/GatewayReturnTypeConversionTest.php
+  FORCED UuidGateway [MessageGateway] {"runtime-static":4}
+  FORCED EchoMessageGateway [MessageGateway] {"runtime-static":2}
+  FORCED StdClassGateway [MessageGateway] {"runtime-static":2}
+  FORCED DefaultParameterGateway [MessageGateway] {"runtime-static":2}
+  FORCED NonNullableErrorChannelGateway [MessageGateway] {"runtime-static":1}
+  FORCED ReplyMediaTypeGateway [MessageGateway,Header] {"runtime-static":2}
+  FORCED EchoMessageHandler [InternalHandler] {"runtime-static":7,"new":7,"attr-arg":6}
+  FORCED IteratorGateway [MessageGateway] {"runtime-static":6}
+  FORCED ArrayConvertingIteratorGateway [MessageGateway] {"runtime-static":2}
+  FORCED GeneratorConvertingIteratorGateway [MessageGateway] {"runtime-static":2}
+  FORCED IterableEchoHandler [InternalHandler] {"new":4,"runtime-static":4,"attr-arg":4}
+  FORCED GeneratorEchoHandler [InternalHandler] {"new":1,"runtime-static":1,"attr-arg":1}
+  FREE   IntToStdClassConverter [Converter] {"runtime-static":6,"new":2}
+  FREE   ArrayToJsonMediaTypeConverter [MediaTypeConverter] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Logger/LoggingAttributesTest.php
+  FREE   LogBeforeHandler [LogBefore,CommandHandler] {"runtime-static":1,"new":1}
+  FREE   LogAfterHandler [LogAfter,QueryHandler] {"runtime-static":1,"new":1}
+  FREE   LogBeforeFullMessageHandler [LogBefore,CommandHandler] {"runtime-static":1,"new":1}
+  FREE   LogErrorHandler [LogError,CommandHandler] {"runtime-static":1,"new":1}
+  packages/Ecotone/tests/Messaging/Unit/Handler/Processor/MethodArgumentResolutionTest.php
+  FORCED MethodResolutionHandler [InternalHandler,Headers,Header,Payload] {"runtime-static":12,"new":1,"type":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Processor/ParameterConverterAttributesTest.php
+  FREE   RecordingParameterConverterHandler [CommandHandler,Payload,Header,Headers,Reference,ConfigurationVariable,QueryHandler] {"runtime-static":11,"new":11}
+  FREE   RequiredMissingConfigurationVariableHandler [CommandHandler,ConfigurationVariable] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/RequestReplyAndRoutingSlipTest.php
+  FREE   RequestReplyHandler [InternalHandler] {"runtime-static":18,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Router/BusRoutingTest.php
+  FREE   CatchAllHandler [EventHandler] {"new":1,"runtime-static":1}
+  FREE   RoutingHandler [Priority,EventHandler] {"new":5,"runtime-static":5}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Router/RouterAttributeTest.php
+  FORCED CustomRouterHandler [Router,InternalHandler] {"new":3,"runtime-static":4,"type":1}
+  FREE   NotRequiredRouterHandler [Router,InternalHandler] {"new":1,"runtime-static":2}
+* packages/Ecotone/tests/Messaging/Unit/Handler/ServiceActivator/InternalHandlerChangingHeadersTest.php
+  FORCED EnrichingHandlerA [InternalHandler] {"runtime-static":5,"new":3,"attr-arg":3}
+  FREE   NullReturningHandlerA [InternalHandler] {"runtime-static":2,"new":1}
+  FREE   NonArrayReturningHandler [InternalHandler] {"runtime-static":2,"new":1}
+  FREE   AsyncEnrichingHandlerA [Asynchronous,InternalHandler] {"runtime-static":4,"new":1}
+  FREE   CapturingHandlerB [InternalHandler,Header] {"new":5,"runtime-static":5}
+  FREE   DefaultBehaviorHandler [InternalHandler] {"new":1,"runtime-static":2}
+* packages/Ecotone/tests/Messaging/Unit/Handler/ServiceActivator/ServiceActivatorAttributeTest.php
+  FREE   ServiceActivatorHandler [InternalHandler] {"new":2,"runtime-static":4}
+  FORCED MathHandler [InternalHandler] {"runtime-static":2,"new":1,"attr-arg":3}
+  FREE   MathInterceptors [Around] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Splitter/SplitterAttributeTest.php
+  FREE   SplittingHandler [Splitter,InternalHandler] {"new":2,"runtime-static":4}
+  FREE   WrongSplittingHandler [Splitter] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Messaging/Unit/Handler/Transformer/TransformerAttributeTest.php
+  FREE   TransformerHandler [Transformer,Payload,Header] {"runtime-static":10,"new":1}
+  FREE   VoidTransformerHandler [Transformer] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/AggregateBoundaryConfigurationTest.php
+  FREE   WalletWithoutAggregateType [Aggregate,Identifier,CommandHandler] {"runtime-static":4}
+  FREE   WalletWithAggregateType [Aggregate,AggregateType,Identifier,CommandHandler] {"runtime-static":4}
+  FREE   WalletWithTooLongAggregateType [Aggregate,AggregateType,Identifier,CommandHandler] {"runtime-static":2}
+  FREE   WalletWithLongestAllowedAggregateType [Aggregate,AggregateType,Identifier,CommandHandler] {"runtime-static":1}
+  FREE   LedgerWithoutAggregateType [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":3}
+  FREE   LedgerWithAggregateType [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+  FREE   OnboardingSagaWithoutAggregateType [Saga,Identifier,CommandHandler] {"runtime-static":1}
+  FREE   ShipmentSagaWithoutAggregateType [EventSourcingSaga,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/EventSourcedAggregateCounterTest.php
+  FREE   LedgerWallet [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":3}
+  FREE   LedgerShipmentSaga [EventSourcingSaga,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/FetchedAggregateBoundaryTest.php
+  FORCED CustomerOnCredit [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":3,"type":5}
+  FORCED Wallet [Aggregate,AggregateType,Identifier,CommandHandler] {"runtime-static":1,"type":4}
+  FORCED CouponRedemptions [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":6}
+  FREE   OrderOnCreditService [CommandHandler,Fetch,Reference] {"runtime-static":1,"new":1}
+  FREE   SettlementService [CommandHandler,Fetch,Reference] {"runtime-static":1,"new":1}
+  FREE   CreditReservationService [DecisionBoundary,CommandHandler,Fetch,Reference] {"runtime-static":1,"new":1}
+  FREE   QuoteService [CommandHandler,Fetch] {"runtime-static":2,"new":2}
+  FORCED EscalationSaga [Saga,Identifier,CommandHandler] {"runtime-static":2,"type":1}
+  FREE   SagaFetchingService [CommandHandler,Fetch] {"runtime-static":2,"new":1}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/FetchedAggregateReadOnlyTest.php
+  FORCED RecordingTicket [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2,"type":2}
+  FORCED TicketQueue [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   TicketDesk [CommandHandler,Fetch] {"runtime-static":2}
+  FREE   TicketPeek [CommandHandler,Fetch] {"runtime-static":1}
+  FREE   TransactionlessTicket [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,WithoutDatabaseTransaction,EventSourcingHandler] {"runtime-static":4}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/StateStoredAggregateCounterTest.php
+  FREE   Purse [Aggregate,AggregateType,Version,Identifier,CommandHandler,QueryHandler] {"runtime-static":3}
+  FREE   RefundSaga [Saga,Identifier,CommandHandler,QueryHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php
+  FORCED UnlockedBasketForWithoutLock [Aggregate,AggregateType,Identifier,CommandHandler,QueryHandler] {"runtime-static":18,"type":1}
+  FREE   GuardedBasketForWithoutLock [Aggregate,AggregateType,Identifier,CommandHandler,QueryHandler] {"runtime-static":4}
+  FREE   UntypedBasketForWithoutLock [Aggregate,Identifier,CommandHandler] {"runtime-static":3}
+  FORCED BasketCheckoutCountForWithoutLock [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   BasketCheckoutForWithoutLock [CommandHandler,Fetch] {"runtime-static":2}
+  FREE   LedgerForWithoutLock [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":3}
+  FREE   ExcludedAggregateBoundaryForWithoutLock [CommandHandler,DecisionBoundary] {"runtime-static":2,"new":1}
+  FREE   MixedExcludedAggregateBoundaryForWithoutLock [CommandHandler,DecisionBoundary] {"runtime-static":1,"new":1}
+  FREE   GuardedAggregateBoundaryForWithoutLock [CommandHandler,DecisionBoundary] {"runtime-static":1,"new":1}
+  packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelConcurrencyTest.php
+  FORCED CreditWalletForConcurrencyTest [Identifier] {"type":1,"new":1}
+  FORCED FreezeWalletForConcurrencyTest [Identifier] {"type":1,"new":1}
+  FORCED WalletForConcurrencyTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"const-expr":1,"runtime-static":5,"attr-arg":1}
+  FORCED WalletBalanceForConcurrencyTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED PayoutsTodayForConcurrencyTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED PayoutsForConcurrencyTest [CommandHandler,Reference] {"const-expr":1,"runtime-static":3,"new":2}
+* packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelSnapshotTest.php
+  FORCED WalletForSnapshotTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FORCED WalletBalanceForSnapshotTest [DecisionModel,EventSourcingHandler] {"runtime-static":11,"type":1}
+  FREE   WalletBalanceConverterForSnapshotTest [MediaTypeConverter] {"new":1,"runtime-static":1}
+  FREE   PayoutsForSnapshotTest [CommandHandler] {"runtime-static":6,"new":1}
+  packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelTest.php
+  FORCED WalletForAggregateBackedTest [EventSourcingAggregate,AggregateType,Identifier,EventSourcingHandler] {"const-expr":1,"runtime-static":10,"attr-arg":2}
+  FORCED LedgerForAggregateBackedTest [EventSourcingAggregate,AggregateType,Identifier,EventSourcingHandler] {"const-expr":1,"runtime-static":1,"attr-arg":1}
+  FORCED WalletBalanceForAggregateBackedTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":7}
+  FORCED WalletCreditCountForAggregateBackedTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED LedgerBalanceForAggregateBackedTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED PayoutsTodayForAggregateBackedTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED PayoutsForAggregateBackedTest [CommandHandler,Fetch,QueryHandler] {"const-expr":1,"runtime-static":13,"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelValidationTest.php
+  FORCED WalletForAggregateBackedValidationTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":4,"attr-arg":3}
+  FORCED StateStoredLedgerForAggregateBackedValidationTest [Aggregate,Identifier] {"runtime-static":2,"attr-arg":1}
+  FORCED SagaForAggregateBackedValidationTest [EventSourcingSaga,AggregateType,Identifier,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FREE   ModelScopedByBothAggregateAndTagsForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelBackedByStateStoredAggregateForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelBackedBySagaForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelBackedByPlainClassForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelHandlingAnEventTheWalletDoesNotRecordForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2}
+  FREE   ModelOverUntaggedWalletEventsForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FORCED WalletBalanceForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   HandlerWithoutWalletIdentifierForAggregateBackedValidationTest [CommandHandler] {"new":1}
+  FORCED ArchivedWalletForAggregateBackedValidationTest [EventSourcingAggregate,AggregateType,Stream,Identifier,EventSourcingHandler] {"runtime-static":1,"attr-arg":1}
+  FORCED ArchivedWalletBalanceForAggregateBackedValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   HandlerOnDefaultConnectionForAggregateBackedValidationTest [CommandHandler] {"new":1}
+  packages/Ecotone/tests/Modelling/DecisionModel/CouponAggregateWalkthroughTest.php
+  FORCED CouponRedemptionsForCouponTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED CustomerCouponUseForCouponTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED OrderForCouponTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,Reference,EventSourcingHandler] {"const-expr":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionBoundaryTest.php
+  FREE   RatingHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   NonStaticBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   WrongReturnTypeBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   ParameterlessBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   OrphanBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   DuplicateBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   TenantScopedRatingHandlerForBoundaryTest [DecisionBoundary,Header,CommandHandler,Reference] {"new":1}
+  FREE   ServiceMappedRatingHandlerForBoundaryTest [DecisionBoundary,CommandHandler,Reference] {"new":1}
+  FREE   MixedParameterRatingHandlerForBoundaryTest [DecisionBoundary,Header,ConfigurationVariable,CommandHandler,Reference] {"new":1}
+  FREE   UnresolvableParameterBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   QueryOnlyBoundaryHandlerForBoundaryTest [DecisionBoundary,QueryHandler] {"new":1}
+  FORCED CourseRatingsForBoundaryTest [DecisionModel,EventSourcingHandler] {"type":1}
+  FORCED CourseForBoundaryTest [EventSourcingAggregate,Identifier,EventSourcingHandler] {"type":1}
+  FREE   DecisionModelTakingBoundaryHandlerForBoundaryTest [DecisionBoundary,CommandHandler] {"new":1}
+  FREE   FetchingBoundaryHandlerForBoundaryTest [DecisionBoundary,Fetch,CommandHandler] {"new":1}
+  FREE   FilterOnlyBoundaryHandlerForBoundaryTest [CommandHandler,DecisionBoundary] {"new":1,"runtime-static":1}
+  FREE   MixedFilterOnlyBoundaryHandlerForBoundaryTest [CommandHandler,DecisionBoundary] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelArrayTagTest.php
+  FORCED SeatReservationForArrayTagTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   ReserveSeatHandlerForArrayTagTest [CommandHandler] {"new":1,"runtime-static":2}
+  packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelBasicTest.php
+  FORCED CourseCapacityForBasicTest [DecisionModel,EventSourcingHandler] {"type":1,"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelConflictNamingTest.php
+  FORCED SeatCountForConflictNaming [DecisionModel,EventSourcingHandler] {"runtime-static":7,"type":3}
+  FORCED WaitlistLengthForConflictNaming [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   WaitlistHandlerForConflictNaming [CommandHandler] {"runtime-static":4,"new":4}
+  FREE   EnrolmentHandlerForConflictNaming [CommandHandler] {"runtime-static":2,"new":2}
+  FREE   TwoModelEnrolmentHandlerForConflictNaming [CommandHandler] {"runtime-static":1,"new":1}
+  FREE   BoundaryOnlyHandlerForConflictNaming [DecisionBoundary,CommandHandler] {"runtime-static":2,"new":1}
+  FORCED PurseSpendCountForConflictNaming [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   PurseForConflictNaming [Aggregate,AggregateType,Identifier,CommandHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelEventMatchingTest.php
+  FORCED ParentEventCountForMatchingTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FORCED NamedEventCountForMatchingTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   CourseEventCounterForMatchingTest [QueryHandler] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelExpressionFailureTest.php
+  FORCED ActivityForExpressionFailureTest [DecisionModel,EventSourcingHandler] {"runtime-static":3,"type":4}
+  FREE   SyntaxErrorHandlerForExpressionFailureTest [CommandHandler,Fetch] {"runtime-static":3}
+  FREE   UnknownServiceHandlerForExpressionFailureTest [CommandHandler,Fetch] {"runtime-static":2}
+  FREE   MissingHeaderHandlerForExpressionFailureTest [CommandHandler,Fetch] {"runtime-static":2}
+  FREE   BooleanTagHandlerForExpressionFailureTest [CommandHandler,Fetch] {"runtime-static":2}
+  FORCED CouponUseForExpressionFailureTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   ListForMultiTagHandlerForExpressionFailureTest [CommandHandler,Fetch] {"new":1,"runtime-static":1}
+  FORCED WalletForExpressionFailureTest [EventSourcingAggregate,AggregateType,Identifier,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FORCED WalletBalanceForExpressionFailureTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   AggregateBackedHandlerForExpressionFailureTest [CommandHandler,Fetch] {"new":1,"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelFetchTest.php
+  FORCED CustomerCouponUseForFetchTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   RedeemCouponHandlerForFetchTest [CommandHandler,Fetch] {"new":1,"runtime-static":1}
+  FORCED AccountActivityForFetchTest [DecisionModel,EventSourcingHandler] {"runtime-static":5,"type":4}
+  FREE   TransferHandlerForFetchTest [CommandHandler,Fetch] {"new":1,"runtime-static":1}
+  FORCED CountingHandlerForFetchTest [CommandHandler,Fetch] {"new":3,"runtime-static":1,"type":1}
+  FREE   CountingSeveralAccountsHandlerForFetchTest [CommandHandler,Fetch] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelHandlerVariantsTest.php
+  FORCED CourseForVariantsTest [DecisionModel,EventSourcingHandler] {"runtime-static":6,"type":5}
+  FREE   HandlerWithReferenceForVariantsTest [CommandHandler,Reference,Header] {"new":2,"runtime-static":2}
+  FREE   AsyncHandlerForVariantsTest [Asynchronous,CommandHandler] {"new":1,"runtime-static":1}
+  FREE   QueryHandlerForVariantsTest [QueryHandler] {"new":1,"runtime-static":1}
+  FREE   OutputChannelHandlerForVariantsTest [CommandHandler] {"new":1,"runtime-static":1}
+  FREE   EventHandlerWithModelForVariantsTest [EventHandler] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelLicenceTest.php
+  FREE   ModelForLicenceTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelNestedHandlerTest.php
+  FORCED SeatCountForNestedTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":2}
+  FREE   EnrolmentHandlerForNestedTest [CommandHandler] {"new":1}
+  FREE   WaitlistHandlerForNestedTest [CommandHandler] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelRetryTest.php
+  FORCED RetryCommandBusForRetryTest [InstantRetry] {"runtime-static":2}
+  FORCED CourseForRetryTest [DecisionModel,EventSourcingHandler] {"runtime-static":3,"type":2}
+  FREE   SubscribeHandlerForRetryTest [CommandHandler,Reference] {"new":2}
+  FREE   SubscribeHandlerForExhaustionRetryTest [CommandHandler,Reference] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelSnapshotConfigurationTest.php
+  FORCED WalletBalanceForSnapshotConfigurationTest [DecisionModel,EventSourcingHandler] {"runtime-static":6,"type":1}
+  FREE   WalletBalanceConverterForSnapshotConfigurationTest [MediaTypeConverter] {"runtime-static":1,"new":1}
+  FREE   WalletsForSnapshotConfigurationTest [CommandHandler] {"new":1,"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelStatelessExecutionTest.php
+  FORCED WalletForStatelessTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":5}
+  FREE   WalletQueryHandlerForStatelessTest [QueryHandler] {"runtime-static":1,"new":1}
+  FREE   WalletCommandHandlerForStatelessTest [CommandHandler] {"new":1,"runtime-static":1}
+  FREE   AuditedWalletCommandHandlerForStatelessTest [CommandHandler,Fetch,Header] {"new":1,"runtime-static":1}
+  FREE   PaymentForStatelessTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,Reference,EventSourcingHandler] {"runtime-static":2}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelStreamTest.php
+  FORCED CourseForStreamTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   StreamHandlerForStreamTest [Stream,CommandHandler] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/DecisionModelValidationTest.php
+  FREE   ModelWithMissingTagForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelWithInterfaceTypedHandlerForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelWithConstructorArgumentsForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+  FORCED ModelForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":8,"type":7}
+  FREE   ModelWithCommandHandlerForValidationTest [DecisionModel,EventSourcingHandler,CommandHandler] {"runtime-static":1}
+  FREE   HandlerInjectingSameModelTwiceWithoutFetchForValidationTest [CommandHandler] {"new":1}
+  FREE   ModelWithNoHandledEventsForValidationTest [DecisionModel] {"runtime-static":1}
+  FREE   HandlerRequiringModelForNullTagValueForValidationTest [CommandHandler] {"new":1}
+  FREE   HandlerRequiringModelForValidationTest [CommandHandler] {"new":1}
+  FREE   ModelHandlingUntaggedEventForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2}
+  FREE   ModelHandlingDisjointlyTaggedEventsForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2}
+  FREE   ModelAlsoAggregateForValidationTest [DecisionModel,EventSourcingAggregate,Identifier,EventSourcingHandler] {"runtime-static":1}
+  FREE   ModelAlsoSagaForValidationTest [DecisionModel,Saga,Identifier,EventSourcingHandler] {"runtime-static":1}
+  FREE   HandlerAcceptingNullableModelForValidationTest [CommandHandler] {"new":1}
+  FREE   HandlerForUnderscoreIdCommandForValidationTest [CommandHandler] {"new":1}
+  FORCED CountingModelForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   HandlerForCourseCodeCommandForValidationTest [CommandHandler] {"new":1}
+  FREE   HandlerForSeveralCoursesCommandForValidationTest [CommandHandler] {"new":1}
+  FREE   TenantItemsModelForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":2}
+  FORCED TenantItemModelForValidationTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   TenantItemCounterForValidationTest [QueryHandler] {"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/LiteralEventTagDecisionModelTest.php
+  FORCED InvoiceNumberingForLiteralTag [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   InvoiceIssuingHandlerForLiteralTag [CommandHandler] {"runtime-static":1,"new":1}
+  FORCED RegionalInvoiceNumberingForLiteralTag [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   RegionalInvoiceIssuingHandlerForLiteralTag [CommandHandler] {"runtime-static":1,"new":1}
+  FORCED BatchCountForLiteralTag [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   BatchCountingHandlerForLiteralTag [CommandHandler] {"runtime-static":1,"new":1}
+  FREE   DisagreeingNumberingForLiteralTag [DecisionModel,EventSourcingHandler] {"runtime-static":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/TagScopedDecisionModelSnapshotTest.php
+  FORCED SpentTodayForTagSnapshotTest [DecisionModel,EventSourcingHandler] {"runtime-static":9,"type":1}
+  FORCED RegionalSpentTodayForTagSnapshotTest [DecisionModel,EventSourcingHandler] {"runtime-static":5,"type":2}
+  FREE   SpentTodayConverterForTagSnapshotTest [MediaTypeConverter] {"runtime-static":1,"new":1}
+  FREE   WalletsForTagSnapshotTest [CommandHandler] {"runtime-static":7,"new":1}
+  packages/Ecotone/tests/Modelling/DecisionModel/ThreeModelCourseExampleTest.php
+  FORCED CourseCapacityForThreeModelTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":2}
+  FORCED StudentCoursesForThreeModelTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED StudentSubscriptionForThreeModelTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED CourseSubscriptionsForThreeModelTest [CommandHandler,EventHandler] {"const-expr":1,"new":1}
+  FORCED EnrollmentNotificationSagaForThreeModelTest [EventSourcingSaga,Identifier,EventSourcingHandler] {"const-expr":1,"new":1}
+* packages/Ecotone/tests/Modelling/DecisionModel/UniqueUsernamePerTenantTest.php
+  FORCED UsernameAvailability [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":4}
+  FREE   UsernameRegistration [CommandHandler,Fetch,Header] {"runtime-static":1,"new":1}
+  FORCED UsernameAvailabilityScopedTenantFirst [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   UsernameRegistrationScopedTenantFirst [CommandHandler,Fetch,Header] {"runtime-static":1,"new":1}
+* packages/Ecotone/tests/Modelling/Unit/Versioning/AggregateVersionAccessTest.php
+  FREE   VersionedBasket [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2}
+* packages/Ecotone/tests/Modelling/Unit/Versioning/EventSourcingHandlerMetadataWithoutLicenceTest.php
+  FREE   BasketReadingRecordTime [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler,Header] {"runtime-static":2}
+* packages/PdoEventSourcing/tests/Integration/AggregateLoadMissingStreamTableDbalTest.php
+  FREE   ScreeningWithoutStreamTable [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2}
+  FREE   ScreeningWithoutStreamTableConverter [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/AppendConditionWithoutBoundaryTest.php
+  FREE   EventsConverterForAppendConditionWithoutBoundaryTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/LoadBatchSizeBoundaryDbalTest.php
+  FREE   BasketWithBatchedEvents [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":5}
+  FREE   BasketWithBatchedEventsConverter [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/ProjectionInvariantTest.php
+  FORCED SomeAggregateForInvariantTest [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FREE   EventsConverterForInvariantTest [Converter] {"runtime-static":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/AggregateBackedDecisionModelDbalTest.php
+  FORCED CreditWalletForAggregateBackedDbalTest [Identifier] {"new":8,"type":1}
+  FORCED DebitWalletForAggregateBackedDbalTest [Identifier] {"new":1,"type":1}
+  FORCED FreezeWalletForAggregateBackedDbalTest [Identifier] {"new":2,"type":1}
+  FORCED WalletForAggregateBackedDbalTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,QueryHandler,EventSourcingHandler] {"const-expr":1,"runtime-static":7,"attr-arg":1}
+  FORCED WalletBalanceForAggregateBackedDbalTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"runtime-static":4,"type":1}
+  FORCED WalletBalanceMediaTypeConverterForAggregateBackedDbalTest [MediaTypeConverter] {"const-expr":1,"new":1}
+  FORCED PayoutsForAggregateBackedDbalTest [CommandHandler] {"const-expr":1,"runtime-static":5,"new":1}
+  FORCED WalletMediaTypeConverterForAggregateBackedDbalTest [MediaTypeConverter] {"const-expr":1,"new":1}
+  FORCED EventsConverterForAggregateBackedDbalTest [Converter] {"const-expr":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/AggregateBackedDecisionModelLegacyStreamDbalTest.php
+  FORCED CreditLegacyWalletForAggregateBackedDbalTest [Identifier] {"new":2,"type":1}
+  FORCED LegacyWalletForAggregateBackedDbalTest [EventSourcingAggregate,AggregateType,Stream,Identifier,CommandHandler,EventSourcingHandler] {"const-expr":1,"runtime-static":1,"attr-arg":2}
+  FORCED LegacyWalletBalanceForAggregateBackedDbalTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED LegacyPayoutsForAggregateBackedDbalTest [CommandHandler] {"const-expr":1,"runtime-static":2,"new":1}
+  FORCED LegacyEventsConverterForAggregateBackedDbalTest [Converter] {"const-expr":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/AggregateBackedDecisionModelSnapshotDbalTest.php
+  FORCED AccountForSnapshotDbalTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"const-expr":1,"attr-arg":1}
+  FORCED AccountBalanceForSnapshotDbalTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"runtime-static":4,"type":1}
+  FORCED AccountBalanceConverterForSnapshotDbalTest [MediaTypeConverter] {"const-expr":1,"new":1}
+  FORCED EventsConverterForSnapshotDbalTest [Converter] {"const-expr":1,"new":1}
+  FORCED SpendingForSnapshotDbalTest [CommandHandler] {"const-expr":1,"runtime-static":6,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/AggregateSaveTagGuardDbalTest.php
+  FORCED CouponRedemptionsForAggregateGuardTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":2}
+  FREE   CouponGuardForAggregateGuardTest [EventHandler] {"runtime-static":1,"new":1}
+  FREE   CouponRedeemerForAggregateGuardTest [CommandHandler] {"runtime-static":1,"new":1}
+  FREE   OrderForAggregateGuardTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,Reference,EventSourcingHandler] {"runtime-static":1}
+  FREE   EventsConverterForAggregateGuardTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/CouponAggregateWalkthroughDbalTest.php
+  FORCED CouponRedemptionsForDbalCouponTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED CustomerCouponUseForDbalCouponTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED OrderForDbalCouponTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,Reference,EventSourcingHandler] {"const-expr":1}
+  FORCED EventsConverterForDbalCouponTest [Converter] {"const-expr":1,"new":1}
+  FREE   PublishedEventHeadersCollectorForDbalCouponTest [EventHandler,Headers] {"runtime-static":2,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/CrossConnectionDecisionModelTest.php
+  FREE   WidgetAggregateForCrossConnectionDecisionModelTest [EventSourcingAggregate,Stream,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+  FORCED WidgetCountForCrossConnectionDecisionModelTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   HandlerInjectingWidgetCountForCrossConnectionDecisionModelTest [CommandHandler] {"runtime-static":1}
+  FORCED SameConnectionAggregateForCrossConnectionDecisionModelTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FORCED SameConnectionModelForCrossConnectionDecisionModelTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FORCED ArchivedWidgetForCrossConnectionDecisionModelTest [EventSourcingAggregate,AggregateType,Stream,Identifier,EventSourcingHandler] {"runtime-static":2,"attr-arg":1}
+  FORCED ArchivedWidgetCountForCrossConnectionDecisionModelTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":1}
+  FREE   HandlerInjectingArchivedWidgetCountForCrossConnectionDecisionModelTest [CommandHandler] {"runtime-static":1}
+  FORCED SameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   HandlerInjectingSameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest [CommandHandler] {"runtime-static":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/DbalTaggedAppendTest.php
+  FREE   EventsConverterForDbalAppendTest [Converter] {"runtime-static":2,"new":2}
+* packages/PdoEventSourcing/tests/Integration/Tagging/DbalTaggedContentionTest.php
+  FREE   EventsConverterForContentionTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/DbalTaggedLoadTest.php
+  FREE   EventsConverterForDbalLoadTest [Converter] {"runtime-static":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/DecisionModelLoadTransactionOrderingDbalTest.php
+  FORCED CourseForOrderingTest [DecisionModel,EventSourcingHandler,Reference] {"const-expr":1,"type":1}
+  FORCED SubscribeHandlerForOrderingTest [CommandHandler] {"const-expr":1,"new":1}
+  FORCED EventsConverterForOrderingTest [Converter] {"const-expr":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/DecisionModelMissingStreamTableDbalTest.php
+  FORCED ScreeningForMissingStreamTableTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1,"attr-arg":1}
+  FORCED ScreeningCapacityForMissingStreamTableTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   SeatReservationsForMissingStreamTableTest [CommandHandler] {"runtime-static":4,"new":1}
+  FREE   EventsConverterForMissingStreamTableTest [Converter] {"runtime-static":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/DecisionModelOnInMemoryEventStoreTest.php
+  FORCED UsernameAvailabilityOnInMemoryEventStore [DecisionModel,EventSourcingHandler] {"type":1,"runtime-static":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/DynamicConsistencyBoundaryDisabledDbalTest.php
+  FORCED RenamesForDisabledBoundaryDbalTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   HandlerInjectingRenamesForDisabledBoundaryDbalTest [CommandHandler] {"runtime-static":1,"new":1}
+  FREE   TaggedEntityForDisabledBoundaryDbalTest [EventSourcingAggregate,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":6}
+  FREE   EventsConverterForDisabledBoundaryDbalTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/EventSourcedAggregateCounterDbalTest.php
+  FREE   WalletForCounterDbalTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,Reference,EventSourcingHandler] {"runtime-static":1}
+  FORCED DepositForCounterDbalTest [Identifier] {"new":9,"type":1}
+  FREE   EventsConverterForCounterDbalTest [Converter] {"runtime-static":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/LiteralEventTagDecisionModelDbalTest.php
+  FORCED InvoiceNumberingForDbalLiteralTag [DecisionModel,EventSourcingHandler] {"const-expr":1,"type":1}
+  FORCED InvoiceIssuingHandlerForDbalLiteralTag [CommandHandler] {"const-expr":1,"new":1}
+  FORCED InvoiceConverterForDbalLiteralTag [Converter] {"const-expr":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/MultiTenantTagBackfillConsoleCommandTest.php
+  FORCED CouponRedemptionsForMultiTenantBackfillTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   OrderForMultiTenantBackfillTest [EventSourcingAggregate,AggregateType,Identifier,CommandHandler,EventSourcingHandler] {"runtime-static":1}
+  FREE   EventsConverterForMultiTenantBackfillTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/MultiTenantTagVersionsTest.php
+  FORCED CouponForMultiTenantTest [DecisionModel,EventSourcingHandler] {"runtime-static":1,"type":1}
+  FREE   CouponIssuerForMultiTenantTest [CommandHandler] {"runtime-static":1,"new":1}
+  FREE   EventsConverterForMultiTenantTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/StateStoredAggregateCounterDbalTest.php
+  FREE   PurseForCounterDbalTest [Aggregate,AggregateType,Identifier,Version,CommandHandler,Reference,QueryHandler] {"runtime-static":7,"new":1}
+  FORCED WithdrawFromPurseForCounterDbalTest [Identifier] {"new":8,"type":1}
+  FREE   PurseJsonConverterForCounterDbalTest [MediaTypeConverter] {"runtime-static":1,"new":1}
+  FREE   UnversionedPurseForCounterDbalTest [Aggregate,AggregateType,Identifier,CommandHandler,Reference,QueryHandler] {"runtime-static":5,"new":1}
+  FORCED WithdrawFromUnversionedPurseForCounterDbalTest [Identifier] {"new":2,"type":1}
+  FREE   UnversionedPurseJsonConverterForCounterDbalTest [MediaTypeConverter] {"runtime-static":1,"new":1}
+  FREE   PurseAuditorForCounterDbalTest [DecisionBoundary,CommandHandler,Reference] {"runtime-static":1,"new":1}
+  FREE   PurseAuditedConverterForCounterDbalTest [ConverterMethod] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/TagBackfillConsoleCommandTest.php
+  FREE   EventsConverterForBackfillTest [Converter] {"runtime-static":1,"new":1}
+  packages/PdoEventSourcing/tests/Integration/Tagging/TagScopedDecisionModelSnapshotDbalTest.php
+  FORCED BranchLedgerForTagSnapshotDbalTest [EventSourcingAggregate,AggregateType,Stream,Identifier,CommandHandler,EventSourcingHandler] {"const-expr":1}
+  FORCED SpentTodayForTagSnapshotDbalTest [DecisionModel,EventSourcingHandler] {"const-expr":1,"runtime-static":4,"type":1}
+  FORCED SpentTodayConverterForTagSnapshotDbalTest [MediaTypeConverter] {"const-expr":1,"new":1}
+  FORCED EventsConverterForTagSnapshotDbalTest [Converter] {"const-expr":1,"new":1}
+  FORCED PublishedHeadersCollectorForTagSnapshotDbalTest [EventHandler,Headers] {"const-expr":1,"runtime-static":1,"new":1}
+  FORCED SpendingForTagSnapshotDbalTest [CommandHandler] {"const-expr":1,"runtime-static":5,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/TagTableSetupTest.php
+  FREE   CouponIssuedConverterForTagTableSetupTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/TagTransactionRequirementTest.php
+  FREE   TagTransactionCommandHandler [CommandHandler,Reference,WithoutDatabaseTransaction] {"runtime-static":1,"new":1}
+  FREE   EventsConverterForTagTransactionTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/TagVerifySchemaConsoleCommandTest.php
+  FREE   EventsConverterForVerifySchemaTest [Converter] {"runtime-static":1,"new":1}
+* packages/PdoEventSourcing/tests/Integration/Tagging/UniqueUsernamePerTenantDbalTest.php
+  FORCED UsernameAvailabilityForDbalTest [DecisionModel,EventSourcingHandler] {"runtime-static":2,"type":3}
+  FREE   UsernameRegistrationForDbalTest [CommandHandler,Fetch,Header,Reference] {"runtime-static":1,"new":1}
+  FREE   UsernameEventsConverterForDbalTest [Converter] {"runtime-static":1,"new":1}
+{"files":93,"files_with_free":78,"free":228,"forced":157}

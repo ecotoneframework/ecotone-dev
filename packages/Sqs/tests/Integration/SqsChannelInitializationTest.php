@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Exception;

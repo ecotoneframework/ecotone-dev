@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\Gateway;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\GatewayInterceptors;

@@ -25,7 +25,6 @@ use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;

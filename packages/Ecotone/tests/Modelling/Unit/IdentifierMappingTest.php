@@ -7,7 +7,7 @@ namespace Test\Ecotone\Modelling\Unit;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Modelling\AggregateMessage;
 use Exception;
 

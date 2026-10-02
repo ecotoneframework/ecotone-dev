@@ -8,9 +8,9 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
-use Ecotone\Lite\EcotoneLite;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

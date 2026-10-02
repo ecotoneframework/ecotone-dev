@@ -6,8 +6,8 @@ namespace Test;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Fixture\MessengerConsumer\AmqpExampleCommand;
 use Fixture\MessengerConsumer\AmqpMessengerAsyncCommandHandler;

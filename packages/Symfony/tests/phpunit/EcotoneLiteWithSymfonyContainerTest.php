@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Fixture\ExpressionLanguage\ExpressionLanguageCommandHandler;
 use Fixture\User\User;

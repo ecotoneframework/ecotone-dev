@@ -9,7 +9,7 @@ use App\Domain\Customer\Command\RegisterCustomer;
 use App\Domain\Customer\Customer;
 use App\Domain\Customer\Email;
 use App\Domain\Customer\FullName;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;

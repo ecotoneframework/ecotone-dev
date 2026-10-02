@@ -4,7 +4,7 @@ use App\Microservices\BackofficeService\ReadModel\TicketsProjection;
 use App\Microservices\CustomerService\Domain\Issue;
 use App\Microservices\CustomerService\Domain\IssueRepository;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;

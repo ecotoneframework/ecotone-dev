@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Store\Document;
 
 use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use PHPUnit\Framework\TestCase;

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\SerializerGateway;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use ReflectionException;

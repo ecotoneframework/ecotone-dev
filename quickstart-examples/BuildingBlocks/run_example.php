@@ -9,7 +9,7 @@ use App\Domain\Order\OrderStatus;
 use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use Assert\Assert;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;

@@ -21,7 +21,7 @@ use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;

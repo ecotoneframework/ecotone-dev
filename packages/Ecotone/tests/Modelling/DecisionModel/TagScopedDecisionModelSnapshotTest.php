@@ -14,7 +14,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;

@@ -8,7 +8,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;

@@ -170,7 +170,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $connections,
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
-    ): \Ecotone\Lite\Test\FlowTestSupport {
+    ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             [BetService::class],
             array_merge([new BetService()], $connections),

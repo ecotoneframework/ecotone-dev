@@ -15,7 +15,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

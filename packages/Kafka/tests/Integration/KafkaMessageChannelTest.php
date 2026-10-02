@@ -301,7 +301,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
     }
 
-    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncCommandHandler::class, Calendar::class, MeetingHistory::class],
@@ -325,7 +325,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
     }
 
-    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncEventHandler::class],

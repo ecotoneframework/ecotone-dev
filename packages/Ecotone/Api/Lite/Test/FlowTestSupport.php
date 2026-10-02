@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Lite\Test;
+namespace Ecotone\Api\Lite\Test;
 
 use DateTimeImmutable;
 use Ecotone\Api\EventSourcing\Event;

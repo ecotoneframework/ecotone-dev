@@ -28,7 +28,7 @@ use App\Testing\Infrastructure\Converter\UuidConverter;
 use App\Testing\Infrastructure\MessagingConfiguration;
 use App\Testing\ReadModel\CurrentBasketProjection;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;

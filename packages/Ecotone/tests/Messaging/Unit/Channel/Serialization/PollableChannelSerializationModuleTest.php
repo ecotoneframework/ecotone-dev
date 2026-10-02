@@ -8,7 +8,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;

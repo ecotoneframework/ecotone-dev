@@ -18,7 +18,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;

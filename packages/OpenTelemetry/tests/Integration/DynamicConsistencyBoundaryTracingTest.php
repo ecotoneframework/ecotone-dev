@@ -17,8 +17,8 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\OpenTelemetry\DynamicConsistencyBoundarySpanAttributes;
 use Ecotone\Test\LicenceTesting;
 

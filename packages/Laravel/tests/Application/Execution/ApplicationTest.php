@@ -6,9 +6,9 @@ namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;

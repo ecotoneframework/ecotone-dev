@@ -160,7 +160,7 @@ final class DbalBusinessMethodHandler
      */
     private function getParameterValue(DbalParameterConfig $dbalParameter, array $context, mixed $parameterValue): mixed
     {
-        if ($dbalParameter->getExpressionExecutor() !== null) {
+        if ($dbalParameter->getExpressionExecutor()->hasExpression()) {
             $parameterValue = $dbalParameter->getExpressionExecutor()->execute($context);
         }
 

@@ -21,11 +21,11 @@ final class DbalParameterConfig
         private ?string $name,
         private int|ArrayParameterType|ParameterType|null $type,
         private ?string $convertToMediaType,
-        private ?AttributeExpressionContextExecutor $expressionExecutor = null,
+        private AttributeExpressionContextExecutor $expressionExecutor,
     ) {
     }
 
-    public static function fromAttribute(DbalParameter $dbalParameter, ?AttributeExpressionContextExecutor $expressionExecutor): self
+    public static function fromAttribute(DbalParameter $dbalParameter, AttributeExpressionContextExecutor $expressionExecutor): self
     {
         return new self(
             $dbalParameter->getName(),
@@ -50,7 +50,7 @@ final class DbalParameterConfig
         return $this->convertToMediaType;
     }
 
-    public function getExpressionExecutor(): ?AttributeExpressionContextExecutor
+    public function getExpressionExecutor(): AttributeExpressionContextExecutor
     {
         return $this->expressionExecutor;
     }

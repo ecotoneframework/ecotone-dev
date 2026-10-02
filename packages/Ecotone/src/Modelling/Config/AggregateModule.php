@@ -341,11 +341,8 @@ class AggregateModule implements AnnotationModule, RoutingEventHandler
 
     private function initialization(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
-            $messagingConfiguration->registerServiceDefinition(Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
-        } else {
-            $messagingConfiguration->registerServiceDefinition(Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
-        }
+        $messagingConfiguration->registerServiceDefinition(Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
+        $messagingConfiguration->registerServiceDefinition(Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
 
         $eventSourcingExecutors = [];
         foreach ($this->aggregateClassDefinitions as $aggregateClassDefinition) {

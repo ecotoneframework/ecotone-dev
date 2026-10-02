@@ -710,17 +710,19 @@ parent `SleepInterface` and the `Duration` both name, `Future`, `ErrorContext`, 
 `EcotoneLite` stayed until the types it returns could move with it — moving it alone would have shifted the boundary
 one hop without closing it — and then seven moved together, in `upgrade-2.0.md` §13e: `EcotoneLite`,
 `FlowTestSupport` with the `MessagingTestSupport` it returns, `ConfiguredMessagingSystem`, and `MessageChannel` and
-`PollableChannel` with `MessagePoller`, which `PollableChannel` extends.
+`PollableChannel` with `MessagePoller`, which `PollableChannel` extends. The console writer types followed in
+`upgrade-2.0.md` §13f: a `#[ConsoleCommand]` takes `ConsoleWriter` and calls its `progressBar()`, and a flow test reads
+`InMemoryConsoleWriter`, so all four moved into `Ecotone\Api\Console`.
 
 **Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
-services, compiler passes or container plumbing. 198 files live under `packages/*/Api` today; the reason the number
+services, compiler passes or container plumbing. 202 files live under `packages/*/Api` today; the reason the number
 stays honest is that a class is added there on purpose, never because it was convenient.
 
 **The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
 framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder
 $builder): Definition` appears in `Api` on purpose in `SimpleMessageChannelBuilder.php:159`,
 `Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153` and each framework package's channel builder. The same
-goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 48 of the 198
+goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 48 of the 202
 `Api` files and none of that is a leak.
 
 It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to

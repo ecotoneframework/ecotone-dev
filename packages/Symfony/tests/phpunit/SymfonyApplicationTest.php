@@ -2,7 +2,7 @@
 
 namespace Test;
 
-use Ecotone\Lite\Test\MessagingTestSupport;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;

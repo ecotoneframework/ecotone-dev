@@ -13,8 +13,8 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**

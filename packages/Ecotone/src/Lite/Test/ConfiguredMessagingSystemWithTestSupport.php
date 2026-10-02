@@ -12,6 +12,8 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;

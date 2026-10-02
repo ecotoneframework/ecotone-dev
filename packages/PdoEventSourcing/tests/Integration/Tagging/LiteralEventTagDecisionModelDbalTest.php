@@ -18,8 +18,8 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 
 use function sys_get_temp_dir;

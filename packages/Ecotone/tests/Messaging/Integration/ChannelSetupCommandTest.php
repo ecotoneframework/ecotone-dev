@@ -102,7 +102,7 @@ final class ChannelSetupCommandTest extends TestCase
         self::assertEquals(['Channel', 'Warning'], $result->getColumnHeaders());
     }
 
-    private function bootstrapEcotone(): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotone(): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [],

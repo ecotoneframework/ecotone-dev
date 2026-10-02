@@ -5,9 +5,9 @@ namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Store\Document\DocumentException;
 
 use function json_decode;

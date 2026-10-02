@@ -93,7 +93,7 @@ final class VerificationProcessTest extends TestCase
         );
     }
 
-    private function bootstrapFlowTesting(StubTokenGenerator $tokenGenerator): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapFlowTesting(StubTokenGenerator $tokenGenerator): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [VerificationProcess::class],

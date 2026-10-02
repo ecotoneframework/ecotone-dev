@@ -71,7 +71,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         $this->assertStringNotContainsString('espresso-1', $deadLetteredPayloads[1]);
     }
 
-    private function bootstrapWithDeadLetterChannel(): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapWithDeadLetterChannel(): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         $operationsLog = new OperationsLog();
 

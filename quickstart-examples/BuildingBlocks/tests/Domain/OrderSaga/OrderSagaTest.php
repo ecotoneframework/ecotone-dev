@@ -90,7 +90,7 @@ final class OrderSagaTest extends TestCase
         );
     }
 
-    private function getBootstrapFlowTesting(false $isReservationSuccessful): \Ecotone\Lite\Test\FlowTestSupport
+    private function getBootstrapFlowTesting(false $isReservationSuccessful): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class],
             [new ProductReservationService($isReservationSuccessful)],

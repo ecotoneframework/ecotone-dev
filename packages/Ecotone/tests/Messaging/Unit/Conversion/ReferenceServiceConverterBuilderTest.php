@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 

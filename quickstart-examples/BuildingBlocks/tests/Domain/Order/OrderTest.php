@@ -9,7 +9,7 @@ use App\Domain\Order\Order;
 use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductService;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

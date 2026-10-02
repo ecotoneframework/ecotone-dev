@@ -1,7 +1,7 @@
 <?php
 
 use App\Domain\Event\CustomerRegistered;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
 echo "Running example with non authoritative classmap and dev dependencies\n";

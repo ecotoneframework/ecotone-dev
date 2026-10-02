@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

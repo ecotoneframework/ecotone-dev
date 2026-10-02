@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
 
 use function json_encode;

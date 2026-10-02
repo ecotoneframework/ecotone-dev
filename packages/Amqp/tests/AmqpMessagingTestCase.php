@@ -122,7 +122,7 @@ abstract class AmqpMessagingTestCase extends TestCase
             $configuration = \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults();
         }
 
-        return \Ecotone\Lite\EcotoneLite::bootstrapFlowTesting(
+        return \Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $containerOrAvailableServices,
             $configuration,

@@ -20,7 +20,7 @@ use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;

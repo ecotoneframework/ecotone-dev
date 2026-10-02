@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

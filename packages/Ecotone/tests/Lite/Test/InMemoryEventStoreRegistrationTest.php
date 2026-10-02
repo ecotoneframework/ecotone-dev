@@ -7,7 +7,7 @@ namespace Test\Ecotone\Lite\Test;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 

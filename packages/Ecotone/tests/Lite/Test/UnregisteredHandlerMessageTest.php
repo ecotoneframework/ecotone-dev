@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Test;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Lite\Fixtures\UnregisteredHandler\Command\ReserveShippingSlot;

@@ -12,7 +12,7 @@ use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductService;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Money\Money;

@@ -3,7 +3,7 @@
 use App\EventSourcing\Command\ChangePrice;
 use App\EventSourcing\Command\RegisterProduct;
 use App\EventSourcing\PriceChange;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 

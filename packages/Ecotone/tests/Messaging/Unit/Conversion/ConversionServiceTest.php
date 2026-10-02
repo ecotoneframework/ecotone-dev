@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;

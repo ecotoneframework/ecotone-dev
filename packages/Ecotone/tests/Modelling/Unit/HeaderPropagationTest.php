@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Modelling\Fixture\MetadataPropagating\FakeLoggingGateway;

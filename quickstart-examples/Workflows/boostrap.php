@@ -6,7 +6,7 @@ namespace Workflows {
     use Doctrine\DBAL\Connection;
     use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
     use Ecotone\Dbal\ManagerRegistryEmulator;
-    use Ecotone\Lite\EcotoneLite;
+    use Ecotone\Api\Lite\EcotoneLite;
     use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
     use Ecotone\Messaging\Handler\Logger\EchoLogger;
     use Ecotone\Dbal\DbalConnection;

@@ -6,9 +6,9 @@ namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionReference;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;

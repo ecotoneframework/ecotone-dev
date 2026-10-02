@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
 use Exception;

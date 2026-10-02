@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Hardening;
 
+use Ecotone\Api\Console\ConsoleProgressBar;
+use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
-use Ecotone\Messaging\Console\ConsoleProgressBar;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Tempest\ConsoleCommandProxyGenerator;

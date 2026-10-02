@@ -173,8 +173,9 @@ docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modu
 ```
 
 `phpstan.neon` is level 1 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
-OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection` and `Monorepo`. It does **not** cover `Api/`,
-`tests/`, or the Tempest, Redis, Sqs and DataProtection packages, and it cannot catch a wrong class name in an
+OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages
+that have one. Each package's own `phpstan.neon` lists its `Api` beside its source directories. It does **not** cover `tests/`,
+or the `src` of the Tempest, Redis, Sqs and DataProtection packages, and it cannot catch a wrong class name in an
 attribute argument, because attribute arguments resolve lazily through reflection. A green phpstan is not evidence
 that anything works.
 

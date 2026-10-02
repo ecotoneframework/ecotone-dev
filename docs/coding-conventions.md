@@ -741,8 +741,9 @@ the application only calls the static factories. The who-calls-it test decides t
 application writes it, only a module does, and modules are written in packages outside this monorepo too. Extension
 authors are users. Anything whose only caller is Ecotone itself is not.
 
-**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan excludes `Api/`
-(rule 21). The boundary is held in review, which is why it is written down.
+**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan reads `Api/` at
+level 1 only (rule 21): it reports a class that does not exist, never an internal type in a public signature. The
+boundary is held in review, which is why it is written down.
 
 **Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
 the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,
@@ -968,9 +969,9 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 
 - `bin/check-licence.php` runs on every push and pull request (`.github/workflows/file-licence.yml`) over
   `packages/*/src`. `Api/` files all carry headers too, though the script does not yet check them.
-- `phpstan` is **level 1** and covers `src` plus `Monorepo` — not `Api/`, not `tests/`, and not the `Tempest`,
-  `Redis`, `Sqs` or `DataProtection` packages. It will not catch a wrong class in an attribute argument. Do not
-  treat a green phpstan as evidence of anything beyond syntax.
+- `phpstan` is **level 1** and covers `src`, every package's `Api/`, and `Monorepo` — not `tests/`, and not the
+  `src` of the `Tempest`, `Redis`, `Sqs` or `DataProtection` packages. It will not catch a wrong class in an
+  attribute argument. Do not treat a green phpstan as evidence of anything beyond syntax.
   [dev-workflow.md](./dev-workflow.md#static-analysis-licence-headers-code-style) has the exact path list.
 - `composer tests:ci` **at the root** = phpstan, then `packages/DataProtection/tests/before-tests.sh` (it generates
   a 200 MB fixture), then phpunit, then the quickstart examples. Four packages have their own additions to it;

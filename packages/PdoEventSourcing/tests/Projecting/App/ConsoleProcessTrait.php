@@ -11,7 +11,7 @@ use Composer\Autoload\ClassLoader;
 
 use function dirname;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 
 use function getenv;
 

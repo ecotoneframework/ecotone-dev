@@ -17,6 +17,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;

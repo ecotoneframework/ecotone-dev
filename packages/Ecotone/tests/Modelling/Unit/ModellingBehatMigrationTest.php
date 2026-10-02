@@ -781,7 +781,7 @@ final class ModellingBehatMigrationTest extends TestCase
         $this->assertNotNull($result);
     }
 
-    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
+    private function bootstrapForNamespace(string $namespace, array $objects): \Ecotone\Api\Messaging\ConfiguredMessagingSystem
     {
         return EcotoneLite::bootstrap(
             [],

@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;

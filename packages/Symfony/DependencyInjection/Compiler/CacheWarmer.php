@@ -2,7 +2,7 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;

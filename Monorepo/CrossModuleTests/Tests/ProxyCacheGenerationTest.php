@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\Benchmark\FullAppBenchmarkCase;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;

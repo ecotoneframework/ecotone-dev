@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Messaging\Config;
+namespace Ecotone\Api\Messaging;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\CommandBus;
@@ -8,6 +8,7 @@ use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Handler\Gateway\Gateway;

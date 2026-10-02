@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Fixture\ConsoleWriter;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Messaging\Console\ConsoleWriter;
+use Ecotone\Api\Console\ConsoleWriter;
 
 /**
  * licence Apache-2.0

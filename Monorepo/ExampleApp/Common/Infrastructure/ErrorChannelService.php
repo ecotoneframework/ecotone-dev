@@ -7,7 +7,7 @@ namespace Monorepo\ExampleApp\Common\Infrastructure;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 final class ErrorChannelService
 {

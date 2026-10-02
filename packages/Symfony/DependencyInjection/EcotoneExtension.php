@@ -2,13 +2,13 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
+use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;

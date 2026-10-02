@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
 
 /**

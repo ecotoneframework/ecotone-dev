@@ -8,8 +8,8 @@ use function array_key_exists;
 use function array_values;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\DecisionModel\Snapshot\PendingDecisionModelSnapshot;
 
 use function sprintf;

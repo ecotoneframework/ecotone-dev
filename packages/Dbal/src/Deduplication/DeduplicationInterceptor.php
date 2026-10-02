@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 

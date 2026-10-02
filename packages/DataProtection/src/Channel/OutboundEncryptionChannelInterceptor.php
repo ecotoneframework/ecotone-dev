@@ -6,11 +6,11 @@
 
 namespace Ecotone\DataProtection\Channel;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 

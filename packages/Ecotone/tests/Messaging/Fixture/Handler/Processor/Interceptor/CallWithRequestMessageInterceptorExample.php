@@ -4,7 +4,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

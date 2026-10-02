@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\ClassReference;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 #[ClassReference('calculatingService')]
 /**

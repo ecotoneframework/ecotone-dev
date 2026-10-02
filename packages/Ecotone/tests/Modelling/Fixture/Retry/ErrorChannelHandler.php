@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

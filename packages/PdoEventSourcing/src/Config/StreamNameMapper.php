@@ -2,11 +2,11 @@
 
 namespace Ecotone\EventSourcing\Config;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Projecting\ProjectingHeaders;
 

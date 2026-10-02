@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Psr\Log\LoggerInterface;

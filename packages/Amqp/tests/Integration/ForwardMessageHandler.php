@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 
 /**

@@ -3,7 +3,7 @@
 namespace Test;
 
 use Ecotone\Api\Conversion\ConversionService;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\SymfonyBundle\Messenger\MetadataStamp;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;

@@ -3,7 +3,6 @@
 namespace Ecotone\Api\Messaging;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

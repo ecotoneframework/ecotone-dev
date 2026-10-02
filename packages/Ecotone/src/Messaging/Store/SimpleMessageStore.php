@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Store;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Message;
 use Ramsey\Uuid\UuidInterface;
 
 /**

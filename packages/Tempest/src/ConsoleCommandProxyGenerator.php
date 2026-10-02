@@ -119,9 +119,9 @@ final class ConsoleCommandProxyGenerator
 
             namespace Ecotone\Tempest\Generated;
 
+            use Ecotone\Api\Console\ConsoleWriter;
             use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
             use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-            use Ecotone\Messaging\Console\ConsoleWriter;
             use Ecotone\Messaging\Console\DelegatingConsoleWriter;
             use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
             use Ecotone\Tempest\TempestConsoleWriter;

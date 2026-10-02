@@ -6,13 +6,13 @@ namespace Ecotone\Messaging\Handler\Enricher;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 

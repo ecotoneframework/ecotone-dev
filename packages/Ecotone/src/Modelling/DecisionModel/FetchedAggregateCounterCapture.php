@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverter;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateIdString;
 

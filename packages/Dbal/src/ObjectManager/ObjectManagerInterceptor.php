@@ -7,11 +7,11 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Throwable;
 
 /**

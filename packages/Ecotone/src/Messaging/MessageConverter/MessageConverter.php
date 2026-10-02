@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\MessageConverter;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

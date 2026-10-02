@@ -9,8 +9,8 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Gateway\GatewayInternalProcessor;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Throwable;
 

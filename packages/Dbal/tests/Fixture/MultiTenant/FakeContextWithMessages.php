@@ -28,17 +28,17 @@ final class FakeContextWithMessages implements Context, PollableChannel
         $this->channel = QueueChannel::create();
     }
 
-    public function send(\Ecotone\Messaging\Message $message): void
+    public function send(\Ecotone\Api\Messaging\Message $message): void
     {
         $this->channel->send($message);
     }
 
-    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?\Ecotone\Messaging\Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?\Ecotone\Api\Messaging\Message
     {
         return $this->receive();
     }
 
-    public function receive(): ?\Ecotone\Messaging\Message
+    public function receive(): ?\Ecotone\Api\Messaging\Message
     {
         return $this->channel->receive();
     }

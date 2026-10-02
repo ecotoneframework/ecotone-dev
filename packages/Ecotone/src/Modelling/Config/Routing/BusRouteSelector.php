@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Router\RouteSelector;
-use Ecotone\Messaging\Message;
 
 class BusRouteSelector implements RouteSelector
 {

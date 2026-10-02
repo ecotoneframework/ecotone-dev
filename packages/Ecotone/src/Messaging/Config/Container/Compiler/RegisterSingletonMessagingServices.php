@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
+use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\PlainConsoleWriter;
 use Ecotone\Messaging\Handler\Bridge\Bridge;

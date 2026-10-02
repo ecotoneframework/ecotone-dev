@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use OpenTelemetry\API\Trace\SpanInterface;

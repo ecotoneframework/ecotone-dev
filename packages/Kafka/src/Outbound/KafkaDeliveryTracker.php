@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Outbound;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
-use Ecotone\Messaging\Message;
 use RdKafka\Message as KafkaMessage;
 
 /**

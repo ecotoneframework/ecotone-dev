@@ -8,10 +8,10 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\Config\Routing;
 
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Router\RouteSelector;
-use Ecotone\Messaging\Message;
 
 class QueryBusRouteSelector implements RouteSelector
 {

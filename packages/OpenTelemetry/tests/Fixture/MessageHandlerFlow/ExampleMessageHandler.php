@@ -6,7 +6,7 @@ namespace Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

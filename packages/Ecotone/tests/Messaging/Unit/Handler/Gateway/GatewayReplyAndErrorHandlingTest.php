@@ -252,10 +252,10 @@ interface InterceptedGateway
 final class ReplyGatewayHandler
 {
     public bool $sendOnlyCalled = false;
-    public ?\Ecotone\Messaging\Message $lastMessage = null;
+    public ?\Ecotone\Api\Messaging\Message $lastMessage = null;
 
     #[InternalHandler(ReplyGateway::CHANNEL)]
-    public function handle(\Ecotone\Messaging\Message $message): string
+    public function handle(\Ecotone\Api\Messaging\Message $message): string
     {
         $this->sendOnlyCalled = true;
         $this->lastMessage = $message;

@@ -7,7 +7,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use stdClass;
 
 /**

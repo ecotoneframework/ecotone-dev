@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

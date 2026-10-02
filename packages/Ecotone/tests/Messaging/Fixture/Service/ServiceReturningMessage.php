@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * Class ServiceReturningMessage

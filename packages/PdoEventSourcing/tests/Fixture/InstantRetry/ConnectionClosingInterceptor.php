@@ -7,8 +7,8 @@ namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Message;
 use Exception;
 
 /**

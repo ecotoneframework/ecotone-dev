@@ -7,7 +7,7 @@ namespace Test\Ecotone\Dbal\Fixture\ClosureInAttribute;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Scheduled;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

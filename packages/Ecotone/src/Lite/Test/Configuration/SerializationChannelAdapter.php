@@ -6,10 +6,10 @@ namespace Ecotone\Lite\Test\Configuration;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 

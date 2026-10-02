@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

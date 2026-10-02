@@ -3,7 +3,7 @@
 namespace Ecotone\Api\Dbal\Gateway;
 
 use Ecotone\Api\Messaging\ErrorContext;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

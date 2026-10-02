@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use Closure;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ExpressionLocation;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

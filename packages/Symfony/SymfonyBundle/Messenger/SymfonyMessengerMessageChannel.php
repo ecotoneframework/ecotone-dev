@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Generator;
 use Symfony\Component\Messenger\Envelope;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Console;
+namespace Ecotone\Api\Console;
 
 /**
  * licence Apache-2.0

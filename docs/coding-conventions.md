@@ -222,7 +222,7 @@ Three shapes this went wrong in, all fixed in `4bb23eb51`:
 
 **When a name hides a write, rename it.** `getRecordedEvents()` cleared the buffer it returned, and agents wrote
 `assertCount(2, ...)` after a second command and were wrong. It is now `popRecordedEvents()`, and every destructive
-reader on `packages/Ecotone/src/Lite/Test/FlowTestSupport.php` is `pop*`: `popRecordedCommands()`,
+reader on `packages/Ecotone/Api/Lite/Test/FlowTestSupport.php` is `pop*`: `popRecordedCommands()`,
 `popRecordedEventHeaders()`, `popRecordedMessagesFrom()`. This was decided as D2 in
 `docs/superpowers/specs/2026-09-15-agent-detours-2-0-design.md`, with no aliases kept.
 
@@ -540,7 +540,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -707,18 +707,20 @@ types `MethodInvocation` and `Precedence`, `TimeSpan`, `MessageHeaders`, `Module
 `DynamicMessageChannelBuilder`. Reading `Api` signatures for the internal types they name found ten more, moved in
 `upgrade-2.0.md` §13d: `MetadataMatcher` with the `Operator` and `FieldType` it is built from, `DatePoint` with its
 parent `SleepInterface` and the `Duration` both name, `Future`, `ErrorContext`, `LoggingLevel` and `FetchMode`.
-`EcotoneLite` stayed on purpose: it returns `FlowTestSupport` and `ConfiguredMessagingSystem`, still internal, so
-moving it alone would have shifted the boundary one hop without closing it.
+`EcotoneLite` stayed until the types it returns could move with it — moving it alone would have shifted the boundary
+one hop without closing it — and then seven moved together, in `upgrade-2.0.md` §13e: `EcotoneLite`,
+`FlowTestSupport` with the `MessagingTestSupport` it returns, `ConfiguredMessagingSystem`, and `MessageChannel` and
+`PollableChannel` with `MessagePoller`, which `PollableChannel` extends.
 
 **Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
-services, compiler passes or container plumbing. 191 files live under `packages/*/Api` today; the reason the number
+services, compiler passes or container plumbing. 198 files live under `packages/*/Api` today; the reason the number
 stays honest is that a class is added there on purpose, never because it was convenient.
 
 **The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
 framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder
 $builder): Definition` appears in `Api` on purpose in `SimpleMessageChannelBuilder.php:159`,
 `Dbal/Api/ExtensionObject/DbalDeadLetterBuilder.php:153` and each framework package's channel builder. The same
-goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 46 of the 191
+goes for what a method body reaches for: `Assert`, `Definition` and `DefinedObject` are imported by 48 of the 198
 `Api` files and none of that is a leak.
 
 It is a leak when **the application** is the caller and an internal type is in its way — a parameter it has to

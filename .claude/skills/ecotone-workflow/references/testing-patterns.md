@@ -5,7 +5,7 @@ All workflow tests use `EcotoneLite::bootstrapFlowTesting()` to bootstrap the fr
 ## Testing Saga Start and State
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 public function test_saga_starts_on_event(): void
@@ -219,7 +219,7 @@ Orchestrator tests require Enterprise licence configuration.
 ### Basic Orchestrator Test
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;

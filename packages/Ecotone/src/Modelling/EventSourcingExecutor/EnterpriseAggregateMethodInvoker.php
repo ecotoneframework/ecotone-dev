@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\EventSourcingHandlerMethod;
 
 /**

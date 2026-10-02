@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\OpenTelemetry;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 use function json_decode;

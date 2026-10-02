@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Enterprise

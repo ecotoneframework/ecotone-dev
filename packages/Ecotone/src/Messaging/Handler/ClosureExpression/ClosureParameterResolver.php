@@ -6,8 +6,8 @@ namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use function array_key_exists;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**

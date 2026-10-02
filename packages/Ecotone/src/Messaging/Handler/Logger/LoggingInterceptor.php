@@ -10,8 +10,8 @@ use Ecotone\Api\Attribute\LogError;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Message;
 use Psr\Log\LogLevel;
 use Throwable;
 

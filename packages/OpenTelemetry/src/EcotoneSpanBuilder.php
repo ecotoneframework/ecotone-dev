@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Message;
 
 use function is_scalar;
 

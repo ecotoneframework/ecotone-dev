@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Message;
 
 /**
  * Test implementation of QueueChannel for PHPUnit 10 compatibility

@@ -1068,7 +1068,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
     }
 
     /**
-     * @param \Ecotone\Messaging\Message[] $messages
+     * @param \Ecotone\Api\Messaging\Message[] $messages
      * @return string[]
      */
     private function payloadsOf(array $messages): array

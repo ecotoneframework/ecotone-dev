@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\Receive
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 final class OrderServiceReceiver
 {

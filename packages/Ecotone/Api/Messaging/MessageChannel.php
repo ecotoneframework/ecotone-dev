@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Messaging;
 
-use Ecotone\Messaging\Message;
-
 /**
  * Interface MessageChannel
  * @package Ecotone\Messaging

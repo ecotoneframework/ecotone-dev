@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\Handler;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Exception;
 use RuntimeException;

@@ -9,8 +9,8 @@ namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Closure;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Throwable;
 
 class RetryRunner

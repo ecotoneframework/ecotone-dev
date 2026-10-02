@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDelivery;
-use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpContext;

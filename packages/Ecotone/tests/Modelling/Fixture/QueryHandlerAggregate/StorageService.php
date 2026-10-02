@@ -6,7 +6,7 @@ namespace Test\Ecotone\Modelling\Fixture\QueryHandlerAggregate;
 
 use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 interface StorageService
 {

@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

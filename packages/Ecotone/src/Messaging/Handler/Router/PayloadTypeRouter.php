@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**

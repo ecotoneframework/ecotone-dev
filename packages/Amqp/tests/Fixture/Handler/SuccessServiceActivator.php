@@ -6,7 +6,7 @@ namespace Test\Ecotone\Amqp\Fixture\Handler;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0

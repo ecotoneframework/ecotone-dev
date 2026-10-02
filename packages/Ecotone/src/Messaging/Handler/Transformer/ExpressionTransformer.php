@@ -2,10 +2,10 @@
 
 namespace Ecotone\Messaging\Handler\Transformer;
 
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ExpressionLocation;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 

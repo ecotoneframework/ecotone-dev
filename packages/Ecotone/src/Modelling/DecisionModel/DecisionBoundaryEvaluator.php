@@ -12,6 +12,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -25,7 +26,6 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Message;
 
 use function implode;
 use function sprintf;

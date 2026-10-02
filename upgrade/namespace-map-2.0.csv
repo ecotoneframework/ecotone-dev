@@ -198,3 +198,4 @@ Ecotone\Messaging\Console\ConsoleWriter,Ecotone\Api\Console\ConsoleWriter
 Ecotone\Messaging\Console\ConsoleProgressBar,Ecotone\Api\Console\ConsoleProgressBar
 Ecotone\Messaging\Console\InMemoryConsoleWriter,Ecotone\Api\Console\InMemoryConsoleWriter
 Ecotone\Messaging\Console\InMemoryConsoleProgressBar,Ecotone\Api\Console\InMemoryConsoleProgressBar
+Ecotone\Messaging\Message,Ecotone\Api\Messaging\Message

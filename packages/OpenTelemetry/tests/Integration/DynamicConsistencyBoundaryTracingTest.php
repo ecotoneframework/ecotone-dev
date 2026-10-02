@@ -6,10 +6,17 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use function array_map;
 
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\OpenTelemetry\DynamicConsistencyBoundarySpanAttributes;
@@ -23,12 +30,9 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\Course;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\CourseCapacity;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\CourseDefined;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\DefineCourse;
-use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\Enrolments;
-use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\EnrolmentsWithoutBoundary;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\EnrolStudent;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\EnrolStudentTwice;
 use Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow\StudentEnrolled;
@@ -42,12 +46,13 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
     public function test_the_pre_invocation_decision_load_is_a_span_naming_the_handler_and_what_it_read(): void
     {
         $exporter = new InMemoryExporter();
-        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter);
+        $enrolments = $this->enrolments();
+        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter, $enrolments);
         $ecotone->withEvents([new CourseDefined('course-1', 5)]);
 
         $ecotone->sendCommand(new EnrolStudent('course-1', 'student-1'));
 
-        $span = $this->spanNamed($exporter, 'Decision Models: ' . Enrolments::class . '::enrol');
+        $span = $this->spanNamed($exporter, 'Decision Models: ' . $enrolments::class . '::enrol');
 
         self::assertSame(SpanKind::KIND_INTERNAL, $span->getKind());
         self::assertSame(CourseCapacity::class, $span->getAttributes()->get(DynamicConsistencyBoundarySpanAttributes::MODELS));
@@ -60,7 +65,7 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
     public function test_the_conditional_append_is_a_span_naming_the_stream_and_what_it_wrote(): void
     {
         $exporter = new InMemoryExporter();
-        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter);
+        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter, $this->enrolments());
 
         $ecotone->sendCommand(new EnrolStudent('course-1', 'student-1'));
 
@@ -88,7 +93,7 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
     public function test_a_conflict_is_recorded_on_the_append_span_as_an_error_with_a_dcb_conflict_event(): void
     {
         $exporter = new InMemoryExporter();
-        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter);
+        $ecotone = $this->bootstrapWithDynamicConsistencyBoundary($exporter, $this->enrolments());
 
         try {
             $ecotone->sendCommand(new EnrolStudentTwice('course-1', 'student-1'));
@@ -167,11 +172,30 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         return array_map(static fn (SpanDataInterface $span): string => $span->getName(), $exporter->getSpans());
     }
 
-    private function bootstrapWithDynamicConsistencyBoundary(InMemoryExporter $exporter): FlowTestSupport
+    private function enrolments(): object
+    {
+        return new class () {
+            #[CommandHandler]
+            public function enrol(EnrolStudent $command, CourseCapacity $course): array
+            {
+                return [new StudentEnrolled($command->courseId, $command->studentId)];
+            }
+
+            #[CommandHandler]
+            public function enrolTwice(EnrolStudentTwice $command, CourseCapacity $course, CommandBus $commandBus): array
+            {
+                $commandBus->send(new EnrolStudent($command->courseId, $command->studentId));
+
+                return [new StudentEnrolled($command->courseId, $command->studentId)];
+            }
+        };
+    }
+
+    private function bootstrapWithDynamicConsistencyBoundary(InMemoryExporter $exporter, object $enrolments): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Enrolments::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
-            containerOrAvailableServices: [new Enrolments(), TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
+            classesToResolve: [$enrolments::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
+            containerOrAvailableServices: [$enrolments, TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
@@ -181,8 +205,27 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
 
     private function bootstrapWithAnEventSourcedAggregate(InMemoryExporter $exporter): FlowTestSupport
     {
+        $course = new #[EventSourcingAggregate] #[AggregateType('Course')] class () {
+            use WithAggregateVersioning;
+
+            #[Identifier]
+            private string $courseId;
+
+            #[CommandHandler]
+            public static function define(DefineCourse $command, CourseCapacity $capacity): array
+            {
+                return [new CourseDefined($command->courseId, $command->capacity)];
+            }
+
+            #[EventSourcingHandler]
+            public function applyDefined(CourseDefined $event): void
+            {
+                $this->courseId = $event->courseId;
+            }
+        };
+
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Course::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
+            classesToResolve: [$course::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
             containerOrAvailableServices: [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
@@ -193,9 +236,16 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
 
     private function bootstrapWithoutDynamicConsistencyBoundary(InMemoryExporter $exporter): FlowTestSupport
     {
+        $enrolmentsWithoutBoundary = new class () {
+            #[CommandHandler('enrolment.withoutBoundary')]
+            public function enrol(string $courseId): void
+            {
+            }
+        };
+
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EnrolmentsWithoutBoundary::class],
-            containerOrAvailableServices: [new EnrolmentsWithoutBoundary(), TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
+            classesToResolve: [$enrolmentsWithoutBoundary::class],
+            containerOrAvailableServices: [$enrolmentsWithoutBoundary, TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,

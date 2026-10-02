@@ -3,9 +3,9 @@
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Future;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;

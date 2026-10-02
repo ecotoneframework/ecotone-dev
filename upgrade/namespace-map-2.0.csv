@@ -149,6 +149,7 @@ Ecotone\Modelling\QueryBus,Ecotone\Api\Gateway\QueryBus
 Ecotone\Modelling\EventBus,Ecotone\Api\Gateway\EventBus
 Ecotone\Modelling\DistributedBus,Ecotone\Api\Gateway\DistributedBus
 Ecotone\Messaging\MessagePublisher,Ecotone\Api\Gateway\MessagePublisher
+Ecotone\Messaging\Future,Ecotone\Api\Messaging\Future
 Ecotone\Messaging\Gateway\SerializerGateway,Ecotone\Api\Gateway\SerializerGateway
 Ecotone\Messaging\Scheduling\EcotoneClockInterface,Ecotone\Api\Gateway\EcotoneClockInterface
 Ecotone\Projecting\ProjectingManager,Ecotone\Api\Projecting\ProjectingManager

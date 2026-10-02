@@ -406,6 +406,59 @@ OK (1395 tests, 207743 assertions)
 The four are environment, not regressions: an `Errors: 4` on this suite whose four names are the `@extra-large`
 cases above means the fixture is missing.
 
+## 11. Finished worktrees leak host state: Docker address pools and kernel AIO slots — recorded, not fixed
+
+Two failures on `docker compose up -d` in a fresh worktree, on a host already running many other worktrees' stacks.
+Both are host state left by other checkouts, not anything in this repository, and both stop every suite before it
+starts:
+
+```
+$ docker compose up -d
+ Network ecotone-2-0-rule11_default Error Error response from daemon: all predefined address pools have been fully subnetted
+```
+
+The host had 33 Docker networks: 15 compose `_default` networks with running stacks, and 15 more with no container
+at all — finished worktrees whose network was never removed. Every subnet of Docker's default pools was taken:
+`172.17–31.0.0/16` and `192.168.16–240.0/20` (`192.168.0.0/20` overlaps the host's own LAN route), so the next
+project could not get one. Removing the empty networks is the
+real cure, but they belong to other worktrees, and an agent's permission classifier refused it, correctly: it is
+someone else's state.
+
+With a network found, MySQL then died at start-up while every other service went healthy:
+
+```
+[ERROR] [MY-012584] [InnoDB] io_setup() failed with EAGAIN after 5 attempts.
+[ERROR] [MY-012954] [InnoDB] Cannot initialize AIO sub-system
+```
+
+`/proc/sys/fs/aio-nr` was `65295` against `fs.aio-max-nr` `65536`: every running MySQL and MariaDB container holds
+kernel AIO contexts, and fifteen stacks had used the host's allowance. It is the same leak in a second form.
+
+**Workaround that changes no repository file**, an override kept outside the checkout:
+
+```yaml
+# scratch/net.yml
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.241.11.0/24      # any /24 no other network uses: docker network inspect … -f '{{.IPAM.Config}}'
+services:
+  database-mysql:
+    command: ["--innodb-use-native-aio=0"]
+  database-mariadb:
+    command: ["--innodb-use-native-aio=0"]
+```
+
+```
+$ docker compose -f docker-compose.yml -f scratch/net.yml up -d
+```
+
+Only `up` needs the override; `docker compose exec` finds the project by directory. `--innodb-use-native-aio=0`
+changes MySQL's and MariaDB's I/O path, so a timing measured on such a stack is not representative. The fix is on
+the host: `docker compose down` in a worktree when it is finished, which removes its network and frees its AIO
+contexts.
+
 ## Checked and found fine (no action needed)
 
 - **`phpunit.xml` gitignored, `phpunit.xml.dist` committed** — PHPUnit auto-discovers the `.dist`

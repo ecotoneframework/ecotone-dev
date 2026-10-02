@@ -16,6 +16,7 @@ Ecotone\Messaging\Attribute\IsAbstract,Ecotone\Api\Attribute\IsAbstract
 Ecotone\Messaging\Handler\Logger\Annotation\LogAfter,Ecotone\Api\Attribute\LogAfter
 Ecotone\Messaging\Handler\Logger\Annotation\LogBefore,Ecotone\Api\Attribute\LogBefore
 Ecotone\Messaging\Handler\Logger\Annotation\LogError,Ecotone\Api\Attribute\LogError
+Ecotone\Messaging\Handler\Logger\LoggingLevel,Ecotone\Api\Logging\LoggingLevel
 Ecotone\Messaging\Attribute\MediaTypeConverter,Ecotone\Api\Attribute\MediaTypeConverter
 Ecotone\Messaging\Attribute\MessageGateway,Ecotone\Api\Attribute\MessageGateway
 Ecotone\Messaging\Attribute\ModuleAnnotation,Ecotone\Api\Attribute\ModuleAnnotation

@@ -363,6 +363,49 @@ per-package flow end-to-end on `packages/Redis` instead, which has no such cross
 references, to prove the *bootstrap* fixes are sufficient once this orthogonal issue doesn't
 apply — see the Acceptance section below for the full transcript.
 
+## 10. The `DataProtection` testsuite run on its own errors four times in a fresh worktree — recorded, not fixed
+
+Gap 8 made `before-tests.sh` safe to call from anywhere, but only the two `composer tests:phpunit` scripts call it.
+Running the root testsuites one at a time — the gate every unit runs — goes straight to PHPUnit and never does.
+In a fresh Orca worktree, which has never generated the fixture:
+
+```
+$ docker compose exec -T app vendor/bin/phpunit --no-coverage --testsuite DataProtection
+...
+There were 4 errors:
+1) Test\Ecotone\DataProtection\Unit\Encryption\FileTest::test_file_to_file@extra-large with data ('big-generated-file')
+2) Test\Ecotone\DataProtection\Unit\Encryption\FileTest::test_file_to_file_with_password@extra-large with data ('big-generated-file')
+3) Test\Ecotone\DataProtection\Unit\Encryption\FileTest::test_resource_to_resource@extra-large with data ('big-generated-file')
+4) Test\Ecotone\DataProtection\Unit\Encryption\FileTest::test_resource_to_resource_with_password@extra-large with data ('big-generated-file')
+...
+Ecotone\DataProtection\Encryption\Exception\IOException: Cannot open input file for encrypting: fopen(/data/app/packages/DataProtection/tests/Unit/Encryption/../../Fixture/files/big-generated-file): Failed to open stream: No such file or directory
+...
+ERRORS!
+Tests: 1395, Assertions: 207729, Errors: 4, Warnings: 2.
+```
+
+**Cause:** `packages/DataProtection/tests/Fixture/files/big-generated-file` is a 200 MiB random file, gitignored, and
+generated only by `packages/DataProtection/tests/before-tests.sh`. A new checkout never has it, and nothing on the
+`--testsuite` path says so: the error names `fopen`, not the script. Three consecutive units diagnosed this
+independently before it was written down. A worktree that has run `composer tests:phpunit` once keeps the file, so
+it never shows again there.
+
+**Command**, once per worktree, before the first `DataProtection` testsuite run:
+
+```
+$ docker compose exec -T app sh packages/DataProtection/tests/before-tests.sh
+Please wait while I create a large random test plaintext file...
+200+0 records in
+200+0 records out
+209715200 bytes (210 MB, 200 MiB) copied, 0.927295 s, 226 MB/s
+$ docker compose exec -T app vendor/bin/phpunit --no-coverage --testsuite DataProtection
+...
+OK (1395 tests, 207743 assertions)
+```
+
+The four are environment, not regressions: an `Errors: 4` on this suite whose four names are the `@extra-large`
+cases above means the fixture is missing.
+
 ## Checked and found fine (no action needed)
 
 - **`phpunit.xml` gitignored, `phpunit.xml.dist` committed** — PHPUnit auto-discovers the `.dist`

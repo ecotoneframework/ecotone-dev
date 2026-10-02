@@ -73,7 +73,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * licence Apache-2.0
  */
-class AggregrateModule implements AnnotationModule, RoutingEventHandler
+class AggregateModule implements AnnotationModule, RoutingEventHandler
 {
     /**
      * @var array<string, AnnotatedFinding> $channelsToBridge key is factoryChannel, value is actionChannel registration

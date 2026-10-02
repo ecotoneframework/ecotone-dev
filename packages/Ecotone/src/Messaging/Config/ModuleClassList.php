@@ -61,7 +61,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
-use Ecotone\Modelling\Config\AggregrateModule;
+use Ecotone\Modelling\Config\AggregateModule;
 use Ecotone\Modelling\Config\EventSourcedRepositoryModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryAttributeModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
@@ -96,7 +96,7 @@ class ModuleClassList
     public const CORE_MODULES = [
         DistributedHandlerModule::class,
         DistributedBusWithServiceMapModule::class,
-        AggregrateModule::class,
+        AggregateModule::class,
         ServiceHandlerModule::class,
         EventTaggingModule::class,
         DecisionModelModule::class,

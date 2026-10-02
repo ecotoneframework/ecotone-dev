@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Enterprise
  */
-class DataProtectionConversionServiceDecorator implements ConversionServiceDecorator
+class DataProtectionConversionServiceDecorator implements ConversionService
 {
     private ?ConversionService $innerConversionService = null;
 

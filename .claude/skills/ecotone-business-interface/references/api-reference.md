@@ -60,7 +60,7 @@ final class DbalParameter
 
 ## FetchMode Constants
 
-Source: `Ecotone\Dbal\DbaBusinessMethod\FetchMode`
+Source: `Ecotone\Api\Dbal\FetchMode`
 
 ```php
 final class FetchMode

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Gateway;
 
-use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\SleepInterface;
+use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Psr\Clock\ClockInterface as PsrClockInterface;
 
 /**

@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Api\Scheduling\Duration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
 
 /**

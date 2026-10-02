@@ -6,9 +6,9 @@ namespace Ecotone\Modelling;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\MetadataMatcher;
+use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
-use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;

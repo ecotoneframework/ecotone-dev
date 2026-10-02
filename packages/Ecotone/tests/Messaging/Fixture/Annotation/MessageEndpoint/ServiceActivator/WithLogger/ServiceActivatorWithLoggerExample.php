@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\LogAfter;
 use Ecotone\Api\Attribute\LogBefore;
 use Ecotone\Api\Attribute\LogError;
-use Ecotone\Messaging\Handler\Logger\LoggingLevel;
+use Ecotone\Api\Logging\LoggingLevel;
 
 /**
  * licence Apache-2.0

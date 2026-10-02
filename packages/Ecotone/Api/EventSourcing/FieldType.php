@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\EventStore;
+namespace Ecotone\Api\EventSourcing;
 
 /**
  * licence Apache-2.0

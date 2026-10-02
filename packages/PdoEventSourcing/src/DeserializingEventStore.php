@@ -9,7 +9,7 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
+use Ecotone\Api\EventSourcing\MetadataMatcher;
 
 /**
  * licence Apache-2.0

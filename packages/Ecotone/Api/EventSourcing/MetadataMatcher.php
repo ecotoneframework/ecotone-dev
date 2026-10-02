@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\EventStore;
+namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

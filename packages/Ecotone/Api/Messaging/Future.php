@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Messaging;
+namespace Ecotone\Api\Messaging;
 
 /**
  * Class Future

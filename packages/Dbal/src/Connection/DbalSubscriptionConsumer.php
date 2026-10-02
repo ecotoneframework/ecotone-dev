@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\Duration;
 use Interop\Queue\Consumer;
 use Interop\Queue\SubscriptionConsumer;
 use InvalidArgumentException;

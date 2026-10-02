@@ -19,7 +19,7 @@ Business interfaces let you declare PHP interfaces that Ecotone auto-implements 
 ```php
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\FetchMode;
 
 interface OrderRepository
 {

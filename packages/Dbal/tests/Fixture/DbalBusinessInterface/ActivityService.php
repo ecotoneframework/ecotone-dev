@@ -7,7 +7,7 @@ namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 use DateTimeImmutable;
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\Attribute\DbalWrite;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\FetchMode;
 
 /**
  * licence Apache-2.0

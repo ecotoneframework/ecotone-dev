@@ -16,6 +16,7 @@ Ecotone\Messaging\Attribute\IsAbstract,Ecotone\Api\Attribute\IsAbstract
 Ecotone\Messaging\Handler\Logger\Annotation\LogAfter,Ecotone\Api\Attribute\LogAfter
 Ecotone\Messaging\Handler\Logger\Annotation\LogBefore,Ecotone\Api\Attribute\LogBefore
 Ecotone\Messaging\Handler\Logger\Annotation\LogError,Ecotone\Api\Attribute\LogError
+Ecotone\Messaging\Handler\Logger\LoggingLevel,Ecotone\Api\Logging\LoggingLevel
 Ecotone\Messaging\Attribute\MediaTypeConverter,Ecotone\Api\Attribute\MediaTypeConverter
 Ecotone\Messaging\Attribute\MessageGateway,Ecotone\Api\Attribute\MessageGateway
 Ecotone\Messaging\Attribute\ModuleAnnotation,Ecotone\Api\Attribute\ModuleAnnotation
@@ -97,6 +98,7 @@ Ecotone\EventSourcing\Attribute\ProjectionState,Ecotone\Api\Projecting\Projectio
 Ecotone\EventSourcing\Attribute\ProjectionStateGateway,Ecotone\Api\Projecting\ProjectionStateGateway
 Ecotone\Dbal\Attribute\DbalParameter,Ecotone\Api\Dbal\Attribute\DbalParameter
 Ecotone\Dbal\Attribute\DbalQuery,Ecotone\Api\Dbal\Attribute\DbalQuery
+Ecotone\Dbal\DbaBusinessMethod\FetchMode,Ecotone\Api\Dbal\FetchMode
 Ecotone\Dbal\Attribute\DbalWrite,Ecotone\Api\Dbal\Attribute\DbalWrite
 Ecotone\Dbal\Attribute\MultiTenantConnection,Ecotone\Api\Dbal\Attribute\MultiTenantConnection
 Ecotone\Dbal\Attribute\MultiTenantObjectManager,Ecotone\Api\Dbal\Attribute\MultiTenantObjectManager
@@ -115,6 +117,7 @@ Ecotone\Messaging\Endpoint\PollingMetadata,Ecotone\Api\ExtensionObject\PollingMe
 Ecotone\Messaging\Endpoint\ExecutionPollingMetadata,Ecotone\Api\ExtensionObject\ExecutionPollingMetadata
 Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration,Ecotone\Api\ExtensionObject\InstantRetryConfiguration
 Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration,Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration
+Ecotone\Messaging\Handler\Recoverability\ErrorContext,Ecotone\Api\Messaging\ErrorContext
 Ecotone\Lite\Test\TestConfiguration,Ecotone\Api\ExtensionObject\TestConfiguration
 Ecotone\Messaging\Conversion\MediaType,Ecotone\Api\ExtensionObject\MediaType
 Ecotone\Messaging\Endpoint\FinalFailureStrategy,Ecotone\Api\ExtensionObject\FinalFailureStrategy
@@ -133,6 +136,9 @@ Ecotone\Kafka\Configuration\KafkaBrokerConfiguration,Ecotone\Api\Kafka\KafkaBrok
 Ecotone\Kafka\Configuration\KafkaPublisherConfiguration,Ecotone\Api\Kafka\KafkaPublisherConfiguration
 Ecotone\JMSConverter\JMSConverterConfiguration,Ecotone\Api\JMSConverter\JMSConverterConfiguration
 Ecotone\EventSourcing\EventSourcingConfiguration,Ecotone\Api\EventSourcing\EventSourcingConfiguration
+Ecotone\EventSourcing\EventStore\MetadataMatcher,Ecotone\Api\EventSourcing\MetadataMatcher
+Ecotone\EventSourcing\EventStore\Operator,Ecotone\Api\EventSourcing\Operator
+Ecotone\EventSourcing\EventStore\FieldType,Ecotone\Api\EventSourcing\FieldType
 Ecotone\Laravel\Config\LaravelConnectionReference,Ecotone\Api\Laravel\LaravelConnectionReference
 Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder,Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder
 Ecotone\SymfonyBundle\Config\SymfonyConnectionReference,Ecotone\Api\Symfony\SymfonyConnectionReference
@@ -147,6 +153,7 @@ Ecotone\Modelling\QueryBus,Ecotone\Api\Gateway\QueryBus
 Ecotone\Modelling\EventBus,Ecotone\Api\Gateway\EventBus
 Ecotone\Modelling\DistributedBus,Ecotone\Api\Gateway\DistributedBus
 Ecotone\Messaging\MessagePublisher,Ecotone\Api\Gateway\MessagePublisher
+Ecotone\Messaging\Future,Ecotone\Api\Messaging\Future
 Ecotone\Messaging\Gateway\SerializerGateway,Ecotone\Api\Gateway\SerializerGateway
 Ecotone\Messaging\Scheduling\EcotoneClockInterface,Ecotone\Api\Gateway\EcotoneClockInterface
 Ecotone\Projecting\ProjectingManager,Ecotone\Api\Projecting\ProjectingManager
@@ -171,6 +178,12 @@ Ecotone\Modelling\Event,Ecotone\Api\EventSourcing\Event
 Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation,Ecotone\Api\Interceptor\MethodInvocation
 Ecotone\Messaging\Precedence,Ecotone\Api\Interceptor\Precedence
 Ecotone\Messaging\Scheduling\TimeSpan,Ecotone\Api\Scheduling\TimeSpan
+Ecotone\Messaging\Scheduling\Duration,Ecotone\Api\Scheduling\Duration
+Ecotone\Messaging\Scheduling\DatePoint,Ecotone\Api\Scheduling\DatePoint
+Ecotone\Messaging\Scheduling\SleepInterface,Ecotone\Api\Scheduling\SleepInterface
 Ecotone\Messaging\MessageHeaders,Ecotone\Api\Messaging\MessageHeaders
 Ecotone\Messaging\Config\ModulePackageList,Ecotone\Api\ExtensionObject\ModulePackageList
 Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder,Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder
+Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodModule
+Ecotone\Dbal\DbaBusinessMethod\DbalBusinessMethodHandler,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodHandler
+Ecotone\Dbal\DbaBusinessMethod\DbalParameterConfig,Ecotone\Dbal\DbalBusinessMethod\DbalParameterConfig

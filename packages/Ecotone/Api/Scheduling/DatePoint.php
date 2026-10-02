@@ -4,7 +4,7 @@
  * licence Apache-2.0
  */
 
-namespace Ecotone\Messaging\Scheduling;
+namespace Ecotone\Api\Scheduling;
 
 use DateInterval;
 use DateTime;

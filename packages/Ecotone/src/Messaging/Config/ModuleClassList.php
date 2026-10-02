@@ -16,7 +16,7 @@ use Ecotone\Dbal\BatchForwarding\DbalBatchForwardingModule;
 use Ecotone\Dbal\Configuration\DbalConnectionModule;
 use Ecotone\Dbal\Configuration\DbalPublisherModule;
 use Ecotone\Dbal\Database\DatabaseSetupModule;
-use Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule;
+use Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodModule;
 use Ecotone\Dbal\DbalTransaction\DbalTransactionModule;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStoreModule;
@@ -167,7 +167,7 @@ class ModuleClassList
         DeduplicationModule::class,
         DbalTransactionModule::class,
         DbalPublisherModule::class,
-        DbaBusinessMethodModule::class,
+        DbalBusinessMethodModule::class,
         MultiTenantConnectionFactoryModule::class,
         DatabaseSetupModule::class,
     ];

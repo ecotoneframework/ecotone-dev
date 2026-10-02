@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Dbal\DbaBusinessMethod;
+namespace Ecotone\Dbal\DbalBusinessMethod;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -39,7 +39,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Apache-2.0
  */
-final class DbaBusinessMethodModule implements AnnotationModule
+final class DbalBusinessMethodModule implements AnnotationModule
 {
     private const BUSINESS_METHOD_HANDLER_REQUEST_CHANNEL_PREFIX = 'ecotone.dbal.business_method.invoke.';
 

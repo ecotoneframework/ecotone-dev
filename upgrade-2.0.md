@@ -301,8 +301,8 @@ subsection below.
   from the schema and store classes — the DDL is Ecotone's own now. `EventSourcingRepository::findBy()` and the
   partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call
   `EventStore::loadAggregateEvents()` instead (see above — folded in from the now-deleted `AggregateEventStore`).
-  `MetadataMatcher`, `FieldType` and `Operator` are unchanged and still public — `EventStore::load()`'s signature
-  did not change. `EventSourcingRepository::save()` builds the aggregate's `AppendCondition` from
+  `MetadataMatcher`, `FieldType` and `Operator` are unchanged and still public, now under `Ecotone\Api\EventSourcing`
+  (§13d) — `EventStore::load()`'s signature did not change. `EventSourcingRepository::save()` builds the aggregate's `AppendCondition` from
   `versionBeforeHandling`, merges in any decision model's condition found on the save metadata, and passes the
   result to the event store's `appendTo()`, the same seam `InMemoryEventSourcedRepository` already used — this is
   what makes a `#[DecisionModel]` injected into an `#[EventSourcingAggregate]` command handler (§4's DCB subsection)
@@ -1593,10 +1593,83 @@ fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`,
 `Precedence` or `MessageHeaders` import fails as soon as the attribute or constant is read. `Event` stays
 extendable — its constructor is still `protected`.
 
-Only these nine moved. `EcotoneLite` is still `Ecotone\Lite\EcotoneLite`, and `ErrorMessage` is still
-`Ecotone\Messaging\Support\ErrorMessage`: each hands the application a type that is itself still internal
-(`FlowTestSupport` and `ConfiguredMessagingSystem`; `ErrorContext`), so moving either alone would relocate the
-boundary without closing it. The rule this closes is
+Only these nine moved. `EcotoneLite` is still `Ecotone\Lite\EcotoneLite`: it hands the application
+`FlowTestSupport` and `ConfiguredMessagingSystem`, which are themselves still internal, so moving it alone would
+relocate the boundary without closing it. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d
+says why. The rule this closes is
+[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+
+### 13d. `MetadataMatcher`, the clock's types, `Future`, `ErrorContext`, `LoggingLevel` and `FetchMode` moved into `Api` too
+
+**Before:** each of these was named by a public `Api` signature or written as an attribute argument, while it sat
+in an `@internal` namespace. `EventStore::load()` took a `MetadataMatcher`, which is built from `Operator` and
+`FieldType`; `EcotoneClockInterface::now()` returned a `DatePoint`, the interface extended `SleepInterface`, and both
+work in `Duration`s; `MessagePublisher::publishDeferred()` returned a `Future`; Dbal's `DeadLetterGateway::list()`
+returned `ErrorContext[]`; and `#[LogError]` and `#[DbalQuery]` took a `LoggingLevel` and a `FetchMode` constant:
+
+```php
+use Ecotone\Dbal\DbaBusinessMethod\FetchMode;                    // internal
+use Ecotone\EventSourcing\EventStore\FieldType;                  // internal
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;            // internal
+use Ecotone\EventSourcing\EventStore\Operator;                   // internal
+use Ecotone\Messaging\Future;                                    // internal
+use Ecotone\Messaging\Handler\Logger\LoggingLevel;               // internal
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;       // internal
+use Ecotone\Messaging\Scheduling\DatePoint;                      // internal
+use Ecotone\Messaging\Scheduling\Duration;                       // internal
+use Ecotone\Messaging\Scheduling\SleepInterface;                 // internal
+```
+
+**Now:** each sits beside the public type that takes or returns it — the matcher and its enums with `EventStore`,
+the clock's types with `TimeSpan`, `Future` and `ErrorContext` with `MessageHeaders`, `FetchMode` with
+`AutoCreateLevel` — and `LoggingLevel` gets a `Logging` area of its own:
+
+```php
+use Ecotone\Api\Dbal\FetchMode;
+use Ecotone\Api\EventSourcing\FieldType;
+use Ecotone\Api\EventSourcing\MetadataMatcher;
+use Ecotone\Api\EventSourcing\Operator;
+use Ecotone\Api\Logging\LoggingLevel;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\Future;
+use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\SleepInterface;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\EventSourcing\EventStore\MetadataMatcher` | `Ecotone\Api\EventSourcing\MetadataMatcher` |
+| `Ecotone\EventSourcing\EventStore\Operator` | `Ecotone\Api\EventSourcing\Operator` |
+| `Ecotone\EventSourcing\EventStore\FieldType` | `Ecotone\Api\EventSourcing\FieldType` |
+| `Ecotone\Messaging\Scheduling\DatePoint` | `Ecotone\Api\Scheduling\DatePoint` |
+| `Ecotone\Messaging\Scheduling\SleepInterface` | `Ecotone\Api\Scheduling\SleepInterface` |
+| `Ecotone\Messaging\Scheduling\Duration` | `Ecotone\Api\Scheduling\Duration` |
+| `Ecotone\Messaging\Future` | `Ecotone\Api\Messaging\Future` |
+| `Ecotone\Messaging\Handler\Recoverability\ErrorContext` | `Ecotone\Api\Messaging\ErrorContext` |
+| `Ecotone\Messaging\Handler\Logger\LoggingLevel` | `Ecotone\Api\Logging\LoggingLevel` |
+| `Ecotone\Dbal\DbaBusinessMethod\FetchMode` | `Ecotone\Api\Dbal\FetchMode` |
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Same class names, same
+methods, same constants with the same values — `FetchMode::FIRST_ROW` is still `2`, `LoggingLevel::CRITICAL` is still
+PSR-3's `'critical'`, `Operator::EQUALS` is still `'='`, and `ErrorContext`'s constants are still the header names a
+failed message carries, so dead letters stored before the upgrade read back unchanged. None of the ten is a
+container service, so no service id changes with them.
+
+A stale import does not fail where it is written. PHP evaluates an attribute's arguments only when the attribute
+is instantiated, so `#[DbalQuery('…', fetchMode: FetchMode::FIRST_ROW)]` with the old import fails then, with
+`Class "Ecotone\Dbal\DbaBusinessMethod\FetchMode" not found`; a PSR clock that implements the old `SleepInterface`
+fails when the clock class is loaded.
+
+The namespace `FetchMode` left is renamed too: `Ecotone\Dbal\DbaBusinessMethod` was a typo for
+`Ecotone\Dbal\DbalBusinessMethod`, and `DbaBusinessMethodModule` is `DbalBusinessMethodModule`. Everything left in it
+is internal — the module, `DbalBusinessMethodHandler` and `DbalParameterConfig` — so an application only ever met
+the old name through `FetchMode`; the three rows are in the namespace map for code that named them anyway.
+
+`ErrorMessage` stays `Ecotone\Messaging\Support\ErrorMessage`, now returning the public `ErrorContext` from
+`getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`,
+like `Handler\Type` and `MessageChannelBuilder`, is still internal while public signatures name it — those three are
+awaiting a separate decision. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ## 14. Smaller behaviour changes

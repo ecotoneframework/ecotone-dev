@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\EventStore\Operator;
+use Ecotone\Api\EventSourcing\Operator;
 
 /**
  * licence Apache-2.0

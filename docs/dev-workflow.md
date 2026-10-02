@@ -290,6 +290,29 @@ it raised can still be traced to the commit that closed it.
 
 ---
 
+### A move of several co-imported types reverts newest-first
+
+One commit per moved type keeps a large rename reviewable, but those commits do not revert independently. A file
+that imports two of the moved types has both `use` lines next to each other, before the move and after php-cs-fixer
+re-sorts them. Each commit edits one of the two adjacent lines, and git treats edits to adjacent lines as a
+conflict, so reverting the earlier commit while the later one stands stops on that file. The order of the commits
+does not change this: whichever comes first, it is the one that cannot revert alone.
+
+What does hold is the suffix property: **the last commit reverts cleanly alone, and commit *k* reverts cleanly once
+commits *k*+1 to *n* are reverted** — so the unit is undone newest-first. The `EcotoneLite` move measured it
+(`df4e0f085`, `67161065f`, `f24c1c211`, `09ad57779`): reverting the `MessageChannel` commit alone was clean and left
+phpstan at 0 errors, while reverting `EcotoneLite` alone conflicted in 89 files, `FlowTestSupport` in 14 and
+`ConfiguredMessagingSystem` in 8, every hunk inside a `use` block or the namespace-map rows. Two types landing in
+one namespace add a second, logical dependency: `ConfiguredMessagingSystem` and `MessageChannel` both moved into
+`Ecotone\Api\Messaging`, php-cs-fixer dropped the now same-namespace import, and reverting the first alone would
+leave it naming a `MessageChannel` that no longer resolves.
+
+The maintainer kept the four commits rather than squash them, because a tree with only some of the types moved is
+one nobody would want, and one commit of 400 files is harder to review than four named ones. So for a unit like
+this: run the revert check (`git revert --no-commit <sha>` against the unit's head, then `git revert --abort`), say
+in the report that the unit reverts as a suffix and why, and do not contort sorted files such as
+`upgrade/namespace-map-2.0.csv` to get around it.
+
 ## Practices worth repeating
 
 Recorded as deliberately as the mistakes, because each of these demonstrably stopped an error.

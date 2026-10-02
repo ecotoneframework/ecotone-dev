@@ -23,7 +23,7 @@ Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test en
 | `EcotoneLite::bootstrapFlowTestingWithEventStore()` | Event-sourced aggregate and projection tests |
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 
 // Standard testing
 $ecotone = EcotoneLite::bootstrapFlowTesting(

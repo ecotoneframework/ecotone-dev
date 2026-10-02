@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\Future;
+use Ecotone\Api\Messaging\Future;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\MessageConverter;

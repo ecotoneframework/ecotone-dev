@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
+use Ecotone\Api\Scheduling\DatePoint;
+
 /**
  * Class SimpleTriggerContext
  * @package Ecotone\Messaging\Scheduling

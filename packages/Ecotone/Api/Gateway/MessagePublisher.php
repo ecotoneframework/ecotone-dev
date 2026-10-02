@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Gateway;
 
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Messaging\Future;
+use Ecotone\Api\Messaging\Future;
 
 /**
  * licence Apache-2.0

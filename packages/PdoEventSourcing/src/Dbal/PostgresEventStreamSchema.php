@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\EventStore\Operator;
+use Ecotone\Api\EventSourcing\Operator;
 
 use function preg_replace;
 use function sha1;

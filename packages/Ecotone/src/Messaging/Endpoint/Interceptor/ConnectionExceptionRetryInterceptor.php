@@ -6,10 +6,10 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
 
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptorTrait;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Scheduling\Duration;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

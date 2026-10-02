@@ -11,7 +11,7 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
+use Ecotone\Api\EventSourcing\MetadataMatcher;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;

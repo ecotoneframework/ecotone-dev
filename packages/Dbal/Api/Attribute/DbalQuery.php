@@ -6,7 +6,7 @@ namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\FetchMode;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**

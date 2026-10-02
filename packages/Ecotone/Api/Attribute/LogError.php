@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
+use Ecotone\Api\Logging\LoggingLevel;
 use Ecotone\Messaging\Handler\Logger\Logger;
-use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**

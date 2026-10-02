@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Messaging\Future;
+use Ecotone\Api\Messaging\Future;
 use Ecotone\Messaging\Message;
 
 /**

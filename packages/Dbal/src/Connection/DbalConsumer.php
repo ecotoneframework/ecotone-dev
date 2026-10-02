@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Messaging\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\DatePoint;
 use Interop\Queue\Consumer;
 use Interop\Queue\Exception\InvalidMessageException;
 use Interop\Queue\Impl\ConsumerPollingTrait;

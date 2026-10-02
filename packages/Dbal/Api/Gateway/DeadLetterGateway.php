@@ -2,7 +2,7 @@
 
 namespace Ecotone\Api\Dbal\Gateway;
 
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
+use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Messaging\Message;
 
 /**

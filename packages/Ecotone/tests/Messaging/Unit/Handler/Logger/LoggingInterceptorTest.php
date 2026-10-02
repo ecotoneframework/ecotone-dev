@@ -6,12 +6,12 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
 use Ecotone\Api\Attribute\LogAfter;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Logging\LoggingLevel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
-use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;

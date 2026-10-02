@@ -7,8 +7,8 @@ namespace Ecotone\Dbal\Connection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
-use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Api\Scheduling\Duration;
 use LogicException;
 use Symfony\Component\Uid\Uuid;
 

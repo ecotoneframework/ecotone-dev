@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Test;
 
 use DateTimeImmutable;
-use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\SleepInterface;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Psr\Clock\ClockInterface;
 
 /**

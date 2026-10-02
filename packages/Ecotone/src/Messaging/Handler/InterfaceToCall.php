@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Handler;
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Messaging\Future;
+use Ecotone\Api\Messaging\Future;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;

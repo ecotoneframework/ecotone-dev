@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Dbal\DbaBusinessMethod;
+namespace Ecotone\Dbal\DbalBusinessMethod;
 
 use DateTimeInterface;
 use Doctrine\DBAL\ArrayParameterType;

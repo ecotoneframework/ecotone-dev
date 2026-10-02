@@ -175,3 +175,6 @@ Ecotone\Messaging\Scheduling\TimeSpan,Ecotone\Api\Scheduling\TimeSpan
 Ecotone\Messaging\MessageHeaders,Ecotone\Api\Messaging\MessageHeaders
 Ecotone\Messaging\Config\ModulePackageList,Ecotone\Api\ExtensionObject\ModulePackageList
 Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder,Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder
+Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodModule
+Ecotone\Dbal\DbaBusinessMethod\DbalBusinessMethodHandler,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodHandler
+Ecotone\Dbal\DbaBusinessMethod\DbalParameterConfig,Ecotone\Dbal\DbalBusinessMethod\DbalParameterConfig

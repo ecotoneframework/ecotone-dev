@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Dbal\DbaBusinessMethod;
+namespace Ecotone\Dbal\DbalBusinessMethod;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;

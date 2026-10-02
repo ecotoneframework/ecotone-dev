@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\JMSConverter\Fixture\InterfacePayload\Basket;
 use Test\Ecotone\JMSConverter\Fixture\InterfacePayload\BasketContentChanged;
 use Test\Ecotone\JMSConverter\Fixture\InterfacePayload\EventSourcedBasket;
 use Test\Ecotone\JMSConverter\Fixture\InterfacePayload\ProductAddedToBasket;
@@ -54,13 +57,38 @@ final class InterfaceTypedPayloadTest extends TestCase
 
     public function test_aggregate_event_handler_typed_on_an_interface_receives_the_concrete_event_after_serialisation(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([Basket::class], [], $this->serialisingAsyncChannel());
+        $basket = new #[Aggregate] class () {
+            use WithEvents;
+
+            #[Identifier]
+            public string $basketId;
+
+            public array $changes = [];
+
+            #[CommandHandler('basket.addProduct')]
+            public static function addProduct(array $payload): self
+            {
+                $basket = new self();
+                $basket->basketId = $payload['basketId'];
+                $basket->recordThat(new ProductAddedToBasket($payload['basketId'], $payload['productId']));
+
+                return $basket;
+            }
+
+            #[Asynchronous('async')]
+            #[EventHandler(endpointId: 'basket.trackChange')]
+            public function trackChange(BasketContentChanged $event): void
+            {
+                $this->changes[] = $event::class;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$basket::class], [], $this->serialisingAsyncChannel());
 
         $ecotone
             ->sendCommandWithRouting('basket.addProduct', ['basketId' => 'basket-1', 'productId' => 'product-1'])
             ->run('async');
 
-        $this->assertSame([ProductAddedToBasket::class], $ecotone->getAggregate(Basket::class, 'basket-1')->changes);
+        $this->assertSame([ProductAddedToBasket::class], $ecotone->getAggregate($basket::class, 'basket-1')->changes);
     }
 
     public function test_projection_handler_typed_on_an_interface_receives_the_concrete_stored_event(): void

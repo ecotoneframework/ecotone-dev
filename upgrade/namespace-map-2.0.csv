@@ -117,6 +117,7 @@ Ecotone\Messaging\Endpoint\PollingMetadata,Ecotone\Api\ExtensionObject\PollingMe
 Ecotone\Messaging\Endpoint\ExecutionPollingMetadata,Ecotone\Api\ExtensionObject\ExecutionPollingMetadata
 Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration,Ecotone\Api\ExtensionObject\InstantRetryConfiguration
 Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration,Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration
+Ecotone\Messaging\Handler\Recoverability\ErrorContext,Ecotone\Api\Messaging\ErrorContext
 Ecotone\Lite\Test\TestConfiguration,Ecotone\Api\ExtensionObject\TestConfiguration
 Ecotone\Messaging\Conversion\MediaType,Ecotone\Api\ExtensionObject\MediaType
 Ecotone\Messaging\Endpoint\FinalFailureStrategy,Ecotone\Api\ExtensionObject\FinalFailureStrategy

@@ -129,7 +129,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
         $errorMessage = $ecotone->receiveMessageFrom(ErrorChannelGateway::ERROR_CHANNEL);
         $this->assertNotNull($errorMessage);
         $this->assertTrue(ErrorMessage::isErrorMessage($errorMessage));
-        $this->assertSame('testing exception', $errorMessage->getHeaders()->get(\Ecotone\Messaging\Handler\Recoverability\ErrorContext::EXCEPTION_MESSAGE));
+        $this->assertSame('testing exception', $errorMessage->getHeaders()->get(\Ecotone\Api\Messaging\ErrorContext::EXCEPTION_MESSAGE));
     }
 
     public function test_error_without_a_declared_error_channel_propagates_the_root_cause_exception(): void

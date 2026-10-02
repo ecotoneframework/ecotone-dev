@@ -1,8 +1,6 @@
 <?php
 
-namespace Ecotone\Messaging\Handler\Recoverability;
-
-use Ecotone\Api\Messaging\MessageHeaders;
+namespace Ecotone\Api\Messaging;
 
 /**
  * licence Apache-2.0

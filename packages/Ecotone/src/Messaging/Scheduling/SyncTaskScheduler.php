@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Scheduling;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\Duration;
 
 /**
  * Class SyncTaskScheduler

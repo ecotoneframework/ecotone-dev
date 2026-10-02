@@ -23,8 +23,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 

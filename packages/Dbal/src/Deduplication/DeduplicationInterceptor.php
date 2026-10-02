@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Scheduling\Duration;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 

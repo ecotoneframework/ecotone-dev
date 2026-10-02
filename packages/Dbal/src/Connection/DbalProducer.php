@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\ParameterType;
-use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Api\Scheduling\Duration;
 use Interop\Queue\Destination;
 use Interop\Queue\Exception\Exception;
 use Interop\Queue\Exception\InvalidDestinationException;

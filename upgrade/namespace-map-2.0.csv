@@ -178,6 +178,9 @@ Ecotone\Modelling\Event,Ecotone\Api\EventSourcing\Event
 Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation,Ecotone\Api\Interceptor\MethodInvocation
 Ecotone\Messaging\Precedence,Ecotone\Api\Interceptor\Precedence
 Ecotone\Messaging\Scheduling\TimeSpan,Ecotone\Api\Scheduling\TimeSpan
+Ecotone\Messaging\Scheduling\Duration,Ecotone\Api\Scheduling\Duration
+Ecotone\Messaging\Scheduling\DatePoint,Ecotone\Api\Scheduling\DatePoint
+Ecotone\Messaging\Scheduling\SleepInterface,Ecotone\Api\Scheduling\SleepInterface
 Ecotone\Messaging\MessageHeaders,Ecotone\Api\Messaging\MessageHeaders
 Ecotone\Messaging\Config\ModulePackageList,Ecotone\Api\ExtensionObject\ModulePackageList
 Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder,Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder

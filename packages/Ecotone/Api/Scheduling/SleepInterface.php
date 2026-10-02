@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Scheduling;
+namespace Ecotone\Api\Scheduling;
 
 /**
  * Interface Sleep

@@ -25,6 +25,7 @@ wrong, and each error would have cost real work:
 | A gateway named-argument bug: `EventStore::loadAggregateEvents()` fails through the gateway when a named argument skips defaulted parameters | A fully positional call failed identically — PHP resolves named arguments against the generated proxy's own signature before Ecotone sees them. The defect was `GenericType::accepts()`, and it broke every parameter documented as a list, not one gateway (see the row under *Open, no owner*) |
 | Rule 5: "31 raw candidates, 24 zero-implementation, leaving ~7" | Audit a's 31 (exactly one implementor) and 24 (none) are **disjoint** counts, and this document read them as one set and a subset of it. Re-derived: 150 interfaces, 22 with no production implementation, 24 with exactly one — so the triage was 24 interfaces, not ~7. See *Rules 5 and 2 — triaged* |
 | Rule 2: 9 nullable service dependencies | The detector only matched `?Service $x = null`. Eleven more constructors take a nullable service with **no default**, where every caller passes the `null` explicitly. Listed, not triaged, under *Rules 5 and 2 — triaged* |
+| Rule 11: 100 of 141 test files added since 1.x declare a named fixture, so drift is growing | The count is real — 105 of the 150 such files on `a57882174` — but **no named class in any of them is referenced from another file**, resolved by fully-qualified name. Each is owned by exactly one test, which is what the rule's rationale asks for. A later brief cut the queue to 17 files with an indentation heuristic; that missed every handler whose attributes sit on its methods, and 5 of its 17 were 1.x-era files. See *Rule 11 — triaged* |
 
 The two rule-3 audits also **contradict each other** on `PendingDeliveryRegistry`, and each missed a class the other
 found. Where this document and an audit disagree, this document was verified against the code.
@@ -191,8 +192,8 @@ following it.
 
 ## Deliberately last — judgement-heavy
 
-- **Rule 11** — 100 of 141 test files added since 1.x declare a named fixture, **up from the rule's own 92/141
-  baseline**: it grew while the rule was being written. Drift reduction, not correctness.
+- **Rule 11** — triaged; see *Rule 11 — triaged* below. **There is no 100-file unit here**: none of the named
+  classes in the test files added since 1.x is used outside the file that declares it.
 
 Rules 5 and 2 were triaged together after rule 7's first split, since splitting Enterprise behaviour behind an
 interface *creates* the two-implementation seam rule 5 permits. What they found is the next section.
@@ -276,6 +277,114 @@ null channel rather than a branch.
 evaluates them, and so does every `#[DbalParameter(expression: '…')]`. The rule 2 null object above extends that to
 `#[DbalParameter]` without an expression. Whether those two files are Enterprise is for the maintainer; only closure
 expressions are gated (`VerifyEnterpriseLicenceForClosureExpressions`).
+
+## Rule 11 — triaged
+
+### The headline: no named class in a test file can drift
+
+**Method.** The population is rule 11's own: every `packages/*/tests/*Test.php` added since 1.x
+(`git diff --diff-filter=A --name-only c440b6d4c...HEAD`) — **150 files** on `a57882174`, up from 141 when audit c
+counted them. Each file was tokenized, not grepped, and every top-level named class that does not extend a
+`TestCase` was listed with the attributes on it **and on its members**. Every one of them was then looked up in
+every other PHP file under `packages/` **by fully-qualified name**: a `use` import, the FQCN string, or a short-name
+use from the same namespace. Tools and output: `docs/superpowers/research/rule-11-named-fixtures/`, with the
+per-class triage in `triage-a57882174.txt`.
+
+**Result: 0 of 729 named classes are referenced from any other file** — not the 228 free ones, not the forced ones,
+not the message types. The three hits the lookup reported were false, and are the reason short names cannot be
+trusted here: the string `'Wallet'` in `#[AggregateType('Wallet')]`, and two message classes in
+`StatefulEventSourcedWorkflowWithMultipleAggregatesTest` that share a short name with classes in
+`LoadBatchSizeBoundaryDbalTest` but live in another namespace.
+
+So every named fixture in these files is already owned by exactly one test file, and rule 11's rationale — "an
+anonymous fixture cannot drift out of the test that owns it" — is already met for all of them. Converting them
+would be churn against a risk that does not exist. **They are recorded and deliberately not converted.**
+
+| | Files | Named classes |
+|---|---|---|
+| Added since 1.x, on `a57882174` | 150 | |
+| Declare a named non-test class | 105 (106 after this unit — `DirectChannelPayloadForNonPollableChannel` moved in from a `Fixture/` directory) | 729 |
+| Of those, declare no named class with a handler-type attribute — message types and plain helpers only | 12 | |
+| Carry a named class with a handler, aggregate, saga, projection, gateway or interceptor attribute, on the class **or on a method** | 93 | 385 |
+| Of those 385, forced by a hard limit — typed somewhere in the file (exception 1), named in an attribute argument or class constant (exception 2), an interface, or the parent of another named class | | 157 |
+| Free — no hard limit found | 78 | **228** |
+| Free **and** referenced from another file | | **0** |
+
+**What a previous brief got wrong, so nobody re-plans from it.** It cut the audit's 100 to "83 message-type-only
+files, 17 candidates" by reading an unindented attribute as one on a top-level class. Attributes on a named
+handler's *methods* are indented, so every named service handler read as a message type —
+`DeduplicationExpressionFailureTest::BrokenDeduplicationExpressionHandler`, all of `Messaging/Unit/Config/*`, most
+`DecisionModel/*` handlers. The real split is 12 and 93. Five of its 17 — `MetadataEnricherTest`,
+`AggregateIdResolverTest`, `DeletedEventClassInStreamTest`, `BlueGreenDeploymentProjectionTest`,
+`RebuildProjectionTest` — are 1.x-era files, outside the population.
+
+### What was converted: fixtures in `Fixture/` directories added since 1.x
+
+A named class in a test file cannot drift; one in a shared `Fixture/` directory is where the next test reaches when
+it needs one, which is how a single-owner fixture becomes a shared one. 36 PHP files were added to `Fixture/`
+directories since 1.x, not counting the Laravel and Symfony `DcbSmoke` applications, which the frameworks must
+discover from disk. Every behavioural class among them that no hard limit forces was converted into its only test,
+one commit per directory, each riding that test unchanged:
+
+| Commit | Directory | Became anonymous | Stayed named, and why |
+|---|---|---|---|
+| `d40862060` | Dbal `Transaction/ClassRouted` (removed) | `ClassRoutedOrderService` | `PrepareOrdersByClassCommand` — a handler parameter type (exception 1); now `PrepareOrdersByClassCommandForTransaction` below `TransactionTest` |
+| `9502427ea` | Ecotone `Messaging/Fixture/NonPollableChannel` (removed) | `DirectChannelService` | `DirectChannelPayload` — the test asserts `get_debug_type()` of the payload against its class name, and `get_debug_type()` reports any anonymous object as `class@anonymous`, so an anonymous payload changes the assertion. Now `DirectChannelPayloadForNonPollableChannel` below the test |
+| `d5836bfee` | JmsConverter `InterfacePayload` | `Basket` | `BasketContentChanged` is an interface; `ProductAddedToBasket`, `ProductRemovedFromBasket` are parameter types (exception 1); `EventSourcedBasket` is named in `#[FromAggregateStream(EventSourcedBasket::class)]` (exception 2) |
+| `7dde0dbb0` | JmsConverter `ServiceParameter` (removed) | `Basket` | — ; the expected message interpolates `$basket::class` |
+| `c2f21e754` | OpenTelemetry `DecisionModelFlow` | `Course`, `Enrolments`, `EnrolmentsWithoutBoundary` | `CourseCapacity` — a decision model typed in the handlers (exception 1), and the commands and events. The span-name assertion interpolates `$enrolments::class`. `Course` is event-sourced and carries `#[AggregateType('Course')]`, which is what lets it be anonymous — see the third exception below |
+
+**Deliberately not converted:**
+
+- `PdoEventSourcing/tests/Fixture/LegacyStream` — `LegacyOrder` declares `#[Stream(legacyStreamName: self::LEGACY_STREAM_NAME)]`
+  whose value is its own FQCN: the test proves a 1.x stream, named after the aggregate's class, is still read.
+  An anonymous class could carry the string, but it would then name a class that does not exist, and the test
+  would stop demonstrating what it is for. `LegacyOrderConverter` stays beside it: the directory stays for
+  `LegacyOrder`, so moving the converter alone removes no invitation
+- `PdoEventSourcing/tests/Fixture/SecondaryConnectionStream` — the only fixture two test files genuinely share
+  (`SecondaryConnectionStreamTest`, `EventStreamMigrationMultiConnectionTest`), and an event-sourced aggregate with
+  an explicit `#[Stream]` on a second connection. Duplicating `SecondaryOrder` and `SecondaryOrderConverter` into
+  both files would make two classes write and read what the migration test expects to be one identity
+- `Lite/Fixtures/UnregisteredHandler/ShippingSlotReservationHandler` — the test is about a handler that exists in
+  an autoloaded namespace but was not passed to the bootstrap, and asserts its FQCN and that namespace in the
+  message. An anonymous class has no namespace to be found in
+- `Messaging/Fixture/Handler/ClosureInAttribute/FailingClosureExpressionService` — the fourth exception below
+- Laravel `Fixture/AsynchronousMessageHandler/AsyncChannelConfiguration` — loaded by the Laravel test
+  application's namespace scan, not by a bootstrap call that could take `$fixture::class`
+
+### Two hard limits the rule does not name — proposed, rule text not edited
+
+Rule 11 names two exceptions. Two more are as hard as those, and the rule text should name them; revising it is
+out of this unit's scope.
+
+**Third: an event-sourced aggregate on DBAL that relies on its default aggregate type.** An anonymous class's name
+carries a NUL byte (`class@anonymous\0/path/File.php:LINE$0`), and an aggregate's type defaults to its class name.
+On DBAL PostgreSQL the creating command fails with `SQLSTATE[22P05]: Untranslatable character … unsupported Unicode
+escape sequence`: the type is written into the event `metadata` column, `JSONB` in `PostgresEventStreamSchema`, as
+`\u0000`, which `jsonb` refuses. On SQLite the aggregate is not found again: `AggregateNotFoundException: Aggregate
+class@anonymous\u{0000}/… for calling … was not found`. MySQL and MariaDB pass. **It is the aggregate type, not
+the stream name**: with `#[AggregateType]` the same anonymous aggregate passes on all four engines, with the default
+stream and with an explicit `#[Stream]`; without it, it fails with either. Evidence: `nul-byte-experiment.php.txt` in
+`docs/superpowers/research/rule-11-named-fixtures/`, four variants run on PostgreSQL, MySQL, MariaDB and SQLite, not
+committed as a test.
+
+So the limit is narrower than "event-sourced aggregates cannot be anonymous". One that carries `#[AggregateType]` can
+be — rule 11 already says that attribute forces nothing, and `Course` above is converted on that basis. One that does
+not can be anonymous only by gaining the attribute, which changes the fixture's configuration rather than moving it;
+where the test is about the default type, it cannot be anonymous at all. The in-tree case, run: `DynamicConsistencyBoundaryDisabledDbalTest::TaggedEntityForDisabledBoundaryDbalTest` is
+event-sourced on DBAL, has no `#[AggregateType]`, and is free by every other check. Made anonymous in a throwaway
+edit, `test_aggregate_emitting_tagged_events_is_saved_and_reloaded_without_any_tag_tables` fails on PostgreSQL with
+the `22P05` above and on SQLite with the `AggregateNotFoundException` above, and passes on MySQL. It stays named,
+recorded with the rest of the 228.
+
+**Fourth: syntax newer than the PHP floor.** `FailingClosureExpressionService` puts a closure in an attribute
+argument, PHP 8.5 syntax, and its test is `#[RequiresPhp('>= 8.5.0')]`. PHPUnit parses a test file whether or not it
+then skips the test, so an inline fixture would be a parse error on the 8.2 floor. The class has to live in a file
+of its own that only the 8.5 test loads.
+
+Two softer findings beside them: a `#[MessageGateway]` gateway is an interface, and PHP has no anonymous interface;
+and `get_debug_type()` makes a class name observable data, unlike an exception message, where interpolating
+`::class` is enough.
 
 ## Shipped since the audits
 

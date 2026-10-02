@@ -1,0 +1,165 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Integration;
+
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Stream;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+
+final class NulByteExperimentTest extends EventSourcingMessagingTestCase
+{
+    public function test_anonymous_aggregate_with_default_stream(): void
+    {
+        $basket = new #[EventSourcingAggregate] #[AggregateType('NulExperimentBasket')] class () {
+            use WithAggregateVersioning;
+            #[Identifier]
+            private string $basketId;
+            private int $count = 0;
+            #[CommandHandler]
+            public static function start(StartNulBasket $command): array
+            {
+                return [new NulBasketStarted($command->basketId)];
+            }
+            public function count(): int
+            {
+                return $this->count;
+            }
+            #[EventSourcingHandler]
+            public function applyStarted(NulBasketStarted $event): void
+            {
+                $this->basketId = $event->basketId;
+                $this->count = 1;
+            }
+        };
+        $this->runWith($basket);
+    }
+
+    public function test_anonymous_aggregate_with_explicit_stream(): void
+    {
+        $basket = new #[EventSourcingAggregate] #[AggregateType('NulExperimentBasket')] #[Stream('nul_experiment_basket')] class () {
+            use WithAggregateVersioning;
+            #[Identifier]
+            private string $basketId;
+            private int $count = 0;
+            #[CommandHandler]
+            public static function start(StartNulBasket $command): array
+            {
+                return [new NulBasketStarted($command->basketId)];
+            }
+            public function count(): int
+            {
+                return $this->count;
+            }
+            #[EventSourcingHandler]
+            public function applyStarted(NulBasketStarted $event): void
+            {
+                $this->basketId = $event->basketId;
+                $this->count = 1;
+            }
+        };
+        $this->runWith($basket);
+    }
+
+    public function test_anonymous_aggregate_without_aggregate_type_with_explicit_stream(): void
+    {
+        $basket = new #[EventSourcingAggregate] #[Stream('nul_experiment_basket')] class () {
+            use WithAggregateVersioning;
+            #[Identifier]
+            private string $basketId;
+            private int $count = 0;
+            #[CommandHandler]
+            public static function start(StartNulBasket $command): array
+            {
+                return [new NulBasketStarted($command->basketId)];
+            }
+            public function count(): int
+            {
+                return $this->count;
+            }
+            #[EventSourcingHandler]
+            public function applyStarted(NulBasketStarted $event): void
+            {
+                $this->basketId = $event->basketId;
+                $this->count = 1;
+            }
+        };
+        $this->runWith($basket);
+    }
+
+    public function test_anonymous_aggregate_without_aggregate_type_default_stream(): void
+    {
+        $basket = new #[EventSourcingAggregate] class () {
+            use WithAggregateVersioning;
+            #[Identifier]
+            private string $basketId;
+            private int $count = 0;
+            #[CommandHandler]
+            public static function start(StartNulBasket $command): array
+            {
+                return [new NulBasketStarted($command->basketId)];
+            }
+            public function count(): int
+            {
+                return $this->count;
+            }
+            #[EventSourcingHandler]
+            public function applyStarted(NulBasketStarted $event): void
+            {
+                $this->basketId = $event->basketId;
+                $this->count = 1;
+            }
+        };
+        $this->runWith($basket);
+    }
+
+    private function runWith(object $basket): void
+    {
+        $converter = new class () {
+            #[Converter]
+            public function from(NulBasketStarted $event): array
+            {
+                return ['basketId' => $event->basketId];
+            }
+            #[Converter]
+            public function to(array $event): NulBasketStarted
+            {
+                return new NulBasketStarted($event['basketId']);
+            }
+        };
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$basket::class, $converter::class],
+            containerOrAvailableServices: [self::getConnectionFactory(), $converter],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            runForProductionEventStore: true,
+        )->initializeDatabase();
+
+        $ecotone->sendCommand(new StartNulBasket('b-1'));
+
+        self::assertSame(1, $ecotone->getAggregate($basket::class, 'b-1')->count());
+    }
+}
+
+final readonly class StartNulBasket
+{
+    public function __construct(public string $basketId)
+    {
+    }
+}
+
+final readonly class NulBasketStarted
+{
+    public function __construct(public string $basketId)
+    {
+    }
+}

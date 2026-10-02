@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -15,12 +17,11 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\ClassRoutedOrderService;
-use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\PrepareOrdersByClassCommand;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -211,16 +212,68 @@ final class TransactionTest extends DbalMessagingTestCase
 
     public function test_it_can_disable_transactions_on_class_routed_command_handler(): void
     {
+        $classRoutedOrderService = new class () {
+            #[CommandHandler]
+            #[WithoutDatabaseTransaction]
+            public function prepare(PrepareOrdersByClassCommandForTransaction $command, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
+            {
+                $connection = $connectionFactory->createContext()->getDbalConnection();
+
+                $connection->executeStatement(<<<SQL
+                        DROP TABLE IF EXISTS orders
+                    SQL);
+                $connection->executeStatement(<<<SQL
+                        CREATE TABLE orders (id VARCHAR(255) PRIMARY KEY)
+                    SQL);
+                $connection->executeStatement(<<<SQL
+                        INSERT INTO orders VALUES ('milk')
+                    SQL);
+
+                $this->failIfInsertedRowIsStillLockedByAnOpenTransaction($connection);
+            }
+
+            #[QueryHandler('classRoutedOrder.getRegistered')]
+            public function getRegistered(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
+            {
+                return $connectionFactory->createContext()->getDbalConnection()
+                    ->executeQuery('SELECT id FROM orders')
+                    ->fetchFirstColumn();
+            }
+
+            private function failIfInsertedRowIsStillLockedByAnOpenTransaction(Connection $connection): void
+            {
+                $platform = $connection->getDatabasePlatform();
+                if (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof AbstractMySQLPlatform) {
+                    return;
+                }
+
+                $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
+                $probeConnection = (new DbalConnectionFactory($dsn))->createContext()->getDbalConnection();
+
+                if ($platform instanceof PostgreSQLPlatform) {
+                    $probeConnection->executeStatement('SET lock_timeout = 1000');
+                } else {
+                    $probeConnection->executeStatement('SET SESSION innodb_lock_wait_timeout = 1');
+                }
+
+                try {
+                    $probeConnection->executeQuery('SELECT id FROM orders WHERE id = :id FOR UPDATE', ['id' => 'milk'])->fetchOne();
+                } finally {
+                    $probeConnection->close();
+                }
+            }
+        };
+
         $ecotone = $this->bootstrapFlowTesting(
-            [ClassRoutedOrderService::class],
-            [new ClassRoutedOrderService(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            [$classRoutedOrderService::class],
+            [$classRoutedOrderService, DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
         );
 
-        $ecotone->sendCommand(new PrepareOrdersByClassCommand());
+        $ecotone->sendCommand(new PrepareOrdersByClassCommandForTransaction());
 
         self::assertSame(['milk'], $ecotone->sendQueryWithRouting('classRoutedOrder.getRegistered'));
     }
@@ -275,4 +328,8 @@ final class TransactionTest extends DbalMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
+}
+
+final class PrepareOrdersByClassCommandForTransaction
+{
 }

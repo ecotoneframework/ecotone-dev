@@ -8,7 +8,7 @@ use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

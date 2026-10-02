@@ -10,8 +10,8 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -170,7 +170,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $connections,
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
-    ): \Ecotone\Lite\Test\FlowTestSupport {
+    ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             [BetService::class],
             array_merge([new BetService()], $connections),

@@ -9,7 +9,7 @@ use App\Workflow\Saga\Application\Payment\Event\PaymentFailed;
 use App\Workflow\Saga\Application\Payment\Event\PaymentWasSuccessful;
 use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Application\Payment\PaymentProcessor;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 

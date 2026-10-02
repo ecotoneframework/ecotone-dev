@@ -11,7 +11,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

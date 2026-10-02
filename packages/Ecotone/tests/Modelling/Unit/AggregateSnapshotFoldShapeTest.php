@@ -6,10 +6,10 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\EventSourcing\EventSourcedRepositoryAdapter;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;

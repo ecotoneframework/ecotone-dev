@@ -1593,9 +1593,9 @@ fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`,
 `Precedence` or `MessageHeaders` import fails as soon as the attribute or constant is read. `Event` stays
 extendable — its constructor is still `protected`.
 
-Only these nine moved. `EcotoneLite` is still `Ecotone\Lite\EcotoneLite`: it hands the application
-`FlowTestSupport` and `ConfiguredMessagingSystem`, which are themselves still internal, so moving it alone would
-relocate the boundary without closing it. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d
+Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
+`ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
+moved together later, in §13e. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d
 says why. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
@@ -1670,6 +1670,95 @@ the old name through `FetchMode`; the three rows are in the namespace map for co
 `getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`,
 like `Handler\Type` and `MessageChannelBuilder`, is still internal while public signatures name it — those three are
 awaiting a separate decision. The rule this closes is
+[conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+
+### 13e. `EcotoneLite`, `FlowTestSupport`, `ConfiguredMessagingSystem` and the channel interfaces moved into `Api` — two container ids change with them
+
+**Before:** the entry point of every flow test and standalone application, and both types it returns, were
+internal. So were the channel interfaces those two hand back:
+
+```php
+use Ecotone\Lite\EcotoneLite;                               // internal
+use Ecotone\Lite\Test\FlowTestSupport;                      // internal
+use Ecotone\Lite\Test\MessagingTestSupport;                 // internal
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;     // internal
+use Ecotone\Messaging\MessageChannel;                       // internal
+use Ecotone\Messaging\MessagePoller;                        // internal
+use Ecotone\Messaging\PollableChannel;                      // internal
+```
+
+**Now:** the factory and its test support have a `Lite` area, and the messaging system sits with the channels it
+returns:
+
+```php
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\MessagePoller;
+use Ecotone\Api\Messaging\PollableChannel;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Lite\EcotoneLite` | `Ecotone\Api\Lite\EcotoneLite` |
+| `Ecotone\Lite\Test\FlowTestSupport` | `Ecotone\Api\Lite\Test\FlowTestSupport` |
+| `Ecotone\Lite\Test\MessagingTestSupport` | `Ecotone\Api\Lite\Test\MessagingTestSupport` |
+| `Ecotone\Messaging\Config\ConfiguredMessagingSystem` | `Ecotone\Api\Messaging\ConfiguredMessagingSystem` |
+| `Ecotone\Messaging\MessageChannel` | `Ecotone\Api\Messaging\MessageChannel` |
+| `Ecotone\Messaging\PollableChannel` | `Ecotone\Api\Messaging\PollableChannel` |
+| `Ecotone\Messaging\MessagePoller` | `Ecotone\Api\Messaging\MessagePoller` |
+
+`MessagingTestSupport` moved because `FlowTestSupport::getMessagingTestSupport()` returns it, and `MessagePoller`
+because `PollableChannel` extends it.
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Same class names, same
+methods, same parameters — `EcotoneLite::bootstrapFlowTesting(classesToResolve: …, licenceKey: …)` takes the same
+named arguments, and a channel you implemented yourself keeps its methods, now implementing the `Api` interface.
+
+**Two container ids change, unlike every move before this one.** §13a to §13d moved no container service, so no id
+moved with them. Two of these types are services registered under their class name, so the id is the new FQCN:
+
+| Service | 1.x and early 2.0 id | 2.0 id |
+|---|---|---|
+| `ConfiguredMessagingSystem` | `Ecotone\Messaging\Config\ConfiguredMessagingSystem` | `Ecotone\Api\Messaging\ConfiguredMessagingSystem` |
+| `MessagingTestSupport`, a gateway registered only when testing is enabled | `Ecotone\Lite\Test\MessagingTestSupport` | `Ecotone\Api\Lite\Test\MessagingTestSupport` |
+
+Ecotone registers both by `::class` and bridges them the same way, so nothing that names the class changes beyond
+its import. That covers Symfony and Laravel, which receive both through `EcotoneContainer::registerBridgesInto()`,
+and Tempest, which binds `ConfiguredMessagingSystem` through an initializer typed on the interface: a
+`$container->get(ConfiguredMessagingSystem::class)`, a `$app->make(...)`, a constructor argument autowired by type,
+and `getGatewayByName(MessagingTestSupport::class)` all resolve once the import is updated. No alias is kept under
+the old id. What breaks is a lookup that spells the old id as a string — a `services.yaml` argument or alias naming
+`Ecotone\Messaging\Config\ConfiguredMessagingSystem`, a `$container->get('Ecotone\Messaging\Config\ConfiguredMessagingSystem')`,
+a Laravel binding keyed on the old name. Each fails because nothing is registered under that id any more; spell the
+new id, or use `::class`.
+
+**Clear Ecotone's cache when deploying the upgrade.** A container compiled before it holds the old ids, and the
+gateway proxies generated with it take the old `ConfiguredMessagingSystem` in their constructor. Delete Ecotone's cache
+directory before the first request: `ecotone/` under the kernel's build directory in Symfony (`var/cache/<env>/ecotone`
+by default), `storage/framework/cache/data/ecotone` in Laravel, and the `ServiceConfiguration::withCacheDirectoryPath()`
+directory in Ecotone Lite.
+
+**What is still internal**, and why each one is not a reason to keep the old imports:
+
+- `Message`. `FlowTestSupport::receiveMessageFrom()` returns it, `popRecordedMessagesFrom()` returns `Message[]`,
+  `sendDirectToChannelWithMessageReply()` returns it, `sendMessageDirectToChannel()` takes it, and
+  `sendMessageDirectToChannelWithMessageReply()` takes and returns it. So do the `popRecorded…Messages…()` methods of
+  `MessagingTestSupport`, `MessageChannel::send()`, `PollableChannel::receive()` and
+  `MessagePoller::receiveWithTimeout()`. An application typing one of those still imports `Ecotone\Messaging\Message`.
+  It is the open decision named in §13d, and with the console writer below it is the only internal type left in a
+  signature an application calls
+- `Ecotone\Messaging\Console\InMemoryConsoleWriter`, returned by `FlowTestSupport::getInMemoryConsoleWriter()`. It
+  implements `ConsoleWriter`, which application console commands already take as a parameter, so the console writer
+  types are a move of their own
+- `Gateway` and `GatewayProxyMethodReference`, named by `ConfiguredMessagingSystem::getNonProxyGatewayByName()`, and
+  `GatewayProxyReference`, the element type of `getGatewayList()`. Only the framework calls those two methods
+- `ConfiguredMessagingSystemWithTestSupport` and `InMemoryPSRContainer`: `EcotoneLite` builds them, and no signature
+  an application calls names either
+
+The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ## 14. Smaller behaviour changes
@@ -2143,7 +2232,7 @@ normal section with "How to adapt" steps when it ships.
 1. Upgrade to the latest 1.x first and fix every deprecation notice.
 2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
 3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
-4. Replace imports with the namespace map (§13).
+4. Replace imports with the namespace map (§13). Fetch `ConfiguredMessagingSystem` and `MessagingTestSupport` by their new ids, and clear Ecotone's cache on deploy (§13e).
 5. Replace `withSkippedModulePackageNames` with `withModulePackages`; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).

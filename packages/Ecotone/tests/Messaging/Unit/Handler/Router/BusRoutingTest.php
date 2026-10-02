@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Priority;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
 /**

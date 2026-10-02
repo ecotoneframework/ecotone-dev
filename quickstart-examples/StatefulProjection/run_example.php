@@ -3,7 +3,7 @@
 require __DIR__ . "/vendor/autoload.php";
 
 use App\Domain\Command\RegisterNewTicket;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 

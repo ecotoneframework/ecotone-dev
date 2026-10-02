@@ -10,8 +10,8 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 

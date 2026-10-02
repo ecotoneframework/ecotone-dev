@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 

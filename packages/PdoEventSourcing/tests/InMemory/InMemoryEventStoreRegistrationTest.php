@@ -12,9 +12,9 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

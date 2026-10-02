@@ -187,3 +187,10 @@ Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder,Ecotone\Ap
 Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodModule
 Ecotone\Dbal\DbaBusinessMethod\DbalBusinessMethodHandler,Ecotone\Dbal\DbalBusinessMethod\DbalBusinessMethodHandler
 Ecotone\Dbal\DbaBusinessMethod\DbalParameterConfig,Ecotone\Dbal\DbalBusinessMethod\DbalParameterConfig
+Ecotone\Lite\EcotoneLite,Ecotone\Api\Lite\EcotoneLite
+Ecotone\Lite\Test\FlowTestSupport,Ecotone\Api\Lite\Test\FlowTestSupport
+Ecotone\Lite\Test\MessagingTestSupport,Ecotone\Api\Lite\Test\MessagingTestSupport
+Ecotone\Messaging\Config\ConfiguredMessagingSystem,Ecotone\Api\Messaging\ConfiguredMessagingSystem
+Ecotone\Messaging\MessageChannel,Ecotone\Api\Messaging\MessageChannel
+Ecotone\Messaging\PollableChannel,Ecotone\Api\Messaging\PollableChannel
+Ecotone\Messaging\MessagePoller,Ecotone\Api\Messaging\MessagePoller

@@ -14,7 +14,7 @@ use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 

@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\ContentType;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\JsonConverter;

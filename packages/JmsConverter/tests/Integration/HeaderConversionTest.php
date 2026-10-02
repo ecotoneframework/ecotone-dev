@@ -8,7 +8,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\BasicEnum;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;

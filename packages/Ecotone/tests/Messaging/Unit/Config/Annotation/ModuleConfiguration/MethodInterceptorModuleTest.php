@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\AroundInterceptorExample;
 

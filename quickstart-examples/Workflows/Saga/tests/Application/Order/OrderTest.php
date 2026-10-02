@@ -8,7 +8,7 @@ use App\Workflow\Saga\Application\Order\Command\PlaceOrder;
 use App\Workflow\Saga\Application\Order\Item;
 use App\Workflow\Saga\Application\Order\Order;
 use App\Workflow\Saga\Application\Order\OrderService;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 

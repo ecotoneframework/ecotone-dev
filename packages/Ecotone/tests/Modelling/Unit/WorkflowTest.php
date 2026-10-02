@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\AsynchronousPaymentHandler;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\Command\TakePayment;

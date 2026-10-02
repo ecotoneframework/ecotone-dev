@@ -1,7 +1,7 @@
 <?php
 
 use App\EventHandling\OrderWasPlaced;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(pathToRootCatalog: __DIR__);

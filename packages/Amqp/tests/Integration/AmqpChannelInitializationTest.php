@@ -258,7 +258,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         self::assertEquals([self::TEST_STREAM_CHANNEL_NAME, 'Deleted'], $rows[0]);
     }
 
-    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
@@ -274,7 +274,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         );
     }
 
-    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
@@ -290,7 +290,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         );
     }
 
-    private function bootstrapEcotoneWithStreamChannel(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithStreamChannel(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),

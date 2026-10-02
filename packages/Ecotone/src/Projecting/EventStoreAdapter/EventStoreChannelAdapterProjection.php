@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\EventStoreAdapter;
 
 use Ecotone\Api\EventSourcing\Event;
-use Ecotone\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Projecting\ProjectorExecutor;

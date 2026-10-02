@@ -8,7 +8,7 @@ use App\Workflow\Application\ImageProcessingWorkflow;
 use App\Workflow\Application\ImageResizer;
 use App\Workflow\Application\ImageUploader;
 use App\Workflow\Application\ProcessImage;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;

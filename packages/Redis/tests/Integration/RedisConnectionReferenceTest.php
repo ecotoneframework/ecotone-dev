@@ -6,9 +6,9 @@ namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisConnectionReference;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;

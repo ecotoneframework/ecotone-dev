@@ -11,6 +11,18 @@ parameters:
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
 		- packages/Kafka/src
+		- packages/Amqp/Api
+		- packages/DataProtection/Api
+		- packages/Dbal/Api
+		- packages/Ecotone/Api
+		- packages/JmsConverter/Api
+		- packages/Kafka/Api
+		- packages/Laravel/Api
+		- packages/PdoEventSourcing/Api
+		- packages/Redis/Api
+		- packages/Sqs/Api
+		- packages/Symfony/Api
+		- packages/Tempest/Api
 		- Monorepo
 	excludePaths:
 		- packages/Laravel/src/Config/PDO/Connection.php

@@ -11,7 +11,7 @@ use App\Domain\Command\RegisterProduct;
 use App\Domain\Product;
 use App\ProductFinder;
 use App\ProductRepository;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;

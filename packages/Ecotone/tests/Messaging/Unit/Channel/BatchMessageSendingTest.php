@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Channel;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;

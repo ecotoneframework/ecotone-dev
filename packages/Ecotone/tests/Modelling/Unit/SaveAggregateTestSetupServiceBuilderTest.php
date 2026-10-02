@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modelling\Unit;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Modelling\Fixture\SimplifiedAggregate\SimplifiedAggregate;

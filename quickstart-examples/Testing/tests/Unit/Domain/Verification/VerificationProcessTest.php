@@ -20,7 +20,7 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -93,7 +93,7 @@ final class VerificationProcessTest extends TestCase
         );
     }
 
-    private function bootstrapFlowTesting(StubTokenGenerator $tokenGenerator): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapFlowTesting(StubTokenGenerator $tokenGenerator): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [VerificationProcess::class],

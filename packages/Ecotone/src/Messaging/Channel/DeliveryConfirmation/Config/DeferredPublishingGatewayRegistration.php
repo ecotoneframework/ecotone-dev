@@ -6,11 +6,11 @@ namespace Ecotone\Messaging\Channel\DeliveryConfirmation\Config;
 
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeferredPublishingGateway;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;

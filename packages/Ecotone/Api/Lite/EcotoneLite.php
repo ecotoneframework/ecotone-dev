@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Lite;
+namespace Ecotone\Api\Lite;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
@@ -11,10 +11,11 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;

@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Test\StaticPsrClock;

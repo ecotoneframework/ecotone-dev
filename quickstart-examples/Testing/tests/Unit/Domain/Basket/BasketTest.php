@@ -12,7 +12,7 @@ use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
 use App\Testing\Domain\ShoppingBasket\ProductService;
 use App\Testing\Infrastructure\Converter\UuidConverter;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\App\Fixture\StubProductService;

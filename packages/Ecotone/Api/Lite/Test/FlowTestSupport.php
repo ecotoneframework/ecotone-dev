@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Lite\Test;
+namespace Ecotone\Api\Lite\Test;
 
 use DateTimeImmutable;
 use Ecotone\Api\EventSourcing\Event;
@@ -15,18 +15,18 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;

@@ -6,7 +6,7 @@ use App\Schedule\Messaging\PeriodSchedules\UserWasRegistered;
 use App\Schedule\Messaging\StaticSchedules\MessagingConfiguration as StaticMessagingConfiguration;
 use App\Schedule\ScheduledJob\ScheduledCommandHandler\InvoiceService;
 use App\Schedule\ScheduledJob\ScheduledJob\NotificationService;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 

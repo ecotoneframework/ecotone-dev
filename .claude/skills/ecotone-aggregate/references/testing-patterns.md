@@ -5,7 +5,7 @@ All aggregate tests use `EcotoneLite::bootstrapFlowTesting()` to bootstrap the f
 ## State-Stored Aggregate Testing
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 
 public function test_order_placement(): void
 {

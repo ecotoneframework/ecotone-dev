@@ -13,7 +13,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

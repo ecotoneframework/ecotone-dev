@@ -7,13 +7,13 @@ namespace Ecotone\Messaging\Channel\Collector;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\WithoutMessageCollector;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**

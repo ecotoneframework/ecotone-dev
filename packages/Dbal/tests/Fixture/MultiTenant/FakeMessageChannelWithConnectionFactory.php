@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
 use Interop\Queue\ConnectionFactory;
 
 /**

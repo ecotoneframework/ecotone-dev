@@ -14,7 +14,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

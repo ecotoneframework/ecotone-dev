@@ -9,8 +9,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithEvents;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\AggregateNotFoundException;
 use PHPUnit\Framework\TestCase;
 

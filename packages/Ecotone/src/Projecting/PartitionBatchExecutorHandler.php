@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Projecting;
 
 use Ecotone\Api\Projecting\ProjectionRegistry;
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
+use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
 
 class PartitionBatchExecutorHandler
 {
@@ -16,7 +16,7 @@ class PartitionBatchExecutorHandler
 
     public function __construct(
         private ProjectionRegistry $projectionRegistry,
-        private TerminationListener $terminationListener,
+        private PcntlTerminationListener $terminationListener,
     ) {
     }
 

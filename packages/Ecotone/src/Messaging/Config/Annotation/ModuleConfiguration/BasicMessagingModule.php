@@ -31,7 +31,6 @@ use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverter;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -143,7 +142,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             PcntlTerminationListener::class,
             new Definition(PcntlTerminationListener::class)
         );
-        $messagingConfiguration->registerServiceDefinition(TerminationListener::class, new Reference(PcntlTerminationListener::class));
 
         $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$messagingConfiguration->isRunningForEnterpriseLicence()]));
 

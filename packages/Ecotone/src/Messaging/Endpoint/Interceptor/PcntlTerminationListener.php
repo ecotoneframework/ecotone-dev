@@ -10,7 +10,7 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
  *
  * licence Apache-2.0
  */
-class PcntlTerminationListener implements TerminationListener
+class PcntlTerminationListener
 {
     private bool $terminationRequested = false;
     private bool $enabled = false;

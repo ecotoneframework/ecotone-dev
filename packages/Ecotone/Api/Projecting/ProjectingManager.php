@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Projecting;
 
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
+use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Projecting\PartitionBatchExecutorHandler;
 use Ecotone\Projecting\PartitionProvider;
@@ -37,7 +37,7 @@ class ProjectingManager
         private PartitionProviderRegistry      $partitionProviderRegistry,
         private StreamFilterRegistry           $streamFilterRegistry,
         private string                         $projectionName,
-        private TerminationListener            $terminationListener,
+        private PcntlTerminationListener       $terminationListener,
         private MessagingEntrypointService      $messagingEntrypoint,
         private int                            $eventLoadingBatchSize = 1000,
         private bool                           $automaticInitialization = true,

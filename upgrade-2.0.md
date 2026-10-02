@@ -1743,12 +1743,9 @@ directory in Ecotone Lite.
 
 **What is still internal**, and why each one is not a reason to keep the old imports:
 
-- `Message`. `FlowTestSupport::receiveMessageFrom()` returns it, `popRecordedMessagesFrom()` returns `Message[]`,
-  `sendDirectToChannelWithMessageReply()` returns it, `sendMessageDirectToChannel()` takes it, and
-  `sendMessageDirectToChannelWithMessageReply()` takes and returns it. So do the `popRecorded…Messages…()` methods of
+- `Message`, named by five `FlowTestSupport` methods, the `popRecorded…Messages…()` methods of
   `MessagingTestSupport`, `MessageChannel::send()`, `PollableChannel::receive()` and
-  `MessagePoller::receiveWithTimeout()`. An application typing one of those still imports `Ecotone\Messaging\Message`.
-  It is the open decision named in §13d, and the only internal type left in a signature an application calls
+  `MessagePoller::receiveWithTimeout()`, was internal when this section was written and has since moved (§13g)
 - `InMemoryConsoleWriter`, returned by `FlowTestSupport::getInMemoryConsoleWriter()`, was internal when this section
   was written and has since moved with the rest of the console writer types (§13f)
 - `Gateway` and `GatewayProxyMethodReference`, named by `ConfiguredMessagingSystem::getNonProxyGatewayByName()`, and
@@ -1836,6 +1833,64 @@ configuration changes, so a stale one names a type that no longer exists. Run `e
 **What stays internal:** the writers the framework constructs — `DelegatingConsoleWriter`, `PlainConsoleWriter`,
 `SymfonyConsoleWriter`, Tempest's `TempestConsoleWriter` and their progress bars. An application never names them;
 they implement the `Api` interfaces.
+
+### 13g. `Message` moved into `Api`
+
+**Before:** the message itself was internal, although an application meets it whenever it works below the buses — a
+handler or interceptor that takes the whole message, a flow test that sends to or receives from a channel, the
+dead-letter gateway:
+
+```php
+use Ecotone\Messaging\Message;   // internal
+```
+
+**Now:** it sits beside `MessageHeaders`, which its `getHeaders()` returns, and the channel interfaces that send and
+receive it:
+
+```php
+use Ecotone\Api\Messaging\Message;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Message` | `Ecotone\Api\Messaging\Message` |
+
+The signatures it closes, all of them methods an application calls: `FlowTestSupport::receiveMessageFrom()`,
+`popRecordedMessagesFrom()`, `sendDirectToChannelWithMessageReply()`, `sendMessageDirectToChannel()` and
+`sendMessageDirectToChannelWithMessageReply()`; the `popRecorded…Messages…()` methods of `MessagingTestSupport`;
+`MessageChannel::send()`, `PollableChannel::receive()` and `MessagePoller::receiveWithTimeout()`; Dbal's
+`DeadLetterGateway::store()` and `show()`; and `getFailedMessage()` on the exceptions an application catches, such as
+`DecisionModelConcurrencyException`.
+
+**How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same two methods,
+`getHeaders()` and `getPayload()`. A handler that takes the whole message keeps doing so with the new import:
+
+```php
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Messaging\Message;
+
+final class ErrorChannelService
+{
+    #[InternalHandler('default_dead_letter')]
+    public function errorChannel(Message $errorMessage): void
+    {
+    }
+}
+```
+
+A parameter still typed with the old name does not silently stop receiving the message: bootstrap refuses it with
+`Interface ErrorChannelService has problem with type declaration. Error while parsing 'Ecotone\Messaging\Message'.
+Unknown type or class 'Ecotone\Messaging\Message'`. Fix the import.
+
+**No container id changes.** `Message` is not a service: Ecotone uses its class name only to decide whether a
+parameter or a reply is the whole message, and that follows the import. Clear Ecotone's cache on deploy all the same,
+in the directories §13e lists, because a compiled container records parameter types by name.
+
+**What stays internal:** the implementations — `GenericMessage`, `ErrorMessage` and `MessageBuilder`, in
+`Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. Two of them
+an application still meets: an error-channel handler can type its parameter `ErrorMessage`, and a test that calls
+`sendMessageDirectToChannel()` builds its `Message` with `MessageBuilder`, since `Api` has no way to construct one.
+Both are recorded as open, not changed by this move.
 
 ## 14. Smaller behaviour changes
 

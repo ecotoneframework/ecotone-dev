@@ -25,7 +25,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
@@ -104,7 +104,7 @@ class ProjectingModule implements AnnotationModule
                     new Reference(PartitionProviderRegistry::class),
                     new Reference(StreamFilterRegistry::class),
                     $projectionName,
-                    new Reference(PcntlTerminationListener::class),
+                    new Reference(TerminationListener::class),
                     new Reference(MessagingEntrypointService::class),
                     $projectionBuilder->eventLoadingBatchSize(),
                     $projectionBuilder->automaticInitialization(),
@@ -186,7 +186,7 @@ class ProjectingModule implements AnnotationModule
             PartitionBatchExecutorHandler::class,
             new Definition(PartitionBatchExecutorHandler::class, [
                 new Reference(ProjectionRegistry::class),
-                new Reference(PcntlTerminationListener::class),
+                new Reference(TerminationListener::class),
             ])
         );
 

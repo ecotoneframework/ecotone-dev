@@ -1159,6 +1159,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($builder);
         }
+        (new Container\Compiler\VerifyEnterpriseLicenceForFetchedAggregates($this->isRunningForEnterpriseLicence))->process($builder);
         (new Container\Compiler\VerifyEnterpriseLicenceForClosureExpressions($this->isRunningForEnterpriseLicence))->process($builder);
 
         (new Container\Compiler\ValidateRequiredReferencesPass(

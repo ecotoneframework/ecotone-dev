@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
@@ -27,21 +25,12 @@ class FetchAggregateConverter implements ParameterConverter
         private string $aggregateClassName,
         private AttributeExpressionExecutor $expressionExecutor,
         private bool $doesAllowsNull,
-        private LicenceDecider $licenceDecider,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
     ) {
     }
 
     public function getArgumentFrom(Message $message): ?object
     {
-        if (! $this->licenceDecider->hasEnterpriseLicence()) {
-            throw LicensingException::create(sprintf(
-                '%s is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), or remove #[Fetch] and load %s in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.',
-                $this->expressionExecutor->location()->describe(),
-                $this->aggregateClassName,
-            ));
-        }
-
         $resolvedIdentifiers = $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]);
 
         try {

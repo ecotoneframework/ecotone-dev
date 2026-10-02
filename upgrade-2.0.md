@@ -1616,6 +1616,28 @@ boundary without closing it. The rule this closes is
   with its own `executeQuery()` / `executeStatement()` / `fetch*()`, and
   `$connection->createSchemaManager()->tableExists($table)`.
 
+### `#[Fetch]` without an Enterprise licence is refused at bootstrap
+
+**Before:** `#[Fetch]` is an Enterprise feature, but the licence was checked only when the parameter was resolved: the
+first message sent to a handler declaring it failed with a `MethodInvocationException` wrapping a
+`LicensingException`. An application running without a licence booted normally, and one whose `#[Fetch]` handler was
+never called never found out.
+
+**Now:** bootstrap refuses `#[Fetch]` without an Enterprise licence, wherever it is declared — a command, event or
+query handler, an asynchronous handler, an aggregate or saga handler, a `#[Before]` or `#[Around]` interceptor, or a
+`#[ConsoleCommand]`. The `LicensingException` names the parameter, the method and both ways out:
+
+```
+#[Fetch] on $user in App\OrderService::place is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), or remove #[Fetch] and load App\User in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.
+```
+
+An application that runs open-core today with `#[Fetch]` on a handler nothing calls stops booting.
+
+**How to adapt:** provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
+`ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
+`#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
+with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
+
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
 **Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an
@@ -2024,7 +2046,7 @@ normal section with "How to adapt" steps when it ships.
 9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]`; replace `#[FromStream(Aggregate::class)]` with `#[FromAggregateStream(Aggregate::class)]` (§4).
 10. Rename `#[ServiceActivator]` to `#[InternalHandler]`, checking positional arguments (§7a). Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
-12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers or `#[ChannelInterceptor]` (§14).
+12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers, `#[ChannelInterceptor]` or `#[Fetch]` (§14).
 13. Adopting DCB decision models: create the `event_tags` tables and, only for a 1.x table a model writes into,
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).

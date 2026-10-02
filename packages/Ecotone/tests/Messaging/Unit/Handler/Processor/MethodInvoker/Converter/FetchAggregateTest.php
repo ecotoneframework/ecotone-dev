@@ -2,6 +2,20 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Fetch;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
@@ -240,9 +254,11 @@ class FetchAggregateTest extends TestCase
         }
     }
 
-    public function test_throwing_exception_when_using_fetch_aggregate_in_non_enterprise_mode(): void
+    public function test_refusing_fetch_on_a_command_handler_at_bootstrap_without_enterprise_licence(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $this->expectFetchRefusalIn(ComplexService::class . '::handleComplexCommand');
+
+        EcotoneLite::bootstrapFlowTesting(
             [User::class, ComplexService::class, UserRepository::class],
             [
                 UserRepository::class => new UserRepository([]),
@@ -252,23 +268,161 @@ class FetchAggregateTest extends TestCase
                 ]),
             ],
         );
+    }
 
-        $this->expectException(MethodInvocationException::class);
+    public function test_refusing_fetch_on_a_routed_command_handler_nothing_sends_to_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('order.place')]
+            public function place(PlaceOrder $command, #[Fetch('payload.getUserId()')] User $user): void
+            {
+            }
+        };
 
-        try {
-            $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
-            self::fail('Should throw exception');
-        } catch (MethodInvocationException $e) {
-            $this->assertInstanceOf(LicensingException::class, $e->getPrevious());
-            $this->assertStringStartsWith(
-                '#[Fetch] on $user in ' . ComplexService::class . '::handleComplexCommand is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. '
-                . 'Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), '
-                . 'or remove #[Fetch] and load ' . User::class . ' in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.',
-                $e->getPrevious()->getMessage(),
-            );
+        $this->expectFetchRefusalIn($handler::class . '::place');
 
-            throw $e;
-        }
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+    }
+
+    public function test_refusing_fetch_on_an_event_handler_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[EventHandler]
+            public function whenOrderPlaced(PlaceOrder $event, #[Fetch('payload.getUserId()')] User $user): void
+            {
+            }
+        };
+
+        $this->expectFetchRefusalIn($handler::class . '::whenOrderPlaced');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+    }
+
+    public function test_refusing_fetch_on_an_asynchronous_event_handler_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[Asynchronous('async')]
+            #[EventHandler(endpointId: 'notifyUser')]
+            public function notifyUser(PlaceOrder $event, #[Fetch('payload.getUserId()')] User $user): void
+            {
+            }
+        };
+
+        $this->expectFetchRefusalIn($handler::class . '::notifyUser');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [User::class, $handler::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
+        );
+    }
+
+    public function test_refusing_fetch_on_a_query_handler_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[QueryHandler('user.name')]
+            public function userName(string $userId, #[Fetch('payload')] User $user): string
+            {
+                return $user->getName();
+            }
+        };
+
+        $this->expectFetchRefusalIn($handler::class . '::userName');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+    }
+
+    public function test_refusing_fetch_on_an_aggregate_command_handler_at_bootstrap_without_enterprise_licence(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            public string $orderId;
+
+            #[CommandHandler('order.assign')]
+            public function assign(PlaceOrder $command, #[Fetch('payload.getUserId()')] User $user): void
+            {
+            }
+        };
+
+        $this->expectFetchRefusalIn($aggregate::class . '::assign');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $aggregate::class]);
+    }
+
+    public function test_refusing_fetch_on_a_saga_event_handler_at_bootstrap_without_enterprise_licence(): void
+    {
+        $saga = new #[Saga] class () {
+            #[Identifier]
+            public string $orderId;
+
+            #[EventHandler]
+            public static function start(PlaceOrder $event, #[Fetch('payload.getUserId()')] User $user): self
+            {
+                $saga = new self();
+                $saga->orderId = $event->getOrderId();
+
+                return $saga;
+            }
+        };
+
+        $this->expectFetchRefusalIn($saga::class . '::start');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $saga::class]);
+    }
+
+    public function test_refusing_fetch_on_a_before_interceptor_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('order.place')]
+            public function place(PlaceOrder $command): void
+            {
+            }
+        };
+        $interceptor = new class () {
+            #[Before(pointcut: CommandHandler::class)]
+            public function verifyUser(#[Fetch('payload.getUserId()')] User $user): void
+            {
+            }
+        };
+
+        $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor]);
+    }
+
+    public function test_refusing_fetch_on_an_around_interceptor_at_bootstrap_without_enterprise_licence(): void
+    {
+        $handler = new class () {
+            #[CommandHandler('order.place')]
+            public function place(PlaceOrder $command): void
+            {
+            }
+        };
+        $interceptor = new class () {
+            #[Around(pointcut: CommandHandler::class)]
+            public function verifyUser(MethodInvocation $methodInvocation, #[Fetch('payload.getUserId()')] User $user): mixed
+            {
+                return $methodInvocation->proceed();
+            }
+        };
+
+        $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor]);
+    }
+
+    public function test_refusing_fetch_on_a_console_command_at_bootstrap_without_enterprise_licence(): void
+    {
+        $command = new class () {
+            #[ConsoleCommand('user:show')]
+            public function show(string $userId, #[Fetch("headers['ecotone.oneTimeCommand.userId']")] User $user): void
+            {
+            }
+        };
+
+        $this->expectFetchRefusalIn($command::class . '::show');
+
+        EcotoneLite::bootstrapFlowTesting([User::class, $command::class], [$command]);
     }
 
     public function test_throwing_exception_when_using_fetch_with_non_aggregate(): void
@@ -285,6 +439,16 @@ class FetchAggregateTest extends TestCase
                 ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function expectFetchRefusalIn(string $declaringMethod): void
+    {
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage(
+            '#[Fetch] on $user in ' . $declaringMethod . ' is available as part of Ecotone Enterprise, and this application runs without an Enterprise licence. '
+            . 'Either obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise), '
+            . 'or remove #[Fetch] and load ' . User::class . ' in the handler body through its repository, for example a business interface method marked with #[Repository] that returns it.'
         );
     }
 }

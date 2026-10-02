@@ -20,13 +20,14 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class ManagerRegistryEmulator implements ManagerRegistry
 {
+    private ?EntityManager $entityManager = null;
+
     /**
      * @param string[] $pathsToMapping
      */
     public function __construct(
         private Connection $connection,
         private array $pathsToMapping = [],
-        private ?EntityManagerInterface $entityManager = null
     ) {
     }
 
@@ -50,9 +51,9 @@ final class ManagerRegistryEmulator implements ManagerRegistry
         return new EcotoneManagerRegistryConnectionFactory(new self($connection, $pathsToMapping));
     }
 
-    public static function createEntityManager(EntityManagerInterface $entityManager, array $pathsToMapping = []): EcotoneManagerRegistryConnectionFactory
+    public static function createEntityManager(EntityManagerInterface $entityManager): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new self($entityManager->getConnection(), $pathsToMapping, $entityManager));
+        return new EcotoneManagerRegistryConnectionFactory(new EntityManagerRegistryEmulator($entityManager));
     }
 
     public static function createForManagerRegistry(ManagerRegistry $managerRegistry, string $connectionName): EcotoneManagerRegistryConnectionFactory

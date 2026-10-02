@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Doctrine\Common\EventManager;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Event\PrePersistEventArgs;
+use Doctrine\ORM\Events;
+use Doctrine\ORM\ORMSetup;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -318,6 +323,47 @@ final class ORMTest extends DbalMessagingTestCase
         $this->assertNotNull(
             $ecotone->sendQueryWithRouting('person.byById', 100, metadata: ['aggregate.id' => 100])
         );
+    }
+
+    public function test_an_entity_manager_handed_to_the_registry_keeps_its_event_listeners_after_it_is_reset(): void
+    {
+        $this->setupUserTable();
+        $persistListener = new class () {
+            public array $persistedNames = [];
+
+            public function prePersist(PrePersistEventArgs $event): void
+            {
+                $this->persistedNames[] = $event->getObject()->getName();
+            }
+        };
+        $eventManager = new EventManager();
+        $eventManager->addEventListener([Events::prePersist], $persistListener);
+        $ormConfiguration = ORMSetup::createAttributeMetadataConfiguration([__DIR__ . '/../Fixture/ORM/Person'], true);
+        if (PHP_VERSION_ID >= 80400 && method_exists($ormConfiguration, 'enableNativeLazyObjects')) {
+            $ormConfiguration->enableNativeLazyObjects(true);
+        }
+        $entityManager = new EntityManager($this->getConnection(), $ormConfiguration, $eventManager);
+
+        $ecotone = $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => ManagerRegistryEmulator::createEntityManager($entityManager)],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
+                        ->withDoctrineORMRepositories(true, [Person::class]),
+                ])
+                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\ORM\Person']),
+            pathToRootCatalog: __DIR__ . '/../../',
+            addInMemoryStateStoredRepository: false
+        );
+
+        $entityManager->close();
+        $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
+
+        self::assertSame('Johnny', $ecotone->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]));
+        self::assertSame(['Johnny'], $persistListener->persistedNames);
     }
 
     public function test_throwing_exception_when_setting_up_doctrine_orm_using_non_orm_registry_based_connection()

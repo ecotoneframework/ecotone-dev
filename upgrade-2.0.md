@@ -1748,11 +1748,9 @@ directory in Ecotone Lite.
   `sendMessageDirectToChannelWithMessageReply()` takes and returns it. So do the `popRecorded…Messages…()` methods of
   `MessagingTestSupport`, `MessageChannel::send()`, `PollableChannel::receive()` and
   `MessagePoller::receiveWithTimeout()`. An application typing one of those still imports `Ecotone\Messaging\Message`.
-  It is the open decision named in §13d, and with the console writer below it is the only internal type left in a
-  signature an application calls
-- `Ecotone\Messaging\Console\InMemoryConsoleWriter`, returned by `FlowTestSupport::getInMemoryConsoleWriter()`. It
-  implements `ConsoleWriter`, which application console commands already take as a parameter, so the console writer
-  types are a move of their own
+  It is the open decision named in §13d, and the only internal type left in a signature an application calls
+- `InMemoryConsoleWriter`, returned by `FlowTestSupport::getInMemoryConsoleWriter()`, was internal when this section
+  was written and has since moved with the rest of the console writer types (§13f)
 - `Gateway` and `GatewayProxyMethodReference`, named by `ConfiguredMessagingSystem::getNonProxyGatewayByName()`, and
   `GatewayProxyReference`, the element type of `getGatewayList()`. Only the framework calls those two methods
 - `ConfiguredMessagingSystemWithTestSupport` and `InMemoryPSRContainer`: `EcotoneLite` builds them, and no signature
@@ -1760,6 +1758,84 @@ directory in Ecotone Lite.
 
 The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
+
+### 13f. The console writer types moved into `Api` — the `ConsoleWriter` and `InMemoryConsoleWriter` container ids change with them
+
+**Before:** a `#[ConsoleCommand]` that writes output takes a `ConsoleWriter` parameter and may call its
+`progressBar()`, and a flow test reads what the command wrote through `FlowTestSupport::getInMemoryConsoleWriter()` —
+all four types internal:
+
+```php
+use Ecotone\Messaging\Console\ConsoleWriter;                // internal
+use Ecotone\Messaging\Console\ConsoleProgressBar;           // internal
+use Ecotone\Messaging\Console\InMemoryConsoleWriter;        // internal
+use Ecotone\Messaging\Console\InMemoryConsoleProgressBar;   // internal
+```
+
+**Now:**
+
+```php
+use Ecotone\Api\Console\ConsoleWriter;
+use Ecotone\Api\Console\ConsoleProgressBar;
+use Ecotone\Api\Console\InMemoryConsoleWriter;
+use Ecotone\Api\Console\InMemoryConsoleProgressBar;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Console\ConsoleWriter` | `Ecotone\Api\Console\ConsoleWriter` |
+| `Ecotone\Messaging\Console\ConsoleProgressBar` | `Ecotone\Api\Console\ConsoleProgressBar` |
+| `Ecotone\Messaging\Console\InMemoryConsoleWriter` | `Ecotone\Api\Console\InMemoryConsoleWriter` |
+| `Ecotone\Messaging\Console\InMemoryConsoleProgressBar` | `Ecotone\Api\Console\InMemoryConsoleProgressBar` |
+
+`ConsoleProgressBar` moved because `ConsoleWriter::progressBar()` returns it, and `InMemoryConsoleProgressBar` because
+`InMemoryConsoleWriter::getProgressBars()` returns the ones it created.
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Same methods, same
+parameters. A console command keeps taking the writer as a parameter:
+
+```php
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Console\ConsoleWriter;
+
+final class ImportProducts
+{
+    #[ConsoleCommand('products:import')]
+    public function import(ConsoleWriter $writer): void
+    {
+        $progressBar = $writer->progressBar(2);
+        $progressBar->advance();
+        $progressBar->finish();
+    }
+}
+```
+
+A writer you implemented yourself keeps its methods and now implements `Ecotone\Api\Console\ConsoleWriter`.
+
+**Two container ids change**, as in §13e. Both types are services registered under their class name, so the id is the
+new FQCN:
+
+| Service | 1.x and early 2.0 id | 2.0 id |
+|---|---|---|
+| `ConsoleWriter`, the writer a console command receives | `Ecotone\Messaging\Console\ConsoleWriter` | `Ecotone\Api\Console\ConsoleWriter` |
+| `InMemoryConsoleWriter`, registered only when testing is enabled | `Ecotone\Messaging\Console\InMemoryConsoleWriter` | `Ecotone\Api\Console\InMemoryConsoleWriter` |
+
+Ecotone registers and looks up both by `::class`, so nothing that names the class changes beyond its import: a
+`ConsoleWriter` parameter on a `#[ConsoleCommand]`, `FlowTestSupport::getInMemoryConsoleWriter()`, and
+`getServiceFromContainer(ConsoleWriter::class)`. Symfony receives `ConsoleWriter` as a service of the same id and
+passes it to every Ecotone console command; Laravel's artisan commands and Tempest's generated console commands fetch
+it from Ecotone by `::class`. No alias is kept under either old id. What breaks is a lookup that spells an old id as a
+string — a `services.yaml` argument naming `Ecotone\Messaging\Console\ConsoleWriter`, a
+`$container->get('Ecotone\Messaging\Console\ConsoleWriter')`; spell the new id, or use `::class`.
+
+**Clear Ecotone's cache when deploying the upgrade**, in the directories §13e lists. Tempest needs it for one more
+reason: the console command classes it generates import `ConsoleWriter`, and they are regenerated only when the
+configuration changes, so a stale one names a type that no longer exists. Run `ecotone:cache:clear`, or delete
+`ecotone_tempest` under the system temporary directory.
+
+**What stays internal:** the writers the framework constructs — `DelegatingConsoleWriter`, `PlainConsoleWriter`,
+`SymfonyConsoleWriter`, Tempest's `TempestConsoleWriter` and their progress bars. An application never names them;
+they implement the `Api` interfaces.
 
 ## 14. Smaller behaviour changes
 
@@ -2232,7 +2308,7 @@ normal section with "How to adapt" steps when it ships.
 1. Upgrade to the latest 1.x first and fix every deprecation notice.
 2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
 3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
-4. Replace imports with the namespace map (§13). Fetch `ConfiguredMessagingSystem` and `MessagingTestSupport` by their new ids, and clear Ecotone's cache on deploy (§13e).
+4. Replace imports with the namespace map (§13). Fetch `ConfiguredMessagingSystem`, `MessagingTestSupport`, `ConsoleWriter` and `InMemoryConsoleWriter` by their new ids, and clear Ecotone's cache on deploy (§13e, §13f).
 5. Replace `withSkippedModulePackageNames` with `withModulePackages`; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).

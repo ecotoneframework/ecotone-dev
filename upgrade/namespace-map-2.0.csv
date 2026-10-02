@@ -196,3 +196,5 @@ Ecotone\Messaging\PollableChannel,Ecotone\Api\Messaging\PollableChannel
 Ecotone\Messaging\MessagePoller,Ecotone\Api\Messaging\MessagePoller
 Ecotone\Messaging\Console\ConsoleWriter,Ecotone\Api\Console\ConsoleWriter
 Ecotone\Messaging\Console\ConsoleProgressBar,Ecotone\Api\Console\ConsoleProgressBar
+Ecotone\Messaging\Console\InMemoryConsoleWriter,Ecotone\Api\Console\InMemoryConsoleWriter
+Ecotone\Messaging\Console\InMemoryConsoleProgressBar,Ecotone\Api\Console\InMemoryConsoleProgressBar

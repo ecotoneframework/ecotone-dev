@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Console;
-
-use Ecotone\Api\Console\ConsoleProgressBar;
+namespace Ecotone\Api\Console;
 
 /**
  * licence Apache-2.0

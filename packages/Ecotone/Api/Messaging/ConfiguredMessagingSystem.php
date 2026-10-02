@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
-use Ecotone\Messaging\MessageChannel;
 use InvalidArgumentException;
 
 /**

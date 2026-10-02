@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Throwable;
 
 /**

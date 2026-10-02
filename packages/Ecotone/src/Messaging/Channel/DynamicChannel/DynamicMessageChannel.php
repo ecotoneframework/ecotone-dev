@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DynamicChannel;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 
 /**

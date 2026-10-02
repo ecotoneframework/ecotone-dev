@@ -15,13 +15,13 @@ use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 

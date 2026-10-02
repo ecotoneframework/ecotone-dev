@@ -12,7 +12,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\PollableChannel;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

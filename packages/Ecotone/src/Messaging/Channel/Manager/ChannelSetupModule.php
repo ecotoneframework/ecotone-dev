@@ -41,12 +41,12 @@ class ChannelSetupModule extends NoExternalConfigurationModule implements Annota
         );
 
         // Collect all pollable channels from extension objects
-        $messageChannelBuilders = ExtensionObjectResolver::resolve(\Ecotone\Messaging\Channel\MessageChannelBuilder::class, $extensionObjects);
+        $messageChannelBuilders = ExtensionObjectResolver::resolve(\Ecotone\Api\ExtensionObject\MessageChannelBuilder::class, $extensionObjects);
         $allPollableChannelNames = array_map(
-            fn (\Ecotone\Messaging\Channel\MessageChannelBuilder $builder) => $builder->getMessageChannelName(),
+            fn (\Ecotone\Api\ExtensionObject\MessageChannelBuilder $builder) => $builder->getMessageChannelName(),
             array_filter(
                 $messageChannelBuilders,
-                fn (\Ecotone\Messaging\Channel\MessageChannelBuilder $builder) => $builder->isPollable()
+                fn (\Ecotone\Api\ExtensionObject\MessageChannelBuilder $builder) => $builder->isPollable()
             )
         );
 

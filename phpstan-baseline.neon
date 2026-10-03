@@ -943,24 +943,6 @@ parameters:
 			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
 
 		-
-			message: '#^Binary operation "\." between ''Fetching repository…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
-
-		-
-			message: '#^Binary operation "\." between ''Repository should…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
-
-		-
-			message: '#^Binary operation "\." between ''Saving repository…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 3
-			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
-
-		-
 			message: '#^Method Ecotone\\Modelling\\Config\\AggregateModule\:\:create\(\) should return static\(Ecotone\\Modelling\\Config\\AggregateModule\) but returns Ecotone\\Modelling\\Config\\AggregateModule\.$#'
 			identifier: return.type
 			count: 1

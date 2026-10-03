@@ -158,7 +158,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);
         $this->registerMessageReleasingHandler($messagingConfiguration);
 
-        $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class);
+        $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class, new Definition(AllowMissingDestination::class));
         $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
         /** @TODO Ecotone 2.0, reconsider if needed */
         if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {

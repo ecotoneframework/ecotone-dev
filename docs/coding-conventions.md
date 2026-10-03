@@ -697,9 +697,10 @@ second one is the easier to break, because adding to `Api/` never fails a build.
 **Nothing an application writes stays outside `Api`.** Every attribute, every `#[ServiceContext]` extension object,
 every gateway interface, every enum or value object named in a configuration call. If a user has to type the name,
 it is public surface, and leaving it in `src` makes the whole of `src` look quotable.
-The 2.0 sweep missed two: `EventStore`, the most-used gateway in the tree, and
-`ConversionService`, which an application receives by injection, stayed in `src` until they became
-`Ecotone\Api\EventSourcing\EventStore` and `Ecotone\Api\Conversion\ConversionService` (`upgrade-2.0.md` §13b).
+The 2.0 sweep missed `EventStore`, the most-used gateway in the tree, which stayed in `src` until it became
+`Ecotone\Api\EventSourcing\EventStore` (`upgrade-2.0.md` §13b). `ConversionService` moved in beside it and back out
+again: its methods take the internal `Handler\Type`, and the conversion API an application calls is
+`SerializerGateway`, which takes strings — the public type was the gateway, not the engine behind it.
 The audits missed them too, because they only ever read `Api/` for internal types leaking in; finding a public type
 left out means reading `src` for names an application has to type. Reading it that way found nine more, moved in
 `upgrade-2.0.md` §13c: the aggregate traits `WithEvents` and `WithAggregateVersioning`, `Event`, the interceptor

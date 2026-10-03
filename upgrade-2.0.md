@@ -1509,48 +1509,64 @@ application, calls `build()`. `MediaType` is also still what `CommandBus`, `Quer
 signature was forcing an `@internal` import on every application that used it. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
-### 13b. `EventStore` and `ConversionService` moved into `Api` too
+### 13b. `EventStore` moved into `Api`; `ConversionService` moved in and back out
 
-**Before:** the event store gateway and the conversion service sat in `@internal` namespaces, although an
-application fetches the first and has the second injected:
+**Before:** the event store gateway sat in an `@internal` namespace, although an application fetches it:
 
 ```php
 use Ecotone\EventSourcing\EventStore;                  // internal
-use Ecotone\Messaging\Conversion\ConversionService;    // internal
 ```
 
 **Now:** `EventStore` lives beside the `AppendCondition`, `EventCriteria` and `LoadedEvents` it takes and returns,
-so a typical usage imports from one namespace. `ConversionService` has its own area namespace:
+so a typical usage imports from one namespace:
 
 ```php
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Api\Conversion\ConversionService;
 ```
 
 | 1.x and early 2.0 | 2.0 |
 |---|---|
 | `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` |
-| `Ecotone\Messaging\Conversion\ConversionService` | `Ecotone\Api\Conversion\ConversionService` |
 
-**How to adapt:** replace the two imports; both rows are in `upgrade/namespace-map-2.0.csv`. Same interface names,
-same methods. The event store's container id is unchanged: `EventStore::RAW_REFERENCE` is still
+**How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same interface name, same
+methods. The event store's container id is unchanged: `EventStore::RAW_REFERENCE` is still
 `'ecotone.eventSourcing.eventStore.instance'`.
 
-**The conversion service's container id did change.** `ConversionService::REFERENCE_NAME` is `self::class`, so the
-id is the class name and moved with it, from `'Ecotone\Messaging\Conversion\ConversionService'` to
-`'Ecotone\Api\Conversion\ConversionService'`. An application that names the service id as a literal string — in
-`getServiceFromContainer()`, a `#[Reference('...')]`, or a framework alias or binding — has to change that string.
-Resolve it by type instead, so the id can never drift from the class again:
+**`ConversionService` is internal, at its 1.x name — this is its second move inside 2.0.** An earlier 2.0 build moved
+it to `Ecotone\Api\Conversion\ConversionService`, and this section then told you to follow it. It has moved back to
+`Ecotone\Messaging\Conversion\ConversionService`: its `convert()` and `canConvert()` take the internal
+`Ecotone\Messaging\Handler\Type`, so it cannot be public surface. The application-facing conversion API is
+`Ecotone\Api\Gateway\SerializerGateway`, which takes media types and target types as strings:
+
+| | class | container id |
+|---|---|---|
+| 1.x | `Ecotone\Messaging\Conversion\ConversionService` | `'Ecotone\Messaging\Conversion\ConversionService'` |
+| first 2.0 move | `Ecotone\Api\Conversion\ConversionService` | `'Ecotone\Api\Conversion\ConversionService'` |
+| 2.0 | `Ecotone\Messaging\Conversion\ConversionService`, internal | `'Ecotone\Messaging\Conversion\ConversionService'` |
+
+`ConversionService::REFERENCE_NAME` is `self::class`, so the container id followed the class both times.
+
+**How to adapt:**
+
+- **Coming from 1.x:** the class name and the container id are what they were, so nothing breaks. Code that
+  converts through the engine should move to `SerializerGateway`, since the engine is no longer covered by the
+  upgrade guarantees.
+- **Coming from an earlier 2.0 build that followed the first note:** the `Ecotone\Api\Conversion\ConversionService`
+  import and the `'Ecotone\Api\Conversion\ConversionService'` id no longer exist — in `getServiceFromContainer()`,
+  a `#[Reference('...')]`, or a framework alias or binding. Move to `SerializerGateway` rather than back to the
+  internal name.
 
 ```php
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\Conversion\ConversionService;
-
-$conversionService = $ecotone->getGateway(ConversionService::class);
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\SerializerGateway;
 
 #[CommandHandler]
-public function handle(ConvertOrder $command, #[Reference] ConversionService $conversionService): void
+public function handle(ExportOrder $command, SerializerGateway $serializer): void
+{
+    $json = $serializer->convertFromPHP($command->order, MediaType::APPLICATION_JSON);
+    $order = $serializer->convertToPHP($json, MediaType::APPLICATION_JSON, Order::class);
+}
 ```
 
 ### 13c. Aggregate traits, `Event`, interceptor types, `TimeSpan`, `MessageHeaders`, `ModulePackageList` and `DynamicMessageChannelBuilder` moved into `Api` too

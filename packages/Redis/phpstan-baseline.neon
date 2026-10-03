@@ -1,0 +1,7 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Ecotone\\Api\\Redis\\RedisBackedMessageChannelBuilder\:\:getRedisOutboundChannelAdapter\(\) should return Ecotone\\Redis\\RedisOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: Api/RedisBackedMessageChannelBuilder.php

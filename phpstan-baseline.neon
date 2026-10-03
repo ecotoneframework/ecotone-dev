@@ -1,0 +1,1411 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: Monorepo/CrossModuleTests/Tests/MessageChannelConfigurationTest.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Channel\\MessageChannelWithSerializationBuilder\:\:withDefaultConversionMediaType\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: Monorepo/CrossModuleTests/Tests/MessageChannelConfigurationTest.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Channel\\MessageChannelWithSerializationBuilder\:\:withHeaderMapping\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: Monorepo/CrossModuleTests/Tests/MessageChannelConfigurationTest.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:deleteQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: Monorepo/CrossModuleTests/Tests/MessagingTestCase.php
+
+		-
+			message: '#^Cannot access an offset on Ecotone\\Messaging\\Support\\ErrorMessage\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: Monorepo/ExampleApp/Common/Infrastructure/ErrorChannelService.php
+
+		-
+			message: '#^Property Monorepo\\ExampleApp\\Common\\Infrastructure\\ErrorChannelService\:\:\$errorMessages \(array\<Ecotone\\Messaging\\Support\\ErrorMessage\>\) does not accept default value of type array\<string, array\>\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: Monorepo/ExampleApp/Common/Infrastructure/ErrorChannelService.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\:\:withPublisherConfirms\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Amqp/Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Amqp\\AmqpBackedMessageChannelBuilder\:\:getAmqpOutboundChannelAdapter\(\) should return Ecotone\\Amqp\\AmqpOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Amqp/Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:declareQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Amqp/src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:deleteQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Amqp/src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Producer\:\:setDelayStrategy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Amqp/src/AmqpOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to method getLibChannel\(\) on an unknown class Ecotone\\Amqp\\AmqpContext\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$publisherContext contains unknown class Ecotone\\Amqp\\AmqpContext\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^PHPDoc tag @var with type Ecotone\\Amqp\\AmqpContext is not subtype of native type Interop\\Queue\\Context\.$#'
+			identifier: varTag.nativeType
+			count: 1
+			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Amqp/src/Configuration/AmqpMessageConsumerModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Amqp/src/Configuration/AmqpModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\) but returns Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Amqp/src/Publisher/AmqpMessagePublisherModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\) but returns Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Amqp/src/Transaction/AmqpTransactionModule.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Dbal\\ExtensionObject\\DbalBackedMessageChannelBuilder\:\:getDbalOutboundChannelAdapter\(\) should return Ecotone\\Dbal\\DbalOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/Api/ExtensionObject/DbalBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Configuration\\DbalConnectionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Configuration\\DbalConnectionModule\) but returns Ecotone\\Dbal\\Configuration\\DbalConnectionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Configuration/DbalConnectionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Configuration\\DbalPublisherModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Configuration\\DbalPublisherModule\) but returns Ecotone\\Dbal\\Configuration\\DbalPublisherModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Configuration/DbalPublisherModule.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Dbal/src/Connection/DbalConnectionFactory.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$deliveryDelay \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Dbal/src/Connection/DbalMessage.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$priority \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Dbal/src/Connection/DbalMessage.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$redeliverAfter \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Dbal/src/Connection/DbalMessage.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Connection\\JSON\:\:decode\(\) should return array but empty return statement found\.$#'
+			identifier: return.empty
+			count: 1
+			path: packages/Dbal/src/Connection/JSON.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\) but returns Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Consumer/DbalConsumerPositionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Database\\DatabaseSetupModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Database\\DatabaseSetupModule\) but returns Ecotone\\Dbal\\Database\\DatabaseSetupModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Database/DatabaseSetupModule.php
+
+		-
+			message: '#^Variable \$dbalParameterAttribute in PHPDoc tag @var does not match any variable in the foreach loop\: \$dbalParameterGroups, \$methodName, \$dbalParameterAttributes$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: packages/Dbal/src/DbalBusinessMethod/DbalBusinessMethodModule.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Message\:\:setDeliveryDelay\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/DbalOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Message\:\:setTimeToLive\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/DbalOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\DBAL\\Connection\:\:establishConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/DbalReconnectableConnectionFactory.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/DbalReconnectableConnectionFactory.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\) but returns Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/DbalTransaction/DbalTransactionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Deduplication\\DeduplicationModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Deduplication\\DeduplicationModule\) but returns Ecotone\\Dbal\\Deduplication\\DeduplicationModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Deduplication/DeduplicationModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DocumentStore\\DbalDocumentStore\:\:missingVersionColumnException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/DocumentStore/DbalDocumentStore.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\:\:create\(\) should return static\(Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\) but returns Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/DocumentStore/DbalDocumentStoreModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getManagers\(\) should return array\<string, Doctrine\\Persistence\\ObjectManager\> but returns array\<int, Doctrine\\ORM\\EntityManagerInterface\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\ConnectionFactory\:\:getRegistry\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$container with type array\<string, Interop\\Queue\\ConnectionFactory\> is incompatible with native type Psr\\Container\\ContainerInterface\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^PHPDoc type for property Ecotone\\Dbal\\MultiTenant\\HeaderBasedMultiTenantConnectionFactory\:\:\$container with type array\<string, Interop\\Queue\\ConnectionFactory\> is incompatible with native type Psr\\Container\\ContainerInterface\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\:\:create\(\) should return static\(Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\) but returns Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/ObjectManager/ObjectManagerModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\) but returns Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Dbal/src/Recoverability/DbalDeadLetterModule.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/Api/EventSourcing/EventStore.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Api\\EventSourcing\\LoadedEvents\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/Api/EventSourcing/EventStore.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$internalMessageChannels$#'
+			identifier: parameter.notFound
+			count: 2
+			path: packages/Ecotone/Api/ExtensionObject/DynamicMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\:\:createWithTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/Api/ExtensionObject/ExecutionPollingMetadata.php
+
+		-
+			message: '#^Method Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\:\:withTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/Api/ExtensionObject/ExecutionPollingMetadata.php
+
+		-
+			message: '#^Method Ecotone\\Api\\ExtensionObject\\PollingMetadata\:\:withTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\PollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\PollingMetadata\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/Api/ExtensionObject/PollingMetadata.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$className contains unresolvable type\.$#'
+			identifier: parameter.unresolvableType
+			count: 1
+			path: packages/Ecotone/Api/ExtensionObject/ServiceConfiguration.php
+
+		-
+			message: '#^Cannot cast Ecotone\\Api\\Messaging\\MessageChannel to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: packages/Ecotone/Api/ExtensionObject/SimpleMessageChannelBuilder.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Gateway\\DocumentException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 6
+			path: packages/Ecotone/Api/Gateway/DocumentStore.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:getFlowTestSupport\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: packages/Ecotone/Api/Lite/EcotoneLite.php
+
+		-
+			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:set\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/Api/Lite/EcotoneLite.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$packagesToLoad$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/Api/Lite/EcotoneLite.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Lite\\Test\\FlowTestSupport\:\:popRecordedCommandsWithRouting\(\) should return array\<string\> but returns list\<array\<int, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$streamEvents$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
+
+		-
+			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
+			identifier: return.phpDocType
+			count: 3
+			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
+
+		-
+			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
+			identifier: return.phpDocType
+			count: 2
+			path: packages/Ecotone/Api/Messaging/ConfiguredMessagingSystem.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string\[\]\)\: Unexpected token "\\n     ", expected variable at offset 26 on line 2$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Messaging\\Handler\\TypeDefinitionException\|Ecotone\\Messaging\\MessagingException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 2
+			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Messaging\\Support\\InvalidArgumentException\|Ecotone\\Messaging\\MessagingException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
+
+		-
+			message: '#^Method Ecotone\\AnnotationFinder\\FileSystem\\FileSystemAnnotationFinder\:\:getCachedMethodAnnotations\(\) should return array\<object\> but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/AnnotationFinder/FileSystem/FileSystemAnnotationFinder.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$classes$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/AnnotationFinder/FileSystem/FileSystemAnnotationFinder.php
+
+		-
+			message: '#^Cannot access constant class on array\|object\|string\.$#'
+			identifier: classConstant.nonObject
+			count: 2
+			path: packages/Ecotone/src/EventSourcing/EventSourcedRepositoryAdapter.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/EventSourcing/EventStore/InMemoryEventStore.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Tagging\\DynamicConsistencyBoundaryDisabled\:\:exception\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/EventSourcing/Tagging/DynamicConsistencyBoundaryDisabled.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Configuration\:\:registerServiceDefinition\(\) invoked with 1 parameter, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: packages/Ecotone/src/Lite/Test/Configuration/EcotoneTestSupportModule.php
+
+		-
+			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:releaseMessages\(\) should return array\<Ecotone\\Api\\Messaging\\Message\> but returns array\<Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\>\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
+
+		-
+			message: '#^Parameter \$collectedMessages of method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:__construct\(\) has invalid type Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
+
+		-
+			message: '#^Property Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:\$collectedMessages has unknown class Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
+
+		-
+			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DirectChannel.php
+
+		-
+			message: '#^Part \$messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DirectChannel.php
+
+		-
+			message: '#^Part \$this\-\>messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DirectChannel.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receiveWithTimeout\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$channelNamesToReceive$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$currentChannelIndexToSend$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
+
+		-
+			message: '#^Part \$channelName \(Ecotone\\Api\\Messaging\\MessageChannel\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/InternalChannelResolver.php
+
+		-
+			message: '#^Property Ecotone\\Messaging\\Channel\\EventDrivenChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Messaging\\SubscribableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/EventDrivenChannelInterceptorAdapter.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$pollingMetadata$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/InMemoryMessageChannelHolder.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Channel\\Manager\\ChannelSetupModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Channel\\Manager\\ChannelSetupModule\) but returns Ecotone\\Messaging\\Channel\\Manager\\ChannelSetupModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/Manager/ChannelSetupModule.php
+
+		-
+			message: '#^Cannot cast Ecotone\\Api\\Messaging\\PollableChannel to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/PollableChannelInterceptorAdapter.php
+
+		-
+			message: '#^Property Ecotone\\Messaging\\Channel\\PollableChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Api\\Messaging\\PollableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Channel/PollableChannelInterceptorAdapter.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\AsynchronousModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/AsynchronousModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\BasicMessagingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/BasicMessagingModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ConverterModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ConverterModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ConverterModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ConverterModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\EndpointHeaders\\EndpointHeadersInterceptorModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\EndpointHeaders\\EndpointHeadersInterceptorModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\EndpointHeaders\\EndpointHeadersInterceptorModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/EndpointHeaders/EndpointHeadersInterceptorModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ErrorHandlerModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ErrorHandlerModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\ErrorHandlerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ErrorHandlerModule.php
+
+		-
+			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ExtensionObjectResolver.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingCommands\\MessagingCommandsModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingCommands\\MessagingCommandsModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingCommands\\MessagingCommandsModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MessagingCommands/MessagingCommandsModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingGatewayModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingGatewayModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MessagingGatewayModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MessagingGatewayModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\MethodInterceptor\\MethodInterceptorModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MethodInterceptor/MethodInterceptorModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\Orchestrator\\OrchestratorModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/Orchestrator/OrchestratorModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\PollerModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\PollerModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\PollerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/PollerModule.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/PollerModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RequiredConsumersModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RequiredConsumersModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\RequiredConsumersModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/RequiredConsumersModule.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\AnnotationFinder\\AnnotatedFinding\:\:getAllAnnotationDefinitions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ScheduledModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\SerializerModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\SerializerModule\) but returns Ecotone\\Messaging\\Config\\Annotation\\ModuleConfiguration\\SerializerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/SerializerModule.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 2
+			path: packages/Ecotone/src/Messaging/Config/ConsoleCommandConfiguration.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Config\\Module\:\:getModuleExtensions\(\) invoked with 3 parameters, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/Container/Compiler/ModuleConfigurationCompilerPass.php
+
+		-
+			message: '#^Call to an undefined method T of Ecotone\\Messaging\\Handler\\Processor\\MethodInvoker\\InterceptorWithPointCut\:\:getPrecedence\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: packages/Ecotone/src/Messaging/Config/Container/MessagingContainerBuilder.php
+
+		-
+			message: '#^Argument of an invalid type Ecotone\\Messaging\\Channel\\ChannelInterceptorBuilder supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Endpoint\\ChannelAdapterConsumerBuilder\:\:getEndpointAnnotations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Endpoint\\ChannelAdapterConsumerBuilder\:\:withEndpointAnnotations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\:\:getEndpointAnnotations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\:\:getInterceptedInterface\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\:\:getOutputMessageChannelName\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$skippedModulesPackages$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 6
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 2
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Part \$this\-\>messageHandlerBuilders\[\$messageHandlerBuilder\-\>getEndpointId\(\)\] \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$container\.$#'
+			identifier: property.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemContainer.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$pollingEndpoints\.$#'
+			identifier: property.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/MessagingSystemContainer.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: packages/Ecotone/src/Messaging/Config/ModuleRetrievingService.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Conversion\\Converter\:\:convert\(\) invoked with 6 parameters, 5 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: packages/Ecotone/src/Messaging/Conversion/AutoCollectionConversionService.php
+
+		-
+			message: '#^Call to an undefined method Ecotone\\Messaging\\Endpoint\\ConsumerLifecycle\:\:getConsumerName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/InterceptedConsumer.php
+
+		-
+			message: '#^Return type \(Ecotone\\Messaging\\Handler\\ServiceActivator\\ServiceActivatorBuilder\) of method Ecotone\\Messaging\\Handler\\Bridge\\BridgeBuilder\:\:withEndpointAnnotations\(\) should be compatible with return type \(static\(Ecotone\\Messaging\\Handler\\InterceptedEndpoint\)\) of method Ecotone\\Messaging\\Handler\\InterceptedEndpoint\:\:withEndpointAnnotations\(\)$#'
+			identifier: method.childReturnType
+			count: 2
+			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
+
+		-
+			message: '#^Return type \(Ecotone\\Messaging\\Handler\\ServiceActivator\\ServiceActivatorBuilder\) of method Ecotone\\Messaging\\Handler\\Bridge\\BridgeBuilder\:\:withEndpointId\(\) should be compatible with return type \(static\(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\)\) of method Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\:\:withEndpointId\(\)$#'
+			identifier: method.childReturnType
+			count: 2
+			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
+
+		-
+			message: '#^Return type \(Ecotone\\Messaging\\Handler\\ServiceActivator\\ServiceActivatorBuilder\) of method Ecotone\\Messaging\\Handler\\Bridge\\BridgeBuilder\:\:withInputChannelName\(\) should be compatible with return type \(static\(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\)\) of method Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\:\:withInputChannelName\(\)$#'
+			identifier: method.childReturnType
+			count: 2
+			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
+
+		-
+			message: '#^Return type \(Ecotone\\Messaging\\Handler\\ServiceActivator\\ServiceActivatorBuilder\) of method Ecotone\\Messaging\\Handler\\Bridge\\BridgeBuilder\:\:withOutputMessageChannel\(\) should be compatible with return type \(static\(Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\)\) of method Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\:\:withOutputMessageChannel\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
+
+		-
+			message: '#^Return type \(Ecotone\\Messaging\\Handler\\ServiceActivator\\ServiceActivatorBuilder\) of method Ecotone\\Messaging\\Handler\\Bridge\\BridgeBuilder\:\:withRequiredInterceptorNames\(\) should be compatible with return type \(static\(Ecotone\\Messaging\\Handler\\InterceptedEndpoint\)\) of method Ecotone\\Messaging\\Handler\\InterceptedEndpoint\:\:withRequiredInterceptorNames\(\)$#'
+			identifier: method.childReturnType
+			count: 2
+			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$mappingExpression$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Enricher/Converter/EnrichPayloadWithExpressionPropertyEditor.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Enricher/Converter/EnrichPayloadWithExpressionPropertyEditor.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Enricher/InternalEnrichingService.php
+
+		-
+			message: '#^PHPDoc tag @return with type Ecotone\\Api\\Messaging\\Message\|Ecotone\\Messaging\\Support\\MessageBuilder is not subtype of native type Ecotone\\Api\\Messaging\\Message\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Enricher/InternalEnrichingService.php
+
+		-
+			message: '#^Part \$requestMessage \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 2
+			path: packages/Ecotone/src/Messaging/Handler/Enricher/PropertyEditorAccessor.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Ecotone\\Api\\Messaging\\Message\|null\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Gateway/GatewayInternalProcessor.php
+
+		-
+			message: '#^PHPDoc tag @throws with type mixed is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Gateway/GatewayInternalProcessor.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$parameterName$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Gateway/ParameterToMessageConverter/GatewayPayloadConverter.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$className with type class\-string\|Ecotone\\Messaging\\Handler\\Type is not subtype of native type Ecotone\\Messaging\\Handler\\Type\\ObjectType\|string\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCall.php
+
+		-
+			message: '#^PHPDoc tag @return with type class\-string\|null is not subtype of native type object\|null\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCall.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCallRegistry.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Handler\\Logger\\Config\\LoggingModule\:\:create\(\) should return static\(Ecotone\\Messaging\\Handler\\Logger\\Config\\LoggingModule\) but returns Ecotone\\Messaging\\Handler\\Logger\\Config\\LoggingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Logger/Config/LoggingModule.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Handler\\ParameterConverter\:\:getArgumentFrom\(\) invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/AroundMethodInterceptor.php
+
+		-
+			message: '#^PHPDoc tag @return with type Ecotone\\Messaging\\Handler\\Processor\\MethodInvoker\\Converter\\HeaderExpressionBuilder is incompatible with native type Ecotone\\Messaging\\Handler\\Processor\\MethodInvoker\\Converter\\PayloadExpressionBuilder\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/PayloadExpressionBuilder.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$endpointAnnotations$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
+
+		-
+			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/RequestReplyProducer.php
+
+		-
+			message: '#^Binary operation "\." between ''Router \- '' and Ecotone\\Messaging\\Handler\\Router\\RouteSelector results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Router/Router.php
+
+		-
+			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Splitter/SplitterHandler.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Handler\\Type\\UnionType\:\:createWith\(\) should return Ecotone\\Messaging\\Handler\\Type\\UnionType but returns Ecotone\\Messaging\\Handler\\Type\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/Type/UnionType.php
+
+		-
+			message: '#^Call to an undefined method ReflectionType\:\:getName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/TypeResolver.php
+
+		-
+			message: '#^Comparison operation "\>" between list\<ReflectionAttribute\<object\>\> and 1 results in an error\.$#'
+			identifier: greater.invalid
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/TypeResolver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$thisClass$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Messaging/Handler/TypeResolver.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type array\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/MessageConverter/DefaultHeaderMapper.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\MessagingException\:\:fromOtherException\(\) should return static\(Ecotone\\Messaging\\MessagingException\) but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/MessagingException.php
+
+		-
+			message: '#^Binary operation "%%" between string and int\<0, max\> results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: packages/Ecotone/src/Messaging/Scheduling/CronIntegration/AbstractField.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Scheduling\\CronIntegration\\CronExpression\:\:getRunDate\(\) should return DateTime but returns DateTimeInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Scheduling/CronIntegration/CronExpression.php
+
+		-
+			message: '#^Binary operation "%%\=" between string and 7 results in an error\.$#'
+			identifier: assignOp.invalid
+			count: 1
+			path: packages/Ecotone/src/Messaging/Scheduling/CronIntegration/DayOfWeekField.php
+
+		-
+			message: '#^PHPDoc tag @return with type int is incompatible with native type Ecotone\\Api\\Scheduling\\Duration\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Messaging/Scheduling/SyncTaskScheduler.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Support\\ConcurrencyException\:\:forStaleAggregate\(\) should return static\(Ecotone\\Messaging\\Support\\ConcurrencyException\) but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Support/ConcurrencyException.php
+
+		-
+			message: '#^Method Ecotone\\Messaging\\Support\\ConcurrencyException\:\:forStaleDocument\(\) should return static\(Ecotone\\Messaging\\Support\\ConcurrencyException\) but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Messaging/Support/ConcurrencyException.php
+
+		-
+			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: packages/Ecotone/src/Messaging/Support/GenericMessage.php
+
+		-
+			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 2
+			path: packages/Ecotone/src/Messaging/Support/MessageBuilder.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$classAnnotations$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/AggregateResolver/AggregateClassDefinition.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateIdentifierMapping$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateIds$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\Repository\\AggregateRepository\:\:save\(\) invoked with 3 parameters, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateTestSetupService.php
+
+		-
+			message: '#^Binary operation "\." between ''Fetching repository…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
+
+		-
+			message: '#^Binary operation "\." between ''Repository should…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
+
+		-
+			message: '#^Binary operation "\." between ''Saving repository…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 3
+			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\Config\\AggregateModule\:\:create\(\) should return static\(Ecotone\\Modelling\\Config\\AggregateModule\) but returns Ecotone\\Modelling\\Config\\AggregateModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateQueryHandlers$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\Config\\EventSourcedRepositoryModule\:\:create\(\) should return static\(Ecotone\\Modelling\\Config\\EventSourcedRepositoryModule\) but returns Ecotone\\Modelling\\Config\\EventSourcedRepositoryModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/EventSourcedRepositoryModule.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule\:\:create\(\) should return static\(Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule\) but returns Ecotone\\Modelling\\Config\\MessageHandlerRoutingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/MessageHandlerRoutingModule.php
+
+		-
+			message: '#^PHPDoc tag @return with type string\|null is incompatible with native type void\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Ecotone/src/Modelling/Config/Routing/BusRoutingMapBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\MessageHandling\\Distribution\\Module\\DistributedHandlerModule\:\:create\(\) should return static\(Ecotone\\Modelling\\MessageHandling\\Distribution\\Module\\DistributedHandlerModule\) but returns Ecotone\\Modelling\\MessageHandling\\Distribution\\Module\\DistributedHandlerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Modelling/MessageHandling/Distribution/Module/DistributedHandlerModule.php
+
+		-
+			message: '#^Method Ecotone\\Modelling\\MessageHandling\\MetadataPropagator\\MessageHeadersPropagatorInterceptor\:\:withCausationChain\(\) should return Ecotone\\Modelling\\AggregateNotFoundException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Modelling/MessageHandling/MetadataPropagator/MessageHeadersPropagatorInterceptor.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\PartitionProviderRegistryModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\PartitionProviderRegistryModule\) but returns Ecotone\\Projecting\\Config\\PartitionProviderRegistryModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/PartitionProviderRegistryModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\ProjectingAttributeModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\ProjectingAttributeModule\) but returns Ecotone\\Projecting\\Config\\ProjectingAttributeModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/ProjectingAttributeModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\ProjectingModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\ProjectingModule\) but returns Ecotone\\Projecting\\Config\\ProjectingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/ProjectingModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\ProjectionStateStorageRegistryModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\ProjectionStateStorageRegistryModule\) but returns Ecotone\\Projecting\\Config\\ProjectionStateStorageRegistryModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/ProjectionStateStorageRegistryModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\StreamFilterRegistryModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\StreamFilterRegistryModule\) but returns Ecotone\\Projecting\\Config\\StreamFilterRegistryModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/StreamFilterRegistryModule.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$namedEvents$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/StreamFilterRegistryModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\Config\\StreamSourceRegistryModule\:\:create\(\) should return static\(Ecotone\\Projecting\\Config\\StreamSourceRegistryModule\) but returns Ecotone\\Projecting\\Config\\StreamSourceRegistryModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/Config/StreamSourceRegistryModule.php
+
+		-
+			message: '#^Method Ecotone\\Projecting\\EventStoreAdapter\\EventStoreAdapterModule\:\:create\(\) should return static\(Ecotone\\Projecting\\EventStoreAdapter\\EventStoreAdapterModule\) but returns Ecotone\\Projecting\\EventStoreAdapter\\EventStoreAdapterModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Ecotone/src/Projecting/EventStoreAdapter/EventStoreAdapterModule.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$storages$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Ecotone/src/Projecting/ProjectionStateStorageRegistry.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\DependencyInjection\\ContainerInterface\:\:getServiceIds\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+
+		-
+			message: '#^Variable \$message in PHPDoc tag @var does not match assigned variable \$timeoutInMilliseconds\.$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: packages/Enqueue/src/EnqueueInboundChannelAdapter.php
+
+		-
+			message: '#^Method Ecotone\\Enqueue\\EnqueueInboundChannelAdapterBuilder\:\:compileGateway\(\) should return Ecotone\\Messaging\\Config\\Container\\DefinedObject\|Ecotone\\Messaging\\Config\\Container\\Definition\|Ecotone\\Messaging\\Config\\Container\\Reference but returns Ecotone\\Messaging\\Endpoint\\InboundChannelAdapterEntrypoint\|Ecotone\\Messaging\\Handler\\Gateway\\GatewayProxyBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Enqueue/src/EnqueueInboundChannelAdapterBuilder.php
+
+		-
+			message: '#^Method Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\:\:create\(\) should return static\(Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\) but returns Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/JmsConverter/src/Configuration/JMSConverterConfigurationModule.php
+
+		-
+			message: '#^Call to an undefined method JMS\\Serializer\\SerializerInterface\:\:fromArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/JmsConverter/src/JMSConverter.php
+
+		-
+			message: '#^Call to an undefined method JMS\\Serializer\\SerializerInterface\:\:toArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/JmsConverter/src/JMSConverter.php
+
+		-
+			message: '#^Call to method getBootstrapServers\(\) on an unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
+			identifier: class.notFound
+			count: 3
+			path: packages/Kafka/src/Configuration/KafkaAdmin.php
+
+		-
+			message: '#^Parameter \$kafkaBrokerConfigurations of method Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:__construct\(\) has invalid type Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Kafka/src/Configuration/KafkaAdmin.php
+
+		-
+			message: '#^Property Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:\$kafkaBrokerConfigurations has unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: packages/Kafka/src/Configuration/KafkaAdmin.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$topics$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Kafka/src/Configuration/KafkaConsumerConfiguration.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$deliveryIds$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Kafka/src/Outbound/KafkaDeliveryTracker.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\DBAL\\Driver\:\:getName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Laravel/src/Config/LaravelConnectionResolver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
+
+		-
+			message: '#^Method Ecotone\\Laravel\\Config\\PDO\\SqlServerDriver\:\:connect\(\) should return Doctrine\\DBAL\\Driver\\Connection but returns Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Laravel/src/Config/PDO/SqlServerDriver.php
+
+		-
+			message: '#^PHPDoc tag @return with type Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection is not subtype of native type Doctrine\\DBAL\\Driver\\Connection\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Laravel/src/Config/PDO/SqlServerDriver.php
+
+		-
+			message: '#^PHPDoc tag @var with type Illuminate\\Foundation\\Console\\ClosureCommand is not subtype of native type \$this\(Ecotone\\Laravel\\EcotoneProvider\)\.$#'
+			identifier: varTag.nativeType
+			count: 1
+			path: packages/Laravel/src/EcotoneProvider.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\AggregateStreamMapping\:\:createEmpty\(\) should return static\(Ecotone\\EventSourcing\\AggregateStreamMapping\) but returns Ecotone\\EventSourcing\\AggregateStreamMapping\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/AggregateStreamMapping.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\AggregateStreamMapping\:\:createWith\(\) should return static\(Ecotone\\EventSourcing\\AggregateStreamMapping\) but returns Ecotone\\EventSourcing\\AggregateStreamMapping\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/AggregateStreamMapping.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventSourcingModule\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventSourcingModule\) but returns Ecotone\\EventSourcing\\Config\\EventSourcingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Config/EventSourcingModule.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\) but returns Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Config/EventSourcingProjectingModule.php
+
+		-
+			message: '#^Offset ''aggregateIdParam'' does not exist on array\{className\: string, methodName\: string, projectionName\: string, partitionKeyParam\: string\|null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/Config/EventSourcingProjectingModule.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventStoreBuilder\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventStoreBuilder\) but returns Ecotone\\EventSourcing\\Config\\EventStoreBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Config/EventStoreBuilder.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/Console/TagVerifySchemaConsoleCommand.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Database\\MissingEventStreamTable\:\:exceptionFor\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Database/MissingEventStreamTable.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Dbal\\DbalEventStore\:\:legacyAggregateConstraintException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Messaging\\Config\\ConfigurationException\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/PdoEventSourcing/src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Dbal\\Tag\\DbalTagTables\:\:missingTablesException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/PdoEventSourcing/src/Dbal/Tag/DbalTagTables.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/DeserializingEventStore.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Api\\EventSourcing\\LoadedEvents\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/PdoEventSourcing/src/DeserializingEventStore.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/Projecting/PartitionState/DbalProjectionStateStorage.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$no\.$#'
+			identifier: property.notFound
+			count: 2
+			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$timestamp\.$#'
+			identifier: property.notFound
+			count: 4
+			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Comparison operation "\>" between list\<int\> and 0 results in an error\.$#'
+			identifier: greater.invalid
+			count: 1
+			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Redis\\RedisBackedMessageChannelBuilder\:\:getRedisOutboundChannelAdapter\(\) should return Ecotone\\Redis\\RedisOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Redis/Api/RedisBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Sqs\\SqsBackedMessageChannelBuilder\:\:getSqsOutboundChannelAdapter\(\) should return Ecotone\\Sqs\\SqsOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/Sqs/Api/SqsBackedMessageChannelBuilder.php
+
+		-
+			message: '#^PHPDoc tag @return with type string is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: packages/Symfony/Api/SymfonyMessengerMessageChannelBuilder.php
+
+		-
+			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:getParameter\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Symfony/DependencyInjection/Compiler/SymfonyConfigurationVariableService.php
+
+		-
+			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:hasParameter\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/Symfony/DependencyInjection/Compiler/SymfonyConfigurationVariableService.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: packages/Symfony/DependencyInjection/MessagingEntrypointCommand.php

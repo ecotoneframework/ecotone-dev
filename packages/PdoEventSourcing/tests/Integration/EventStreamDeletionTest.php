@@ -17,7 +17,6 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -91,7 +90,7 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
         }
         $ecotone = $this->bootstrapEcotoneWithProjectionDeletingItsStreamOnReset();
 
-        $ecotone->getGateway(ProjectionRegistry::class)->get('ticket_notifications')->prepareRebuild();
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'ticket_notifications']);
 
         self::assertFalse($ecotone->getGateway(EventStore::class)->hasStream(self::EMITTED_STREAM));
     }
@@ -104,7 +103,7 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotoneWithProjectionDeletingItsStreamOnReset();
 
         try {
-            $ecotone->getGateway(ProjectionRegistry::class)->get('ticket_notifications')->prepareRebuild();
+            $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'ticket_notifications']);
             self::fail('Expected a ConfigurationException');
         } catch (ConfigurationException $exception) {
             self::assertSame(self::refusalFor(self::EMITTED_STREAM), $exception->getMessage());

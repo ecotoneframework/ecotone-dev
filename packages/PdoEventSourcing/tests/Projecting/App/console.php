@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Symfony\Component\Console\Application;
@@ -45,8 +44,7 @@ $app->register('stream:load')
                 $eventStore->delete(Order::STREAM_NAME);
                 $io->writeln('Event store cleaned');
             }
-            $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
-            $projection->delete();
+            $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => OrderListProjection::PROJECTION_NAME]);
             $io->success('Database cleaned');
         }
 
@@ -90,8 +88,7 @@ $app->register('projection:delete')
     ->setDescription('Delete projection data')
     ->setCode(static function (InputInterface $input, OutputInterface $output) use ($messagingSystem) {
         $io = new SymfonyStyle($input, $output);
-        $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
-        $projection->delete();
+        $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => OrderListProjection::PROJECTION_NAME]);
         $io->success('Projection data deleted');
     });
 
@@ -99,9 +96,8 @@ $app->register('projection:backfill')
     ->setDescription('Trigger projection to rebuild data')
     ->setCode(static function (InputInterface $input, OutputInterface $output) use ($messagingSystem) {
         $io = new SymfonyStyle($input, $output);
-        $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
         $io->section('Triggering projection');
-        $projection->prepareBackfill();
+        $messagingSystem->runConsoleCommand('ecotone:projection:backfill', ['name' => OrderListProjection::PROJECTION_NAME]);
         $io->success('Projection backfilled');
     });
 

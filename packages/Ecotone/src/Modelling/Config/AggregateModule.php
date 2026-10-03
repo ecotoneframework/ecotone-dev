@@ -5,6 +5,7 @@ namespace Ecotone\Modelling\Config;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -91,7 +92,7 @@ class AggregateModule implements AnnotationModule, RoutingEventHandler
      * @param AnnotatedFinding[] $aggregateQueryHandlers
      * @param AnnotatedFinding[] $aggregateEventHandlers
      * @param string[] $aggregateRepositoryReferenceNames
-     * @param AnnotatedFinding[] $gatewayRepositoryMethods
+     * @param AnnotatedMethod[] $gatewayRepositoryMethods
      */
     private function __construct(
         private InterfaceToCallRegistry $interfaceToCallRegistry,

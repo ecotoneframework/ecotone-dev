@@ -91,18 +91,6 @@ parameters:
 			path: src/Projecting/PartitionState/DbalProjectionStateStorage.php
 
 		-
-			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$no\.$#'
-			identifier: property.notFound
-			count: 2
-			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
-
-		-
-			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$timestamp\.$#'
-			identifier: property.notFound
-			count: 4
-			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
-
-		-
 			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
 			identifier: method.notFound
 			count: 1

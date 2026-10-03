@@ -421,18 +421,6 @@ parameters:
 			path: src/Messaging/Config/MessagingSystemConfiguration.php
 
 		-
-			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$container\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Messaging/Config/MessagingSystemContainer.php
-
-		-
-			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$pollingEndpoints\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Messaging/Config/MessagingSystemContainer.php
-
-		-
 			message: '#^Class Ecotone\\Amqp\\Configuration\\AmqpChannelManagerModule not found\.$#'
 			identifier: class.notFound
 			count: 1

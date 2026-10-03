@@ -14,7 +14,6 @@ use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\CustomSendingStrate
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\HeaderSendingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\NoSendingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\RoundRobinSendingStrategy;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

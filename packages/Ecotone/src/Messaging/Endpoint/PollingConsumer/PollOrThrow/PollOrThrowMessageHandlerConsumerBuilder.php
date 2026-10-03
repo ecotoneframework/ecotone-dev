@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

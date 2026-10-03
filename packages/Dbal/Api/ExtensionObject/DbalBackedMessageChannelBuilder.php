@@ -36,7 +36,7 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
      * Coalesces published Messages into a single multi row insert.
      * Non blocking confirmation is not offered here, as the insert blocks until the database confirms it.
      */
-    public function withHighThroughputPublishing(): self
+    public function withHighThroughputPublishing(): static
     {
         $this->getDbalOutboundChannelAdapter()->withBatchPublishing();
 

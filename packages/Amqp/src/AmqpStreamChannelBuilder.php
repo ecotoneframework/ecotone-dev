@@ -64,9 +64,8 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      * Higher values allow faster consumption but use more memory.
      *
      * @param int $prefetchCount Number of messages to prefetch (default: 100)
-     * @return self
      */
-    public function withPrefetchCount(int $prefetchCount): self
+    public function withPrefetchCount(int $prefetchCount): static
     {
         /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
         $inboundAdapter = $this->getInboundChannelAdapter();
@@ -87,9 +86,8 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      * - Commits happen at offsets: 2, 4, 5 (5 is committed because it's the last in the batch)
      *
      * @param int $commitInterval Number of messages to process before committing position (default: 100)
-     * @return self
      */
-    public function withCommitInterval(int $commitInterval): self
+    public function withCommitInterval(int $commitInterval): static
     {
         /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
         $inboundAdapter = $this->getInboundChannelAdapter();

@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Amqp\Unit;
+
+use Ecotone\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+
+use function PHPStan\Testing\assertType;
+
+use PHPStan\Testing\TypeInferenceTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+
+/**
+ * licence Apache-2.0
+ * @internal
+ */
+final class AmqpStreamChannelBuilderTypeTest extends TypeInferenceTestCase
+{
+    public static function chained_channel_configuration(): iterable
+    {
+        yield from self::gatherAssertTypes(__FILE__);
+    }
+
+    #[DataProvider('chained_channel_configuration')]
+    public function test_every_with_method_keeps_the_amqp_stream_builder_type_for_static_analysis(string $assertType, string $file, mixed ...$args): void
+    {
+        $this->assertFileAsserts($assertType, $file, ...$args);
+    }
+
+    private static function databaseChannel(): void
+    {
+        $channel = AmqpStreamChannelBuilder::create('notifications');
+
+        assertType(AmqpStreamChannelBuilder::class, $channel->withHeaderMapping('*'));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withFinalFailureStrategy(FinalFailureStrategy::RESEND));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withReceiveTimeout(100));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withDefaultTimeToLive(1000));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withDefaultDeliveryDelay(1000));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withDefaultConversionMediaType('application/json'));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withAutoDeclare(false));
+        assertType(AmqpStreamChannelBuilder::class, $channel->withReceiveTimeout(100)->withPrefetchCount(10)->withCommitInterval(10));
+    }
+}

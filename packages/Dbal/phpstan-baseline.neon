@@ -1,0 +1,193 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Ecotone\\Api\\Dbal\\ExtensionObject\\DbalBackedMessageChannelBuilder\:\:getDbalOutboundChannelAdapter\(\) should return Ecotone\\Dbal\\DbalOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: Api/ExtensionObject/DbalBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Configuration\\DbalConnectionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Configuration\\DbalConnectionModule\) but returns Ecotone\\Dbal\\Configuration\\DbalConnectionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Configuration/DbalConnectionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Configuration\\DbalPublisherModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Configuration\\DbalPublisherModule\) but returns Ecotone\\Dbal\\Configuration\\DbalPublisherModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Configuration/DbalPublisherModule.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Connection/DbalConnectionFactory.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$deliveryDelay \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Connection/DbalMessage.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$priority \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Connection/DbalMessage.php
+
+		-
+			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$redeliverAfter \(int\) does not accept null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: src/Connection/DbalMessage.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Connection\\JSON\:\:decode\(\) should return array but empty return statement found\.$#'
+			identifier: return.empty
+			count: 1
+			path: src/Connection/JSON.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\) but returns Ecotone\\Dbal\\Consumer\\DbalConsumerPositionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Consumer/DbalConsumerPositionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Database\\DatabaseSetupModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Database\\DatabaseSetupModule\) but returns Ecotone\\Dbal\\Database\\DatabaseSetupModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Database/DatabaseSetupModule.php
+
+		-
+			message: '#^Variable \$dbalParameterAttribute in PHPDoc tag @var does not match any variable in the foreach loop\: \$dbalParameterGroups, \$methodName, \$dbalParameterAttributes$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/DbalBusinessMethod/DbalBusinessMethodModule.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Message\:\:setDeliveryDelay\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/DbalOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Message\:\:setTimeToLive\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/DbalOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\DBAL\\Connection\:\:establishConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/DbalReconnectableConnectionFactory.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/DbalReconnectableConnectionFactory.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\:\:create\(\) should return static\(Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\) but returns Ecotone\\Dbal\\DbalTransaction\\DbalTransactionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/DbalTransaction/DbalTransactionModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Deduplication\\DeduplicationModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Deduplication\\DeduplicationModule\) but returns Ecotone\\Dbal\\Deduplication\\DeduplicationModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Deduplication/DeduplicationModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DocumentStore\\DbalDocumentStore\:\:missingVersionColumnException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: src/DocumentStore/DbalDocumentStore.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\:\:create\(\) should return static\(Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\) but returns Ecotone\\Dbal\\DocumentStore\\DbalDocumentStoreModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/DocumentStore/DbalDocumentStoreModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\EntityManagerRegistryEmulator\:\:getManagers\(\) should return array\<string, Doctrine\\Persistence\\ObjectManager\> but returns array\<int, Doctrine\\ORM\\EntityManagerInterface\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/EntityManagerRegistryEmulator.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnectionNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getConnections\(\) should return array\<string, object\> but returns array\<int, Doctrine\\DBAL\\Connection\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ManagerRegistryEmulator\:\:getManagerNames\(\) should return array\<string, string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/ManagerRegistryEmulator.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\ConnectionFactory\:\:getRegistry\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$container with type array\<string, Interop\\Queue\\ConnectionFactory\> is incompatible with native type Psr\\Container\\ContainerInterface\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^PHPDoc type for property Ecotone\\Dbal\\MultiTenant\\HeaderBasedMultiTenantConnectionFactory\:\:\$container with type array\<string, Interop\\Queue\\ConnectionFactory\> is incompatible with native type Psr\\Container\\ContainerInterface\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\:\:create\(\) should return static\(Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\) but returns Ecotone\\Dbal\\ObjectManager\\ObjectManagerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/ObjectManager/ObjectManagerModule.php
+
+		-
+			message: '#^Method Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\:\:create\(\) should return static\(Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\) but returns Ecotone\\Dbal\\Recoverability\\DbalDeadLetterModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Recoverability/DbalDeadLetterModule.php

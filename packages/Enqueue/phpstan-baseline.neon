@@ -1,0 +1,31 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to method send\(\) on an unknown class Interop\\Amqp\\AmqpProducer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EnqueueAcknowledgementCallback.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$producer contains unknown class Interop\\Amqp\\AmqpProducer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/EnqueueAcknowledgementCallback.php
+
+		-
+			message: '#^PHPDoc tag @var with type Interop\\Amqp\\AmqpProducer is not subtype of native type Interop\\Queue\\Producer\.$#'
+			identifier: varTag.nativeType
+			count: 1
+			path: src/EnqueueAcknowledgementCallback.php
+
+		-
+			message: '#^Variable \$message in PHPDoc tag @var does not match assigned variable \$timeoutInMilliseconds\.$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: src/EnqueueInboundChannelAdapter.php
+
+		-
+			message: '#^Method Ecotone\\Enqueue\\EnqueueInboundChannelAdapterBuilder\:\:compileGateway\(\) should return Ecotone\\Messaging\\Config\\Container\\DefinedObject\|Ecotone\\Messaging\\Config\\Container\\Definition\|Ecotone\\Messaging\\Config\\Container\\Reference but returns Ecotone\\Messaging\\Endpoint\\InboundChannelAdapterEntrypoint\|Ecotone\\Messaging\\Handler\\Gateway\\GatewayProxyBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: src/EnqueueInboundChannelAdapterBuilder.php

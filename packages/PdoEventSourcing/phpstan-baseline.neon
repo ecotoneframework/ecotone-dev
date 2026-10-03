@@ -1,0 +1,115 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Ecotone\\EventSourcing\\AggregateStreamMapping\:\:createEmpty\(\) should return static\(Ecotone\\EventSourcing\\AggregateStreamMapping\) but returns Ecotone\\EventSourcing\\AggregateStreamMapping\.$#'
+			identifier: return.type
+			count: 1
+			path: src/AggregateStreamMapping.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\AggregateStreamMapping\:\:createWith\(\) should return static\(Ecotone\\EventSourcing\\AggregateStreamMapping\) but returns Ecotone\\EventSourcing\\AggregateStreamMapping\.$#'
+			identifier: return.type
+			count: 1
+			path: src/AggregateStreamMapping.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventSourcingModule\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventSourcingModule\) but returns Ecotone\\EventSourcing\\Config\\EventSourcingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/EventSourcingModule.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\) but returns Ecotone\\EventSourcing\\Config\\EventSourcingProjectingModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/EventSourcingProjectingModule.php
+
+		-
+			message: '#^Offset ''aggregateIdParam'' does not exist on array\{className\: string, methodName\: string, projectionName\: string, partitionKeyParam\: string\|null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: src/Config/EventSourcingProjectingModule.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Config\\EventStoreBuilder\:\:create\(\) should return static\(Ecotone\\EventSourcing\\Config\\EventStoreBuilder\) but returns Ecotone\\EventSourcing\\Config\\EventStoreBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Config/EventStoreBuilder.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Console/TagVerifySchemaConsoleCommand.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Database\\MissingEventStreamTable\:\:exceptionFor\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Database/MissingEventStreamTable.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Dbal\\DbalEventStore\:\:legacyAggregateConstraintException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Messaging\\Config\\ConfigurationException\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: src/Dbal/DbalEventStore.php
+
+		-
+			message: '#^Method Ecotone\\EventSourcing\\Dbal\\Tag\\DbalTagTables\:\:missingTablesException\(\) should return Ecotone\\Messaging\\Config\\ConfigurationException but returns Ecotone\\Messaging\\MessagingException\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Dbal/Tag/DbalTagTables.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
+			identifier: parameter.notFound
+			count: 1
+			path: src/DeserializingEventStore.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Api\\EventSourcing\\LoadedEvents\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: src/DeserializingEventStore.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Projecting/PartitionState/DbalProjectionStateStorage.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$no\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$timestamp\.$#'
+			identifier: property.notFound
+			count: 4
+			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+
+		-
+			message: '#^Comparison operation "\>" between list\<int\> and 0 results in an error\.$#'
+			identifier: greater.invalid
+			count: 1
+			path: src/Projecting/StreamSource/EventStoreGlobalStreamSource.php

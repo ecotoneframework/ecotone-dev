@@ -1,0 +1,19 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\:\:create\(\) should return static\(Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\) but returns Ecotone\\JMSConverter\\Configuration\\JMSConverterConfigurationModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Configuration/JMSConverterConfigurationModule.php
+
+		-
+			message: '#^Call to an undefined method JMS\\Serializer\\SerializerInterface\:\:fromArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/JMSConverter.php
+
+		-
+			message: '#^Call to an undefined method JMS\\Serializer\\SerializerInterface\:\:toArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/JMSConverter.php

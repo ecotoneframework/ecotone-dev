@@ -9,7 +9,7 @@ namespace Ecotone\Projecting\Config;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
-use Ecotone\Api\Projecting\ProjectionRegistry;
+use Ecotone\Projecting\ProjectionRegistry;
 use InvalidArgumentException;
 
 class ProjectingConsoleCommands

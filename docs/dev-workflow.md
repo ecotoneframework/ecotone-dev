@@ -184,6 +184,21 @@ an entry that no longer matches, so fixing an error means deleting its entry. Th
 `reportUnmatchedIgnoredErrors: false`, because CI analyses each package against its own `vendor/` on PHP 8.2,
 8.5 and `--prefer-lowest`, and an entry one of those does not reproduce must not fail the others.
 
+Shrinking a baseline after a fix is a regeneration, done in place, because phpstan ignores only the baseline file
+it is overwriting — generating to any other path applies the included baseline and reports nothing:
+
+```bash
+docker compose exec -T app vendor/bin/phpstan analyse --allow-empty-baseline --generate-baseline=phpstan-baseline.neon
+docker compose exec -T app bash -lc "cd packages/Ecotone && vendor/bin/phpstan analyse --allow-empty-baseline --generate-baseline=phpstan-baseline.neon"
+```
+
+A per-package run needs that package's own `vendor/`, and the root phpunit bootstrap refuses to start while one
+exists, so move them aside before running the root suites. **The Ecotone and Symfony baselines end in entries only
+PHP 8.2 with `--prefer-lowest` reproduces** (phpstan 2.1.0: `DatePoint::createFromInterface()`, a
+`PropertyEditorAccessor` interpolation, `CronExpression::getRunDate()`, and Symfony's `NodeDefinition::children()`).
+A regeneration on PHP 8.5 drops them, so re-append them and confirm the package in `app8_2` with
+`composer update --prefer-lowest`; every other package regenerates identically on 8.5.
+
 phpstan cannot catch a wrong class name in an attribute argument, because attribute arguments resolve lazily through
 reflection, so a green run does not prove a rename or a move is complete.
 

@@ -103,7 +103,7 @@ commit that evidences it. The summary:
 | 10a | **A guarantee is proved on every path that has to hold it** — direct call, class-routed bus send, routed send, gateway, console command, and the reconstruction path beside the live one | Five times in one feature, a fix covered one entry point and looked finished |
 | 11 | **`EcotoneLite`, `snake_case`, no comments, inline anonymous fixtures in the test file** — a named class below the `TestCase` only where PHP forces one. Test-first: RED, GREEN, refactor | An anonymous fixture cannot drift out of the test that owns it |
 | 12 | **The public surface is `Api/`, a sibling of `src/`** — never `src/Api/`, which breaks Tempest discovery. Everything outside `Api` is `@internal` | |
-| 12a | **The boundary holds both ways** — nothing an application writes stays outside `Api`, and no module, resolver or container plumbing moves into it. Builders may, since an application constructs a builder but never a module or a container. The test is who calls it: an internal type is fine in a method the *framework* calls, a leak in one the *application* calls | Adding to `Api/` almost never fails a build — phpstan reads it only at level 1, which finds a missing class but not an internal type in a public signature, and the licence check walks `src` only |
+| 12a | **The boundary holds both ways** — nothing an application writes stays outside `Api`, and no module, resolver or container plumbing moves into it. Builders may, since an application constructs a builder but never a module or a container. The test is who calls it: an internal type is fine in a method the *framework* calls, a leak in one the *application* calls | Adding to `Api/` almost never fails a build — phpstan finds a missing class and a broken return type, but has no rule for an internal type in a public signature, and the licence check walks `src` only |
 | 13 | **Configuration is attributes plus `#[ServiceContext]`**, compiled into a container via `DefinedObject`/`Definition`. No YAML, no XML | |
 | 13a | **Class metadata comes from `InterfaceToCall`/`ClassDefinition` via `InterfaceToCallRegistry`, never fresh reflection.** On the message path take it as a constructor argument — `InterfaceToCallReference` in a `Definition` is resolved once by a compiler pass | The registry memoizes; a service cannot memoize, because a cache on a service is rule 3 |
 | 14 | **A console option's name is its PHP parameter name verbatim** — camelCase, never kebab-case | |
@@ -160,9 +160,12 @@ Conventions [rule 11](./docs/coding-conventions.md#11-test-shape) has a full wor
 [docs/dev-workflow.md](./docs/dev-workflow.md) has every command, the database DSNs, and what each package's
 `composer tests:ci` actually runs.
 
-Static analysis is **phpstan level 1 over `src` and `Api/`** — not `tests/`, and not every package's `src`. It will
-not catch a wrong class name in an attribute argument, because attribute arguments resolve lazily via reflection.
-**A green phpstan is not evidence.**
+Static analysis is **phpstan level 3 over `src` and `Api/`, over a baseline** — not `tests/`. Level 3 is the first
+that checks return types, so it reports a caller that declares a subclass and receives the parent from an inherited
+`: self` method — at the caller, never at the `: self` declaration. The errors already in the tree are each config's
+`phpstan-baseline.neon`: the list to work down, never to add to. A new error is fixed, not baselined. phpstan still
+will not catch a wrong class name in an attribute argument, because attribute arguments resolve lazily via
+reflection, so **a green phpstan does not prove a rename or a move is complete** — grep the old FQCN.
 
 ## Common Patterns
 

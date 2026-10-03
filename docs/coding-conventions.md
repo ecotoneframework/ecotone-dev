@@ -753,13 +753,13 @@ the application only calls the static factories. The who-calls-it test decides t
 application writes it, only a module does, and modules are written in packages outside this monorepo too. Extension
 authors are users. Anything whose only caller is Ecotone itself is not.
 
-**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan reads `Api/` at
-level 1 only (rule 21): it reports a class that does not exist, never an internal type in a public signature. The
+**Nothing checks this for you.** `bin/check-licence.php` walks `packages/*/src` only, and phpstan (rule 21) reports
+a class that does not exist or a return type a method breaks, never an internal type in a public signature. The
 boundary is held in review, which is why it is written down.
 
 **Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
 the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,
-then fails at reflection time — which `phpstan` at level 1 does not catch, because attribute arguments resolve
+then fails at reflection time — which `phpstan` does not catch at any level, because attribute arguments resolve
 lazily. This broke fifteen classes during the namespace split; see §5 of the mapping spec.
 
 ---
@@ -981,10 +981,16 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 
 - `bin/check-licence.php` runs on every push and pull request (`.github/workflows/file-licence.yml`) over
   `packages/*/src`. `Api/` files all carry headers too, though the script does not yet check them.
-- `phpstan` is **level 1** and covers `src`, every package's `Api/`, and `Monorepo` — not `tests/`, and not the
-  `src` of the `Tempest`, `Redis`, `Sqs` or `DataProtection` packages. It will not catch a wrong class in an
-  attribute argument. Do not treat a green phpstan as evidence of anything beyond syntax.
-  [dev-workflow.md](./dev-workflow.md#static-analysis-licence-headers-code-style) has the exact path list.
+- `phpstan` is **level 3, over a baseline**, in the root config and in every package's own. The root covers `src`,
+  every package's `Api/`, and `Monorepo` — not `tests/`, and not the `src` of the `Tempest`, `Redis`, `Sqs` or
+  `DataProtection` packages, which only their own configs analyse. Level 3 is the first level that checks return
+  types: it reports a caller declaring a subclass that receives the parent from an inherited `: self` method, the
+  defect level 1 let through, though only where such a caller exists — never at the `: self` declaration, so that
+  defect still needs a caller-side test. Each config's `phpstan-baseline.neon` holds the errors that were already in
+  the tree; it shrinks as they are fixed and never grows — fix a new error, do not regenerate the baseline over it.
+  phpstan will not catch a wrong class in an attribute argument, so a green run does not prove a rename or a move is
+  complete. [dev-workflow.md](./dev-workflow.md#static-analysis-licence-headers-code-style) has the exact path
+  list.
 - `composer tests:ci` **at the root** = phpstan, then `packages/DataProtection/tests/before-tests.sh` (it generates
   a 200 MB fixture), then phpunit, then the quickstart examples. Four packages have their own additions to it;
   [dev-workflow.md](./dev-workflow.md#what-composer-testsci-runs) lists them.

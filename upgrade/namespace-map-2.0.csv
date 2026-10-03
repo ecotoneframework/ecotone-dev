@@ -156,8 +156,6 @@ Ecotone\Messaging\MessagePublisher,Ecotone\Api\Gateway\MessagePublisher
 Ecotone\Messaging\Future,Ecotone\Api\Messaging\Future
 Ecotone\Messaging\Gateway\SerializerGateway,Ecotone\Api\Gateway\SerializerGateway
 Ecotone\Messaging\Scheduling\EcotoneClockInterface,Ecotone\Api\Gateway\EcotoneClockInterface
-Ecotone\Projecting\ProjectingManager,Ecotone\Api\Projecting\ProjectingManager
-Ecotone\Projecting\ProjectionRegistry,Ecotone\Api\Projecting\ProjectionRegistry
 Ecotone\Messaging\Store\Document\DocumentStore,Ecotone\Api\Gateway\DocumentStore
 Ecotone\Dbal\Recoverability\DeadLetterGateway,Ecotone\Api\Dbal\Gateway\DeadLetterGateway
 Ecotone\EventSourcing\EventStore,Ecotone\Api\EventSourcing\EventStore

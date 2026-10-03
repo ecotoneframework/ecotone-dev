@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Conversion;
 
 use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\SerializerGateway;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

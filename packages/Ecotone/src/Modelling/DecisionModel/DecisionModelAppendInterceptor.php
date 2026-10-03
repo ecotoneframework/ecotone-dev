@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;

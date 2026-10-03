@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -17,6 +16,7 @@ use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Interop\Queue\Context;
 use Throwable;
 

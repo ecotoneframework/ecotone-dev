@@ -162,7 +162,7 @@ package's lock resolution.
 ## Static analysis, licence headers, code style
 
 ```bash
-# phpstan — level 1. The bare form is what composer tests:phpstan runs; `analyse` is its default subcommand
+# phpstan — level 3, over a baseline. The bare form is what composer tests:phpstan runs; `analyse` is its default subcommand
 docker compose exec -T app vendor/bin/phpstan
 docker compose exec -T app bash -lc "cd packages/Dbal && vendor/bin/phpstan"
 
@@ -172,12 +172,20 @@ docker compose exec -T app php bin/add-apache-licence.php      # open source
 docker compose exec -T app php bin/add-enterprise-licence.php  # Enterprise modules
 ```
 
-`phpstan.neon` is level 1 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
+`phpstan.neon` is level 3 over `src` for Ecotone, Enqueue, Dbal, Amqp, JmsConverter, PdoEventSourcing, Laravel,
 OpenTelemetry, Kafka, plus `packages/Symfony/DependencyInjection`, `Monorepo`, and the `Api/` of all twelve packages
-that have one. Each package's own `phpstan.neon` lists its `Api` beside its source directories. It does **not** cover `tests/`,
-or the `src` of the Tempest, Redis, Sqs and DataProtection packages, and it cannot catch a wrong class name in an
-attribute argument, because attribute arguments resolve lazily through reflection. A green phpstan is not evidence
-that anything works.
+that have one. Each package's own `phpstan.neon` is level 3 too and lists its `Api` beside its source directories.
+The root does **not** cover `tests/`, or the `src` of the Tempest, Redis, Sqs and DataProtection packages — only their
+own configs do.
+
+Every config includes a `phpstan-baseline.neon` beside it: the errors already in the tree when the level rose, which
+is the list to work down. Fix a new error rather than regenerating the baseline over it. The root baseline fails on
+an entry that no longer matches, so fixing an error means deleting its entry. The per-package configs set
+`reportUnmatchedIgnoredErrors: false`, because CI analyses each package against its own `vendor/` on PHP 8.2,
+8.5 and `--prefer-lowest`, and an entry one of those does not reproduce must not fail the others.
+
+phpstan cannot catch a wrong class name in an attribute argument, because attribute arguments resolve lazily through
+reflection, so a green run does not prove a rename or a move is complete.
 
 ```bash
 # php-cs-fixer — ON THE HOST, never in the container. git is unavailable there, so the

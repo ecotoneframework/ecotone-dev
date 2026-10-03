@@ -715,9 +715,16 @@ one hop without closing it — and then seven moved together, in `upgrade-2.0.md
 `InMemoryConsoleWriter`, so all four moved into `Ecotone\Api\Console`. `Message` followed in §13g: five `FlowTestSupport` methods, the
 channel interfaces and the dead-letter gateway name it, and a handler takes it to receive the whole message.
 
-**Nothing internal moves into `Api`.** No modules, builders that the user never constructs, resolvers, interceptors,
-services, compiler passes or container plumbing. 203 files live under `packages/*/Api` today; the reason the number
-stays honest is that a class is added there on purpose, never because it was convenient.
+**Nothing internal moves into `Api`.** No modules, resolvers, interceptors, services, compiler passes or container
+plumbing. 203 files live under `packages/*/Api` today; the reason the number stays honest is that a class is added
+there on purpose, never because it was convenient.
+
+**Builders are allowed in `Api`, because an application constructs a builder, and it never constructs a module or a
+container.** `MessageChannelBuilder` is taken by `DynamicMessageChannelBuilder::createWithSendOnlyStrategy()` and
+`withInternalChannels()`, both in `Api`, and the four `*BackedMessageChannelBuilder` subclasses an application
+returns from its `#[ServiceContext]` methods are in `Api` already, so keeping the builder type out left those
+signatures naming an internal one. A builder only the framework constructs or reads is still internal — the who-calls-it
+test below decides it like any other class.
 
 **The test is who calls it, not what it is named.** An `Api` class may name an internal type in a method *the
 framework* calls — that is the `DefinedObject`/channel-builder contract, and `compile(MessagingContainerBuilder

@@ -7,11 +7,9 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\SerializerGateway;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDefinitionException;
-use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -30,35 +28,25 @@ use Stringable;
  */
 class ConversionServiceTest extends TestCase
 {
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     * @throws InvalidArgumentException
-     */
     public function test_using_php_serializing_converters()
     {
-        $conversionService = EcotoneLite::bootstrapFlowTesting()->getGateway(ConversionService::class);
+        $serializer = EcotoneLite::bootstrapFlowTesting()->getGateway(SerializerGateway::class);
 
         $serializedObject = new stdClass();
         $serializedObject->name = 'johny';
         $serializedObject->age = 15;
 
-        $result = $conversionService->convert(
+        $result = $serializer->convertFromPHP(
             $serializedObject,
-            Type::create('object'),
-            MediaType::createApplicationXPHP(),
-            Type::create('string'),
-            MediaType::createApplicationXPHPSerialized()
+            MediaType::createApplicationXPHPSerialized()->addParameter('type', 'string')->toString()
         );
 
         $this->assertEquals(
             $serializedObject,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 $result,
-                Type::create('string'),
-                MediaType::createApplicationXPHPSerialized(),
-                Type::create(stdClass::class),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP_SERIALIZED,
+                stdClass::class
             )
         );
     }
@@ -116,30 +104,25 @@ class ConversionServiceTest extends TestCase
             ],
         );
 
-        /** @var ConversionService $conversionService */
-        $conversionService = $ecotone->getGateway(ConversionService::class);
+        $serializer = $ecotone->getGateway(SerializerGateway::class);
 
         $data = new SomeStringableDataOne('some-data-one');
         $this->assertEquals(
             $data->value,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 $data,
-                Type::create(SomeStringableDataOne::class),
-                MediaType::createApplicationXPHP(),
-                Type::string(),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP,
+                'string'
             )
         );
 
         $data = new SomeStringableDataThree('some-data-three');
         $this->assertEquals(
             $data->value,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 $data,
-                Type::create(SomeStringableDataThree::class),
-                MediaType::createApplicationXPHP(),
-                Type::string(),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP,
+                'string'
             )
         );
     }
@@ -177,30 +160,25 @@ class ConversionServiceTest extends TestCase
             containerOrAvailableServices: [],
         );
 
-        /** @var ConversionService $conversionService */
-        $conversionService = $ecotone->getGateway(ConversionService::class);
+        $serializer = $ecotone->getGateway(SerializerGateway::class);
 
         $data = new SomeStringableDataOne('some-data-one');
         $this->assertEquals(
             $data->value,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 $data,
-                Type::create(SomeStringableDataOne::class),
-                MediaType::createApplicationXPHP(),
-                Type::string(),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP,
+                'string'
             )
         );
 
         $data = new SomeStringableDataThree('some-data-three');
         $this->assertEquals(
             $data->value,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 $data,
-                Type::create(SomeStringableDataThree::class),
-                MediaType::createApplicationXPHP(),
-                Type::string(),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP,
+                'string'
             )
         );
     }
@@ -213,19 +191,16 @@ class ConversionServiceTest extends TestCase
             containerOrAvailableServices: [],
         );
 
-        /** @var ConversionService $conversionService */
-        $conversionService = $ecotone->getGateway(ConversionService::class);
+        $serializer = $ecotone->getGateway(SerializerGateway::class);
 
         $data = 'some-data';
 
         $this->assertEquals(
             $data,
-            $conversionService->convert(
+            $serializer->convertToPHP(
                 new SomeStringableDataTwo($data),
-                Type::create(SomeStringableDataTwo::class),
-                MediaType::createApplicationXPHP(),
-                Type::string(),
-                MediaType::createApplicationXPHP()
+                MediaType::APPLICATION_X_PHP,
+                'string'
             )
         );
     }

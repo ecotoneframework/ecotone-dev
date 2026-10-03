@@ -1,0 +1,31 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^PHPDoc tag @return with type string is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: Api/SymfonyMessengerMessageChannelBuilder.php
+
+		-
+			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:getParameter\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: DependencyInjection/Compiler/SymfonyConfigurationVariableService.php
+
+		-
+			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:hasParameter\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: DependencyInjection/Compiler/SymfonyConfigurationVariableService.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: DependencyInjection/MessagingEntrypointCommand.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition\:\:children\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: DependencyInjection/Configuration.php

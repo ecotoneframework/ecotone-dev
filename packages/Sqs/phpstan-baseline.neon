@@ -1,0 +1,7 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Ecotone\\Api\\Sqs\\SqsBackedMessageChannelBuilder\:\:getSqsOutboundChannelAdapter\(\) should return Ecotone\\Sqs\\SqsOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: Api/SqsBackedMessageChannelBuilder.php

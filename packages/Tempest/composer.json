@@ -60,7 +60,7 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0|^12.0",
-        "phpstan/phpstan": "^1.8|^2.0",
+        "phpstan/phpstan": "^2.1",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
         "ecotone/dbal": "~1.326.1",
         "doctrine/dbal": "^4.0"

@@ -685,18 +685,6 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
 
 		-
-			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$container\.$#'
-			identifier: property.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemContainer.php
-
-		-
-			message: '#^Access to an undefined property Ecotone\\Api\\Messaging\\ConfiguredMessagingSystem\:\:\$pollingEndpoints\.$#'
-			identifier: property.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemContainer.php
-
-		-
 			message: '#^PHPDoc tag @var above a method has no effect\.$#'
 			identifier: varTag.misplaced
 			count: 1
@@ -1283,18 +1271,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: packages/PdoEventSourcing/src/Projecting/PartitionState/DbalProjectionStateStorage.php
-
-		-
-			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$no\.$#'
-			identifier: property.notFound
-			count: 2
-			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
-
-		-
-			message: '#^Access to an undefined property Ecotone\\Api\\EventSourcing\\Event\:\:\$timestamp\.$#'
-			identifier: property.notFound
-			count: 4
-			path: packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
 
 		-
 			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'

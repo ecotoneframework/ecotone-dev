@@ -67,24 +67,6 @@ parameters:
 			path: packages/Amqp/src/AmqpOutboundChannelAdapter.php
 
 		-
-			message: '#^Call to method getLibChannel\(\) on an unknown class Ecotone\\Amqp\\AmqpContext\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$publisherContext contains unknown class Ecotone\\Amqp\\AmqpContext\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
-
-		-
-			message: '#^PHPDoc tag @var with type Ecotone\\Amqp\\AmqpContext is not subtype of native type Interop\\Queue\\Context\.$#'
-			identifier: varTag.nativeType
-			count: 1
-			path: packages/Amqp/src/AmqpStreamAcknowledgeCallback.php
-
-		-
 			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\.$#'
 			identifier: return.type
 			count: 1
@@ -461,24 +443,6 @@ parameters:
 			identifier: return.phpDocType
 			count: 1
 			path: packages/Ecotone/src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
-
-		-
-			message: '#^Method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:releaseMessages\(\) should return array\<Ecotone\\Api\\Messaging\\Message\> but returns array\<Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\>\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
-
-		-
-			message: '#^Parameter \$collectedMessages of method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:__construct\(\) has invalid type Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
-
-		-
-			message: '#^Property Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:\$collectedMessages has unknown class Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/Collector/CollectorStorage.php
 
 		-
 			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
@@ -1151,24 +1115,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: packages/JmsConverter/src/JMSConverter.php
-
-		-
-			message: '#^Call to method getBootstrapServers\(\) on an unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
-			identifier: class.notFound
-			count: 3
-			path: packages/Kafka/src/Configuration/KafkaAdmin.php
-
-		-
-			message: '#^Parameter \$kafkaBrokerConfigurations of method Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:__construct\(\) has invalid type Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Kafka/src/Configuration/KafkaAdmin.php
-
-		-
-			message: '#^Property Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:\$kafkaBrokerConfigurations has unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: packages/Kafka/src/Configuration/KafkaAdmin.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$topics$#'

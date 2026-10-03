@@ -181,24 +181,6 @@ parameters:
 			path: src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
 
 		-
-			message: '#^Method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:releaseMessages\(\) should return array\<Ecotone\\Api\\Messaging\\Message\> but returns array\<Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Messaging/Channel/Collector/CollectorStorage.php
-
-		-
-			message: '#^Parameter \$collectedMessages of method Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:__construct\(\) has invalid type Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Messaging/Channel/Collector/CollectorStorage.php
-
-		-
-			message: '#^Property Ecotone\\Messaging\\Channel\\Collector\\CollectorStorage\:\:\$collectedMessages has unknown class Ecotone\\Messaging\\Channel\\Collector\\CollectedMessage as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Messaging/Channel/Collector/CollectorStorage.php
-
-		-
 			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
 			identifier: encapsedStringPart.nonString
 			count: 1

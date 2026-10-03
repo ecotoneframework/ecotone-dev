@@ -117,25 +117,42 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   routes each event to exactly one handler, so split such logic into separate handlers keyed by event class or into
   separate projections; and Prooph's `MetadataMatcher` filtering and configurable `GapDetection` retry schedule on
   projections — gap handling is built in (`GapAwarePosition`) and has no user configuration.
-- Code that injected the v1 `ProjectionManager` gateway (`Ecotone\EventSourcing\ProjectionManager`) injects
-  `Ecotone\Api\Projecting\ProjectionRegistry` instead and works with `ProjectionRegistry::get('order_list')`, which returns a
-  `ProjectingManager`: `init()`, `execute()`, `executeWithReset()`, `prepareRebuild()`, `prepareBackfill()` and
-  `delete()` cover initialise, run, reset, rebuild, backfill and delete.
+- Code that injected the v1 `ProjectionManager` gateway (`Ecotone\EventSourcing\ProjectionManager`) has no injectable
+  replacement. The 2.0 projection manager and its registry are internal: they carry the projection's positions and
+  gap list, which are the event store's bookkeeping, not an application concern. Use the sanctioned paths instead:
+  - **reading a projection's state** — declare a gateway method with `#[ProjectionStateGateway]`
+    (`Ecotone\Api\Projecting\ProjectionStateGateway`). It returns the state the projection's handlers keep through
+    `#[ProjectionState]`, and nothing about positions:
+    ```php
+    interface OrderListStateGateway
+    {
+        #[ProjectionStateGateway('order_list')]
+        public function fetchState(): OrderListState;
+    }
+    ```
+    A partitioned projection takes the partition key as the method's argument.
+  - **lifecycle** — the console commands: `ecotone:projection:init <name>` (or `--all`), `ecotone:projection:backfill
+    <name>`, `ecotone:projection:rebuild <name>` and `ecotone:projection:delete <name>`, in place of v1's `init`,
+    `reset`/`rebuild` and `delete` operations.
+  - **running** — there is nothing to call. A projection runs whenever an event it handles is published:
+    synchronously in the publishing process, or through its channel's consumer (`ecotone:run <channel>`) when the
+    projection is `#[Asynchronous]`, or through `ecotone:run <endpointId>` when it is `#[Polling]`. To catch a
+    projection up without a new event, backfill it. In a flow test, `FlowTestSupport::triggerProjection()` runs it.
 - Replace `ProjectionRunningConfiguration` / `ProjectionSetupConfiguration` / `ProjectionLifeCycleConfiguration`
   with `#[Polling(endpointId:)]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
   `#[ProjectionInitialization]`/`#[ProjectionReset]`/`#[ProjectionDelete]` keep their names and move to
   `Ecotone\Api`.
 - Console: the `ecotone:es:*` commands are removed with no direct replacement for `reset-projection`,
-  `trigger-projection` or `stop-projection`. The nearest v2 surface is `ecotone:projection:init|backfill|rebuild|delete`
-  (`ProjectingManager::executeWithReset()`/`execute()` exist programmatically but are not exposed as console
-  commands).
+  `trigger-projection` or `stop-projection`. The nearest v2 surface is `ecotone:projection:init|backfill|rebuild|delete`:
+  `backfill` replays the stream into a projection from its current position, which is what `trigger-projection`
+  did, and `rebuild` resets and replays it, which is what `reset-projection` did.
 - `#[ProjectionState]` parameters must declare a default value (e.g. `array $state = []`, or
   `MyState $state = new MyState()`) — the framework passes `null` before a partition has any state, and a
   required, non-nullable parameter with no default cannot accept that.
 - `EventStreamEmitter::emit()` (not `linkTo()`) requires an Enterprise licence: it tags the emitted event with
   the projection's own name, and that header is only populated under a valid licence.
 - Tests: `FlowTestSupport::triggerProjection()`/`resetProjection()`/`initializeProjection()`/`deleteProjection()`
-  now call the v2 `ProjectingManager` directly and synchronously — there is no more queued/asynchronous delay
+  now drive the projection directly and synchronously — there is no more queued/asynchronous delay
   before they take effect, so a test that relied on "nothing happens until the next `->run()`" needs to drop
   that intermediate `->run()` call. `initializeProjection()` drops its unused `$metadata` parameter.
   `stopProjection()` is removed with no replacement: stop a `#[Polling]` projection in a test by not calling
@@ -1048,7 +1065,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `Clock::get()` static access | inject `EcotoneClockInterface` |
 | `FlowTestSupport::releaseAwaitingMessagesAndRunConsumer()` | `run()` |
 | `BaseEventSourcingConfiguration::withSnapshots()` | `withSnapshotsFor()` |
-| `ProjectingManager::backfill()` | `prepareBackfill()` |
+| `ProjectingManager::backfill()` | `ecotone:projection:backfill <name>`; the manager is internal in 2.0 (§3) |
 | `AmqpBackedMessageChannelBuilder::withPublisherAcknowledgments()` | `withPublisherConfirms()` |
 | `DbalConfiguration::withCleanObjectManagerOnAsynchronousEndpoints()` | `withClearAndFlushObjectManagerOnAsynchronousEndpoints()` |
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
@@ -1247,8 +1264,8 @@ quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDoc
   point with `DbalConfiguration::withTransactionOnCommandBus(false)`, `withTransactionOnAsynchronousEndpoints(false)`
   or `withTransactionOnConsoleCommands(false)`. A projection that deletes the stream it emits to does it in
   `#[ProjectionDelete]`, not `#[ProjectionReset]`, and is deleted before it is rebuilt — through
-  `ProjectionRegistry`, or through `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since
-  that console command runs inside a transaction by default.
+  `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since that console command runs inside a
+  transaction by default.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
   from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler
@@ -1404,7 +1421,7 @@ objects, and gateways/buses alike — lives under `Ecotone\Api`, organized by ki
   `Ecotone\Api\Gateway\DistributedBus`, `Ecotone\Api\Gateway\DocumentStore`, `Ecotone\Api\Gateway\MessagePublisher`)
 - classes that belong to a feature sub-module → `Ecotone\Api\<Module>\*`, flat inside the module with **no** further
   `Attribute`/`ExtensionObject`/`Gateway` segment (e.g. `Ecotone\Api\Projecting\Projection`,
-  `Ecotone\Api\Projecting\ProjectionDelete`, `Ecotone\Api\Projecting\ProjectingManager`) — a module-scoped class stays
+  `Ecotone\Api\Projecting\ProjectionDelete`, `Ecotone\Api\Projecting\ProjectionStateGateway`) — a module-scoped class stays
   flat inside its module even when it would otherwise be an attribute or extension object
 - classes belonging to another Composer package → `Ecotone\Api\<Package>\*`, and only split into kind sub-namespaces
   when that package's own `Api` dir mixes enough kinds to warrant it — today only `Dbal` does

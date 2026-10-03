@@ -41,6 +41,11 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return new self();
     }
 
+    public static function withDefaults(): static
+    {
+        return new self();
+    }
+
     public static function createInMemory(): static
     {
         $eventSourcingConfiguration = new self();

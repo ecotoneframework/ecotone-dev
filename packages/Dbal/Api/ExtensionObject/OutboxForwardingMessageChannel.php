@@ -6,7 +6,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Support\Assert;
 

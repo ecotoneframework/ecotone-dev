@@ -3,6 +3,7 @@
 namespace Ecotone\Test;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
@@ -12,7 +13,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Lite\Test\MessagingTestSupport;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;

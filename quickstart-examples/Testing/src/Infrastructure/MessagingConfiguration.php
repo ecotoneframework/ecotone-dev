@@ -7,7 +7,7 @@ namespace App\Testing\Infrastructure;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 
 final class MessagingConfiguration
 {

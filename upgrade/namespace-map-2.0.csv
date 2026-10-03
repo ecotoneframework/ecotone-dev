@@ -199,3 +199,4 @@ Ecotone\Messaging\Console\ConsoleProgressBar,Ecotone\Api\Console\ConsoleProgress
 Ecotone\Messaging\Console\InMemoryConsoleWriter,Ecotone\Api\Console\InMemoryConsoleWriter
 Ecotone\Messaging\Console\InMemoryConsoleProgressBar,Ecotone\Api\Console\InMemoryConsoleProgressBar
 Ecotone\Messaging\Message,Ecotone\Api\Messaging\Message
+Ecotone\Messaging\Channel\MessageChannelBuilder,Ecotone\Api\ExtensionObject\MessageChannelBuilder

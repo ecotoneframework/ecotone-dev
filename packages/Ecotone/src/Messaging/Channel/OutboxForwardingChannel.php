@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+
 /**
  * Combined Message Channel whose source acts as an outbox published by a dedicated forwarding endpoint.
  * Implementations own the storage specific configuration, while Messaging core guards that the source

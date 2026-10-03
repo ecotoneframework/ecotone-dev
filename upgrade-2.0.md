@@ -1892,6 +1892,38 @@ an application still meets: an error-channel handler can type its parameter `Err
 `sendMessageDirectToChannel()` builds its `Message` with `MessageBuilder`, since `Api` has no way to construct one.
 Both are recorded as open, not changed by this move.
 
+### 13h. `MessageChannelBuilder` moved into `Api`
+
+**Before:** the type `DynamicMessageChannelBuilder` takes for its internal channels was internal, so an application
+building a dynamic channel, or declaring a `#[ServiceContext]` that returns any channel builder, imported it from
+`src`:
+
+```php
+use Ecotone\Messaging\Channel\MessageChannelBuilder;   // internal
+```
+
+**Now:** it sits beside `DynamicMessageChannelBuilder` and `SimpleMessageChannelBuilder`:
+
+```php
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Channel\MessageChannelBuilder` | `Ecotone\Api\ExtensionObject\MessageChannelBuilder` |
+
+The signatures it closes: `DynamicMessageChannelBuilder::createWithSendOnlyStrategy()` and `withInternalChannels()`
+take it, and `createRoundRobin()` and `createRoundRobinWithDifferentChannels()` take a list of it.
+
+**How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. The interface is unchanged —
+`getMessageChannelName()`, `isPollable()`, `isStreamingChannel()` and the `compile()` it inherits — so a class
+implementing it needs only the import.
+
+**No container id changes.** Channels are registered under their channel names, not under this type.
+
+**What stays internal:** `CompilableBuilder`, which it extends, and `MessageChannelWithSerializationBuilder`, which
+extends it. Only the framework calls what they add — `compile()`, `getConversionMediaType()`, `getHeaderMapper()`.
+
 ## 14. Smaller behaviour changes
 
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
@@ -1933,6 +1965,20 @@ Both are recorded as open, not changed by this move.
   interceptor for that exact channel, with the same `changeHeaders` / `precedence` semantics as `#[Before]` /
   `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it
   to be ignored; without a licence bootstrap throws `LicensingException`.
+- **The channel builders' `with…()` methods return the builder you called them on.** `withReceiveTimeout()`,
+  `withAutoDeclare()`, `withFinalFailureStrategy()`, `withHeaderMapping()`, `withDefaultTimeToLive()`,
+  `withDefaultDeliveryDelay()` and `withDefaultConversionMediaType()` were declared on an internal parent as `: self`,
+  so static analysis read `DbalBackedMessageChannelBuilder::create('orders')->withReceiveTimeout(100)` as the internal
+  `EnqueueMessageChannelBuilder` parent — a `#[ServiceContext]` declaring `: DbalBackedMessageChannelBuilder` was
+  reported as returning the wrong type at phpstan level 3, and a subclass method chained after an inherited one was
+  an undefined method. They now return `static`, as do the fluent methods of `AmqpBackedMessageChannelBuilder`,
+  `DbalBackedMessageChannelBuilder` and `AmqpStreamChannelBuilder`; `AmqpBackedMessageChannelBuilder::create()`,
+  which declared no return type, returns `self`. Runtime behaviour is unchanged. Nothing to change; drop any
+  `@var` or baseline entry you added to silence it.
+- **`EventSourcingConfiguration::withDefaults()` returns an `EventSourcingConfiguration`.** It was inherited from an
+  internal base and built that base, so a `#[ServiceContext]` declaring `: EventSourcingConfiguration` failed with a
+  `TypeError`, and chaining `withLoadBatchSize()` or any other `EventSourcingConfiguration` method was a call to an
+  undefined method. It now behaves as `createWithDefaults()`.
 - **DBAL 3 compatibility layer removed (internal).** With DBAL 4 as the minimum (see the top of this guide),
   `Ecotone\Dbal\Compatibility\QueryBuilderProxy` and `Ecotone\Dbal\Compatibility\SchemaManagerCompatibility` are gone,
   together with the version checks around `getSchemaManager()`, `ArrayParameterType`, `ParameterType` and

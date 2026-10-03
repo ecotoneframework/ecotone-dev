@@ -159,7 +159,6 @@ Ecotone\Messaging\Scheduling\EcotoneClockInterface,Ecotone\Api\Gateway\EcotoneCl
 Ecotone\Messaging\Store\Document\DocumentStore,Ecotone\Api\Gateway\DocumentStore
 Ecotone\Dbal\Recoverability\DeadLetterGateway,Ecotone\Api\Dbal\Gateway\DeadLetterGateway
 Ecotone\EventSourcing\EventStore,Ecotone\Api\EventSourcing\EventStore
-Ecotone\Messaging\Conversion\ConversionService,Ecotone\Api\Conversion\ConversionService
 Ecotone\Dbal\Database\DatabaseSetupManager,Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager
 Ecotone\Modelling\Api\Distribution\DistributedServiceMap,Ecotone\Api\ExtensionObject\DistributedServiceMap
 Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\DistributedBusHeader

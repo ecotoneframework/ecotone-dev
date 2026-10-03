@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer as KafkaConsumerAttribute;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Outbound\KafkaDeliveryTracker;

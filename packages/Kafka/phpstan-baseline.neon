@@ -1,24 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to method getBootstrapServers\(\) on an unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
-			identifier: class.notFound
-			count: 3
-			path: src/Configuration/KafkaAdmin.php
-
-		-
-			message: '#^Parameter \$kafkaBrokerConfigurations of method Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:__construct\(\) has invalid type Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Configuration/KafkaAdmin.php
-
-		-
-			message: '#^Property Ecotone\\Kafka\\Configuration\\KafkaAdmin\:\:\$kafkaBrokerConfigurations has unknown class Ecotone\\Kafka\\Configuration\\KafkaBrokerConfiguration as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Configuration/KafkaAdmin.php
-
-		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$topics$#'
 			identifier: parameter.notFound
 			count: 1

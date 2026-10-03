@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Projecting;
 
 use Attribute;
+use Ecotone\Projecting\ProjectingManager;
 
 #[Attribute]
 final class ProjectionStateGateway

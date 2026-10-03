@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Redis\RedisConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
@@ -13,6 +12,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\LicensingException;
 
 /**

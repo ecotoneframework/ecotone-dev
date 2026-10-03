@@ -199,17 +199,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             }
         }
 
-        usort($all, function (array $aTuple, array $bTuple) use ($orderIndex): int {
-            [$aStream, $a] = $aTuple;
-            [$bStream, $b] = $bTuple;
-            if ($aStream === $bStream) {
-                return $a->no <=> $b->no;
-            }
-            if ($a->timestamp === $b->timestamp) {
-                return $orderIndex[$aStream] <=> $orderIndex[$bStream];
-            }
-            return $a->timestamp <=> $b->timestamp;
-        });
+        usort($all, fn (array $aTuple, array $bTuple): int => self::compareInGlobalOrder($orderIndex, $aTuple[0], $aTuple[1], $bTuple[0], $bTuple[1]));
 
         $events = array_map(fn (array $tuple) => $tuple[1], $all);
 
@@ -243,6 +233,20 @@ class EventStoreGlobalStreamSource implements StreamSource
             $result[$stream] = $pos;
         }
         return $result;
+    }
+
+    /**
+     * @param array<int|string, int> $orderIndex
+     */
+    private static function compareInGlobalOrder(array $orderIndex, int|string $aStream, StreamEvent $a, int|string $bStream, StreamEvent $b): int
+    {
+        if ($aStream === $bStream) {
+            return $a->no <=> $b->no;
+        }
+        if ($a->timestamp === $b->timestamp) {
+            return $orderIndex[$aStream] <=> $orderIndex[$bStream];
+        }
+        return $a->timestamp <=> $b->timestamp;
     }
 
     private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $quotedTable): void

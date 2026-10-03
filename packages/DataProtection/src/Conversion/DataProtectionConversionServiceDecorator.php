@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Conversion;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 
 /**
@@ -27,13 +27,13 @@ class DataProtectionConversionServiceDecorator implements ConversionService
     public function convert($source, Type $sourcePHPType, MediaType $sourceMediaType, Type $targetPHPType, MediaType $targetMediaType)
     {
         if ($this->dataProtectionConversionService->canConvert($sourcePHPType, $encryptedSourceMediaType = $sourceMediaType->addParameter('encrypted', 'true'), $targetPHPType, $targetMediaType)) {
-            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $encryptedSourceMediaType, $targetPHPType, $targetMediaType, $this->innerConversionService);
+            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $encryptedSourceMediaType, $targetPHPType, $targetMediaType);
         }
 
-        $source = $this->innerConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this->innerConversionService);
+        $source = $this->innerConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
 
         if ($this->dataProtectionConversionService->canConvert($sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType = $targetMediaType->addParameter('encrypted', 'true'))) {
-            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType, $this->innerConversionService);
+            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType);
         }
 
         return $source;

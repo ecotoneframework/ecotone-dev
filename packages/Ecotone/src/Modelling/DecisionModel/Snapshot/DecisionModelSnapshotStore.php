@@ -6,10 +6,10 @@ namespace Ecotone\Modelling\DecisionModel\Snapshot;
 
 use function array_key_exists;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\DocumentException;

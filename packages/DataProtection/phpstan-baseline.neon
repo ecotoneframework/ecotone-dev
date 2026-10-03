@@ -1,7 +1,7 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Ecotone\\Api\\Conversion\\ConversionService\:\:convert\(\) invoked with 6 parameters, 5 required\.$#'
+			message: '#^Method Ecotone\\Messaging\\Conversion\\ConversionService\:\:convert\(\) invoked with 6 parameters, 5 required\.$#'
 			identifier: arguments.count
 			count: 3
 			path: src/Conversion/DataProtectionConversionServiceDecorator.php

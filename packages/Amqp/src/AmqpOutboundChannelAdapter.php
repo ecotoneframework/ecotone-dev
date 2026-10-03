@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\BatchMessage;
@@ -14,6 +13,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;

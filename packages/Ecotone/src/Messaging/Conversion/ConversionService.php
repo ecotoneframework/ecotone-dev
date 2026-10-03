@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Conversion;
+namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 /**
  * Interface ConversionService
- * @package Ecotone\Api\Conversion
+ * @package Ecotone\Messaging\Conversion
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 /**

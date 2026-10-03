@@ -42,7 +42,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         string $channelName,
         string $amqpConnectionReferenceName = AmqpConnectionReference::DEFAULT,
         ?string $queueName = null
-    ) {
+    ): self {
         return new self(
             $channelName,
             $amqpConnectionReferenceName,
@@ -55,7 +55,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this->outboundChannelAdapter;
     }
 
-    public function withPublisherConfirms(bool $enabled): self
+    public function withPublisherConfirms(bool $enabled): static
     {
         $this->outboundChannelAdapter->withPublisherConfirms($enabled);
 
@@ -67,14 +67,14 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
      * @param bool $nonBlockingConfirmation publishes without waiting for publisher confirms, which are awaited before the surrounding Command Bus or asynchronous endpoint finishes
      * @param int|null $confirmationTimeoutInMilliseconds how long to await publisher confirms before treating the delivery as failed
      */
-    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): static
     {
         $this->getAmqpOutboundChannelAdapter()->withHighThroughputPublishing($batchPublishing, $nonBlockingConfirmation, $confirmationTimeoutInMilliseconds);
 
         return $this;
     }
 
-    public function withDelayStrategy(string $delayStrategyReferenceName): self
+    public function withDelayStrategy(string $delayStrategyReferenceName): static
     {
         $this->getAmqpOutboundChannelAdapter()->withDelayStrategy($delayStrategyReferenceName);
 

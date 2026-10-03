@@ -433,12 +433,6 @@ parameters:
 			path: packages/Ecotone/src/EventSourcing/Tagging/DynamicConsistencyBoundaryDisabled.php
 
 		-
-			message: '#^Method Ecotone\\Messaging\\Config\\Configuration\:\:registerServiceDefinition\(\) invoked with 1 parameter, 2 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: packages/Ecotone/src/Lite/Test/Configuration/EcotoneTestSupportModule.php
-
-		-
 			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
 			identifier: return.phpDocType
 			count: 1
@@ -959,12 +953,6 @@ parameters:
 			identifier: parameter.notFound
 			count: 1
 			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
-
-		-
-			message: '#^Method Ecotone\\Modelling\\Repository\\AggregateRepository\:\:save\(\) invoked with 3 parameters, 2 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateTestSetupService.php
 
 		-
 			message: '#^Binary operation "\." between ''Fetching repository…'' and Ecotone\\AnnotationFinder\\AnnotatedFinding results in an error\.$#'

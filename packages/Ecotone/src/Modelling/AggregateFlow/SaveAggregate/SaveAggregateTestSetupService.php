@@ -44,12 +44,9 @@ final class SaveAggregateTestSetupService implements MessageProcessor
             return null;
         }
 
-        $version = $resolvedAggregate->getVersionBeforeHandling();
-
         $this->aggregateRepository->save(
             $resolvedAggregate,
             $metadata,
-            $version
         );
 
         /** Clear internally recorded events */

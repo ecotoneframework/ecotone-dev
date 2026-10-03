@@ -21,7 +21,6 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -35,6 +34,7 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\AggregateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 

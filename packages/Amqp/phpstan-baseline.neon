@@ -31,24 +31,6 @@ parameters:
 			path: src/AmqpOutboundChannelAdapter.php
 
 		-
-			message: '#^Call to method getLibChannel\(\) on an unknown class Ecotone\\Amqp\\AmqpContext\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/AmqpStreamAcknowledgeCallback.php
-
-		-
-			message: '#^PHPDoc tag @var for variable \$publisherContext contains unknown class Ecotone\\Amqp\\AmqpContext\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/AmqpStreamAcknowledgeCallback.php
-
-		-
-			message: '#^PHPDoc tag @var with type Ecotone\\Amqp\\AmqpContext is not subtype of native type Interop\\Queue\\Context\.$#'
-			identifier: varTag.nativeType
-			count: 1
-			path: src/AmqpStreamAcknowledgeCallback.php
-
-		-
 			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\.$#'
 			identifier: return.type
 			count: 1

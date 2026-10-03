@@ -5,6 +5,7 @@ namespace Ecotone\Modelling\Config;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -14,7 +15,6 @@ use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\RelatedAggregate;
 use Ecotone\Api\Attribute\Repository;
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Mapping\EventMapper;
@@ -27,6 +27,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -91,7 +92,7 @@ class AggregateModule implements AnnotationModule, RoutingEventHandler
      * @param AnnotatedFinding[] $aggregateQueryHandlers
      * @param AnnotatedFinding[] $aggregateEventHandlers
      * @param string[] $aggregateRepositoryReferenceNames
-     * @param AnnotatedFinding[] $gatewayRepositoryMethods
+     * @param AnnotatedMethod[] $gatewayRepositoryMethods
      */
     private function __construct(
         private InterfaceToCallRegistry $interfaceToCallRegistry,

@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 final class CollectorStorage
 {
     /**
-     * @param CollectedMessage[] $collectedMessages
+     * @param Message[] $collectedMessages
      */
     public function __construct(
         private bool $enabled = false,

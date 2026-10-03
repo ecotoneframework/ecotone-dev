@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Messaging\Future;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\MessageConverter;
 use Ecotone\Messaging\Support\InvalidArgumentException;

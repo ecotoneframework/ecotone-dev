@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\App\Tooling;
 
 use Ecotone\Api\Attribute\Before;
-use Ecotone\Api\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectingManager;
 
 class WaitBeforeExecutingProjectionInterceptor
 {

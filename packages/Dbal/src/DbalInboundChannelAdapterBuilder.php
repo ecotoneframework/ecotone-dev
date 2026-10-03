@@ -2,7 +2,6 @@
 
 namespace Ecotone\Dbal;
 
-use Ecotone\Api\Conversion\ConversionService;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\EnqueueTableManager;
@@ -13,6 +12,7 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 

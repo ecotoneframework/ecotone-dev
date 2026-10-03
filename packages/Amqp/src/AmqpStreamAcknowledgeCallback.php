@@ -9,6 +9,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Enqueue\AmqpLib\AmqpContext;
 use Exception;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
 use PhpAmqpLib\Wire\AMQPTable;

@@ -6,7 +6,7 @@ use Closure;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Projecting\ProjectionRegistry;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;

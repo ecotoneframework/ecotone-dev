@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Api\Projecting;
+namespace Ecotone\Projecting;
 
 use Psr\Container\ContainerInterface;
 

@@ -5,21 +5,10 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Api\Projecting;
+namespace Ecotone\Projecting;
 
 use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Projecting\PartitionBatchExecutorHandler;
-use Ecotone\Projecting\PartitionProvider;
-use Ecotone\Projecting\PartitionProviderRegistry;
-use Ecotone\Projecting\ProjectingHeaders;
-use Ecotone\Projecting\ProjectionInitializationStatus;
-use Ecotone\Projecting\ProjectionPartitionState;
-use Ecotone\Projecting\ProjectionStateStorage;
-use Ecotone\Projecting\ProjectionStateStorageRegistry;
-use Ecotone\Projecting\ProjectorExecutor;
-use Ecotone\Projecting\StreamFilterRegistry;
-use Ecotone\Projecting\StreamSourceRegistry;
 use InvalidArgumentException;
 use Throwable;
 

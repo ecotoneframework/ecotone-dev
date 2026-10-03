@@ -19,7 +19,6 @@ use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionName;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,7 +35,7 @@ final class ProjectionNameHeaderTest extends TestCase
         yield 'flush' => ['flush', static fn (FlowTestSupport $ecotone) => $ecotone->triggerProjection('name_header_projection')];
         yield 'initialization' => ['initialization', static fn (FlowTestSupport $ecotone) => $ecotone->initializeProjection('name_header_projection')];
         yield 'delete' => ['delete', static fn (FlowTestSupport $ecotone) => $ecotone->deleteProjection('name_header_projection')];
-        yield 'reset during rebuild' => ['reset', static fn (FlowTestSupport $ecotone) => $ecotone->triggerProjection('name_header_projection')->getGateway(ProjectionRegistry::class)->get('name_header_projection')->prepareRebuild()];
+        yield 'reset during rebuild' => ['reset', static fn (FlowTestSupport $ecotone) => $ecotone->triggerProjection('name_header_projection')->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'name_header_projection'])];
     }
 
     #[DataProvider('projectionPaths')]

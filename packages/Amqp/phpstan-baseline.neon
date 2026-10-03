@@ -1,0 +1,73 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\:\:withPublisherConfirms\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Amqp\\AmqpBackedMessageChannelBuilder\:\:getAmqpOutboundChannelAdapter\(\) should return Ecotone\\Amqp\\AmqpOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:declareQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:deleteQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Producer\:\:setDelayStrategy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpOutboundChannelAdapter.php
+
+		-
+			message: '#^Call to method getLibChannel\(\) on an unknown class Ecotone\\Amqp\\AmqpContext\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$publisherContext contains unknown class Ecotone\\Amqp\\AmqpContext\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^PHPDoc tag @var with type Ecotone\\Amqp\\AmqpContext is not subtype of native type Interop\\Queue\\Context\.$#'
+			identifier: varTag.nativeType
+			count: 1
+			path: src/AmqpStreamAcknowledgeCallback.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Configuration/AmqpMessageConsumerModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Configuration/AmqpModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\) but returns Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Publisher/AmqpMessagePublisherModule.php
+
+		-
+			message: '#^Method Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\) but returns Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Transaction/AmqpTransactionModule.php

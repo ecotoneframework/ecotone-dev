@@ -22,7 +22,6 @@ use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Projecting\ProjectionInitialization;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -439,7 +438,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
             ? count($eventStore->load('projection_flush_emitting_projection'))
             : 0;
 
-        $ecotone->getGateway(ProjectionRegistry::class)->get('flush_emitting_projection')->prepareRebuild();
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'flush_emitting_projection']);
 
         self::assertNotEmpty($projection->getTickets());
         $emittedCountAfterRebuild = $eventStore->hasStream('projection_flush_emitting_projection')

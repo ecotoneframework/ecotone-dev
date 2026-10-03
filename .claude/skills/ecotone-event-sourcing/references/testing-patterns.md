@@ -122,16 +122,14 @@ $ecotone->deleteProjection('name');      // Cleanup
 
 `triggerProjection()` calls `executeAll()` -- it reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` calls `executeAllWithReset()` (delete + init + `executeAll()`), so it replays full history, not just what's pending.
 
-To test rebuild behavior (emissions suppressed), access `ProjectionRegistry` directly:
+To test rebuild behavior (emissions suppressed), run the `ecotone:projection:rebuild` console command:
 
 ```php
-use Ecotone\Api\Projecting\ProjectionRegistry;
-
 // Rebuild: replays events but suppresses EventStreamEmitter emissions
-$ecotone->getGateway(ProjectionRegistry::class)->get('projection_name')->prepareRebuild();
+$ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'projection_name']);
 ```
 
-This matches the `ecotone:projection:rebuild` console command behavior.
+Backfill and delete work the same way, through `ecotone:projection:backfill` and `ecotone:projection:delete`.
 
 ## Testing Revision-Aware Event Sourcing Handlers
 

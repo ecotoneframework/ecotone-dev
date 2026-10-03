@@ -20,7 +20,6 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Projecting\ProjectionInitialization;
-use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
@@ -241,7 +240,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before rebuild');
         $notificationsCountBeforeRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
 
-        $ecotone->getGateway(ProjectionRegistry::class)->get('emitting_projection')->prepareRebuild();
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'emitting_projection']);
 
         self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events and rebuilt its state');
         $notificationsCountAfterRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;

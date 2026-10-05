@@ -2062,6 +2062,24 @@ An application that runs open-core today with `#[Fetch]` on a handler nothing ca
 `#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
 with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
 
+### `#[ProjectionName]` that cannot be absent is refused at bootstrap without a licence
+
+**Before:** a projection handler reading `#[ProjectionName] string $projectionName` booted without an Enterprise
+licence and then failed on every event with a `MethodInvocationException` about the missing `projection.name` header,
+which is set only under a licence.
+
+**Now:** bootstrap refuses it with a `LicensingException` when the parameter is neither nullable nor defaulted, on an
+event handler or a `#[ProjectionInitialization]`, `#[ProjectionDelete]`, `#[ProjectionFlush]` or `#[ProjectionReset]`
+handler. The message names the parameter, the handler and the three ways out:
+
+```
+#[ProjectionName] on $projectionName of App\OrderList::onOrderPlaced requires the projection name, which is passed to a projection handler only under an Ecotone Enterprise licence, and this application runs without one: a parameter that is neither nullable nor defaulted would fail on every call. Either declare it as ?string $projectionName = null to receive null without a licence, remove #[ProjectionName] if the handler does not need the name (the projection declares it in #[Projection('order_list')]), or obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise) and pass it with ServiceConfiguration::withLicenceKey().
+```
+
+A nullable or defaulted parameter is unchanged: without a licence it receives `null` (or its default), as before.
+
+**How to adapt:** pick one of the three ways out the message names.
+
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
 **Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an

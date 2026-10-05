@@ -29,7 +29,6 @@ use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\Api\Projecting\StateStorage;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Projecting\StreamSource as StreamSourceAttribute;
-use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\PartitionProvider;
@@ -39,6 +38,7 @@ use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\Transaction;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -422,15 +422,107 @@ final class ProjectionEnterpriseTest extends TestCase
         );
     }
 
-    public function test_projection_name_header_is_not_available_without_licence(): void
+    public function test_projection_name_on_an_event_handler_requires_licence(): void
     {
-        $projection = new #[Projection('test'), FromStream('test_stream')] class {
-            public array $handledEvents = [];
+        $projection = new #[Projection('named_projection'), FromStream('test_stream')] class {
+            #[EventHandler('*')]
+            public function handle(array $event, #[ProjectionName] string $projectionName): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessageMatches('/^' . preg_quote($this->projectionNameRefusal($projection::class . '::handle', 'named_projection'), '/') . '$/');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([])
+        );
+    }
+
+    public function test_projection_name_on_a_lifecycle_handler_requires_licence(): void
+    {
+        $projections = [
+            'init' => new #[Projection('named_projection'), FromStream('test_stream')] class {
+                #[EventHandler('*')]
+                public function handle(array $event): void
+                {
+                }
+
+                #[ProjectionInitialization]
+                public function init(#[ProjectionName] string $projectionName): void
+                {
+                }
+            },
+            'delete' => new #[Projection('named_projection'), FromStream('test_stream')] class {
+                #[EventHandler('*')]
+                public function handle(array $event): void
+                {
+                }
+
+                #[ProjectionDelete]
+                public function delete(#[ProjectionName] string $projectionName): void
+                {
+                }
+            },
+            'flush' => new #[Projection('named_projection'), FromStream('test_stream')] class {
+                #[EventHandler('*')]
+                public function handle(array $event): void
+                {
+                }
+
+                #[ProjectionFlush]
+                public function flush(#[ProjectionName] string $projectionName): void
+                {
+                }
+            },
+            'reset' => new #[Projection('named_projection'), FromStream('test_stream')] class {
+                #[EventHandler('*')]
+                public function handle(array $event): void
+                {
+                }
+
+                #[ProjectionReset]
+                public function reset(#[ProjectionName] string $projectionName): void
+                {
+                }
+            },
+        ];
+
+        $refusals = [];
+        foreach ($projections as $methodName => $projection) {
+            try {
+                EcotoneLite::bootstrapFlowTesting(
+                    [$projection::class],
+                    [$projection],
+                    configuration: ServiceConfiguration::createWithDefaults()
+                        ->withModulePackages([])
+                );
+                $refusals[$methodName] = '';
+            } catch (LicensingException $exception) {
+                $refusals[$methodName] = $exception->getMessage();
+            }
+        }
+
+        foreach ($projections as $methodName => $projection) {
+            self::assertSame(
+                $this->projectionNameRefusal($projection::class . '::' . $methodName, 'named_projection'),
+                $refusals[$methodName]
+            );
+        }
+    }
+
+    public function test_projection_name_is_passed_to_a_licensed_projection(): void
+    {
+        $projection = new #[Projection('named_projection'), FromStream('test_stream')] class {
+            public array $projectionNames = [];
 
             #[EventHandler('*')]
             public function handle(array $event, #[ProjectionName] string $projectionName): void
             {
-                $this->handledEvents[] = ['event' => $event, 'projectionName' => $projectionName];
+                $this->projectionNames[] = $projectionName;
             }
         };
 
@@ -438,17 +530,14 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withModulePackages([]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'], [MessageHeaders::EVENT_AGGREGATE_ID => '1'])]);
+        $ecotone->publishEventWithRouting('trigger', []);
 
-        try {
-            $ecotone->publishEventWithRouting('trigger', []);
-            self::fail('Should have thrown exception');
-        } catch (MethodInvocationException $e) {
-            self::assertStringContainsString('projection.name', $e->getMessage(), 'Exception should mention missing projection.name header. Got: ' . $e->getMessage());
-        }
+        self::assertSame(['named_projection'], $projection->projectionNames);
     }
 
     public function test_flush_with_projection_state_requires_licence(): void
@@ -476,4 +565,8 @@ final class ProjectionEnterpriseTest extends TestCase
         );
     }
 
+    private function projectionNameRefusal(string $handler, string $projectionName): string
+    {
+        return "#[ProjectionName] on \$projectionName of {$handler} requires the projection name, which is passed to a projection handler only under an Ecotone Enterprise licence, and this application runs without one: a parameter that is neither nullable nor defaulted would fail on every call. Either declare it as ?string \$projectionName = null to receive null without a licence, remove #[ProjectionName] if the handler does not need the name (the projection declares it in #[Projection('{$projectionName}')]), or obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise) and pass it with ServiceConfiguration::withLicenceKey(). To evaluate Enterprise features, email us at \"support@simplycodedsoftware.com\" for a trial key. Production licenses are available at https://ecotone.tech";
+    }
 }

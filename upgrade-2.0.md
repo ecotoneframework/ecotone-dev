@@ -149,8 +149,12 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 - `#[ProjectionState]` parameters must declare a default value (e.g. `array $state = []`, or
   `MyState $state = new MyState()`) — the framework passes `null` before a partition has any state, and a
   required, non-nullable parameter with no default cannot accept that.
-- `EventStreamEmitter::emit()` (not `linkTo()`) requires an Enterprise licence: it tags the emitted event with
-  the projection's own name, and that header is only populated under a valid licence.
+- `EventStreamEmitter::emit()` and `linkTo()` are both open source. **Without an Enterprise licence, `emit()` writes
+  to the default stream, `ecotone_event_stream`, whatever `#[Stream]` the projection declares.** `emit()` finds the
+  projection's `#[Stream]` by the projection's name, and a projection handler receives its name (the
+  `projection.name` header, `#[ProjectionName]`) only under a licence, so the open-core `emit()` has no name to look
+  the stream up by. Emitting into a projection's own `#[Stream]` therefore needs the licence; without one, name the
+  stream explicitly with `linkTo('my_stream', $events)`, which reaches any declared stream in open core.
 - Tests: `FlowTestSupport::triggerProjection()`/`resetProjection()`/`initializeProjection()`/`deleteProjection()`
   now drive the projection directly and synchronously — there is no more queued/asynchronous delay
   before they take effect, so a test that relied on "nothing happens until the next `->run()`" needs to drop
@@ -234,9 +238,10 @@ subsection below.
   model). `appendTo()` now throws `ConfigurationException` naming the projection and event; fix it by giving the
   event an aggregate, or by having a global `#[FromStream]` projection handle it instead.
 - **`EventStreamEmitter`.** `emit()` writes to the emitting class's `#[Stream]`, defaulting to `ecotone_event_stream`;
-  it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
-  stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a
-  table created behind your back.
+  it no longer invents a `projection_<name>` stream. Reaching the class's own `#[Stream]` takes an Enterprise
+  licence; without one `emit()` writes to `ecotone_event_stream` (§3). `linkTo($streamName, ...)` still takes an
+  explicit target, but the stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a
+  configuration error instead of a table created behind your back.
 - **Tables are declared, not discovered.** Every stream table — including one declared with a non-default
   `connectionReferenceName` — is registered with `ecotone:migration:database:setup` under the `event_stream` feature,
   grouped by the connection it lives on; see §8 for the `--connection` option and how the missing-table error names the
@@ -1073,6 +1078,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `CronExpression::factory()` | `new CronExpression()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
+| `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
 Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
 `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
@@ -1500,7 +1506,21 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 | `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` |
 | `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` |
 
-**How to adapt:** replace the three imports. Nothing else changes — same class names, same methods, same enum cases.
+**How to adapt:** replace the three imports. Nothing else changes — same class names, same methods, same enum
+cases — except one method on `MediaType`, below.
+
+**`MediaType::getTypeParameter()` is removed.** It returned `Ecotone\Messaging\Handler\Type`, an internal class, so
+the one `Api` method an application could call kept it on the public surface. The `type` parameter is still on the
+media type; read it as the string it is:
+
+```php
+// Before
+$mediaType->getTypeParameter();                          // Ecotone\Messaging\Handler\Type, internal
+// Now
+$mediaType->getParameter(MediaType::TYPE_PARAMETER);    // 'array<App\Order>'
+```
+
+`MediaType::TYPE_PARAMETER`, private until now, is public for that call. `hasTypeParameter()` is unchanged.
 
 Only the builder moved, not what it builds: `RetryTemplateBuilder::build()` still returns
 `Ecotone\Messaging\Handler\Recoverability\RetryTemplate`, which stays internal because the framework, not the
@@ -2042,6 +2062,24 @@ An application that runs open-core today with `#[Fetch]` on a handler nothing ca
 `#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
 with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
 
+### `#[ProjectionName]` that cannot be absent is refused at bootstrap without a licence
+
+**Before:** a projection handler reading `#[ProjectionName] string $projectionName` booted without an Enterprise
+licence and then failed on every event with a `MethodInvocationException` about the missing `projection.name` header,
+which is set only under a licence.
+
+**Now:** bootstrap refuses it with a `LicensingException` when the parameter is neither nullable nor defaulted, on an
+event handler or a `#[ProjectionInitialization]`, `#[ProjectionDelete]`, `#[ProjectionFlush]` or `#[ProjectionReset]`
+handler. The message names the parameter, the handler and the three ways out:
+
+```
+#[ProjectionName] on $projectionName of App\OrderList::onOrderPlaced requires the projection name, which is passed to a projection handler only under an Ecotone Enterprise licence, and this application runs without one: a parameter that is neither nullable nor defaulted would fail on every call. Either declare it as ?string $projectionName = null to receive null without a licence, remove #[ProjectionName] if the handler does not need the name (the projection declares it in #[Projection('order_list')]), or obtain an Enterprise licence (see https://docs.ecotone.tech/enterprise) and pass it with ServiceConfiguration::withLicenceKey().
+```
+
+A nullable or defaulted parameter is unchanged: without a licence it receives `null` (or its default), as before.
+
+**How to adapt:** pick one of the three ways out the message names.
+
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
 **Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an
@@ -2450,7 +2488,7 @@ normal section with "How to adapt" steps when it ships.
 9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]`; replace `#[FromStream(Aggregate::class)]` with `#[FromAggregateStream(Aggregate::class)]` (§4).
 10. Rename `#[ServiceActivator]` to `#[InternalHandler]`, checking positional arguments (§7a). Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
-12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers, `#[ChannelInterceptor]` or `#[Fetch]` (§14).
+12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` into a projection's own `#[Stream]` (§3), `changingHeaders: true` on internal handlers, `#[ChannelInterceptor]` or `#[Fetch]` (§14).
 13. Adopting DCB decision models: create the `event_tags` tables and, only for a 1.x table a model writes into,
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).

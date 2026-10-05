@@ -406,6 +406,11 @@ OK (1395 tests, 207743 assertions)
 The four are environment, not regressions: an `Errors: 4` on this suite whose four names are the `@extra-large`
 cases above means the fixture is missing.
 
+**Hit again by wave 8 (2026-10-05)**, in a fresh worktree whose root gate went straight to `--testsuite DataProtection`:
+the same `Tests: 1395, Assertions: 207729, Errors: 4, Warnings: 2`, gone after the command above. Four units have now
+met it. The lasting fix is to make the root path generate the file itself — a PHPUnit bootstrap extension or a
+`#[Before]` in `FileTest` calling the script — rather than relying on each worker to read this section first.
+
 ## 11. Finished worktrees leak host state: Docker address pools and kernel AIO slots — recorded, not fixed
 
 Two failures on `docker compose up -d` in a fresh worktree, on a host already running many other worktrees' stacks.

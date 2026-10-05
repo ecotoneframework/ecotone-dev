@@ -140,10 +140,6 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $converterBuilders = [];
     private ?Definition $conversionServiceDecoratorBuilder = null;
-    /**
-     * @var string[]
-     */
-    private array $messageConverterReferenceNames = [];
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
     private array $asynchronousEndpoints = [];
     /**
@@ -359,10 +355,6 @@ final class MessagingSystemConfiguration implements Configuration
             if ($pollingMetadata->getErrorChannelName() && ! isset($this->channelBuilders[$pollingMetadata->getErrorChannelName()])) {
                 throw ConfigurationException::create("Trying to register polling meta data for non existing error channel `{$pollingMetadata->getErrorChannelName()}` for endpoint `{$pollingMetadata->getEndpointId()}`");
             }
-        }
-
-        foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
         }
     }
 
@@ -987,16 +979,6 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerConversionServiceDecorator(Definition $conversionServiceDecoratorBuilder): Configuration
     {
         $this->conversionServiceDecoratorBuilder = $conversionServiceDecoratorBuilder;
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function registerMessageConverter(string $referenceName): Configuration
-    {
-        $this->messageConverterReferenceNames[] = $referenceName;
 
         return $this;
     }

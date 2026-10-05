@@ -96,12 +96,12 @@ class OutboundMessageConverter
                 throw new ConversionException("Can't send outside of application. Payload has incorrect type, that can't be converted: " . Type::createFromVariable($messagePayload)->toString());
             }
 
-            $sourceType      = $sourceMediaType->hasTypeParameter() ? $sourceMediaType->getTypeParameter() : Type::createFromVariable($messagePayload);
+            $sourceType      = $sourceMediaType->hasTypeParameter() ? Type::create($sourceMediaType->getParameter(MediaType::TYPE_PARAMETER)) : Type::createFromVariable($messagePayload);
             $sourceMediaType = $sourceMediaType->withoutTypeParameter();
             $targetConversionMediaType = $this->defaultConversionMediaType ?: MediaType::createApplicationXPHPSerialized();
             $targetType = Type::string();
             if ($targetConversionMediaType->hasTypeParameter()) {
-                $targetType = $targetConversionMediaType->getTypeParameter();
+                $targetType = Type::create($targetConversionMediaType->getParameter(MediaType::TYPE_PARAMETER));
             } elseif ($targetConversionMediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
                 $targetType = Type::anything();
             }

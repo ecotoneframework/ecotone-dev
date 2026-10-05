@@ -605,9 +605,10 @@ final class BasketTest extends TestCase
 
   **A large share of the existing tests do not follow this.** 92 of the 141 test files added since 1.x declare
   named fixtures below the `TestCase`. That is drift to be reduced, not a convention to copy: a new test uses an
-  anonymous class unless one of the two exceptions below applies to that particular class.
+  anonymous class unless one of the four exceptions below applies to that particular class.
 
-  **The two exceptions.** Both are hard PHP limits rather than preferences, and nothing outside them qualifies:
+  **The four exceptions.** Each is a hard limit of PHP or of a storage engine rather than a preference, and nothing
+  outside them qualifies:
 
   1. **A class used as a type declaration** — every command, event and query, and any object a handler,
      `#[EventSourcingHandler]` or converter names in a parameter or return type. PHP has no syntax for naming an
@@ -619,6 +620,26 @@ final class BasketTest extends TestCase
      (`packages/JmsConverter/tests/Integration/InterfaceTypedPayloadTest.php:68`, where the projection carrying the
      attribute is itself anonymous) and `#[DecisionModel(aggregate: WalletForAggregateBackedTest::class)]`
      (`packages/Ecotone/tests/Modelling/DecisionModel/AggregateBackedDecisionModelTest.php:370`).
+  3. **An event-sourced aggregate on DBAL that relies on its default aggregate type.** An anonymous class's name
+     carries a NUL byte (`class@anonymous\0/path/File.php:LINE$0`), and the aggregate type defaults to the class
+     name and is written into the event `metadata` column. PostgreSQL's `jsonb` refuses the `\u0000`
+     (`SQLSTATE[22P05]: Untranslatable character`), and SQLite stores it but cannot find the aggregate again
+     (`AggregateNotFoundException: Aggregate class@anonymous\u{0000}/…`); MySQL and MariaDB pass. It is the
+     **aggregate type**, not the stream name: with `#[AggregateType('…')]` the same anonymous aggregate passes on
+     all four engines, with the default stream and with an explicit `#[Stream]`. So the limit is narrow — such an
+     aggregate can be anonymous only by gaining `#[AggregateType]`, and where the test is about the default type it
+     cannot be anonymous at all. Evidence:
+     `docs/superpowers/research/rule-11-named-fixtures/nul-byte-experiment.php.txt`, four variants on four engines.
+  4. **Syntax newer than the PHP 8.2 floor.** PHPUnit parses a test file whether or not it then skips the test, so a
+     fixture using newer syntax is a parse error on 8.2 even under `#[RequiresPhp]`. It lives in a file of its own
+     that only the `#[RequiresPhp('>= 8.5.0')]` test loads:
+     `packages/Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute/FailingClosureExpressionService.php`,
+     a closure in an attribute argument, loaded only by `ClosureExpressionFailureTest`.
+
+  Two softer limits, which are notes rather than exceptions: a `#[MessageGateway]` is an interface, and PHP has no
+  anonymous interface; and `get_debug_type()` reports any anonymous object as `class@anonymous`, so a test that
+  asserts a payload's type as observable data needs a named payload — interpolating `::class` covers an exception
+  message, not that.
 
   Three things that look like exceptions and are not:
 
@@ -758,10 +779,16 @@ authors are users. Anything whose only caller is Ecotone itself is not.
 a class that does not exist or a return type a method breaks, never an internal type in a public signature. The
 boundary is held in review, which is why it is written down.
 
-**Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
-the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,
-then fails at reflection time — which `phpstan` does not catch at any level, because attribute arguments resolve
-lazily. This broke fifteen classes during the namespace split; see §5 of the mapping spec.
+**A sibling in the same namespace is named bare — except in an attribute argument, which has to be fixed by hand
+when either class moves.** PHP resolves a bare name against the current namespace, so a same-namespace `use` adds
+nothing, and php-cs-fixer's `no_unused_imports` deletes it whenever it runs over the file — in an attribute argument
+too. That is what the tree does: across `packages/*/Api` on `6480318b9`, 55 of the 60 file-to-sibling references
+inside one namespace are bare (each file's class-name tokens matched against the classes its own namespace declares).
+The attribute argument is the one place a bare name is a hazard, because it resolves lazily: when a class leaves the
+namespace, a sibling its attribute arguments name bare now resolves against the *new* namespace and fails only at
+reflection time, which phpstan does not catch at any level. **Moving a class out of a namespace therefore includes
+importing every sibling its attribute arguments name.** This broke fifteen classes during the namespace split; see §5
+of the mapping spec.
 
 ---
 

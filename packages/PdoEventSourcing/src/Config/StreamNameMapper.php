@@ -24,13 +24,13 @@ final class StreamNameMapper implements MessageProcessor, DefinedObject
 
     public function process(Message $message): Message
     {
-        $projectionName = $message->getHeaders()->get(ProjectingHeaders::PROJECTION_NAME);
+        $headers = $message->getHeaders();
+        $streamName = $headers->containsKey(ProjectingHeaders::PROJECTION_NAME)
+            ? $this->projectionStreamMapping[$headers->get(ProjectingHeaders::PROJECTION_NAME)] ?? StreamTableRegistry::DEFAULT_STREAM
+            : StreamTableRegistry::DEFAULT_STREAM;
 
         return MessageBuilder::fromMessage($message)
-                ->setHeader(
-                    'ecotone.eventSourcing.eventStore.streamName',
-                    $this->projectionStreamMapping[$projectionName] ?? StreamTableRegistry::DEFAULT_STREAM
-                )
+                ->setHeader('ecotone.eventSourcing.eventStore.streamName', $streamName)
                 ->build();
     }
 

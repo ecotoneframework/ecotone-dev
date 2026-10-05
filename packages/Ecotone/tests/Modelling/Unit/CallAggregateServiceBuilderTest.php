@@ -2,10 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\Type\UnionType;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
@@ -72,15 +71,15 @@ class CallAggregateServiceBuilderTest extends TestCase
     {
         $storageId = Uuid::v7()->toRfc4122();
 
-        $this->assertEquals(
-            Type::createCollection(SmallBox::class),
+        $this->assertSame(
+            'array<' . SmallBox::class . '>',
             EcotoneLite::bootstrapFlowTesting(
                 [Storage::class, StorageService::class],
             )
                 ->sendCommand(new CreateStorage($storageId, [SmallBox::create(1)], []))
                 ->getGateway(StorageService::class)
                 ->getSmallBoxes($storageId)
-                ->getHeaders()->getContentType()->getTypeParameter()
+                ->getHeaders()->getContentType()->getParameter(MediaType::TYPE_PARAMETER)
         );
     }
 
@@ -89,17 +88,17 @@ class CallAggregateServiceBuilderTest extends TestCase
         $storageId = Uuid::v7()->toRfc4122();
 
         $this->assertEqualsCanonicalizing(
-            new UnionType([
-                Type::createCollection(Box::class),
-                Type::createCollection(BigBox::class),
-            ]),
-            EcotoneLite::bootstrapFlowTesting(
-                [Storage::class, StorageService::class],
+            ['array<' . Box::class . '>', 'array<' . BigBox::class . '>'],
+            explode(
+                '|',
+                EcotoneLite::bootstrapFlowTesting(
+                    [Storage::class, StorageService::class],
+                )
+                    ->sendCommand(new CreateStorage($storageId, [SmallBox::create(1)], []))
+                    ->getGateway(StorageService::class)
+                    ->getBoxes($storageId)
+                    ->getHeaders()->getContentType()->getParameter(MediaType::TYPE_PARAMETER)
             )
-                ->sendCommand(new CreateStorage($storageId, [SmallBox::create(1)], []))
-                ->getGateway(StorageService::class)
-                ->getBoxes($storageId)
-                ->getHeaders()->getContentType()->getTypeParameter()
         );
     }
 

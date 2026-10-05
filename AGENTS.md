@@ -141,10 +141,12 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   `Ecotone\Api\EventSourcing\EventStore`) and drive the public API. This is the most-corrected rule in the
   repository; see conventions rule 10
 - **Fixtures live in the test file, as inline anonymous classes** — aggregates included, registered through
-  `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the two cases
-  PHP forces: a class used as a **type declaration** (every command, event and query), and a class named inside
-  another fixture's **attribute argument**, which has to be a constant expression. 92 of the 141 test files added
-  since 1.x use named fixtures anyway; that is drift to reduce, not precedent
+  `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the four cases
+  that force one: a class used as a **type declaration** (every command, event and query), a class named inside
+  another fixture's **attribute argument**, which has to be a constant expression, an **event-sourced aggregate on
+  DBAL without `#[AggregateType]`**, whose NUL-byte default type PostgreSQL and SQLite cannot store, and a fixture in
+  **syntax newer than PHP 8.2**, in a file of its own only the `#[RequiresPhp]` test loads. 92 of the 141 test files
+  added since 1.x use named fixtures anyway; that is drift to reduce, not precedent
   ([rule 11](./docs/coding-conventions.md#11-test-shape) has the exceptions and what is wrongly believed to be one)
 - `snake_case` method names, named after the behaviour rather than the class that implements it
 - No comments, no docblocks, no assertion messages. The method name is the description

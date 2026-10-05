@@ -55,7 +55,7 @@ class GatewayHeadersConverter implements GatewayParameterConverter
                     continue;
                 }
 
-                if ($mediaType->hasTypeParameter() && ! $messagePayloadType->isCompatibleWith($mediaType->getTypeParameter())) {
+                if ($mediaType->hasTypeParameter() && ! $messagePayloadType->isCompatibleWith(Type::create($mediaType->getParameter(MediaType::TYPE_PARAMETER)))) {
                     continue;
                 }
             }

@@ -9,7 +9,6 @@ use Ecotone\Api\Messaging\Future;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\MessageConverter\MessageConverter;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Generator;
@@ -19,30 +18,15 @@ use Generator;
  */
 class GatewayReplyConverter
 {
-    /**
-     * @param MessageConverter[] $messageConverters
-     */
     public function __construct(
         private ConversionService $conversionService,
         private string $interfaceToCallName,
         private ?Type $returnType,
-        private array $messageConverters
     ) {
     }
 
     public function convert(mixed $result, ?MediaType $replyContentType)
     {
-        foreach ($this->messageConverters as $messageConverter) {
-            $reply = $messageConverter->fromMessage(
-                $result,
-                $this->returnType
-            );
-
-            if ($reply) {
-                return $reply;
-            }
-        }
-
         $isMessage = $result instanceof Message;
         $data = $isMessage ? $result->getPayload() : $result;
         $sourceMediaType = MediaType::createApplicationXPHP();
@@ -53,7 +37,7 @@ class GatewayReplyConverter
                 $sourceMediaType = $result->getHeaders()->getContentType();
 
                 if ($sourceMediaType->hasTypeParameter()) {
-                    $sourceType = $sourceMediaType->getTypeParameter();
+                    $sourceType = Type::create($sourceMediaType->getParameter(MediaType::TYPE_PARAMETER));
                 }
             }
         }
@@ -89,8 +73,8 @@ class GatewayReplyConverter
             return $result->getPayload();
         }
 
-        if (! $sourceMediaType->isCompatibleWith($replyContentType) || ($replyContentType->hasTypeParameter() && $replyContentType->getTypeParameter()->isIterable())) {
-            $targetType = $replyContentType->hasTypeParameter() ? $replyContentType->getTypeParameter() : Type::anything();
+        if (! $sourceMediaType->isCompatibleWith($replyContentType) || ($replyContentType->hasTypeParameter() && Type::create($replyContentType->getParameter(MediaType::TYPE_PARAMETER))->isIterable())) {
+            $targetType = $replyContentType->hasTypeParameter() ? Type::create($replyContentType->getParameter(MediaType::TYPE_PARAMETER)) : Type::anything();
             if (! $this->conversionService->canConvert(
                 $sourceType,
                 $sourceMediaType,

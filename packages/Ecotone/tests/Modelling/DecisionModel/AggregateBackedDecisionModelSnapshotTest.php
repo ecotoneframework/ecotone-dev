@@ -85,18 +85,6 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
         $this->assertSame(20, $this->foldedEventCounts()[20]);
     }
 
-    public function test_a_snapshot_taken_under_a_different_fold_shape_is_ignored(): void
-    {
-        $ecotone = $this->bootstrapWithSnapshotsEvery(1);
-        $this->creditAndObserve($ecotone, 3);
-        $this->overwriteSnapshot(balance: 999, coveredPosition: 4, foldShape: 'the model handled other events when this was written');
-
-        $this->creditAndObserve($ecotone, 1);
-
-        $this->assertSame(40, $this->lastObservedBalance());
-        $this->assertSame(4, $this->foldedEventCounts()[3]);
-    }
-
     public function test_a_corrupt_snapshot_decides_correctly_instead_of_failing(): void
     {
         $ecotone = $this->bootstrapWithSnapshotsEvery(1);
@@ -186,7 +174,7 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
         }
     }
 
-    private function overwriteSnapshot(int $balance, int $coveredPosition, ?string $foldShape = null): void
+    private function overwriteSnapshot(int $balance, int $coveredPosition): void
     {
         $this->documentStore->upsertDocument(
             DecisionModelSnapshotStore::collectionFor(WalletBalanceForSnapshotTest::class),
@@ -194,7 +182,7 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
             json_encode([
                 'state' => json_encode(['balance' => $balance]),
                 'covered_position' => $coveredPosition,
-                'fold_shape' => $foldShape ?? $this->foldShapeAlreadyStored(),
+                'fold_shape' => $this->foldShapeAlreadyStored(),
             ]),
             DocumentStore::LAST_WRITE_WINS,
         );

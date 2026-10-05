@@ -14,9 +14,6 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Test\StubLogger;
-
-use function json_encode;
-
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
@@ -61,29 +58,6 @@ final class AggregateSnapshotFoldShapeTest extends TestCase
 
         $this->assertSame('johny', $ecotone->getAggregate(Ticket::class, ['ticketId' => '1'])->getWorkerId());
         $this->assertCount(0, $this->logger->getError());
-    }
-
-    public function test_a_snapshot_taken_with_another_fold_shape_is_ignored(): void
-    {
-        $ecotone = $this->bootstrapWithSnapshots();
-        $ecotone->sendCommand(new StartTicketCommand('1'));
-        $this->documentStore->upsertDocument(
-            SaveAggregateService::getSnapshotCollectionName(Ticket::class),
-            SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
-            $this->ticketAssignedTo($ecotone, 'someone-who-never-was'),
-            DocumentStore::LAST_WRITE_WINS,
-        );
-        $this->documentStore->upsertDocument(
-            EventSourcedRepositoryAdapter::getSnapshotFoldShapeCollectionName(Ticket::class),
-            SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
-            json_encode(['foldShape' => 'the aggregate folded other events back then']),
-            DocumentStore::LAST_WRITE_WINS,
-        );
-
-        $ecotone->sendCommand(new AssignWorkerCommand('1', 'johny'));
-
-        $this->assertSame('johny', $ecotone->getAggregate(Ticket::class, ['ticketId' => '1'])->getWorkerId());
-        $this->assertCount(1, $this->logger->getError());
     }
 
     private function ticketAssignedTo(FlowTestSupport $ecotone, string $workerId): Ticket

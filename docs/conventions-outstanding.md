@@ -362,10 +362,13 @@ one commit per directory, each riding that test unchanged:
 - Laravel `Fixture/AsynchronousMessageHandler/AsyncChannelConfiguration` — loaded by the Laravel test
   application's namespace scan, not by a bootstrap call that could take `$fixture::class`
 
-### Two hard limits the rule does not name — proposed, rule text not edited
+### Two hard limits the rule did not name — now exceptions 3 and 4
 
-Rule 11 names two exceptions. Two more are as hard as those, and the rule text should name them; revising it is
-out of this unit's scope.
+Rule 11 named two exceptions. The two below are as hard as those, and **wave 8 wrote both into rule 11's text** as
+exceptions 3 and 4, with the two softer findings as a note beside them, not as exceptions; the `AGENTS.md` testing
+guideline names all four. Before writing exception 3 the experiment was re-run on `6480318b9`: on PostgreSQL the two
+variants without `#[AggregateType]` failed with `SQLSTATE[22P05]`, on SQLite with `AggregateNotFoundException`, on
+MySQL all four passed, and both `#[AggregateType]` variants passed on all three. MariaDB was not re-run.
 
 **Third: an event-sourced aggregate on DBAL that relies on its default aggregate type.** An anonymous class's name
 carries a NUL byte (`class@anonymous\0/path/File.php:LINE$0`), and an aggregate's type defaults to its class name.

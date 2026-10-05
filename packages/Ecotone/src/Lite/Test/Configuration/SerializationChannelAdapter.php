@@ -29,7 +29,7 @@ final class SerializationChannelAdapter implements ChannelInterceptor
                     $message->getPayload(),
                     Type::createFromVariable($message->getPayload()),
                     $message->getHeaders()->getContentType(),
-                    $this->targetMediaType->hasTypeParameter() ? $this->targetMediaType->getTypeParameter() : Type::string(),
+                    $this->targetMediaType->hasTypeParameter() ? Type::create($this->targetMediaType->getParameter(MediaType::TYPE_PARAMETER)) : Type::string(),
                     $this->targetMediaType
                 ))
                 ->setContentType($this->targetMediaType)

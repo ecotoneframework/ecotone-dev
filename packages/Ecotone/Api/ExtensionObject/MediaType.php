@@ -6,7 +6,6 @@ namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -33,7 +32,7 @@ final class MediaType implements DefinedObject
     public const APPLICATION_X_PHP_ARRAY = 'application/x-php;type=array';
     public const APPLICATION_X_PHP_SERIALIZED = 'application/x-php-serialized';
 
-    private const TYPE_PARAMETER = 'type';
+    public const TYPE_PARAMETER = 'type';
 
     private static array $parsedMediaTypes = [];
 
@@ -288,16 +287,6 @@ final class MediaType implements DefinedObject
     public function hasTypeParameter(): bool
     {
         return $this->hasParameter(self::TYPE_PARAMETER);
-    }
-
-    /**
-     * @return Type
-     * @throws InvalidArgumentException
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function getTypeParameter(): Type
-    {
-        return Type::create($this->getParameter(self::TYPE_PARAMETER));
     }
 
     /**

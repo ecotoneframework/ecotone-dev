@@ -69,7 +69,7 @@ class LoggingInterceptor
     {
         $data = $message->getPayload();
         $sourceMediaType = $message->getHeaders()->hasContentType() ? $message->getHeaders()->getContentType() : MediaType::createApplicationXPHP();
-        $sourceTypeDescriptor = $sourceMediaType->hasTypeParameter() ? $sourceMediaType->getTypeParameter() : Type::createFromVariable($message->getPayload());
+        $sourceTypeDescriptor = $sourceMediaType->hasTypeParameter() ? Type::create($sourceMediaType->getParameter(MediaType::TYPE_PARAMETER)) : Type::createFromVariable($message->getPayload());
 
         if (is_object($data) && method_exists($data, '__toString')) {
             $data = (string)$data;

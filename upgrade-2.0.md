@@ -1500,7 +1500,21 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 | `Ecotone\Messaging\Endpoint\FinalFailureStrategy` | `Ecotone\Api\ExtensionObject\FinalFailureStrategy` |
 | `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder` | `Ecotone\Api\ExtensionObject\RetryTemplateBuilder` |
 
-**How to adapt:** replace the three imports. Nothing else changes — same class names, same methods, same enum cases.
+**How to adapt:** replace the three imports. Nothing else changes — same class names, same methods, same enum
+cases — except one method on `MediaType`, below.
+
+**`MediaType::getTypeParameter()` is removed.** It returned `Ecotone\Messaging\Handler\Type`, an internal class, so
+the one `Api` method an application could call kept it on the public surface. The `type` parameter is still on the
+media type; read it as the string it is:
+
+```php
+// Before
+$mediaType->getTypeParameter();                          // Ecotone\Messaging\Handler\Type, internal
+// Now
+$mediaType->getParameter(MediaType::TYPE_PARAMETER);    // 'array<App\Order>'
+```
+
+`MediaType::TYPE_PARAMETER`, private until now, is public for that call. `hasTypeParameter()` is unchanged.
 
 Only the builder moved, not what it builds: `RetryTemplateBuilder::build()` still returns
 `Ecotone\Messaging\Handler\Recoverability\RetryTemplate`, which stays internal because the framework, not the

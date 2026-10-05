@@ -53,7 +53,7 @@ class GatewayReplyConverter
                 $sourceMediaType = $result->getHeaders()->getContentType();
 
                 if ($sourceMediaType->hasTypeParameter()) {
-                    $sourceType = $sourceMediaType->getTypeParameter();
+                    $sourceType = Type::create($sourceMediaType->getParameter(MediaType::TYPE_PARAMETER));
                 }
             }
         }
@@ -89,8 +89,8 @@ class GatewayReplyConverter
             return $result->getPayload();
         }
 
-        if (! $sourceMediaType->isCompatibleWith($replyContentType) || ($replyContentType->hasTypeParameter() && $replyContentType->getTypeParameter()->isIterable())) {
-            $targetType = $replyContentType->hasTypeParameter() ? $replyContentType->getTypeParameter() : Type::anything();
+        if (! $sourceMediaType->isCompatibleWith($replyContentType) || ($replyContentType->hasTypeParameter() && Type::create($replyContentType->getParameter(MediaType::TYPE_PARAMETER))->isIterable())) {
+            $targetType = $replyContentType->hasTypeParameter() ? Type::create($replyContentType->getParameter(MediaType::TYPE_PARAMETER)) : Type::anything();
             if (! $this->conversionService->canConvert(
                 $sourceType,
                 $sourceMediaType,

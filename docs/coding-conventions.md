@@ -758,10 +758,16 @@ authors are users. Anything whose only caller is Ecotone itself is not.
 a class that does not exist or a return type a method breaks, never an internal type in a public signature. The
 boundary is held in review, which is why it is written down.
 
-**Always `use`-import a sibling `Api` class, even from the same namespace tree.** PHP resolves a bare name against
-the current namespace, so an attribute referencing a sibling without an import works until the namespace is split,
-then fails at reflection time — which `phpstan` does not catch at any level, because attribute arguments resolve
-lazily. This broke fifteen classes during the namespace split; see §5 of the mapping spec.
+**A sibling in the same namespace is named bare — except in an attribute argument, which has to be fixed by hand
+when either class moves.** PHP resolves a bare name against the current namespace, so a same-namespace `use` adds
+nothing, and php-cs-fixer's `no_unused_imports` deletes it whenever it runs over the file — in an attribute argument
+too. That is what the tree does: across `packages/*/Api` on `6480318b9`, 55 of the 60 file-to-sibling references
+inside one namespace are bare (each file's class-name tokens matched against the classes its own namespace declares).
+The attribute argument is the one place a bare name is a hazard, because it resolves lazily: when a class leaves the
+namespace, a sibling its attribute arguments name bare now resolves against the *new* namespace and fails only at
+reflection time, which phpstan does not catch at any level. **Moving a class out of a namespace therefore includes
+importing every sibling its attribute arguments name.** This broke fifteen classes during the namespace split; see §5
+of the mapping spec.
 
 ---
 

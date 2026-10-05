@@ -81,6 +81,52 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         );
     }
 
+    public function test_emitting_without_a_licence_writes_to_the_default_stream(): void
+    {
+        $projection = new #[Projection('unlicensed_emitting_to_default_stream'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler(endpointId: 'unlicensedEmittingToDefaultStream.addTicket')]
+            public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
+            {
+                $eventStreamEmitter->emit([new TicketListUpdated($event->getTicketId())]);
+            }
+        };
+
+        $ecotone = $this->bootstrap($projection, licenceKey: null);
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        self::assertEquals(
+            [new TicketListUpdated('123')],
+            array_map(
+                fn ($event) => $event->getPayload(),
+                array_values(array_filter(
+                    $ecotone->getGateway(EventStore::class)->load(StreamTableRegistry::DEFAULT_STREAM),
+                    fn ($event) => $event->getEventName() === TicketListUpdated::class
+                ))
+            )
+        );
+    }
+
+    public function test_emitting_without_a_licence_from_a_projection_with_its_own_stream_writes_to_the_default_stream(): void
+    {
+        $projection = new #[Projection('unlicensed_emitting_to_custom_stream'), FromAggregateStream(Ticket::class), Stream('emitted_notifications')] class () {
+            #[EventHandler(endpointId: 'unlicensedEmittingToCustomStream.addTicket')]
+            public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
+            {
+                $eventStreamEmitter->emit([new TicketListUpdated($event->getTicketId())]);
+            }
+        };
+
+        $ecotone = $this->bootstrap($projection, licenceKey: null);
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertSame(
+            [TicketWasRegistered::class, TicketListUpdated::class],
+            array_map(fn ($event) => $event->getEventName(), $eventStore->load(StreamTableRegistry::DEFAULT_STREAM))
+        );
+        self::assertSame([], $eventStore->load('emitted_notifications'));
+    }
+
     public function test_linking_to_declared_stream(): void
     {
         $projection = new #[Projection('linking_to_declared_stream'), FromAggregateStream(Ticket::class), Stream('emitted_notifications')] class () {
@@ -95,6 +141,25 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
         self::assertCount(1, $ecotone->getGateway(EventStore::class)->load('emitted_notifications'));
+    }
+
+    public function test_linking_without_a_licence_writes_to_the_declared_stream(): void
+    {
+        $projection = new #[Projection('unlicensed_linking_to_declared_stream'), FromAggregateStream(Ticket::class), Stream('emitted_notifications')] class () {
+            #[EventHandler(endpointId: 'unlicensedLinkingToDeclaredStream.addTicket')]
+            public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
+            {
+                $eventStreamEmitter->linkTo('emitted_notifications', [new TicketListUpdated($event->getTicketId())]);
+            }
+        };
+
+        $ecotone = $this->bootstrap($projection, licenceKey: null);
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        self::assertEquals(
+            [new TicketListUpdated('123')],
+            array_map(fn ($event) => $event->getPayload(), $ecotone->getGateway(EventStore::class)->load('emitted_notifications'))
+        );
     }
 
     public function test_linking_to_undeclared_stream_is_rejected(): void
@@ -162,7 +227,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         self::assertSame(['123'], $ecotone->sendQueryWithRouting('getUpdatedTickets'));
     }
 
-    private function bootstrap(object $projection): FlowTestSupport
+    private function bootstrap(object $projection, ?string $licenceKey = LicenceTesting::VALID_LICENCE): FlowTestSupport
     {
         return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, TicketListUpdatedConverter::class, TicketListUpdated::class, $projection::class],
@@ -177,7 +242,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
-            licenceKey: LicenceTesting::VALID_LICENCE,
+            licenceKey: $licenceKey,
         );
     }
 }

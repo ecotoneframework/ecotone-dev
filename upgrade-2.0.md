@@ -149,8 +149,12 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 - `#[ProjectionState]` parameters must declare a default value (e.g. `array $state = []`, or
   `MyState $state = new MyState()`) — the framework passes `null` before a partition has any state, and a
   required, non-nullable parameter with no default cannot accept that.
-- `EventStreamEmitter::emit()` (not `linkTo()`) requires an Enterprise licence: it tags the emitted event with
-  the projection's own name, and that header is only populated under a valid licence.
+- `EventStreamEmitter::emit()` and `linkTo()` are both open source. **Without an Enterprise licence, `emit()` writes
+  to the default stream, `ecotone_event_stream`, whatever `#[Stream]` the projection declares.** `emit()` finds the
+  projection's `#[Stream]` by the projection's name, and a projection handler receives its name (the
+  `projection.name` header, `#[ProjectionName]`) only under a licence, so the open-core `emit()` has no name to look
+  the stream up by. Emitting into a projection's own `#[Stream]` therefore needs the licence; without one, name the
+  stream explicitly with `linkTo('my_stream', $events)`, which reaches any declared stream in open core.
 - Tests: `FlowTestSupport::triggerProjection()`/`resetProjection()`/`initializeProjection()`/`deleteProjection()`
   now drive the projection directly and synchronously — there is no more queued/asynchronous delay
   before they take effect, so a test that relied on "nothing happens until the next `->run()`" needs to drop
@@ -234,9 +238,10 @@ subsection below.
   model). `appendTo()` now throws `ConfigurationException` naming the projection and event; fix it by giving the
   event an aggregate, or by having a global `#[FromStream]` projection handle it instead.
 - **`EventStreamEmitter`.** `emit()` writes to the emitting class's `#[Stream]`, defaulting to `ecotone_event_stream`;
-  it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
-  stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a
-  table created behind your back.
+  it no longer invents a `projection_<name>` stream. Reaching the class's own `#[Stream]` takes an Enterprise
+  licence; without one `emit()` writes to `ecotone_event_stream` (§3). `linkTo($streamName, ...)` still takes an
+  explicit target, but the stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a
+  configuration error instead of a table created behind your back.
 - **Tables are declared, not discovered.** Every stream table — including one declared with a non-default
   `connectionReferenceName` — is registered with `ecotone:migration:database:setup` under the `event_stream` feature,
   grouped by the connection it lives on; see §8 for the `--connection` option and how the missing-table error names the
@@ -2465,7 +2470,7 @@ normal section with "How to adapt" steps when it ships.
 9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]`; replace `#[FromStream(Aggregate::class)]` with `#[FromAggregateStream(Aggregate::class)]` (§4).
 10. Rename `#[ServiceActivator]` to `#[InternalHandler]`, checking positional arguments (§7a). Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
-12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers, `#[ChannelInterceptor]` or `#[Fetch]` (§14).
+12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` into a projection's own `#[Stream]` (§3), `changingHeaders: true` on internal handlers, `#[ChannelInterceptor]` or `#[Fetch]` (§14).
 13. Adopting DCB decision models: create the `event_tags` tables and, only for a 1.x table a model writes into,
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).

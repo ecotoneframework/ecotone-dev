@@ -138,12 +138,6 @@ interface Configuration extends CompilerPass
 
     public function registerConversionServiceDecorator(Definition $conversionServiceDecoratorBuilder): Configuration;
 
-    /**
-     * @param string $referenceName
-     * @return Configuration
-     */
-    public function registerMessageConverter(string $referenceName): Configuration;
-
     public function registerServiceDefinition(string|Reference $id, Definition|Reference $definition): Configuration;
 
     public function isRunningForEnterpriseLicence(): bool;

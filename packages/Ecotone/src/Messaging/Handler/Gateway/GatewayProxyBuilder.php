@@ -65,10 +65,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
     private array $methodArgumentConverters = [];
     private ?string $errorChannelName = null;
     /**
-     * @var string[]
-     */
-    private array $messageConverterReferenceNames = [];
-    /**
      * @var AroundInterceptorBuilder[]
      */
     private array $aroundInterceptors = [];
@@ -194,17 +190,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
         Assert::isTrue($amount <= 1, "Can't create gateway {$this} with two Payload converters");
 
         $this->methodArgumentConverters = $methodArgumentConverters;
-
-        return $this;
-    }
-
-    /**
-     * @param string[] $messageConverterReferenceNames
-     * @return $this
-     */
-    public function withMessageConverters(array $messageConverterReferenceNames): self
-    {
-        $this->messageConverterReferenceNames = array_unique(array_merge($this->messageConverterReferenceNames, $messageConverterReferenceNames));
 
         return $this;
     }
@@ -337,11 +322,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             }
         }
 
-        $messageConverters = [];
-        foreach ($this->messageConverterReferenceNames as $messageConverterReferenceName) {
-            $messageConverters[] = new Reference($messageConverterReferenceName);
-        }
-
         if (empty($methodArgumentConverters) && $interfaceToCall->hasMoreThanOneParameter()) {
             throw InvalidArgumentException::create("You need to pass method argument converts for {$interfaceToCall}");
         }
@@ -359,12 +339,10 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
                 new Reference(EcotoneClockInterface::class),
             ]),
             $interfaceToCall->getReturnType(),
-            $messageConverters,
             new Definition(GatewayReplyConverter::class, [
                 new Reference(ConversionService::REFERENCE_NAME),
                 $interfaceToCall->toString(),
                 $interfaceToCall->getReturnType(),
-                $messageConverters,
             ]),
             $internalHandlerReference,
         ]);

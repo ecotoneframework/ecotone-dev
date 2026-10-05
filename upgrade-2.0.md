@@ -1073,6 +1073,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `CronExpression::factory()` | `new CronExpression()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
+| `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
 Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
 `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.

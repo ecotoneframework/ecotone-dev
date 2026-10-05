@@ -38,8 +38,6 @@ use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordin
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordingOutcomeOnClassAndMethod;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\GatewayRecordingOutcomeOnMethod;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\RecordOutcomeIn;
-use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverter;
-use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverterGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketCreator;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
@@ -655,42 +653,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         $this->assertEquals(
             GatewayProxyBuilder::create($referenceName, ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName),
             sprintf('Gateway - %s:%s with reference name `%s` for request channel `%s`', ServiceInterfaceSendOnly::class, 'sendMail', $referenceName, $requestChannelName)
-        );
-    }
-
-    /**
-     * @throws InvalidArgumentException
-     * @throws MessagingException
-     */
-    public function test_using_message_converter_for_transformation_according_to_interface()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withReference('converter', new FakeMessageConverter())
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    FakeMessageConverterGatewayExample::class,
-                    FakeMessageConverterGatewayExample::class,
-                    'execute',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters([
-                        GatewayHeaderBuilder::create('some', 'some'),
-                        GatewayPayloadBuilder::create('amount'),
-                    ])
-                    ->withMessageConverters([
-                        'converter',
-                    ])
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            new stdClass(),
-            $messaging->getGateway(FakeMessageConverterGatewayExample::class)
-                ->execute([], 'test')
         );
     }
 

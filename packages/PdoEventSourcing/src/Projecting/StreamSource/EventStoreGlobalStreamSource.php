@@ -21,6 +21,7 @@ use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
@@ -70,16 +71,17 @@ class EventStoreGlobalStreamSource implements StreamSource
         return $this->loadFromMultipleStreams($streamFilters, $lastPosition, $count);
     }
 
-    private function loadFromSingleStream(\Ecotone\Projecting\StreamFilter $streamFilter, ?string $lastPosition, int $count): StreamPage
+    /**
+     * @return StreamEvent[]
+     */
+    private function loadStreamEvents(StreamFilter $streamFilter, GapAwarePosition $tracking, int $count): array
     {
         $connection = $this->getConnection();
         $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($streamFilter->streamName);
 
-        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
-            return new StreamPage([], '');
+        if ($tracking->getPosition() === 0 && ! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
+            return [];
         }
-
-        $tracking = GapAwarePosition::fromString($lastPosition);
 
         [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
             true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
@@ -98,68 +100,84 @@ class EventStoreGlobalStreamSource implements StreamSource
         ], $gapQueryPartParamTypes);
 
         $events = [];
-        $now = $this->clock->now();
-        $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
         foreach ($query->iterateAssociative() as $event) {
-            $events[] = $event = new StreamEvent(
+            $events[] = new StreamEvent(
                 $event['event_name'],
                 json_decode($event['payload'], true),
                 json_decode($event['metadata'], true),
                 (int) $event['no'],
                 $this->getTimestamp($event['created_at'])
             );
-            $insertGaps = $event->timestamp > $cutoffTimestamp;
-            $tracking->advanceTo($event->no, $insertGaps);
         }
 
-        $tracking->cleanByMaxOffset($this->maxGapOffset);
-
-        $this->cleanGapsByTimeout($tracking, $connection, $proophStreamTable);
-
-        return new StreamPage($events, (string) $tracking);
+        return $events;
     }
 
     /**
-     * @param \Ecotone\Projecting\StreamFilter[] $streamFilters
+     * @param StreamFilter[] $streamFilters
      */
     private function loadFromMultipleStreams(array $streamFilters, ?string $lastPosition, int $count): StreamPage
     {
         $positions = $this->decodeMultiStreamPositions($lastPosition);
-
-        $orderIndex = [];
-        $i = 0;
-        $newPositions = [];
-        $all = [];
+        $streamFilterCount = count($streamFilters);
+        $limit = $streamFilterCount === 1 ? $count : (int) ceil($count / $streamFilterCount) + 5;
+        $tracking = [];
+        $streamEvents = [];
+        $offsets = [];
 
         foreach ($streamFilters as $streamFilter) {
             $streamName = $streamFilter->streamName;
-            $orderIndex[$streamName] = $i++;
-
-            $streamPosition = $positions[$streamName] ?? null;
-            $streamFilterCount = count($streamFilters);
-            $limit = $streamFilterCount === 1 ? $count : (int) ceil($count / $streamFilterCount) + 5;
-
-            $streamPage = $this->loadFromSingleStream($streamFilter, $streamPosition, $limit);
-            $newPositions[$streamName] = $streamPage->lastPosition;
-
-            foreach ($streamPage->events as $event) {
-                $all[] = [$streamName, $event];
-            }
+            $tracking[$streamName] = GapAwarePosition::fromString($positions[$streamName] ?? null);
+            $streamEvents[$streamName] = $this->loadStreamEvents($streamFilter, $tracking[$streamName], $limit);
+            $offsets[$streamName] = 0;
         }
 
-        usort($all, function (array $aTuple, array $bTuple) use ($orderIndex): int {
-            [$aStream, $a] = $aTuple;
-            [$bStream, $b] = $bTuple;
-            if ($aStream === $bStream) {
-                return $a->no <=> $b->no;
-            }
-            if ($a->timestamp === $b->timestamp) {
-                return $orderIndex[$aStream] <=> $orderIndex[$bStream];
-            }
-            return $a->timestamp <=> $b->timestamp;
-        });
+        $events = [];
+        $now = $this->clock->now();
+        $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
+        while (count($events) < $count) {
+            $nextEvent = null;
+            $nextStream = null;
+            foreach ($streamFilters as $streamFilter) {
+                $streamName = $streamFilter->streamName;
+                if ($offsets[$streamName] === count($streamEvents[$streamName]) && count($streamEvents[$streamName]) === $limit) {
+                    $streamEvents[$streamName] = $this->loadStreamEvents($streamFilter, $tracking[$streamName], $limit);
+                    $offsets[$streamName] = 0;
+                }
 
-        $events = array_map(fn (array $tuple) => $tuple[1], $all);
+                $candidate = $streamEvents[$streamName][$offsets[$streamName]] ?? null;
+                if ($candidate !== null && ($nextEvent === null || $candidate->timestamp < $nextEvent->timestamp)) {
+                    $nextEvent = $candidate;
+                    $nextStream = $streamName;
+                }
+            }
+
+            if ($nextEvent === null) {
+                break;
+            }
+
+            $events[] = $nextEvent;
+            $tracking[$nextStream]->advanceTo($nextEvent->no, $nextEvent->timestamp > $cutoffTimestamp);
+            $offsets[$nextStream]++;
+        }
+
+        $newPositions = [];
+        $connection = $this->getConnection();
+        foreach ($tracking as $streamName => $streamTracking) {
+            $unconsumedGaps = [];
+            foreach (array_slice($streamEvents[$streamName], $offsets[$streamName]) as $event) {
+                if ($event->no <= $streamTracking->getPosition()) {
+                    $unconsumedGaps[] = $event->no;
+                }
+            }
+
+            $streamTracking->cleanByMaxOffset($this->maxGapOffset);
+            $this->cleanGapsByTimeout($streamTracking, $connection, $this->tableNameProvider->generateTableNameForStream($streamName));
+            $newPositions[$streamName] = (string) new GapAwarePosition(
+                $streamTracking->getPosition(),
+                [...$streamTracking->getGaps(), ...$unconsumedGaps]
+            );
+        }
 
         return new StreamPage($events, $this->encodeMultiStreamPositions($newPositions));
     }

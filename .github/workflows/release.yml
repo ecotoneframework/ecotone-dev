@@ -203,6 +203,8 @@ jobs:
     needs: discord-notification
     # ↓ only announce stable releases (tag has no '-' pre-release suffix)
     if: "!contains(github.ref_name, '-')"
+    # ↓ a failed tweet is reported on the job but does not fail the release
+    continue-on-error: true
     steps:
       - uses: Eomm/why-don-t-you-tweet@v1
         with:

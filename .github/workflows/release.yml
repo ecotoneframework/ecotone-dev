@@ -200,9 +200,11 @@ jobs:
           user_email: "ecotoneframework@gmail.com"
   tweet:
     runs-on: ubuntu-latest
-    needs: discord-notification
+    needs: split_packages
     # ↓ only announce stable releases (tag has no '-' pre-release suffix)
     if: "!contains(github.ref_name, '-')"
+    # ↓ a failed announcement is reported on the job but does not fail the release
+    continue-on-error: true
     steps:
       - uses: Eomm/why-don-t-you-tweet@v1
         with:
@@ -219,6 +221,8 @@ jobs:
     needs: split_packages
     # ↓ only announce stable releases (tag has no '-' pre-release suffix)
     if: "!contains(github.ref_name, '-')"
+    # ↓ a failed announcement is reported on the job but does not fail the release
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:

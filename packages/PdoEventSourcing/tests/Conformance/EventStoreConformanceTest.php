@@ -49,14 +49,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'sides' => 'appendTo() with no events on a missing stream — in-memory creates the stream, DBAL leaves it missing',
             'cases' => ['test_appending_no_events_to_a_missing_stream_leaves_it_missing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
-        'E8' => [
-            'sides' => 'an unconditional append repeating a recorded aggregate type, id and version — DBAL rejects the whole batch through its unique index, in-memory stores the duplicate',
-            'cases' => ['test_appending_an_aggregate_version_that_was_already_recorded_is_rejected_and_appends_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
-        ],
-        'E9' => [
-            'sides' => 'an append repeating a recorded event id — DBAL rejects it through its unique event_id, in-memory stores the duplicate',
-            'cases' => ['test_appending_an_event_id_that_was_already_recorded_is_rejected' => ['in-memory', 'in-memory-without-event-sourcing-module']],
-        ],
         'E11' => [
             'sides' => 'appendTo() on a stream no #[Stream] or aggregate declares — MySQL and MariaDB refuse to create its table at runtime (rule 16), in-memory, PostgreSQL and SQLite create it',
             'cases' => [

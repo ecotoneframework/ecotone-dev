@@ -27,6 +27,7 @@ use function is_float;
 use function is_int;
 use function is_scalar;
 use function is_string;
+use function json_encode;
 use function preg_match;
 
 /**
@@ -50,6 +51,8 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
             $this->streams[$streamName] = [
                 'events' => [],
                 'metadata' => [],
+                'eventIds' => [],
+                'aggregateVersions' => [],
             ];
         }
 
@@ -128,9 +131,76 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     private function appendPlainEvents(string $streamName, array $events): void
     {
         $recordedEvents = array_map($this->recordedEventFormat->recordedFrom(...), $events);
+        $this->refuseEventsRecordedBefore($streamName, $recordedEvents);
+
         foreach ($recordedEvents as $recordedEvent) {
-            $this->streams[$streamName]['events'][] = $recordedEvent;
+            $this->record($streamName, $recordedEvent);
         }
+    }
+
+    /**
+     * @param Event[] $recordedEvents
+     */
+    private function refuseEventsRecordedBefore(string $streamName, array $recordedEvents): void
+    {
+        $eventIds = $this->streams[$streamName]['eventIds'];
+        $aggregateVersions = $this->streams[$streamName]['aggregateVersions'];
+        foreach ($recordedEvents as $recordedEvent) {
+            $eventId = $this->eventIdOf($recordedEvent);
+            if ($eventId !== null) {
+                if (isset($eventIds[$eventId])) {
+                    throw ConcurrencyException::forRecordedEventId($streamName, $eventId);
+                }
+                $eventIds[$eventId] = true;
+            }
+
+            $aggregateVersion = $this->aggregateVersionOf($recordedEvent);
+            if ($aggregateVersion !== null) {
+                $aggregateVersionKey = json_encode($aggregateVersion, JSON_THROW_ON_ERROR);
+                if (isset($aggregateVersions[$aggregateVersionKey])) {
+                    throw ConcurrencyException::forRecordedAggregateVersion($streamName, ...$aggregateVersion);
+                }
+                $aggregateVersions[$aggregateVersionKey] = true;
+            }
+        }
+    }
+
+    private function record(string $streamName, Event $recordedEvent): void
+    {
+        $this->streams[$streamName]['events'][] = $recordedEvent;
+
+        $eventId = $this->eventIdOf($recordedEvent);
+        if ($eventId !== null) {
+            $this->streams[$streamName]['eventIds'][$eventId] = true;
+        }
+
+        $aggregateVersion = $this->aggregateVersionOf($recordedEvent);
+        if ($aggregateVersion !== null) {
+            $this->streams[$streamName]['aggregateVersions'][json_encode($aggregateVersion, JSON_THROW_ON_ERROR)] = true;
+        }
+    }
+
+    private function eventIdOf(Event $recordedEvent): ?string
+    {
+        $eventId = $recordedEvent->getMetadata()[MessageHeaders::MESSAGE_ID] ?? null;
+
+        return $eventId === null ? null : (string) $eventId;
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string}|null
+     */
+    private function aggregateVersionOf(Event $recordedEvent): ?array
+    {
+        $metadata = $recordedEvent->getMetadata();
+        $aggregateType = $metadata[MessageHeaders::EVENT_AGGREGATE_TYPE] ?? null;
+        $aggregateId = $metadata[MessageHeaders::EVENT_AGGREGATE_ID] ?? null;
+        $aggregateVersion = $metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? null;
+        if ($aggregateType === null || $aggregateId === null || $aggregateVersion === null) {
+            return null;
+        }
+
+        return [(string) $aggregateType, (string) $aggregateId, (string) $aggregateVersion];
     }
 
     private function assertAggregateVersionMatches(string $streamName, AppendCondition $appendCondition): void

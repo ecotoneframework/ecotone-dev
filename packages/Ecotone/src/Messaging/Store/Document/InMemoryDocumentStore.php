@@ -44,13 +44,7 @@ final class InMemoryDocumentStore implements DocumentStore
         if (isset($this->collection[$collectionName][$documentId])) {
             throw DocumentException::create(sprintf('Collection %s already contains document with id %s', $collectionName, $documentId));
         }
-        if (is_string($document)) {
-            try {
-                json_decode($document, flags: JSON_THROW_ON_ERROR);
-            } catch (JsonException) {
-                throw DocumentException::create(sprintf('Trying to store document in %s collection with incorrect JSON: %s', $documentId, $collectionName));
-            }
-        }
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
 
         $this->collection[$collectionName][$documentId] = $document;
         $this->versions[$collectionName][$documentId] = 1;
@@ -129,8 +123,22 @@ final class InMemoryDocumentStore implements DocumentStore
         if ($expectedVersion !== self::LAST_WRITE_WINS && $expectedVersion !== $currentVersion) {
             throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, $currentVersion);
         }
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
 
         $this->collection[$collectionName][$documentId] = $document;
         $this->versions[$collectionName][$documentId] = $currentVersion + 1;
+    }
+
+    private function refuseStringThatIsNotJson(string $collectionName, string $documentId, object|array|string $document): void
+    {
+        if (! is_string($document)) {
+            return;
+        }
+
+        try {
+            json_decode($document, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $notJson) {
+            throw DocumentException::forStringThatIsNotJson($collectionName, $documentId, $notJson);
+        }
     }
 }

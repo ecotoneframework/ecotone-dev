@@ -22,6 +22,11 @@ use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
 use Ecotone\Messaging\Support\ConcurrencyException;
 
+use function is_string;
+use function json_decode;
+
+use JsonException;
+
 use function spl_object_id;
 
 /**
@@ -265,6 +270,19 @@ final class DbalDocumentStore implements DocumentStore
         return $tableExists;
     }
 
+    private function refuseStringThatIsNotJson(string $collectionName, string $documentId, object|array|string $document): void
+    {
+        if (! is_string($document)) {
+            return;
+        }
+
+        try {
+            json_decode($document, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $notJson) {
+            throw DocumentException::forStringThatIsNotJson($collectionName, $documentId, $notJson);
+        }
+    }
+
     private function convertToJSONDocument(Type $type, object|array|string $document): mixed
     {
         if (! $type->isString()) {
@@ -281,6 +299,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function insertDocument(string $collectionName, string $documentId, object|array|string $document): int
     {
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
         $type = Type::createFromVariable($document);
 
         return $this->getConnection()->insert(
@@ -306,6 +325,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function updateDocumentInternally(object|array|string $document, string $documentId, string $collectionName, int $expectedVersion): int
     {
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
         $type = Type::createFromVariable($document);
         $update = $this->getConnection()->createQueryBuilder()
             ->update($this->getTableName())

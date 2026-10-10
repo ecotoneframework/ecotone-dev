@@ -28,13 +28,6 @@ use Throwable;
 final class DocumentStoreConformanceTest extends DbalMessagingTestCase
 {
     private const KNOWN_DIVERGENCES = [
-        'D1' => [
-            'sides' => 'a document string that is not JSON — PostgreSQL, MySQL and MariaDB refuse it on add and on update, in-memory refuses it on add only, SQLite accepts it on both',
-            'cases' => [
-                'test_adding_a_string_that_is_not_json_is_refused' => ['dbal:sqlite'],
-                'test_updating_with_a_string_that_is_not_json_is_refused' => ['in-memory', 'dbal:sqlite'],
-            ],
-        ],
         'D3' => [
             'sides' => 'an object changed after addDocument() — in-memory holds the stored object by reference so the stored document changes too, DBAL stored a copy',
             'cases' => ['test_changing_an_object_after_storing_it_does_not_change_the_stored_document' => ['in-memory']],
@@ -149,7 +142,9 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             try {
                 $documentStore->addDocument('orders', 'o-1', 'not a json');
                 self::fail('Expected a string that is not JSON to be refused');
-            } catch (DocumentException) {
+            } catch (DocumentException $exception) {
+                self::assertStringContainsString('Document o-1 cannot be stored in collection orders: it was given as a string that is not JSON', $exception->getMessage());
+                self::assertStringContainsString('Pass the array or object instead', $exception->getMessage());
             }
 
             self::assertNull($documentStore->findDocument('orders', 'o-1'));
@@ -165,6 +160,13 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             try {
                 $documentStore->updateDocument('orders', 'o-1', 'not a json', expectedVersion: 1);
                 self::fail('Expected a string that is not JSON to be refused');
+            } catch (DocumentException $exception) {
+                self::assertStringContainsString('Document o-1 cannot be stored in collection orders: it was given as a string that is not JSON', $exception->getMessage());
+            }
+
+            try {
+                $documentStore->upsertDocument('orders', 'o-1', 'not a json', expectedVersion: 1);
+                self::fail('Expected a string that is not JSON to be refused on upsert');
             } catch (DocumentException) {
             }
 

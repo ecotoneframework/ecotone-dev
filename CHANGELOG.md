@@ -3,6 +3,10 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.328.2] - 2026-10-10
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.1...1.328.2
+
 ## [1.328.1] - 2026-10-10
 
 ## What's Changed

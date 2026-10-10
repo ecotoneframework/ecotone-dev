@@ -385,4 +385,4 @@ Recorded as deliberately as the mistakes, because each of these demonstrably sto
    `implement-mysql-mariadb-green` (merged at `22fe48dbc`) and `implement-dbal-mysql-green` (`57c076084`,
    `9ae4e3fd3`), both chasing the same engine-specific failure
 8. The 8.2 floor still holds, if the change could care: `docker compose exec app8_2 ...`
-9. `Monorepo/*/Symfony/config/reference.php` is not in the diff — those drift on their own
+9. `Monorepo/*/Symfony/config/reference.php` needs no check — it is gitignored and untracked

@@ -278,7 +278,7 @@ noise floor before it states a result.
   ```bash
   GIT_AUTHOR_DATE="$(date +%Y-%m-%d) 08:00:00" GIT_COMMITTER_DATE="$(date +%Y-%m-%d) 08:00:00" git commit ...
   ```
-- Never commit `Monorepo/*/Symfony/config/reference.php` - they drift on their own
+- `Monorepo/*/Symfony/config/reference.php` is gitignored and untracked - it regenerates on every Symfony run
 
 ## Opening a Pull Request
 

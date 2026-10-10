@@ -1033,7 +1033,7 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 - `vendor/bin/phpunit --no-coverage` for a single file; a plain run trips PHPUnit 12's coverage requirement.
 - Every commit carries an 08:00 timestamp:
   `GIT_AUTHOR_DATE="$(date +%Y-%m-%d) 08:00:00" GIT_COMMITTER_DATE="$(date +%Y-%m-%d) 08:00:00" git commit ...`
-- Never commit `Monorepo/*/Symfony/config/reference.php` — they drift on their own.
+- `Monorepo/*/Symfony/config/reference.php` is gitignored and untracked — it regenerates on every Symfony run.
 - Conventional commit subjects: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `test(scope):`, `docs(scope):`,
   `style(scope):`. One increment per commit.
 

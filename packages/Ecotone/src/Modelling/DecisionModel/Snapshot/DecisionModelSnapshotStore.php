@@ -124,7 +124,7 @@ final class DecisionModelSnapshotStore
         );
     }
 
-    public static function collectionFor(string $modelClass): string
+    private static function collectionFor(string $modelClass): string
     {
         return self::COLLECTION_PREFIX . $modelClass;
     }

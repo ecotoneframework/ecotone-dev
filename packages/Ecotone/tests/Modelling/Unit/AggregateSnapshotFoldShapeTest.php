@@ -8,16 +8,15 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\EventSourcing\EventSourcedRepositoryAdapter;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
+use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
 
 /**
  * licence Apache-2.0
@@ -25,65 +24,61 @@ use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
  */
 final class AggregateSnapshotFoldShapeTest extends TestCase
 {
-    private InMemoryDocumentStore $documentStore;
-
-    private StubLogger $logger;
-
-    protected function setUp(): void
-    {
-        $this->documentStore = InMemoryDocumentStore::createEmpty();
-        $this->logger = StubLogger::create();
-    }
+    private const SNAPSHOTS = 'aggregate_snapshots_' . Ticket::class;
+    private const FOLD_SHAPES = 'aggregate_snapshot_fold_shapes_' . Ticket::class;
 
     public function test_a_snapshot_written_before_ecotone_recorded_the_fold_shape_is_ignored(): void
     {
-        $ecotone = $this->bootstrapWithSnapshots();
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapWithSnapshots($logger);
         $ecotone->sendCommand(new StartTicketCommand('1'));
-        $this->storeSnapshotWithoutFoldShape($this->ticketAssignedTo($ecotone, 'someone-who-never-was'));
+        $this->replaceSnapshotWithOneWrittenBeforeFoldShapesWereRecorded($ecotone, $this->ticketAssignedTo($ecotone, 'someone-who-never-was'));
 
         $ecotone->sendCommand(new AssignWorkerCommand('1', 'johny'));
 
         $this->assertSame('johny', $ecotone->getAggregate(Ticket::class, ['ticketId' => '1'])->getWorkerId());
-        $this->assertCount(1, $this->logger->getError());
+        $this->assertCount(1, $logger->getError());
     }
 
     public function test_a_snapshot_without_a_fold_shape_is_replaced_by_the_next_write(): void
     {
-        $ecotone = $this->bootstrapWithSnapshots();
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapWithSnapshots($logger);
         $ecotone->sendCommand(new StartTicketCommand('1'));
-        $this->storeSnapshotWithoutFoldShape($this->ticketAssignedTo($ecotone, 'someone-who-never-was'));
+        $this->replaceSnapshotWithOneWrittenBeforeFoldShapesWereRecorded($ecotone, $this->ticketAssignedTo($ecotone, 'someone-who-never-was'));
 
         $ecotone->sendCommand(new AssignWorkerCommand('1', 'johny'));
-        $this->logger->clear();
+        $logger->clear();
 
         $this->assertSame('johny', $ecotone->getAggregate(Ticket::class, ['ticketId' => '1'])->getWorkerId());
-        $this->assertCount(0, $this->logger->getError());
+        $this->assertCount(0, $logger->getError());
     }
 
     private function ticketAssignedTo(FlowTestSupport $ecotone, string $workerId): Ticket
     {
         $ticket = $ecotone->getAggregate(Ticket::class, ['ticketId' => '1']);
-        $ticket->onWorkerWasAssigned(new \Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent('1', $workerId));
+        $ticket->onWorkerWasAssigned(new WorkerWasAssignedEvent('1', $workerId));
 
         return $ticket;
     }
 
-    private function storeSnapshotWithoutFoldShape(Ticket $ticket): void
+    private function replaceSnapshotWithOneWrittenBeforeFoldShapesWereRecorded(FlowTestSupport $ecotone, Ticket $ticket): void
     {
-        $this->documentStore->upsertDocument(
-            SaveAggregateService::getSnapshotCollectionName(Ticket::class),
-            SaveAggregateService::getSnapshotDocumentId(['ticketId' => '1']),
-            $ticket,
-            DocumentStore::LAST_WRITE_WINS,
-        );
-        $this->documentStore->dropCollection(EventSourcedRepositoryAdapter::getSnapshotFoldShapeCollectionName(Ticket::class));
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
+        $this->assertSame(1, $documentStore->countDocuments(self::SNAPSHOTS));
+        $this->assertSame(1, $documentStore->countDocuments(self::FOLD_SHAPES));
+
+        $documentStore->upsertDocument(self::SNAPSHOTS, '1', $ticket, DocumentStore::LAST_WRITE_WINS);
+        $documentStore->dropCollection(self::FOLD_SHAPES);
+
+        $this->assertSame(1, $documentStore->countDocuments(self::SNAPSHOTS));
     }
 
-    private function bootstrapWithSnapshots(): FlowTestSupport
+    private function bootstrapWithSnapshots(StubLogger $logger): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            [DocumentStore::class => $this->documentStore, 'logger' => $this->logger],
+            [DocumentStore::class => InMemoryDocumentStore::createEmpty(), 'logger' => $logger],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),

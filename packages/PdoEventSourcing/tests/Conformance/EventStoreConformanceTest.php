@@ -42,7 +42,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'cases' => ['test_a_metadata_matcher_with_an_empty_not_in_list_excludes_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
         'E6' => [
-            'sides' => 'load() of a stream that was never created — in-memory returns no events, DBAL refuses with the missing-table instructions',
+            'sides' => 'load() of a stream that was never created — in-memory returns no events, DBAL refuses with the missing-table instructions. Intended: a DBAL stream lives in a table that ecotone:migration:database:setup, or the test bootstrap, creates before anything reads it, so a missing one is a deployment mistake to name; an in-memory store has no tables, and a stream exists from its first append',
             'cases' => ['test_loading_a_stream_that_was_never_created_is_refused' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
         'E7' => [

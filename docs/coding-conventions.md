@@ -230,9 +230,22 @@ reader on `packages/Ecotone/Api/Lite/Test/FlowTestSupport.php` is `pop*`: `popRe
 
 ## 5. Do not create an interface with a single implementation
 
-An interface in this codebase marks a real seam, and there are only two kinds: **open core versus Enterprise**
-(`AggregateMethodInvoker`, `DbalTagCollaborator`), and **in-memory versus storage-backed** (`EventStore`,
-`StreamSource`). If there is one implementation, the class is the type.
+An interface in this codebase marks a real seam, and there are three kinds: **open core versus Enterprise**
+(`AggregateMethodInvoker`, `DbalTagCollaborator`), **in-memory versus storage-backed** (`EventStore`,
+`StreamSource`), and **a dependency inverted across a package or layer boundary** — core must not name a class
+from an optional package, and `Api` must not name a platform-specific `src` class. If there is one implementation
+and none of the three applies, the class is the type.
+
+The third kind is the narrow one, so it carries its own test: **would removing the interface force a reference in
+the wrong direction?** If not, it is not this category.
+
+- `OutboxForwardingChannel` has one implementation, `OutboxForwardingMessageChannel` in Dbal's `Api`, and
+  `MessagingSystemConfiguration` in core asks `instanceof OutboxForwardingChannel`. Collapsing it makes
+  `packages/Ecotone` name a class from the optional Dbal package.
+- `TerminationListener` has one implementation, `PcntlTerminationListener`. Collapsing it put
+  `PcntlTerminationListener` into `Api/Projecting/ProjectingManager`'s constructor, so the public surface declared
+  it needs the pcntl implementation rather than something that can answer `shouldTerminate()`. Collapsed in
+  `85ca52eda`, reverted in `2866f6794` once that reached review.
 
 The technique for removing one without reintroducing the construction cycle that motivated it: **pass the concrete
 class as a method argument, not a constructor argument.**
@@ -419,6 +432,14 @@ are 34 `InMemory*` classes in `packages/Ecotone/src` for this reason, among them
 side holds its own tag state, and has no backfill — the naming makes the asymmetry visible instead of hiding it.
 
 Build them through their constructors, not through setters or a builder (`2ccb8bf9f`).
+
+**One guarantee the shared suite cannot prove on the in-memory side: a race decided by a database constraint.**
+`DbalHandledMessages`-style storage refuses a concurrent duplicate because a unique index rejects the second
+insert inside the transaction; an in-memory store has no constraint and no second connection, so it can only
+enforce the same rule in PHP. State the contract as **behaviour** the suite can assert on both sides — "recording
+the same key twice is refused", "appending a version that already exists raises `ConcurrencyException`" — and
+leave the mechanism to each implementation. A conformance case that needs two real connections racing belongs in
+the storage-backed suite alone, named so the gap is visible rather than assumed covered.
 
 **An in-memory implementation nobody proves equal to the storage one is a place bugs hide.** The whole point of
 rule 9 is that a flow test can stand in for the database; when the two disagree, the test is validating something

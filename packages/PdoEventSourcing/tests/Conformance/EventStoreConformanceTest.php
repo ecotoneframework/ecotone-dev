@@ -41,14 +41,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'sides' => 'a NOT_IN [] metadata match — in-memory drops the events lacking the key, DBAL keeps them',
             'cases' => ['test_a_metadata_matcher_with_an_empty_not_in_list_excludes_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
-        'E4' => [
-            'sides' => 'a metadata value recorded as an integer, matched by its string form — PostgreSQL, MySQL and MariaDB match it, in-memory and SQLite compare the types strictly and do not',
-            'cases' => ['test_a_metadata_value_recorded_as_an_integer_is_matched_by_its_string_form' => ['in-memory', 'in-memory-without-event-sourcing-module', 'dbal:sqlite']],
-        ],
-        'E5' => [
-            'sides' => 'an aggregate id recorded as an integer, loaded by its string form — PostgreSQL, MySQL and MariaDB find it, in-memory and SQLite do not',
-            'cases' => ['test_an_aggregate_recorded_with_an_integer_id_loads_by_its_string_id' => ['in-memory', 'in-memory-without-event-sourcing-module', 'dbal:sqlite']],
-        ],
         'E6' => [
             'sides' => 'load() of a stream that was never created — in-memory returns no events, DBAL refuses with the missing-table instructions',
             'cases' => ['test_loading_a_stream_that_was_never_created_is_refused' => ['in-memory', 'in-memory-without-event-sourcing-module']],

@@ -23,7 +23,10 @@ use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function in_array;
+use function is_float;
+use function is_int;
 use function is_scalar;
+use function is_string;
 use function preg_match;
 
 /**
@@ -361,15 +364,20 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     private function match(Operator $operator, mixed $value, mixed $expected): bool
     {
         return match ($operator) {
-            Operator::EQUALS => $value === $expected,
+            Operator::EQUALS => $this->textForm($value) === $this->textForm($expected),
             Operator::GREATER_THAN => $value > $expected,
             Operator::GREATER_THAN_EQUALS => $value >= $expected,
-            Operator::IN => in_array($value, $expected, true),
+            Operator::IN => in_array($this->textForm($value), array_map($this->textForm(...), $expected), true),
             Operator::LOWER_THAN => $value < $expected,
             Operator::LOWER_THAN_EQUALS => $value <= $expected,
-            Operator::NOT_EQUALS => $value !== $expected,
-            Operator::NOT_IN => ! in_array($value, $expected, true),
+            Operator::NOT_EQUALS => $this->textForm($value) !== $this->textForm($expected),
+            Operator::NOT_IN => ! in_array($this->textForm($value), array_map($this->textForm(...), $expected), true),
             Operator::REGEX => (bool) preg_match('/' . $expected . '/', (string) $value),
         };
+    }
+
+    private function textForm(mixed $value): mixed
+    {
+        return is_int($value) || is_float($value) || is_string($value) ? (string) $value : $value;
     }
 }

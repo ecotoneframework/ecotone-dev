@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Closure;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -16,6 +20,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
@@ -96,6 +101,46 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         $ecotone->runConsoleCommand('ecotone:deduplication:remove-expired-messages', []);
 
         self::assertFalse(self::checkIfTableExists($this->getConnection(), DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE));
+    }
+
+    public function test_sending_to_an_asynchronous_handler_names_the_message_queue_setup_when_its_table_is_missing(): void
+    {
+        $ecotone = $this->bootstrapAsynchronousHandlerWithoutTables();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
+
+        $ecotone->sendCommandWithRouting('order.place', 'milk');
+    }
+
+    public function test_consuming_an_asynchronous_channel_names_the_message_queue_setup_when_its_table_is_missing(): void
+    {
+        $ecotone = $this->bootstrapAsynchronousHandlerWithoutTables();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    private function bootstrapAsynchronousHandlerWithoutTables(): FlowTestSupport
+    {
+        $handler = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $product): void
+            {
+            }
+        };
+
+        return $this->bootstrapFlowTesting(
+            [$handler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults(), DbalBackedMessageChannelBuilder::create('orders')]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+        );
     }
 
     private function bootstrapWithoutTables(DbalConfiguration $dbalConfiguration): FlowTestSupport

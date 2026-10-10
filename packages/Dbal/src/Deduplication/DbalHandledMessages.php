@@ -87,11 +87,11 @@ final class DbalHandledMessages implements HandledMessages
 
     public function removeHandledBefore(int $thresholdInMilliseconds): void
     {
-        $connection = $this->connection();
-        if (! $this->tableManager->isInitialized($connection)) {
+        if (! $this->tableManager->isUsed()) {
             return;
         }
 
+        $connection = $this->connection();
         while ($messageIds = $this->messageIdsHandledBefore($connection, $thresholdInMilliseconds)) {
             $connection->createQueryBuilder()
                 ->delete($this->tableManager->getTableName())
@@ -106,14 +106,18 @@ final class DbalHandledMessages implements HandledMessages
      */
     private function messageIdsHandledBefore(Connection $connection, int $thresholdInMilliseconds): array
     {
-        return $connection->createQueryBuilder()
-            ->select('message_id')
-            ->from($this->tableManager->getTableName())
-            ->andWhere('handled_at <= :threshold')
-            ->setParameter('threshold', $thresholdInMilliseconds, Types::BIGINT)
-            ->setMaxResults($this->removalBatchSize)
-            ->executeQuery()
-            ->fetchFirstColumn();
+        try {
+            return $connection->createQueryBuilder()
+                ->select('message_id')
+                ->from($this->tableManager->getTableName())
+                ->andWhere('handled_at <= :threshold')
+                ->setParameter('threshold', $thresholdInMilliseconds, Types::BIGINT)
+                ->setMaxResults($this->removalBatchSize)
+                ->executeQuery()
+                ->fetchFirstColumn();
+        } catch (TableNotFoundException) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
     }
 
     private function connection(): Connection

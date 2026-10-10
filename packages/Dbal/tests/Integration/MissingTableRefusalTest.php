@@ -14,8 +14,10 @@ use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -75,6 +77,25 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         $this->expectExceptionMessage(MissingTableInstructions::build(DeadLetterTableManager::FEATURE_NAME, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, null));
 
         $operation($ecotone->getGateway(DeadLetterGateway::class));
+    }
+
+    public function test_removing_expired_deduplication_entries_names_the_setup_when_deduplication_is_used_and_its_table_is_missing(): void
+    {
+        $ecotone = $this->bootstrapWithoutTables(DbalConfiguration::createWithDefaults()->withDeduplication(true));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(DeduplicationTableManager::FEATURE_NAME, DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, null));
+
+        $ecotone->runConsoleCommand('ecotone:deduplication:remove-expired-messages', []);
+    }
+
+    public function test_removing_expired_deduplication_entries_does_nothing_when_deduplication_is_not_used(): void
+    {
+        $ecotone = $this->bootstrapWithoutTables(DbalConfiguration::createWithDefaults()->withDeduplication(false));
+
+        $ecotone->runConsoleCommand('ecotone:deduplication:remove-expired-messages', []);
+
+        self::assertFalse(self::checkIfTableExists($this->getConnection(), DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE));
     }
 
     private function bootstrapWithoutTables(DbalConfiguration $dbalConfiguration): FlowTestSupport

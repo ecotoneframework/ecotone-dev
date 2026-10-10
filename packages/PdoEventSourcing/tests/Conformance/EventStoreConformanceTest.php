@@ -37,10 +37,6 @@ use Throwable;
 final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
 {
     private const KNOWN_DIVERGENCES = [
-        'E1' => [
-            'sides' => 'load() with a count of 0 — in-memory refuses it ("count must be >= 1 or null"), DBAL returns no events',
-            'cases' => ['test_loading_a_count_of_zero_returns_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
-        ],
         'E3' => [
             'sides' => 'a NOT_IN [] metadata match — in-memory drops the events lacking the key, DBAL keeps them',
             'cases' => ['test_a_metadata_matcher_with_an_empty_not_in_list_excludes_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
@@ -187,12 +183,26 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_loading_a_count_of_zero_returns_nothing(string $implementation): void
+    public function test_loading_a_count_of_zero_is_refused(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->appendTo(self::STREAM, $this->threeTickets());
+            $eventStore->appendTo(self::STREAM, $this->twoTicketsLifecycle());
 
-            self::assertSame([], $this->ticketIdsOf($eventStore->load(self::STREAM, count: 0)));
+            try {
+                $eventStore->load(self::STREAM, count: 0);
+                self::fail('Expected a count of zero to be refused');
+            } catch (InvalidArgumentException $exception) {
+                self::assertSame('count must be >= 1 or null, got 0: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.', $exception->getMessage());
+            }
+
+            try {
+                $eventStore->loadAggregateEvents(self::STREAM, 'ticket', 't-1', count: 0);
+                self::fail('Expected a count of zero to be refused when loading aggregate events');
+            } catch (InvalidArgumentException $exception) {
+                self::assertSame('count must be >= 1 or null, got 0: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.', $exception->getMessage());
+            }
+
+            self::assertCount(3, $eventStore->load(self::STREAM));
         });
     }
 

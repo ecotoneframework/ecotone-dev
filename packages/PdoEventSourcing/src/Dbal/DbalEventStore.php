@@ -366,6 +366,10 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             throw new InvalidArgumentException('fromNumber must be >= 1');
         }
 
+        if ($count !== null && $count < 1) {
+            throw new InvalidArgumentException("count must be >= 1 or null, got {$count}: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.");
+        }
+
         $connection = $this->connectionFor($streamName);
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
@@ -389,6 +393,10 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
     ): iterable {
         if ($fromVersion < 1) {
             throw new InvalidArgumentException('fromVersion must be >= 1');
+        }
+
+        if ($count !== null && $count < 1) {
+            throw new InvalidArgumentException("count must be >= 1 or null, got {$count}: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.");
         }
 
         $connection = $this->connectionFor($streamName);

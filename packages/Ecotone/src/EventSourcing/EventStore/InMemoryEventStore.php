@@ -209,7 +209,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
         }
 
         if ($count !== null && $count < 1) {
-            throw new InvalidArgumentException('count must be >= 1 or null');
+            throw new InvalidArgumentException("count must be >= 1 or null, got {$count}: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.");
         }
 
         if (! isset($this->streams[$streamName])) {
@@ -275,7 +275,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
         }
 
         if ($count !== null && $count < 1) {
-            throw new InvalidArgumentException('count must be >= 1 or null');
+            throw new InvalidArgumentException("count must be >= 1 or null, got {$count}: it caps how many events are loaded, so 0 would load none. Pass null to load every event that matches.");
         }
 
         if (! isset($this->streams[$streamName])) {

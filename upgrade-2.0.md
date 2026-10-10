@@ -315,8 +315,9 @@ subsection below.
   argument went with it — nothing read stream-level metadata back. **How to adapt:** delete a bare
   `$eventStore->create($streamName)` outright, and replace `create($streamName, $events)` with
   `appendTo($streamName, $events)`. If you relied on `create()` to make the table, run
-  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8). An *empty* stream can
-  no longer be brought into existence — `hasStream()` is false until the first event is appended.
+  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8). An *empty* stream
+  comes from setup alone: `hasStream()` answers whether the stream's table exists, so a declared stream the setup
+  created exists, empty, before its first event, and a stream nothing declares never exists (§8).
 - **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
   additive. **`ecotone:event-store:backfill-tags` on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** The
   backfill's counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an

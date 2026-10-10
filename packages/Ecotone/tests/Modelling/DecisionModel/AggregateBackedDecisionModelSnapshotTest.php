@@ -23,7 +23,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
 use Ecotone\Test\LicenceTesting;
 
 use function json_decode;
@@ -37,14 +36,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class AggregateBackedDecisionModelSnapshotTest extends TestCase
 {
+    private const SNAPSHOTS = 'decision_model_snapshots_' . WalletBalanceForSnapshotTest::class;
     private const SCOPE_KEY = 'WalletForSnapshot|w-1';
-
-    private InMemoryDocumentStore $documentStore;
 
     protected function setUp(): void
     {
         PayoutsForSnapshotTest::$observations = [];
-        $this->documentStore = InMemoryDocumentStore::createEmpty();
     }
 
     public function test_snapshotted_model_decides_the_same_as_an_unsnapshotted_one(): void
@@ -76,42 +73,37 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
     public function test_a_stale_snapshot_decides_like_a_full_fold(): void
     {
         $ecotone = $this->bootstrapWithSnapshotsEvery(1);
-        $this->creditAndObserve($ecotone, 20);
-        $this->overwriteSnapshot(balance: 10, coveredPosition: 2);
+        $this->creditAndObserve($ecotone, 1);
+        $this->creditWithoutReadingTheModel($ecotone, 19);
 
         $this->creditAndObserve($ecotone, 1);
 
         $this->assertSame(210, $this->lastObservedBalance());
-        $this->assertSame(20, $this->foldedEventCounts()[20]);
+        $this->assertSame(20, $this->lastFoldedEventCount());
     }
 
     public function test_a_corrupt_snapshot_decides_correctly_instead_of_failing(): void
     {
         $ecotone = $this->bootstrapWithSnapshotsEvery(1);
         $this->creditAndObserve($ecotone, 3);
-        $this->documentStore->upsertDocument(
-            DecisionModelSnapshotStore::collectionFor(WalletBalanceForSnapshotTest::class),
-            self::SCOPE_KEY,
-            '{"state":"not the model","covered_position":"not a position"}',
-            DocumentStore::LAST_WRITE_WINS,
-        );
+        $this->replaceSnapshot($ecotone, '{"state":"not the model","covered_position":"not a position"}');
 
         $this->creditAndObserve($ecotone, 1);
 
         $this->assertSame(40, $this->lastObservedBalance());
-        $this->assertSame(4, $this->foldedEventCounts()[3]);
+        $this->assertSame(4, $this->lastFoldedEventCount());
     }
 
     public function test_a_snapshot_ahead_of_the_aggregate_is_ignored(): void
     {
-        $ecotone = $this->bootstrapWithSnapshotsEvery(1);
-        $this->creditAndObserve($ecotone, 3);
-        $this->overwriteSnapshot(balance: 999, coveredPosition: 500);
+        $earlierDeployment = $this->bootstrapWithSnapshotsEvery(1);
+        $this->creditAndObserve($earlierDeployment, 3);
+        $deploymentWithAFreshEventStore = $this->bootstrapWithSnapshotsEvery(1, $earlierDeployment->getGateway(DocumentStore::class));
 
-        $this->creditAndObserve($ecotone, 1);
+        $this->creditAndObserve($deploymentWithAFreshEventStore, 1);
 
-        $this->assertSame(40, $this->lastObservedBalance());
-        $this->assertSame(4, $this->foldedEventCounts()[3]);
+        $this->assertSame(10, $this->lastObservedBalance());
+        $this->assertSame(1, $this->lastFoldedEventCount());
     }
 
     public function test_snapshotting_a_model_nothing_converts_names_the_missing_conversion(): void
@@ -145,7 +137,6 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
     private function balancesObservedUnder(DynamicConsistencyBoundaryConfiguration $boundaryConfiguration): array
     {
         PayoutsForSnapshotTest::$observations = [];
-        $this->documentStore = InMemoryDocumentStore::createEmpty();
         $this->creditAndObserve($this->bootstrap($boundaryConfiguration), 5);
 
         return array_column(PayoutsForSnapshotTest::$observations, 'balance');
@@ -157,6 +148,13 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
     private function foldedEventCounts(): array
     {
         return array_column(PayoutsForSnapshotTest::$observations, 'foldedEvents');
+    }
+
+    private function lastFoldedEventCount(): int
+    {
+        $foldedEventCounts = $this->foldedEventCounts();
+
+        return end($foldedEventCounts);
     }
 
     private function lastObservedBalance(): int
@@ -174,42 +172,36 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
         }
     }
 
-    private function overwriteSnapshot(int $balance, int $coveredPosition): void
+    private function creditWithoutReadingTheModel(FlowTestSupport $ecotone, int $times): void
     {
-        $this->documentStore->upsertDocument(
-            DecisionModelSnapshotStore::collectionFor(WalletBalanceForSnapshotTest::class),
-            self::SCOPE_KEY,
-            json_encode([
-                'state' => json_encode(['balance' => $balance]),
-                'covered_position' => $coveredPosition,
-                'fold_shape' => $this->foldShapeAlreadyStored(),
-            ]),
-            DocumentStore::LAST_WRITE_WINS,
-        );
+        foreach (range(1, $times) as $ignored) {
+            $ecotone->sendCommand(new CreditWalletForSnapshotTest('w-1', 10));
+        }
     }
 
-    private function foldShapeAlreadyStored(): string
+    private function replaceSnapshot(FlowTestSupport $ecotone, string $document): void
     {
-        $stored = $this->documentStore->getDocument(
-            DecisionModelSnapshotStore::collectionFor(WalletBalanceForSnapshotTest::class),
-            self::SCOPE_KEY,
-        );
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
+        $this->assertSame(1, $documentStore->countDocuments(self::SNAPSHOTS));
 
-        return json_decode($stored, true)['fold_shape'];
+        $documentStore->upsertDocument(self::SNAPSHOTS, self::SCOPE_KEY, $document, DocumentStore::LAST_WRITE_WINS);
+
+        $this->assertSame(1, $documentStore->countDocuments(self::SNAPSHOTS));
     }
 
-    private function bootstrapWithSnapshotsEvery(int $thresholdTrigger): FlowTestSupport
+    private function bootstrapWithSnapshotsEvery(int $thresholdTrigger, ?DocumentStore $documentStore = null): FlowTestSupport
     {
         return $this->bootstrap(
             DynamicConsistencyBoundaryConfiguration::createWithDefaults()
-                ->withSnapshotsFor(WalletBalanceForSnapshotTest::class, $thresholdTrigger)
+                ->withSnapshotsFor(WalletBalanceForSnapshotTest::class, $thresholdTrigger),
+            documentStore: $documentStore,
         );
     }
 
-    private function bootstrap(DynamicConsistencyBoundaryConfiguration $boundaryConfiguration, bool $withConverter = true): FlowTestSupport
+    private function bootstrap(DynamicConsistencyBoundaryConfiguration $boundaryConfiguration, bool $withConverter = true, ?DocumentStore $documentStore = null): FlowTestSupport
     {
         $handler = new PayoutsForSnapshotTest();
-        $services = [$handler, DocumentStore::class => $this->documentStore];
+        $services = [$handler, DocumentStore::class => $documentStore ?? InMemoryDocumentStore::createEmpty()];
         if ($withConverter) {
             $services[] = new WalletBalanceConverterForSnapshotTest();
         }

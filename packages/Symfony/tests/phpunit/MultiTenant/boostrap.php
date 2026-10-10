@@ -51,6 +51,6 @@ function migrateSymfony(Connection $connection): void
             )
         SQL);
 
-    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
-    (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+    (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connection);
 }

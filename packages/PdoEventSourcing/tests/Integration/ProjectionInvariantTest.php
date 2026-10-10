@@ -171,7 +171,6 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
@@ -179,7 +178,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

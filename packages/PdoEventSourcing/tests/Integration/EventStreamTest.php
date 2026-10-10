@@ -301,7 +301,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $this->assertFalse(self::tableExists($connection, '_' . sha1(Ticket::class)));
         $this->assertFalse(self::tableExists($connection, 'event_streams'));
 
-        $tableManager = new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true);
+        $tableManager = new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true);
         $tableManager->dropTable($connection);
 
         $this->assertFalse(self::tableExists($connection, StreamTableRegistry::DEFAULT_STREAM));
@@ -309,6 +309,6 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     private function createStreamTable(string $streamName): void
     {
-        (new EventStreamTableManager([$streamName], true, true))->createTable($this->getConnection());
+        (new EventStreamTableManager([$streamName], true))->createTable($this->getConnection());
     }
 }

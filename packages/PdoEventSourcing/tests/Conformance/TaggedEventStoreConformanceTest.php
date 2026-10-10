@@ -434,7 +434,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
-        )->initializeDatabase()->getGateway(EventStore::class);
+        )->setupDatabaseTables()->getGateway(EventStore::class);
     }
 
     private function courseEvent(CourseCapacityChangedForTaggedConformance $payload, int $version): Event

@@ -30,6 +30,9 @@ use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
+use Ecotone\Lite\Test\DatabaseTablesSetUp;
+use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
+use Ecotone\Lite\Test\WithoutDatabaseTables;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -135,6 +138,14 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         }
 
         $this->registerInMemoryEventStoreIfNeeded($messagingConfiguration, $extensionObjects, $serviceConfiguration);
+
+        $databaseTablesSetUp = ExtensionObjectResolver::resolve(DatabaseTablesSetUpReference::class, $extensionObjects)[0] ?? null;
+        $messagingConfiguration->registerServiceDefinition(
+            DatabaseTablesSetUp::class,
+            $databaseTablesSetUp === null
+                ? new Definition(WithoutDatabaseTables::class)
+                : new Reference($databaseTablesSetUp->referenceName)
+        );
 
         $messagingConfiguration->registerServiceDefinition(
             InMemoryConsoleWriter::class,

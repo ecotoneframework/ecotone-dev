@@ -28,9 +28,7 @@ use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\TagBackfillReport;
@@ -63,9 +61,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 {
     private const COLUMNS = ['event_id', 'event_name', 'payload', 'metadata', 'created_at'];
 
-    /** @var array<string, bool> */
-    private array $ensuredTables = [];
-
     private AppendStrategy $appendStrategy;
 
     private DbalTagCollaborator $tagCollaborator;
@@ -78,7 +73,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         private array $connectionFactories,
         private EventSerializer $eventSerializer,
         private int $loadBatchSize,
-        private bool $automaticTableInitialization,
         DbalTagCollaborator $tagCollaborator,
         private ProjectionInvariantGuard $projectionInvariantGuard,
         AppendStrategy $appendStrategy,
@@ -94,8 +88,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         if ($streamEvents === []) {
             return;
         }
-
-        $this->ensureTableExists($streamName);
 
         $this->appendStrategy->append($this, $streamName, $streamEvents, $appendCondition);
     }
@@ -178,7 +170,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 $parameters,
             );
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($connection, $tableName, $streamName);
+            throw $this->missingStreamTableException($tableName, $streamName);
         }
     }
 
@@ -192,7 +184,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $this->tagCollaborator->deleteTagIndexFor($connection, $tableName);
 
         $connection->executeStatement($schema->dropTableSql($tableName));
-        unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
     private function refuseDroppingTableThatWouldCommitTheSurroundingTransaction(Connection $connection, string $streamName, string $tableName): void
@@ -308,7 +299,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         try {
             $connection->executeStatement($sql, $parameters);
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($connection, $tableName, $streamName);
+            throw $this->missingStreamTableException($tableName, $streamName);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         } catch (NotNullConstraintViolationException $exception) {
@@ -413,10 +404,9 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
      * @return Event[]
      */
 
-    public function missingStreamTableException(Connection $connection, string $tableName, ?string $streamName = null): ConfigurationException
+    public function missingStreamTableException(string $tableName, ?string $streamName = null): ConfigurationException
     {
         return $this->missingEventStreamTable->exceptionFor(
-            $connection,
             $tableName,
             $streamName === null ? null : $this->streamTableRegistry->connectionReferenceFor($streamName),
         );
@@ -487,7 +477,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                     $types
                 )->fetchAllAssociative();
             } catch (TableNotFoundException) {
-                throw $this->missingStreamTableException($connection, $tableName);
+                throw $this->missingStreamTableException($tableName);
             }
 
             $furtherEventsFollowThisPage = count($rows) > $pageSize;
@@ -510,56 +500,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         }
 
         return $events;
-    }
-
-    public function ensureTableExists(string $streamName): void
-    {
-        $contextKey = $this->contextKeyFor($streamName);
-        if (isset($this->ensuredTables[$contextKey])) {
-            return;
-        }
-
-        $connection = $this->connectionFor($streamName);
-        $tableName = $this->streamTableRegistry->tableFor($streamName);
-
-        if (EventStreamSchemaFactory::for($connection)->tableExists($connection, $tableName)) {
-            $this->ensuredTables[$contextKey] = true;
-
-            return;
-        }
-
-        if (! $this->automaticTableInitialization || ! AutomaticTableInitializationSupport::isSupported($connection)) {
-            throw $this->missingStreamTableException($connection, $tableName, $streamName);
-        }
-
-        foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {
-            $connection->executeStatement($statement);
-        }
-
-        $this->ensuredTables[$contextKey] = true;
-    }
-
-    private function contextKeyFor(string $streamName): string
-    {
-        $connectionReference = $this->streamTableRegistry->connectionReferenceFor($streamName);
-        $connectionFactory = $this->connectionFactories[$connectionReference] ?? null;
-        $tenant = $connectionFactory instanceof MultiTenantConnectionFactory ? $connectionFactory->currentActiveTenant() : 'default';
-
-        return $connectionReference . '|' . $tenant . '|' . $streamName;
-    }
-
-    public function tagTableContextKeyFor(string $streamName): string
-    {
-        $connectionReference = $this->streamTableRegistry->connectionReferenceFor($streamName);
-        $connectionFactory = $this->connectionFactories[$connectionReference] ?? null;
-        $tenant = $connectionFactory instanceof MultiTenantConnectionFactory ? $connectionFactory->currentActiveTenant() : 'default';
-
-        return $connectionReference . '|' . $tenant;
-    }
-
-    public function isAutomaticTableInitializationEnabled(): bool
-    {
-        return $this->automaticTableInitialization;
     }
 
     public function consoleInvocationPrefix(): ?string

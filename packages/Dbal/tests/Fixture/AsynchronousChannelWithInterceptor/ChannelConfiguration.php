@@ -17,7 +17,6 @@ class ChannelConfiguration
     {
         return [
             DbalConfiguration::createWithDefaults()
-                ->withAutomaticTableInitialization(true)
                 ->withTransactionOnAsynchronousEndpoints(false)
                 ->withTransactionOnCommandBus(false)
                 ->withDocumentStore(false)

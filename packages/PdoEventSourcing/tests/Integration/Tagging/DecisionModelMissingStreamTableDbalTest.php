@@ -58,7 +58,7 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
     {
         $ecotone = $this->bootstrapWithoutTheEventStreamTable();
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->sendCommand(new OpenScreeningForMissingStreamTableTest('screening-1', 2));
         $ecotone->sendCommand(new ReserveSeatForMissingStreamTableTest('screening-1'));
@@ -69,7 +69,7 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
     public function test_a_tagged_append_after_the_stream_table_is_deleted_in_the_same_process_names_the_setup_command(): void
     {
         $ecotone = $this->bootstrapWithoutTheEventStreamTable();
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         $ecotone->sendCommand(new OpenScreeningForMissingStreamTableTest('screening-1', 2));
 
         $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
@@ -105,7 +105,7 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false),
+                    DbalConfiguration::createWithDefaults(),
                     EventSourcingConfiguration::createWithDefaults(),
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                 ])

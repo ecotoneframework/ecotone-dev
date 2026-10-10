@@ -63,7 +63,7 @@ final class ReconnectTest extends DbalMessagingTestCase
 
         // Create the necessary database tables
         $connectionFactory->createContext()->createDataBaseTable();
-        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connectionFactory->createContext()->getDbalConnection());
+        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connectionFactory->createContext()->getDbalConnection());
 
         $ecotone = $this->bootstrapEcotone([
             'tenant_a_connection' => $connectionFactory,

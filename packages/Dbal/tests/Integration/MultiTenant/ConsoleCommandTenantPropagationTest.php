@@ -133,7 +133,6 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDeduplication(false),
                 ]),
         );

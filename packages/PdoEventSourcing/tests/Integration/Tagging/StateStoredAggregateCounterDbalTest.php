@@ -216,7 +216,6 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
     ): FlowTestSupport {
         $extensionObjects = [
             DbalConfiguration::createWithDefaults()
-                ->withAutomaticTableInitialization(true)
                 ->withTransactionOnCommandBus($withTransactionOnCommandBus)
                 ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, connectionReference: $documentStoreConnectionReference, documentStoreRelatedAggregates: [PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class]),
         ];
@@ -252,7 +251,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

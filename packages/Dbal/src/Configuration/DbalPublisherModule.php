@@ -55,7 +55,6 @@ class DbalPublisherModule implements AnnotationModule
         $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $extensionObjects);
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
         $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($applicationConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
@@ -63,7 +62,6 @@ class DbalPublisherModule implements AnnotationModule
             new \Ecotone\Messaging\Config\Container\Definition(EnqueueTableManager::class, [
                 EnqueueTableManager::DEFAULT_TABLE_NAME,
                 $hasMessageQueues,
-                $shouldAutoInitialize,
                 $consoleInvocationPrefix,
             ])
         );

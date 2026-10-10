@@ -89,7 +89,7 @@ final class TagScopedDecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDocumentStore(),
+                    DbalConfiguration::createWithDefaults()->withDocumentStore(),
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(SpentTodayAcrossDeployments::class, 1),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),

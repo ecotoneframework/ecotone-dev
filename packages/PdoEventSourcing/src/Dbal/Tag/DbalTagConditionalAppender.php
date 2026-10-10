@@ -10,7 +10,6 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
-use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\AppendedTags;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 
@@ -49,9 +48,8 @@ final class DbalTagConditionalAppender
         }
 
         TagTransactionRequirement::assertActiveForTaggedAppend($connection);
-        $this->tables->ensureExist($eventStore, $connection, $streamName);
 
-        $expected = $this->tables->raisingMissingTablesInstruction($eventStore, $connection, fn () => $this->bumpGuarded($connection, $appended));
+        $expected = $this->tables->raisingMissingTablesInstruction($eventStore, fn () => $this->bumpGuarded($connection, $appended));
 
         $eventStore->insertEventRows($connection, $schema, $streamName, $tableName, $rows);
         $this->index->insertRows($connection, $tableName, array_column($rows, 0), $appended->sequencedAfterBump($expected));
@@ -62,9 +60,8 @@ final class DbalTagConditionalAppender
         $appended = $this->tagResolver->resolveAppend([], $appendCondition);
 
         TagTransactionRequirement::assertActiveForTaggedAppend($connection);
-        $this->tables->ensureExist($eventStore, $connection, StreamTableRegistry::DEFAULT_STREAM);
 
-        $this->bumpGuarded($connection, $appended);
+        $this->tables->raisingMissingTablesInstruction($eventStore, fn () => $this->bumpGuarded($connection, $appended));
     }
 
     /**

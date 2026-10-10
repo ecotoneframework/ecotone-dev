@@ -17,7 +17,7 @@ final class MissingTableInstructions
         $connectionOption = $isOnNonDefaultConnection ? " --connection={$connectionReferenceName}" : '';
 
         $header = sprintf(
-            "The '%s' table required by the '%s' feature does not exist%s. Ecotone does not create database tables automatically at runtime.",
+            "The '%s' table required by the '%s' feature does not exist%s. Ecotone never creates a table while it handles a message: tables are created up front, by the setup command or your own migrations.",
             $tableName,
             $featureName,
             $isOnNonDefaultConnection ? " on connection '{$connectionReferenceName}'" : '',
@@ -36,6 +36,9 @@ final class MissingTableInstructions
             );
         }
 
+        $flowTestHint = "\n\nIn an EcotoneLite flow test, \$ecotone->setupDatabaseTables() creates every table the test uses. The test bootstrap calls it for you, "
+            . 'unless the test turned that off with TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false).';
+
         if ($isOnNonDefaultConnection) {
             return $header . "\n\n" . sprintf(
                 "Create it programmatically:\n  \$messagingSystem->getServiceFromContainer(\\Ecotone\\Api\\Dbal\\ExtensionObject\\DatabaseSetupManagerRegistry::class)->getManagerFor('%s')->initialize('%s');\n\n"
@@ -44,7 +47,7 @@ final class MissingTableInstructions
                 $featureName,
                 $connectionReferenceName,
                 $featureName,
-            );
+            ) . $flowTestHint;
         }
 
         return $header . "\n\n" . sprintf(
@@ -52,13 +55,6 @@ final class MissingTableInstructions
             . "Or generate SQL for your own migration tool (Doctrine Migrations, Laravel migrations, ...):\n  \$messagingSystem->getServiceFromContainer(\\Ecotone\\Api\\Dbal\\ExtensionObject\\DatabaseSetupManager::class)->getCreateSqlStatementsForFeatures(['%s']);",
             $featureName,
             $featureName,
-        );
-    }
-
-    public static function buildForUnsupportedAutomaticInitialization(string $featureName, string $tableName, ?string $consoleInvocationPrefix, ?string $connectionReferenceName = null): string
-    {
-        return self::build($featureName, $tableName, $consoleInvocationPrefix, $connectionReferenceName)
-            . "\n\nAutomatic table initialization is not supported on MySQL/MariaDB, even with it configured on: "
-            . 'creating a table implicitly commits the surrounding transaction there, and Ecotone will not split your message transaction to do that.';
+        ) . $flowTestHint;
     }
 }

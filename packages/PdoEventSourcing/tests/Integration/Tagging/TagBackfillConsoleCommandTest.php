@@ -284,7 +284,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']),
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',

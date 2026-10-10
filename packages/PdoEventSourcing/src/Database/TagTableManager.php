@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
-use Ecotone\Dbal\Database\AutomaticTableInitializationTrait;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
@@ -17,15 +15,12 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class TagTableManager implements DbalTableManager
 {
-    use AutomaticTableInitializationTrait;
-
     public const FEATURE_NAME = 'event_tags';
     public const TAGGED_EVENTS_TABLE = 'ecotone_tagged_events';
     public const TAG_VERSIONS_TABLE = 'ecotone_tag_versions';
 
     public function __construct(
         private bool $isUsed,
-        private bool $shouldAutoInitialize,
         private ?string $consoleInvocationPrefix = null,
     ) {
     }
@@ -84,21 +79,15 @@ final class TagTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
+        return new Definition(self::class, [$this->isUsed, $this->consoleInvocationPrefix]);
     }
 
-    public function getMissingTableInstructions(Connection $connection): string
+    public function getMissingTableInstructions(): string
     {
-        return AutomaticTableInitializationSupport::isSupported($connection)
-            ? MissingTableInstructions::build(
-                self::FEATURE_NAME,
-                self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
-                $this->consoleInvocationPrefix
-            )
-            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(
-                self::FEATURE_NAME,
-                self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
-                $this->consoleInvocationPrefix
-            );
+        return MissingTableInstructions::build(
+            self::FEATURE_NAME,
+            self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
+            $this->consoleInvocationPrefix
+        );
     }
 }

@@ -13,10 +13,8 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
  */
 final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
-    public const INITIALIZE_ON_STARTUP = true;
     public const LOAD_BATCH_SIZE = 1000;
 
-    private bool $initializeEventStoreOnStart = self::INITIALIZE_ON_STARTUP;
     private int $loadBatchSize = self::LOAD_BATCH_SIZE;
     private string $eventStreamTableName = StreamTableRegistry::DEFAULT_STREAM;
     private string $eventStoreReferenceName;
@@ -54,18 +52,6 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $eventSourcingConfiguration;
     }
 
-    /**
-     * @deprecated Use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::withAutomaticTableInitialization()
-     *             (AutoCreateLevel) instead. This flag is combined with that setting for the event store's
-     *             tables specifically and will be removed once AutoCreateLevel gains per-feature granularity.
-     */
-    public function withInitializeEventStoreOnStart(bool $isInitializedOnStartup): static
-    {
-        $this->initializeEventStoreOnStart = $isInitializedOnStartup;
-
-        return $this;
-    }
-
     public function withLoadBatchSize(int $loadBatchSize): static
     {
         $this->loadBatchSize = $loadBatchSize;
@@ -78,11 +64,6 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         $this->eventStreamTableName = $eventStreamTableName;
 
         return $this;
-    }
-
-    public function isInitializedOnStart(): bool
-    {
-        return $this->initializeEventStoreOnStart;
     }
 
     public function getLoadBatchSize(): int

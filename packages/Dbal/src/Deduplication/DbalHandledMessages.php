@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Deduplication;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -33,21 +34,22 @@ final class DbalHandledMessages implements HandledMessages
 
     public function wasHandled(DeduplicationKey $key): bool
     {
-        $connection = $this->connection();
-        $this->ensureTableExists($connection);
-
-        return (bool) $connection->createQueryBuilder()
-            ->select('message_id')
-            ->from($this->tableManager->getTableName())
-            ->andWhere('message_id = :messageId')
-            ->andWhere('consumer_endpoint_id = :consumerEndpointId')
-            ->andWhere('routing_slip = :routingSlip')
-            ->setParameter('messageId', $key->messageId, Types::TEXT)
-            ->setParameter('consumerEndpointId', $key->consumerEndpointId, Types::TEXT)
-            ->setParameter('routingSlip', $key->routingSlip, Types::TEXT)
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
+        try {
+            return (bool) $this->connection()->createQueryBuilder()
+                ->select('message_id')
+                ->from($this->tableManager->getTableName())
+                ->andWhere('message_id = :messageId')
+                ->andWhere('consumer_endpoint_id = :consumerEndpointId')
+                ->andWhere('routing_slip = :routingSlip')
+                ->setParameter('messageId', $key->messageId, Types::TEXT)
+                ->setParameter('consumerEndpointId', $key->consumerEndpointId, Types::TEXT)
+                ->setParameter('routingSlip', $key->routingSlip, Types::TEXT)
+                ->setMaxResults(1)
+                ->executeQuery()
+                ->fetchAssociative();
+        } catch (TableNotFoundException) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
     }
 
     public function recordsBeforeHandling(): bool
@@ -72,8 +74,10 @@ final class DbalHandledMessages implements HandledMessages
                     'consumer_endpoint_id' => Types::TEXT,
                 ]
             );
-        } catch (UniqueConstraintViolationException $alreadyRecorded) {
+        } catch (UniqueConstraintViolationException) {
             throw ConcurrencyException::forHandledMessage($key->messageId, $key->consumerEndpointId, $key->routingSlip);
+        } catch (TableNotFoundException) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
 
         if (1 !== $rowsAffected) {
@@ -110,19 +114,6 @@ final class DbalHandledMessages implements HandledMessages
             ->setMaxResults($this->removalBatchSize)
             ->executeQuery()
             ->fetchFirstColumn();
-    }
-
-    private function ensureTableExists(Connection $connection): void
-    {
-        if ($this->tableManager->isInitialized($connection)) {
-            return;
-        }
-
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
     }
 
     private function connection(): Connection

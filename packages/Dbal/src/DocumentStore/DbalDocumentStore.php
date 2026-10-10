@@ -60,7 +60,7 @@ final class DbalDocumentStore implements DocumentStore
 
     public function addDocument(string $collectionName, string $documentId, object|array|string $document): void
     {
-        $this->createDataBaseTable();
+        $this->assertTableExists();
 
         try {
             $rowsAffected = $this->insertDocument($collectionName, $documentId, $document);
@@ -77,7 +77,7 @@ final class DbalDocumentStore implements DocumentStore
 
     public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->createDataBaseTable();
+        $this->assertTableExists();
 
         if ($this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
             return;
@@ -93,7 +93,7 @@ final class DbalDocumentStore implements DocumentStore
 
     public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->createDataBaseTable();
+        $this->assertTableExists();
 
         if ($expectedVersion !== 0 && $this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
             return;
@@ -228,20 +228,11 @@ final class DbalDocumentStore implements DocumentStore
         return $this->tableManager->getTableName();
     }
 
-    private function createDataBaseTable(): void
+    private function assertTableExists(): void
     {
-        $connection = $this->getConnection();
-
-        if ($this->doesTableExists()) {
-            return;
+        if (! $this->doesTableExists()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
-
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
-        $this->initialized[spl_object_id($connection)] = true;
     }
 
     private function getConnection(): Connection

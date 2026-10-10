@@ -221,6 +221,6 @@ abstract class DbalMessagingTestCase extends TestCase
             $addInMemoryEventSourcedRepository,
             $testConfiguration,
             $licenceKey,
-        )->initializeDatabase();
+        );
     }
 }

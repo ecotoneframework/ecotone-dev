@@ -169,7 +169,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             $addInMemoryEventSourcedRepository,
             $testConfiguration,
             $licenceKey,
-        )->initializeDatabase();
+        );
     }
 
     protected function bootstrapFlowTestingWithEventStore(
@@ -195,6 +195,6 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             $runForProductionEventStore,
             $testConfiguration,
             $licenceKey,
-        )->initializeDatabase();
+        );
     }
 }

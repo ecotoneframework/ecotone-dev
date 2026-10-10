@@ -45,7 +45,7 @@ final class FlowTestingTest extends EventSourcingMessagingTestCase
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
-        $ecotone->deleteEventStream(StreamTableRegistry::DEFAULT_STREAM)->initializeDatabase();
+        $ecotone->deleteEventStream(StreamTableRegistry::DEFAULT_STREAM)->setupDatabaseTables();
         $ecotone->resetProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));

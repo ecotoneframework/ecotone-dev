@@ -182,12 +182,11 @@ final class DeduplicationConformanceTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDeduplication(expirationTime: self::ONE_HOUR_IN_MILLISECONDS, inMemory: match ($implementation) {
                             'in-memory' => true,
                             'dbal' => false,
                         }),
                 ]),
-        )->initializeDatabase();
+        )->setupDatabaseTables();
     }
 }

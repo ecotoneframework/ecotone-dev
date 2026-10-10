@@ -50,7 +50,7 @@ final class AppendConditionWithoutBoundaryTest extends EventSourcingMessagingTes
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             runForProductionEventStore: true,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

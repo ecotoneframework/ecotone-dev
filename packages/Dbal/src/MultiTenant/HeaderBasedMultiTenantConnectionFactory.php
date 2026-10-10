@@ -196,6 +196,24 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         return $this->getConnectionFactory()->createContext();
     }
 
+    public function databaseConnectionsOfEveryTenant(): array
+    {
+        $connectionReferences = array_values($this->connectionReferenceMapping);
+        if ($this->defaultConnectionName !== null) {
+            $connectionReferences[] = $this->defaultConnectionName;
+        }
+
+        $connections = [];
+        foreach ($connectionReferences as $connectionReference) {
+            $context = $this->container->get($this->getConnectionReference($connectionReference))->createContext();
+            if ($context instanceof DbalContext) {
+                $connections[] = $context->getDbalConnection();
+            }
+        }
+
+        return $connections;
+    }
+
     private function getConnectionReference(ConnectionReference|string|null $connectionReference): string
     {
         return $connectionReference instanceof ConnectionReference ? $connectionReference->getReferenceName() : (string)$connectionReference;

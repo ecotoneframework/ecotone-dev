@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
-use Ecotone\Api\Dbal\AutoCreateLevel;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
@@ -46,7 +45,6 @@ class DbalConfiguration
     private ?array $doctrineORMClasses = null;
     private bool $enableDbalDocumentStore = true;
     private string $dbalDocumentStoreReference = DocumentStore::class;
-    private bool $initializeDbalDocumentStore = true;
     private string $documentStoreConnectionReference = DbalConnectionReference::DEFAULT;
     private bool $inMemoryDocumentStore = false;
     private ?array $documentStoreRelatedAggregates = null;
@@ -55,7 +53,6 @@ class DbalConfiguration
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
     private int $deduplicationRemovalBatchSize = 1000;
 
-    private AutoCreateLevel $autoCreateLevel = AutoCreateLevel::None;
 
     private function __construct()
     {
@@ -77,8 +74,7 @@ class DbalConfiguration
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
             ->withClearAndFlushObjectManagerOnProjectionBatch(false)
-            ->withDocumentStore(true, true)
-            ->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+            ->withDocumentStore(true, true);
     }
 
     /**
@@ -88,7 +84,7 @@ class DbalConfiguration
     {
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof TestConfiguration) {
-                $self = self::createWithDefaults()->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+                $self = self::createWithDefaults();
                 $self->deduplicationInMemory = true;
                 $self->deadLetterInMemory = true;
 
@@ -263,13 +259,12 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
         $self->inMemoryDocumentStore = $inMemoryDocumentStore;
         $self->dbalDocumentStoreReference = $reference;
-        $self->initializeDbalDocumentStore = $initializeDatabaseTable;
         $self->documentStoreConnectionReference = $connectionReference;
         $self->enableDocumentStoreStateStoredRepository = $enableDocumentStoreStateStoredRepository;
         $self->documentStoreRelatedAggregates = $documentStoreRelatedAggregates;
@@ -357,11 +352,6 @@ class DbalConfiguration
         return $this->dbalDocumentStoreReference;
     }
 
-    public function isInitializeDbalDocumentStore(): bool
-    {
-        return $this->initializeDbalDocumentStore;
-    }
-
     public function getDocumentStoreConnectionReference(): string
     {
         return $this->documentStoreConnectionReference;
@@ -395,31 +385,5 @@ class DbalConfiguration
     public function getConsumerPositionTrackingConnectionReference(): string
     {
         return $this->consumerPositionTrackingConnectionReference;
-    }
-
-    /**
-     * @deprecated Use withAutoCreateLevel(AutoCreateLevel::CreateOnly / AutoCreateLevel::None) instead.
-     */
-    public function withAutomaticTableInitialization(bool $enabled): self
-    {
-        return $this->withAutoCreateLevel(AutoCreateLevel::fromBoolean($enabled));
-    }
-
-    public function isAutomaticTableInitializationEnabled(): bool
-    {
-        return $this->autoCreateLevel->isCreateOnly();
-    }
-
-    public function withAutoCreateLevel(AutoCreateLevel $autoCreateLevel): self
-    {
-        $self = clone $this;
-        $self->autoCreateLevel = $autoCreateLevel;
-
-        return $self;
-    }
-
-    public function getAutoCreateLevel(): AutoCreateLevel
-    {
-        return $this->autoCreateLevel;
     }
 }

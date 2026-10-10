@@ -34,8 +34,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
         );
 
@@ -125,8 +124,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
         );
 

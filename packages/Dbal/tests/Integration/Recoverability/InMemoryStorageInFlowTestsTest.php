@@ -62,13 +62,13 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
-        )->initializeDatabase();
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+        )->setupDatabaseTables();
         $second = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
         $first->getGateway(DeadLetterGateway::class)->store($this->failedMessage('m-1'));
@@ -78,9 +78,9 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
 
     public function test_an_explicit_dbal_configuration_deduplicates_in_the_database(): void
     {
-        $first = $this->bootstrapWithDeduplicatedHandler(DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true));
-        $first->initializeDatabase();
-        $second = $this->bootstrapWithDeduplicatedHandler(DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true));
+        $first = $this->bootstrapWithDeduplicatedHandler(DbalConfiguration::createWithDefaults());
+        $first->setupDatabaseTables();
+        $second = $this->bootstrapWithDeduplicatedHandler(DbalConfiguration::createWithDefaults());
 
         $first->sendCommandWithRouting('inMemoryStorage.order', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => 'm-1']);
         $second->sendCommandWithRouting('inMemoryStorage.order', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => 'm-1']);
@@ -96,7 +96,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
-        )->initializeDatabase();
+        )->setupDatabaseTables();
         $application = new class () {
         };
         $first = EcotoneLite::bootstrap(

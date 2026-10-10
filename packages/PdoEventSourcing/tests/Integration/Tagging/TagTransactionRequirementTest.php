@@ -145,7 +145,7 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
             containerOrAvailableServices: [self::getConnectionFactory(), new TagTransactionCommandHandler(), new EventsConverterForTagTransactionTest()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $dbalConfiguration->withAutomaticTableInitialization(true)])
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $dbalConfiguration])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,

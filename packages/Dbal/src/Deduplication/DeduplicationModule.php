@@ -70,7 +70,6 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
@@ -78,7 +77,6 @@ class DeduplicationModule implements AnnotationModule
             new Definition(DeduplicationTableManager::class, [
                 DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE,
                 ($isDeduplicatedEnabled || $hasDeduplicatedHandlers) && ! $dbalConfiguration->isDeduplicationInMemory(),
-                $shouldAutoInitialize,
                 $consoleInvocationPrefix,
                 $connectionFactory,
             ])

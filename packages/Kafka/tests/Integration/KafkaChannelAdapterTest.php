@@ -368,8 +368,7 @@ final class KafkaChannelAdapterTest extends TestCase
                         ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicDeadLetter', $topicName),
                     KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -444,8 +443,7 @@ final class KafkaChannelAdapterTest extends TestCase
                         ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('replayableKafkaTopic', $topicName),
                     KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

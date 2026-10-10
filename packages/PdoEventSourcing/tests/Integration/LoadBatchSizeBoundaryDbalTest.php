@@ -101,7 +101,7 @@ final class LoadBatchSizeBoundaryDbalTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
         );
 
-        return $ecotone->initializeDatabase();
+        return $ecotone->setupDatabaseTables();
     }
 }
 

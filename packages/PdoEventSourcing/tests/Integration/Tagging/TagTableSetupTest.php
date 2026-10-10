@@ -12,6 +12,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Database\MissingTableInstructions;
@@ -80,7 +81,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
 
     public function test_missing_tag_table_raises_configuration_exception_naming_feature_and_command(): void
     {
-        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class], automaticTableInitialization: false);
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
 
         $connection = $this->getConnection();
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql('ecotone_event_stream') as $statement) {
@@ -107,7 +108,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
             self::assertStringContainsString(TagTableManager::FEATURE_NAME, $exception->getMessage());
         }
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         self::assertSame([], $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
@@ -115,11 +116,11 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
     public function test_initializing_the_database_again_keeps_the_tag_index_and_its_versions(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $loaded = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
         self::assertCount(1, $loaded->events);
@@ -129,12 +130,12 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
     public function test_deleting_the_stream_in_the_same_process_keeps_the_tag_index_working_for_the_next_append(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
 
         $eventStore->delete('ecotone_event_stream');
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 3)]));
 
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
@@ -142,8 +143,8 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
 
     public function test_appending_after_the_tag_tables_are_deleted_in_the_same_process_raises_the_missing_table_instruction(): void
     {
-        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class], automaticTableInitialization: false);
-        $ecotone->initializeDatabase();
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
+        $ecotone->setupDatabaseTables();
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
 
@@ -168,7 +169,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'abc'))->events);
     }
 
-    private function bootstrapEcotone(array $classesToResolve, bool $automaticTableInitialization = true): FlowTestSupport
+    private function bootstrapEcotone(array $classesToResolve): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [...$classesToResolve, CouponIssuedConverterForTagTableSetupTest::class],
@@ -177,9 +178,10 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization($automaticTableInitialization),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             runForProductionEventStore: true,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

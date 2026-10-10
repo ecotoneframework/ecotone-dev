@@ -17,7 +17,6 @@ class EcotoneConfiguration
     #[ServiceContext]
     public function es(): EventSourcingConfiguration
     {
-        return EventSourcingConfiguration::createWithDefaults()
-            ->withInitializeEventStoreOnStart(true);
+        return EventSourcingConfiguration::createWithDefaults();
     }
 }

@@ -33,7 +33,6 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(true),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',

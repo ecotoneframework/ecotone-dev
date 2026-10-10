@@ -8,11 +8,12 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -124,38 +125,21 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 
-    public function test_tables_are_auto_created_when_auto_initialization_enabled(): void
-    {
-        $ecotone = $this->bootstrapEcotone(
-            DbalConfiguration::createWithDefaults()
-                ->withAutomaticTableInitialization(true)
-        );
-
-        self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
-
-        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
-        $gateway->list(10, 0);
-
-        self::assertSame(
-            AutomaticTableInitializationSupport::isSupported($this->getConnection()),
-            $this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE)
-        );
-    }
-
-    public function test_tables_are_not_auto_created_when_auto_initialization_disabled(): void
+    public function test_using_the_dead_letter_never_creates_its_table_on_any_engine(): void
     {
         $ecotone = $this->bootstrapEcotone();
-
-        self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
-
-        // Using dead letter gateway should NOT auto-create the table when disabled
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
-        $gateway->list(10, 0);
 
-        // Verify the table was NOT auto-created
+        self::assertSame([], $gateway->list(10, 0));
+        self::assertSame(0, $gateway->count());
+        try {
+            $gateway->show('m-1');
+            self::fail('Expected the missing dead-letter table to be refused');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString("The 'ecotone_error_messages' table required by the 'dead_letter' feature does not exist", $exception->getMessage());
+        }
         self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
 
-        // Manually create the table via console command
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
@@ -303,11 +287,9 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         return null;
     }
 
-    private function bootstrapEcotone(?DbalConfiguration $dbalConfiguration = null): FlowTestSupport
+    private function bootstrapEcotone(): FlowTestSupport
     {
         $connectionFactory = $this->getConnectionFactory();
-        $dbalConfiguration ??= DbalConfiguration::createWithDefaults()
-            ->withAutomaticTableInitialization(false);
 
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -316,8 +298,9 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([$dbalConfiguration]),
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
     }
 

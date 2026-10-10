@@ -123,8 +123,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../../',
         );

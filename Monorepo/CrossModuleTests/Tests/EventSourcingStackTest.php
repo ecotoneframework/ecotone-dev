@@ -48,8 +48,8 @@ final class EventSourcingStackTest extends FullAppTestCase
             ->getDbalConnection();
 
         foreach ([
-            new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true),
-            new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true, true),
+            new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true),
+            new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true),
         ] as $tableManager) {
             if (! $tableManager->isInitialized($connection)) {
                 $tableManager->createTable($connection);

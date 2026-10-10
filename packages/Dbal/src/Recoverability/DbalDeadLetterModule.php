@@ -61,7 +61,6 @@ class DbalDeadLetterModule implements AnnotationModule
         $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
@@ -69,7 +68,6 @@ class DbalDeadLetterModule implements AnnotationModule
             new Definition(DeadLetterTableManager::class, [
                 DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE,
                 $isDeadLetterEnabled && ! $dbalConfiguration->isDeadLetterInMemory(),
-                $shouldAutoInitialize,
                 $consoleInvocationPrefix,
                 $connectionFactoryReference,
             ])

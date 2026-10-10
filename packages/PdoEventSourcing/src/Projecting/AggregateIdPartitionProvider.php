@@ -58,7 +58,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
 
             return (int) $result->fetchOne();
         } catch (TableNotFoundException) {
-            throw $this->missingEventStreamTable->exceptionFor($connection, $tableName);
+            throw $this->missingEventStreamTable->exceptionFor($tableName);
         }
     }
 
@@ -91,7 +91,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
                 yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
             }
         } catch (TableNotFoundException) {
-            throw $this->missingEventStreamTable->exceptionFor($connection, $tableName);
+            throw $this->missingEventStreamTable->exceptionFor($tableName);
         }
     }
 

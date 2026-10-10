@@ -29,7 +29,6 @@ final class EcotoneConfiguration
     #[ServiceContext]
     public function dbal(): DbalConfiguration
     {
-        return DbalConfiguration::createWithDefaults()
-            ->withAutomaticTableInitialization(true);
+        return DbalConfiguration::createWithDefaults();
     }
 }

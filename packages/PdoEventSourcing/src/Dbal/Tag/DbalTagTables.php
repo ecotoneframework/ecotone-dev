@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use Closure;
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -17,55 +15,27 @@ use Ecotone\Messaging\Config\ConfigurationException;
  */
 final class DbalTagTables
 {
-    /** @var array<string, bool> */
-    private array $ensuredTables = [];
-
-    public function ensureExist(DbalEventStore $eventStore, Connection $connection, string $streamName): void
-    {
-        $contextKey = $eventStore->tagTableContextKeyFor($streamName);
-        if (isset($this->ensuredTables[$contextKey])) {
-            return;
-        }
-
-        $tableManager = $this->tableManagerFor($eventStore);
-        if (! $tableManager->isInitialized($connection)) {
-            $this->assertCanBeCreatedAutomatically($eventStore, $connection);
-            $tableManager->createTable($connection);
-        }
-
-        $this->ensuredTables[$contextKey] = true;
-    }
-
     /**
      * @template T
      * @param Closure(): T $operation
      * @return T
      */
-    public function raisingMissingTablesInstruction(DbalEventStore $eventStore, Connection $connection, Closure $operation): mixed
+    public function raisingMissingTablesInstruction(DbalEventStore $eventStore, Closure $operation): mixed
     {
         try {
             return $operation();
         } catch (TableNotFoundException) {
-            throw $this->missingTablesException($eventStore, $connection);
+            throw $this->missingTablesException($eventStore);
         }
     }
 
-    public function missingTablesException(DbalEventStore $eventStore, Connection $connection): ConfigurationException
+    public function missingTablesException(DbalEventStore $eventStore): ConfigurationException
     {
-        return ConfigurationException::create($this->tableManagerFor($eventStore)->getMissingTableInstructions($connection));
-    }
-
-    private function assertCanBeCreatedAutomatically(DbalEventStore $eventStore, Connection $connection): void
-    {
-        if ($eventStore->isAutomaticTableInitializationEnabled() && AutomaticTableInitializationSupport::isSupported($connection)) {
-            return;
-        }
-
-        throw $this->missingTablesException($eventStore, $connection);
+        return ConfigurationException::create($this->tableManagerFor($eventStore)->getMissingTableInstructions());
     }
 
     private function tableManagerFor(DbalEventStore $eventStore): TagTableManager
     {
-        return new TagTableManager(true, $eventStore->isAutomaticTableInitializationEnabled(), $eventStore->consoleInvocationPrefix());
+        return new TagTableManager(true, $eventStore->consoleInvocationPrefix());
     }
 }

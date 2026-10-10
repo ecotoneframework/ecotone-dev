@@ -231,13 +231,12 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDeadLetter(true, inMemory: match ($implementation) {
                             'in-memory' => true,
                             'dbal' => false,
                         }),
                 ]),
-        )->initializeDatabase()->getGateway(DeadLetterGateway::class);
+        )->setupDatabaseTables()->getGateway(DeadLetterGateway::class);
     }
 
     /**

@@ -158,8 +158,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 self::eventStreamTableManagerReferenceName($connectionReferenceName, $eventSourcingConfiguration),
                 new Definition(EventStreamTableManager::class, [
                     $tableNames,
-                    true,
-                    $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                    ! $eventSourcingConfiguration->isInMemory(),
                     $consoleInvocationPrefix,
                     $connectionReferenceName,
                 ])
@@ -174,8 +173,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(
             TagTableManager::class,
             new Definition(TagTableManager::class, [
-                $this->declaresEventTagsOrCountedAggregates && $dynamicConsistencyBoundary->isEnabled(),
-                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $this->declaresEventTagsOrCountedAggregates && $dynamicConsistencyBoundary->isEnabled() && ! $eventSourcingConfiguration->isInMemory(),
                 $consoleInvocationPrefix,
             ])
         );
@@ -183,7 +181,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
-        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary);
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary);
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
     }
@@ -211,7 +209,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         Configuration $messagingConfiguration,
         EventSourcingConfiguration $eventSourcingConfiguration,
         StreamTableRegistry $streamTableRegistry,
-        DbalConfiguration $dbalConfiguration,
         ?string $consoleInvocationPrefix,
         InterfaceToCallRegistry $interfaceToCallRegistry,
         DynamicConsistencyBoundary $dynamicConsistencyBoundary,
@@ -263,7 +260,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $connectionFactories,
                 new Reference(EventSerializer::class),
                 $eventSourcingConfiguration->getLoadBatchSize(),
-                $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 new Reference(DbalTagCollaborator::class),
                 new Reference(ProjectionInvariantGuard::class),
                 new Reference(AppendStrategy::class),

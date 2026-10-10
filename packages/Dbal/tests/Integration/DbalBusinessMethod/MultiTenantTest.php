@@ -88,7 +88,6 @@ final class MultiTenantTest extends DbalMessagingTestCase
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories(true, [Person::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',

@@ -66,11 +66,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
     public function list(int $limit, int $offset): array
     {
         if (! $this->doesDeadLetterTableExists()) {
-            if (! $this->tableManager->shouldBeInitializedAutomatically($this->getConnection())) {
-                return [];
-            }
-
-            $this->createDataBaseTable();
+            return [];
         }
 
         $messages = $this->getConnection()->createQueryBuilder()
@@ -183,19 +179,11 @@ final class DbalDeadLetterStore implements DeadLetterStore
         return $this->tableManager->getTableName();
     }
 
-    private function createDataBaseTable(): void
+    private function assertTableExists(): void
     {
-        $connection = $this->getConnection();
-
-        if ($this->tableManager->isInitialized($connection)) {
-            return;
+        if (! $this->tableManager->isInitialized($this->getConnection())) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
-
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
     }
 
     private function doesDeadLetterTableExists(): bool
@@ -219,7 +207,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
     private function initialize(): void
     {
         if (! $this->isInitialized) {
-            $this->createDataBaseTable();
+            $this->assertTableExists();
             $this->isInitialized = true;
         }
     }

@@ -27,4 +27,9 @@ interface MultiTenantConnectionFactory extends \Ecotone\Enqueue\ConnectionFactor
     public function currentActiveTenant(): string;
 
     public function hasActiveTenant(): bool;
+
+    /**
+     * @return Connection[]
+     */
+    public function databaseConnectionsOfEveryTenant(): array;
 }

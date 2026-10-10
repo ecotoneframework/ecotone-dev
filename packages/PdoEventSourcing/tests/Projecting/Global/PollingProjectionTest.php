@@ -141,7 +141,7 @@ final class PollingProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->deleteProjection($basketListProjection::NAME);
         $ecotone->deleteProjection($productsProjection::NAME);
@@ -324,7 +324,7 @@ final class PollingProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

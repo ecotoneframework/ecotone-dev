@@ -104,6 +104,6 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
     pathToRootCatalog: __DIR__ . '/../../../',
     runForProductionEventStore: true,
 )
-    ->initializeDatabase()
+    ->setupDatabaseTables()
     ->sendCommandWithRouting('ticketFoldedAcrossDeployments.register', '1')
     ->sendCommandWithRouting('ticketFoldedAcrossDeployments.assign', 'Lucas', metadata: ['aggregate.id' => '1']);

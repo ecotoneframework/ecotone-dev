@@ -37,7 +37,7 @@ class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
         try {
             return parent::receiveWithTimeout($pollingMetadata);
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager, $this->connectionFactory);
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 
@@ -47,15 +47,9 @@ class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
         $context = $this->connectionFactory->createContext();
         $connection = $context->getDbalConnection();
 
-        if ($this->tableManager->isInitialized($connection)) {
-            return;
+        if (! $this->tableManager->isInitialized($connection)) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
-
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
     }
 
     public function connectionException(): array

@@ -123,7 +123,7 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 | E7 | `appendTo(stream, [])` on a missing stream | creates the stream | no-op — **kept** (wave 10) |
 | E8 | ~~unconditional append repeating an aggregate type, id and version~~ | converged in wave 10: in-memory raises `ConcurrencyException` and records nothing from the batch, as DBAL's unique index does | |
 | E9 | ~~append repeating an event id~~ | converged in wave 10: in-memory raises `ConcurrencyException` too | |
-| E11 | `appendTo()` on a stream nothing declares | creates it | MySQL and MariaDB refuse — rule 16 by design; PostgreSQL and SQLite create it |
+| E11 | `appendTo()` on a stream no setup created (undeclared, or deleted) | materialises it | **every engine refuses** with the missing-table `ConfigurationException` — wave 10 removed runtime table creation, so the platform split is gone and this is the divergence left: in-memory has no tables |
 | E13 | ~~`load(deserialize: false)`~~ | converged in wave 10: every store returns the recorded data | |
 | D1 | ~~a document string that is not JSON~~ | converged in wave 10: refused on add, update and upsert, on every engine | |
 | D3 | ~~change an object after `addDocument()`~~ | converged in wave 10: in-memory stores and returns copies | |

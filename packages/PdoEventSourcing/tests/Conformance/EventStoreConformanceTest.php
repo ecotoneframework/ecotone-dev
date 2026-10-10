@@ -50,12 +50,8 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'cases' => ['test_appending_no_events_to_a_missing_stream_leaves_it_missing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
         'E11' => [
-            'sides' => 'appendTo() on a stream no #[Stream] or aggregate declares — MySQL and MariaDB refuse to create its table at runtime (rule 16), in-memory, PostgreSQL and SQLite create it',
-            'cases' => [
-                'test_appending_events_to_a_missing_stream_creates_it' => ['dbal:mysql', 'dbal:mariadb'],
-                'test_a_deleted_stream_no_longer_exists' => ['dbal:mysql', 'dbal:mariadb'],
-                'test_appending_to_a_deleted_stream_starts_it_afresh' => ['dbal:mysql', 'dbal:mariadb'],
-            ],
+            'sides' => 'appendTo() on a stream no setup created - every DBAL engine refuses with the missing-table ConfigurationException, as no table is created while a message is handled; in-memory has no tables and materialises the stream on its first append',
+            'cases' => ['test_appending_events_to_a_stream_no_setup_created_is_refused' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
     ];
 
@@ -348,13 +344,16 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_appending_events_to_a_missing_stream_creates_it(string $implementation): void
+    public function test_appending_events_to_a_stream_no_setup_created_is_refused(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->appendTo(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
+            try {
+                $eventStore->appendTo(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
+                self::fail('Expected appending to a stream no setup created to be refused');
+            } catch (ConfigurationException) {
+            }
 
-            self::assertTrue($eventStore->hasStream(self::UNDECLARED_STREAM));
-            self::assertEquals(['t-1'], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM)));
+            self::assertFalse($eventStore->hasStream(self::UNDECLARED_STREAM));
         });
     }
 
@@ -372,25 +371,26 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
     public function test_a_deleted_stream_no_longer_exists(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->appendTo(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
+            $eventStore->appendTo(self::SECOND_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
 
-            $eventStore->delete(self::UNDECLARED_STREAM);
+            $eventStore->delete(self::SECOND_STREAM);
 
-            self::assertFalse($eventStore->hasStream(self::UNDECLARED_STREAM));
+            self::assertFalse($eventStore->hasStream(self::SECOND_STREAM));
         });
     }
 
     #[DataProvider('implementations')]
-    public function test_appending_to_a_deleted_stream_starts_it_afresh(string $implementation): void
+    public function test_a_deleted_stream_set_up_again_starts_afresh(string $implementation): void
     {
-        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->appendTo(self::UNDECLARED_STREAM, $this->threeTickets());
-            $eventStore->delete(self::UNDECLARED_STREAM);
+        $this->conformanceCase($implementation, function (EventStore $eventStore, Closure $setUpTables): void {
+            $eventStore->appendTo(self::SECOND_STREAM, $this->threeTickets());
+            $eventStore->delete(self::SECOND_STREAM);
 
-            $eventStore->appendTo(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-4', 'Four'), new TicketOpenedForEventStoreConformance('t-5', 'Five')]);
+            $setUpTables();
+            $eventStore->appendTo(self::SECOND_STREAM, [new TicketOpenedForEventStoreConformance('t-4', 'Four'), new TicketOpenedForEventStoreConformance('t-5', 'Five')]);
 
-            self::assertEquals(['t-4', 't-5'], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM)));
-            self::assertEquals(['t-5'], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM, fromNumber: 2)));
+            self::assertEquals(['t-4', 't-5'], $this->ticketIdsOf($eventStore->load(self::SECOND_STREAM)));
+            self::assertEquals(['t-5'], $this->ticketIdsOf($eventStore->load(self::SECOND_STREAM, fromNumber: 2)));
         });
     }
 
@@ -599,13 +599,13 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         $target = $this->targetOf($implementation);
         $knownDivergence = $this->knownDivergenceOf($this->name(), $target);
         if ($knownDivergence === null) {
-            $case($this->bootstrap($implementation));
+            $case(...$this->bootstrap($implementation));
 
             return;
         }
 
         try {
-            $case($this->bootstrap($implementation));
+            $case(...$this->bootstrap($implementation));
         } catch (Throwable $divergence) {
             self::markTestSkipped("Known divergence {$knownDivergence['id']} on {$target}: {$knownDivergence['sides']}. This run: " . strtok($divergence->getMessage(), "\n"));
         }
@@ -648,7 +648,10 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         };
     }
 
-    private function bootstrap(string $implementation): EventStore
+    /**
+     * @return array{0: EventStore, 1: Closure(): void}
+     */
+    private function bootstrap(string $implementation): array
     {
         $converter = new class () {
             #[Converter]
@@ -691,13 +694,17 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         };
 
         if ($implementation === 'in-memory-without-event-sourcing-module') {
-            return EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [$converter::class, $secondStream::class],
-                containerOrAvailableServices: [$converter],
-            )->getGateway(EventStore::class);
+            return [
+                EcotoneLite::bootstrapFlowTesting(
+                    classesToResolve: [$converter::class, $secondStream::class],
+                    containerOrAvailableServices: [$converter],
+                )->getGateway(EventStore::class),
+                function (): void {
+                },
+            ];
         }
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [$converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -709,7 +716,9 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
                     },
                 ]),
             runForProductionEventStore: true,
-        )->initializeDatabase()->getGateway(EventStore::class);
+        );
+
+        return [$ecotone->getGateway(EventStore::class), fn () => $ecotone->setupDatabaseTables()];
     }
 
     private function ticketEvent(object $payload, string $ticketId, int $version): Event

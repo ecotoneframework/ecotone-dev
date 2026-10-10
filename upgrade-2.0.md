@@ -1983,6 +1983,17 @@ extends it. Only the framework calls what they add — `compile()`, `getConversi
 
 ## 14. Smaller behaviour changes
 
+- **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
+  events while in-memory refused; both now throw `InvalidArgumentException` saying a count caps how many events are
+  loaded and to pass `null` for all of them. **How to adapt:** pass `null`, or skip the call, where you passed `0`.
+- **A document given as a string must be JSON on every engine and every write.** SQLite stored a non-JSON string,
+  and the in-memory store refused one on `addDocument()` but stored it on `updateDocument()` / `upsertDocument()`;
+  every store now refuses it with a `DocumentException` naming the document and the JSON error. The in-memory
+  document store also keeps a copy: changing an object after storing it, or one it returned, no longer changes what
+  is stored, as on DBAL.
+- **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
+  DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
+  twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.
@@ -2282,6 +2293,21 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
 rename test-support methods without aliases; the renamed methods are listed in each entry.
 
+- **Dead letter and deduplication run in memory in a flow test that registers no `DbalConfiguration`.**
+  **Before:** both existed only on DBAL, so a flow test using either needed a database connection and its tables.
+  **Now:** each has an in-memory implementation beside the DBAL one, selected on the feature's own
+  `DbalConfiguration` method — `withDeadLetter(true, inMemory: true)`, `withDeduplication(inMemory: true)` — and a
+  flow test (`EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()`) with no
+  `DbalConfiguration` registered gets both in memory. An explicit `DbalConfiguration` keeps DBAL, as does every
+  application outside a flow test. Each `DeadLetterGateway` and `CustomDeadLetterGateway` gets its own in-memory store,
+  and a custom gateway's `store()` now writes to its own dead letter — on DBAL, its own connection — instead of the
+  default gateway's. **How to adapt:** a flow test that asserts on the dead-letter or deduplication *table* rather
+  than through `DeadLetterGateway` and its handlers registers `DbalConfiguration::createWithDefaults()` explicitly.
+  `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
+- **`DeadLetterGateway::list()` has a stated order.** Most recently failed first, by the failed message's timestamp;
+  messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
+  messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
+  and skip another. **How to adapt:** nothing.
 - **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
   and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
   accepted: the failed message is sent back to its channel without a delivery delay, so a single

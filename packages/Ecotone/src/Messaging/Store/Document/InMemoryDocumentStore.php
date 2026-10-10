@@ -2,13 +2,20 @@
 
 namespace Ecotone\Messaging\Store\Document;
 
+use function array_map;
+
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Messaging\Support\ConcurrencyException;
 
 use function json_decode;
 
 use JsonException;
+
+use function serialize;
+
 use Throwable;
+
+use function unserialize;
 
 /**
  * licence Apache-2.0
@@ -44,9 +51,8 @@ final class InMemoryDocumentStore implements DocumentStore
         if (isset($this->collection[$collectionName][$documentId])) {
             throw DocumentException::create(sprintf('Collection %s already contains document with id %s', $collectionName, $documentId));
         }
-        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
 
-        $this->collection[$collectionName][$documentId] = $document;
+        $this->collection[$collectionName][$documentId] = $this->storedFormOf($collectionName, $documentId, $document);
         $this->versions[$collectionName][$documentId] = 1;
     }
 
@@ -96,7 +102,7 @@ final class InMemoryDocumentStore implements DocumentStore
             throw $document;
         }
 
-        return $document;
+        return $this->copied($document);
     }
 
     public function getAllDocuments(string $collectionName): array
@@ -105,7 +111,7 @@ final class InMemoryDocumentStore implements DocumentStore
             return [];
         }
 
-        return array_values($this->collection[$collectionName]);
+        return array_map($this->copied(...), array_values($this->collection[$collectionName]));
     }
 
     public function countDocuments(string $collectionName): int
@@ -123,22 +129,30 @@ final class InMemoryDocumentStore implements DocumentStore
         if ($expectedVersion !== self::LAST_WRITE_WINS && $expectedVersion !== $currentVersion) {
             throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, $currentVersion);
         }
-        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
 
-        $this->collection[$collectionName][$documentId] = $document;
+        $this->collection[$collectionName][$documentId] = $this->storedFormOf($collectionName, $documentId, $document);
         $this->versions[$collectionName][$documentId] = $currentVersion + 1;
     }
 
-    private function refuseStringThatIsNotJson(string $collectionName, string $documentId, object|array|string $document): void
+    private function storedFormOf(string $collectionName, string $documentId, object|array|string $document): object|array|string
     {
-        if (! is_string($document)) {
-            return;
+        if (is_string($document)) {
+            try {
+                json_decode($document, flags: JSON_THROW_ON_ERROR);
+            } catch (JsonException $notJson) {
+                throw DocumentException::forStringThatIsNotJson($collectionName, $documentId, $notJson);
+            }
         }
 
-        try {
-            json_decode($document, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $notJson) {
-            throw DocumentException::forStringThatIsNotJson($collectionName, $documentId, $notJson);
+        return $this->copied($document);
+    }
+
+    private function copied(object|array|string $document): object|array|string
+    {
+        if (is_string($document) || $document instanceof Throwable) {
+            return $document;
         }
+
+        return unserialize(serialize($document));
     }
 }

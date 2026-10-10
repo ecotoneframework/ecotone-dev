@@ -196,7 +196,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         return self::SNAPSHOT_COLLECTION . $aggregateClassname;
     }
 
-    public static function getSnapshotFoldShapeCollectionName(string $aggregateClassname): string
+    private static function getSnapshotFoldShapeCollectionName(string $aggregateClassname): string
     {
         return self::SNAPSHOT_FOLD_SHAPE_COLLECTION . $aggregateClassname;
     }

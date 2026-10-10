@@ -439,12 +439,6 @@ parameters:
 			path: packages/Ecotone/src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
 
 		-
-			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/DirectChannel.php
-
-		-
 			message: '#^Part \$messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
 			identifier: encapsedStringPart.nonString
 			count: 1
@@ -823,22 +817,10 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
 
 		-
-			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/RequestReplyProducer.php
-
-		-
 			message: '#^Binary operation "\." between ''Router \- '' and Ecotone\\Messaging\\Handler\\Router\\RouteSelector results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1
 			path: packages/Ecotone/src/Messaging/Handler/Router/Router.php
-
-		-
-			message: '#^Part \$message \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Splitter/SplitterHandler.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Handler\\Type\\UnionType\:\:createWith\(\) should return Ecotone\\Messaging\\Handler\\Type\\UnionType but returns Ecotone\\Messaging\\Handler\\Type\.$#'

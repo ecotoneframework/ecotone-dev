@@ -540,6 +540,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $emittingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
+                ->chain(new Definition(RunningProjectionValidator::class))
                 ->chain(new Definition(StreamNameMapper::class, [$this->projectionStreamMapping]))
                 ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([

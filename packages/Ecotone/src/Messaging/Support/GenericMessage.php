@@ -7,9 +7,6 @@ namespace Ecotone\Messaging\Support;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 
-use function json_decode;
-use function json_encode;
-
 /**
  * Class GenericMessage
  * @package Ecotone\Messaging\Support
@@ -95,9 +92,6 @@ final class GenericMessage implements Message
 
     public function __toString()
     {
-        return json_encode([
-            'payload' => $this->payload,
-            'headers' => json_decode((string)$this->getHeaders(), true),
-        ]);
+        return MessageDescription::of($this);
     }
 }

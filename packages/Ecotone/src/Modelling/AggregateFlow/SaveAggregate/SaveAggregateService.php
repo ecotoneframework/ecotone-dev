@@ -21,7 +21,6 @@ use Ecotone\Modelling\Repository\AggregateRepository;
 final class SaveAggregateService implements MessageProcessor
 {
     public const NO_SNAPSHOT_THRESHOLD = 0;
-    public const SNAPSHOT_COLLECTION = 'aggregate_snapshots_';
 
     public function __construct(
         private AggregateRepository $aggregateRepository,
@@ -79,15 +78,5 @@ final class SaveAggregateService implements MessageProcessor
         foreach ($events as $event) {
             $this->eventBus->publish($event->getPayload(), $event->getMetadata());
         }
-    }
-
-    public static function getSnapshotCollectionName(string $aggregateClassname): string
-    {
-        return self::SNAPSHOT_COLLECTION . $aggregateClassname;
-    }
-
-    public static function getSnapshotDocumentId(array $identifiers): string
-    {
-        return count($identifiers) === 1 ? (string)reset($identifiers) : json_encode($identifiers);
     }
 }

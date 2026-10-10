@@ -139,6 +139,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
         $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
 
+        DatabaseEventStoreDbalModuleGuard::assertDbalModuleIsEnabled($eventSourcingConfiguration, $serviceConfiguration);
+
         if ($dynamicConsistencyBoundary->isEnabled()) {
             CrossConnectionAggregateBoundaryGuard::assertEveryStateStoredAggregateSavesOnTheEventStoreConnection($this->stateStoredCountedAggregateClasses, $eventSourcingConfiguration, $dbalConfiguration);
         }

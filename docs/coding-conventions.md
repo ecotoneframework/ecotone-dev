@@ -949,6 +949,23 @@ missing table raises the owning `*TableManager`'s missing-table `ConfigurationEx
 engine. There is no `AutoCreateLevel` and no gate to consult, and the DDL text lives only in the `*TableManager` and
 `*Schema` classes.
 
+The refusal comes from the statement that needed the table, not from a question asked before it. The store runs its
+SQL and passes the failure through `MissingTableFailure::explained()`, which finds Doctrine's `TableNotFoundException`
+in the cause chain - Doctrine maps every engine's error code onto it, so there is nothing per engine to maintain - and
+returns the owning table manager's instructions. Do not ask the schema first (`tableExists()`, `isInitialized()`): that
+is a round trip on every operation, memoising the answer is a cache on a container singleton (rule 3), and wave 10b
+removed it from the DBAL channels, the dead letter, the document store, deduplication cleanup and projection state. Nor
+read a missing table as an empty result: a `list()` that answers `[]` hides the same configuration mistake rule 1a
+refuses. A schema check belongs to the setup command and its status listing, to a projection's own `init()`, and to a
+decision that is not about this table's existence (a feature that is not used at all is known at compile time, from the
+table manager's `isUsed()`).
+
+Catching `TableNotFoundException` to *ignore* it is a different thing from translating it. On PostgreSQL a failed
+statement aborts the surrounding transaction, so a swallowed failure resurfaces later as "current transaction is
+aborted". Translate and rethrow, so the transaction is rolled back. Where a missing table really is a no-op, keep a
+guard and say why: `DbalTagIndex::deleteForStream()` checks for the tag table because deleting a stream runs inside a
+projection reset's transaction.
+
 So: do not create, alter or drop a table on the message path, and do not add a workaround for a transaction a DDL
 statement committed - remove the DDL. `EventStore::delete()` is the one deliberate exception, and it refuses to drop
 a table inside an open transaction on MySQL and MariaDB. The whole story for users is `upgrade-2.0.md` §8.

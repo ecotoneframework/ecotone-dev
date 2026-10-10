@@ -1175,6 +1175,14 @@ tag index, a projection's state, sending to or receiving from a DBAL message cha
 run for the integration your application is running under. The message is the same on PostgreSQL, MySQL, MariaDB and
 SQLite: whether a table appeared mid-message no longer depends on the database underneath.
 
+Reads are included. **Before:** `DeadLetterGateway::list()` and `count()` answered `[]` and `0` for a dead-letter
+table that was never set up, and the DBAL `DocumentStore`'s reads and deletes (`findDocument()`, `getDocument()`,
+`getDocumentVersion()`, `getAllDocuments()`, `countDocuments()`, `deleteDocument()`, `dropCollection()`) answered
+`null`, `0`, `[]`, `DocumentNotFound` or nothing. **Now:** they raise the same `ConfigurationException`. **How to
+adapt:** set the tables up; code that relied on an empty answer from a missing table was reading a configuration
+mistake as data. Ecotone no longer asks the database whether a table exists before using it, so none of these
+operations pays a schema query any more: the statement runs, and a missing table is reported from its failure.
+
 `ImplicitCommit` is gone, `DbalTransactionInterceptor` raises a hard error again if a commit genuinely fails, and one
 transaction wraps the whole message on every driver — including MySQL and MariaDB. Deduplication's concurrency
 guarantee (a handler running twice for the same message collides on the primary key instead of running twice) works

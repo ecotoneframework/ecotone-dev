@@ -12,4 +12,6 @@ use Ecotone\Api\EventSourcing\Event;
 interface RecordedEventFormat
 {
     public function recordedFrom(object|array $event): Event;
+
+    public function recordedDataOf(Event $recordedEvent): Event;
 }

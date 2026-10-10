@@ -41,6 +41,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -443,7 +444,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class)]),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class, [Reference::to(ConversionService::REFERENCE_NAME)])]),
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,

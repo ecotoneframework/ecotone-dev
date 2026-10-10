@@ -21,4 +21,9 @@ final class SerializedRecordedEventFormat implements RecordedEventFormat
     {
         return $this->eventSerializer->serialize($event);
     }
+
+    public function recordedDataOf(Event $recordedEvent): Event
+    {
+        return $recordedEvent;
+    }
 }

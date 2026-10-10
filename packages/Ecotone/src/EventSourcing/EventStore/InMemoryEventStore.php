@@ -87,7 +87,9 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
         ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable {
-        return $this->loadEvents($streamName, $fromNumber, $count, $metadataMatcher);
+        $events = $this->loadEvents($streamName, $fromNumber, $count, $metadataMatcher);
+
+        return $deserialize ? $events : array_map($this->recordedEventFormat->recordedDataOf(...), $events);
     }
 
     public function appendEventsUnconditionally(string $streamName, array $events): void

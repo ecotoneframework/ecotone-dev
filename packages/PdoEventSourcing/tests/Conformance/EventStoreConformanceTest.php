@@ -57,10 +57,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
                 'test_appending_to_a_deleted_stream_starts_it_afresh' => ['dbal:mysql', 'dbal:mariadb'],
             ],
         ],
-        'E13' => [
-            'sides' => 'load() with deserialize: false — the in-memory store bootstrapFlowTesting() wires without the event-sourcing module never serializes, so it returns the payload objects; the other two return the recorded data',
-            'cases' => ['test_loading_without_deserialization_returns_the_payload_as_recorded_data' => ['in-memory-without-event-sourcing-module']],
-        ],
     ];
 
     private const STREAM = 'ecotone_event_stream';

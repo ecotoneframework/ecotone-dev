@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\ErrorHandler;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
@@ -13,10 +15,12 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Messaging\Channel\MessageDispatchingException;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\OrderService;
 
 /**
@@ -424,9 +428,9 @@ final class ErrorChannelTest extends TestCase
     public function test_async_handler_with_error_channel_directly_on_method_throws_descriptive_error(): void
     {
         $service = new class () {
-            #[\Ecotone\Api\Attribute\Asynchronous('asyncMisplacedErrorChannel')]
+            #[Asynchronous('asyncMisplacedErrorChannel')]
             #[\Ecotone\Api\Attribute\ErrorChannel('someErrorChannel')]
-            #[\Ecotone\Api\Attribute\CommandHandler('misplaced.errorchannel', 'misplacedErrorChannelHandler')]
+            #[CommandHandler('misplaced.errorchannel', 'misplacedErrorChannelHandler')]
             public function handle(string $payload): void
             {
             }
@@ -453,9 +457,9 @@ final class ErrorChannelTest extends TestCase
     public function test_async_handler_with_delayed_retry_directly_on_method_throws_descriptive_error(): void
     {
         $service = new class () {
-            #[\Ecotone\Api\Attribute\Asynchronous('asyncMisplacedDelayedRetry')]
+            #[Asynchronous('asyncMisplacedDelayedRetry')]
             #[\Ecotone\Api\Attribute\DelayedRetry(initialDelayInMilliseconds: 1, maxRetries: 2)]
-            #[\Ecotone\Api\Attribute\CommandHandler('misplaced.delayedretry', 'misplacedDelayedRetryHandler')]
+            #[CommandHandler('misplaced.delayedretry', 'misplacedDelayedRetryHandler')]
             public function handle(string $payload): void
             {
             }
@@ -578,6 +582,37 @@ final class ErrorChannelTest extends TestCase
         $errorChannel = $ecotone->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
         $this->assertNotNull($errorChannel->receive(), 'Failed message must land in the configured Error Channel after InstantRetry retries are exhausted');
     }
+
+    public function test_an_error_channel_without_a_handler_names_the_failed_message_it_could_not_dispatch(): void
+    {
+        $handler = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]
+            public function place(string $order): void
+            {
+                throw new RuntimeException('order could not be placed');
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([])
+                ->withDefaultErrorChannel('unhandledOrderFailures')
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('orders', finalFailureStrategy: FinalFailureStrategy::STOP),
+                    SimpleMessageChannelBuilder::createDirectMessageChannel('unhandledOrderFailures'),
+                ]),
+        );
+        $messageId = Uuid::v7()->toRfc4122();
+        $ecotone->sendCommandWithRouting('order.place', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+
+        $this->expectException(MessageDispatchingException::class);
+        $this->expectExceptionMessageMatches('/^There is no message handler registered for dispatching Message .*' . $messageId . '/');
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+    }
 }
 
 /**
@@ -620,15 +655,15 @@ final class AsyncFailingHandler
     public const ERROR_CHANNEL_A = 'errorChannelA';
     public const ERROR_CHANNEL_B = 'errorChannelB';
 
-    #[\Ecotone\Api\Attribute\Asynchronous(self::SHARED_ASYNC_CHANNEL, asynchronousExecution: [new \Ecotone\Api\Attribute\ErrorChannel(self::ERROR_CHANNEL_A)])]
-    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY_A, 'asyncHandlerA')]
+    #[Asynchronous(self::SHARED_ASYNC_CHANNEL, asynchronousExecution: [new \Ecotone\Api\Attribute\ErrorChannel(self::ERROR_CHANNEL_A)])]
+    #[CommandHandler(self::ROUTING_KEY_A, 'asyncHandlerA')]
     public function handleA(string $payload): void
     {
         throw new RuntimeException('handler-a-failure');
     }
 
-    #[\Ecotone\Api\Attribute\Asynchronous(self::SHARED_ASYNC_CHANNEL, asynchronousExecution: [new \Ecotone\Api\Attribute\ErrorChannel(self::ERROR_CHANNEL_B)])]
-    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY_B, 'asyncHandlerB')]
+    #[Asynchronous(self::SHARED_ASYNC_CHANNEL, asynchronousExecution: [new \Ecotone\Api\Attribute\ErrorChannel(self::ERROR_CHANNEL_B)])]
+    #[CommandHandler(self::ROUTING_KEY_B, 'asyncHandlerB')]
     public function handleB(string $payload): void
     {
         throw new RuntimeException('handler-b-failure');
@@ -653,10 +688,10 @@ final class DelayedRetryHandler
     public int $attemptsOverride = 0;
     public bool $finallyHandled = false;
 
-    #[\Ecotone\Api\Attribute\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
+    #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
         new \Ecotone\Api\Attribute\DelayedRetry(initialDelayInMilliseconds: 1, multiplier: 1, maxRetries: 3),
     ])]
-    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY_RECOVERS, 'retryRecovers')]
+    #[CommandHandler(self::ROUTING_KEY_RECOVERS, 'retryRecovers')]
     public function recovers(string $payload): void
     {
         $this->attemptsRecovers++;
@@ -666,7 +701,7 @@ final class DelayedRetryHandler
         $this->finallyHandled = true;
     }
 
-    #[\Ecotone\Api\Attribute\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
+    #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
         new \Ecotone\Api\Attribute\DelayedRetry(
             initialDelayInMilliseconds: 1,
             multiplier: 1,
@@ -674,14 +709,14 @@ final class DelayedRetryHandler
             deadLetterChannel: self::DEAD_LETTER_CHANNEL,
         ),
     ])]
-    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY_DEAD_LETTER, 'retryDeadLetter')]
+    #[CommandHandler(self::ROUTING_KEY_DEAD_LETTER, 'retryDeadLetter')]
     public function alwaysFails(string $payload): void
     {
         $this->attemptsDeadLetter++;
         throw new RuntimeException('permanent');
     }
 
-    #[\Ecotone\Api\Attribute\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
+    #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
         new \Ecotone\Api\Attribute\DelayedRetry(
             initialDelayInMilliseconds: 1,
             multiplier: 1,
@@ -689,7 +724,7 @@ final class DelayedRetryHandler
             deadLetterChannel: self::DEAD_LETTER_CHANNEL,
         ),
     ])]
-    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY_OVERRIDE, 'retryOverride')]
+    #[CommandHandler(self::ROUTING_KEY_OVERRIDE, 'retryOverride')]
     public function alwaysFailsOverridingDefault(string $payload): void
     {
         $this->attemptsOverride++;

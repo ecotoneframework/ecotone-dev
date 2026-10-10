@@ -107,4 +107,9 @@ final class ErrorMessage implements Message
     {
         return $this->getHeaders()->get(ErrorContext::EXCEPTION_CODE);
     }
+
+    public function __toString()
+    {
+        return MessageDescription::of($this);
+    }
 }

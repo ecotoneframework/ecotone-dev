@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Messaging\Support\MessageDescription;
 
 /**
  * @licence Apache-2.0
@@ -37,7 +38,7 @@ class SplitterHandler implements MessageHandler
         $replyData = $replyMessage->getPayload();
 
         if (! is_iterable($replyData)) {
-            throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this}", $message);
+            throw MessageDeliveryException::createWithFailedMessage("Can't split message " . MessageDescription::of($message) . ", payload to split is not iterable in {$this}", $message);
         }
 
         $sequenceSize = count($replyData);

@@ -115,7 +115,7 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 | Id | Case | In-memory | DBAL |
 |---|---|---|---|
 | E1 | `load(count: 0)` | refuses (`count must be >= 1 or null`) | returns `[]` |
-| E2 | `create()` on an existing stream | refuses (`Stream … already exists`) | no-op, appends the events |
+| E2 | ~~`create()` on an existing stream~~ | resolved by dropping `EventStore::create()` — there is no second way to open a stream left to diverge | |
 | E3 | metadata match `NOT_IN []` | drops events lacking the key | keeps them (`1 = 1`) |
 | E4 | metadata `'2'` against a recorded integer `2` | no match (strict) | match on PostgreSQL, MySQL and MariaDB; **no match on SQLite** |
 | E5 | `loadAggregateEvents(…, '42')` for an id recorded as integer `42` | not found | found on PostgreSQL, MySQL and MariaDB; **not found on SQLite** |
@@ -123,7 +123,7 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 | E7 | `appendTo(stream, [])` on a missing stream | creates the stream | no-op |
 | E8 | unconditional append repeating an aggregate type, id and version | stores the duplicate | `ConcurrencyException`, whole batch rejected |
 | E9 | append repeating an event id | stores the duplicate | `ConcurrencyException` (`UNIQUE (event_id)`) |
-| E11 | `create()` / `appendTo()` on a stream nothing declares | creates it | MySQL and MariaDB refuse — rule 16 by design; PostgreSQL and SQLite create it |
+| E11 | `appendTo()` on a stream nothing declares | creates it | MySQL and MariaDB refuse — rule 16 by design; PostgreSQL and SQLite create it |
 | E13 | `load(deserialize: false)` | the unwrapped store (`bootstrapFlowTesting()`) returns payload objects | recorded data, as `createInMemory()` does |
 | D1 | a document string that is not JSON | refused on add, **accepted on update** | refused on both by PostgreSQL, MySQL, MariaDB; **accepted on both by SQLite** |
 | D3 | change an object after `addDocument()` | the stored document changes — it is held by reference | unchanged — a copy was stored |

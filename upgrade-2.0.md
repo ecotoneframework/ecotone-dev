@@ -307,13 +307,16 @@ subsection below.
   always the `(aggregate_type, aggregate_id, aggregate_version)` unique index, not the lock, and `GapAwarePosition`
   already tolerates the gaps the lock used to shrink. It defaulted to off, so most applications see no behaviour
   change; delete any call to `withWriteLockStrategy()`.
-- **`EventStore::create()` now respects automatic table initialization like every other method.** **Before:**
-  `create()` always created the table if it was missing, even with automatic table initialization off (`AutoCreateLevel::None`,
-  §8). **Now:** a missing table raises the same `ConfigurationException` `appendTo()` already raised, naming the
-  `event_stream` feature, the table, and the `ecotone:migration:database:setup` command to run. **How to adapt:** if
-  you call `create()` directly against a database with automatic table initialization off, run
-  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8) first, the same as
-  you already do for `appendTo()`.
+- **`EventStore::create()` is removed.** **Before:** `create(string $streamName, array $streamEvents = [], array $streamMetadata = [])`
+  opened a stream, created its table if it was missing, and appended any events given. **Now:** the method is gone from
+  the interface and from every implementation. Stream tables are created by `ecotone:migration:database:setup`
+  (or automatic table initialization in tests and dev, §8), not on the message path, so there was nothing left for
+  `create()` to do that `appendTo()` does not: `appendTo()` opens the stream it writes to. The `streamMetadata`
+  argument went with it — nothing read stream-level metadata back. **How to adapt:** delete a bare
+  `$eventStore->create($streamName)` outright, and replace `create($streamName, $events)` with
+  `appendTo($streamName, $events)`. If you relied on `create()` to make the table, run
+  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8). An *empty* stream can
+  no longer be brought into existence — `hasStream()` is false until the first event is appended.
 - **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
   additive. **`ecotone:event-store:backfill-tags` on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** The
   backfill's counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an

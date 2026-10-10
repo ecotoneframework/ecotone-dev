@@ -22,11 +22,6 @@ final class DeserializingEventStore implements EventStore
     ) {
     }
 
-    public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
-    {
-        $this->eventStore->create($streamName, $streamEvents, $streamMetadata);
-    }
-
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
         $this->eventStore->appendTo($streamName, $streamEvents, $appendCondition);

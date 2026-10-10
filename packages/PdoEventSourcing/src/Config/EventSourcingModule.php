@@ -423,14 +423,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
         $this->registerEventStoreAction(
-            'create',
-            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::create('streamMetadata', 'ecotone.eventSourcing.eventStore.streamMetadata')],
-            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents'), GatewayHeaderBuilder::create('streamMetadata', 'ecotone.eventSourcing.eventStore.streamMetadata')],
-            $eventSourcingConfiguration,
-            $configuration
-        );
-
-        $this->registerEventStoreAction(
             'appendTo',
             [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::createOptional('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],
             [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents'), GatewayHeaderBuilder::create('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],

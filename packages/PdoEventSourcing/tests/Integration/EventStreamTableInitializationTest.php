@@ -30,16 +30,6 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
  */
 final class EventStreamTableInitializationTest extends EventSourcingMessagingTestCase
 {
-    public function test_create_fails_when_auto_initialization_disabled_and_table_not_created(): void
-    {
-        $eventStore = $this->bootstrapWithAutomaticTableInitialization(false)->getGateway(EventStore::class);
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(EventStreamTableManager::FEATURE_NAME);
-
-        $eventStore->create(Uuid::v7()->toRfc4122());
-    }
-
     public function test_append_to_fails_when_auto_initialization_disabled_and_table_not_created(): void
     {
         $eventStore = $this->bootstrapWithAutomaticTableInitialization(false)->getGateway(EventStore::class);

@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\EventSourcing;
 
-
 /**
  * licence Apache-2.0
  */
@@ -10,12 +9,6 @@ interface EventStore
 {
     public const RAW_REFERENCE = 'ecotone.eventSourcing.eventStore.instance';
 
-    /**
-     * Creates new Stream with Metadata and appends events to it
-     *
-     * @param Event[]|object[]|array[] $streamEvents
-     */
-    public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
     /**
      * Appends events to existing Stream, or creates one and then appends events if it does not exists
      *

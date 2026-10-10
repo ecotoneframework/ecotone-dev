@@ -92,7 +92,6 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
-        $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -134,7 +133,6 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
-        $eventStore->create($streamName);
         $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
         $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
 
@@ -161,7 +159,6 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
-        $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -262,7 +259,6 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
-        $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
             [

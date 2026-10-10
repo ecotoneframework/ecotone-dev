@@ -41,22 +41,6 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     ) {
     }
 
-    public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
-    {
-        if (isset($this->streams[$streamName])) {
-            throw new InvalidArgumentException("Stream {$streamName} already exists");
-        }
-
-        $this->streams[$streamName] = [
-            'events' => [],
-            'metadata' => $streamMetadata,
-        ];
-
-        if ($streamEvents !== []) {
-            $this->appendStrategy->append($this, $streamName, $streamEvents, null);
-        }
-    }
-
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
         if (! isset($this->streams[$streamName])) {

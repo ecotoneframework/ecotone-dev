@@ -89,15 +89,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $this->appendStrategy = $appendStrategy;
     }
 
-    public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
-    {
-        $this->ensureTableExists($streamName);
-
-        if ($streamEvents !== []) {
-            $this->appendTo($streamName, $streamEvents);
-        }
-    }
-
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
         if ($streamEvents === []) {

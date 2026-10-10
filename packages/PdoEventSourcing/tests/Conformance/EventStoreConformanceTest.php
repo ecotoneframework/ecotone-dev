@@ -41,10 +41,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'sides' => 'load() with a count of 0 — in-memory refuses it ("count must be >= 1 or null"), DBAL returns no events',
             'cases' => ['test_loading_a_count_of_zero_returns_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
-        'E2' => [
-            'sides' => 'create() on a stream that exists — in-memory refuses it ("Stream ... already exists"), DBAL treats it as a no-op and appends the given events',
-            'cases' => ['test_creating_a_stream_that_already_exists_appends_its_events' => ['in-memory', 'in-memory-without-event-sourcing-module']],
-        ],
         'E3' => [
             'sides' => 'a NOT_IN [] metadata match — in-memory drops the events lacking the key, DBAL keeps them',
             'cases' => ['test_a_metadata_matcher_with_an_empty_not_in_list_excludes_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
@@ -74,11 +70,8 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             'cases' => ['test_appending_an_event_id_that_was_already_recorded_is_rejected' => ['in-memory', 'in-memory-without-event-sourcing-module']],
         ],
         'E11' => [
-            'sides' => 'create() or appendTo() on a stream no #[Stream] or aggregate declares — MySQL and MariaDB refuse to create its table at runtime (rule 16), in-memory, PostgreSQL and SQLite create it',
+            'sides' => 'appendTo() on a stream no #[Stream] or aggregate declares — MySQL and MariaDB refuse to create its table at runtime (rule 16), in-memory, PostgreSQL and SQLite create it',
             'cases' => [
-                'test_a_created_stream_exists_and_loads_as_empty' => ['dbal:mysql', 'dbal:mariadb'],
-                'test_creating_a_stream_with_events_makes_them_loadable' => ['dbal:mysql', 'dbal:mariadb'],
-                'test_creating_a_stream_that_already_exists_appends_its_events' => ['dbal:mysql', 'dbal:mariadb'],
                 'test_appending_events_to_a_missing_stream_creates_it' => ['dbal:mysql', 'dbal:mariadb'],
                 'test_a_deleted_stream_no_longer_exists' => ['dbal:mysql', 'dbal:mariadb'],
                 'test_appending_to_a_deleted_stream_starts_it_afresh' => ['dbal:mysql', 'dbal:mariadb'],
@@ -361,39 +354,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             }
 
             self::assertFalse($eventStore->hasStream(self::UNDECLARED_STREAM));
-        });
-    }
-
-    #[DataProvider('implementations')]
-    public function test_a_created_stream_exists_and_loads_as_empty(string $implementation): void
-    {
-        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->create(self::UNDECLARED_STREAM);
-
-            self::assertTrue($eventStore->hasStream(self::UNDECLARED_STREAM));
-            self::assertSame([], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM)));
-        });
-    }
-
-    #[DataProvider('implementations')]
-    public function test_creating_a_stream_with_events_makes_them_loadable(string $implementation): void
-    {
-        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->create(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
-
-            self::assertEquals(['t-1'], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM)));
-        });
-    }
-
-    #[DataProvider('implementations')]
-    public function test_creating_a_stream_that_already_exists_appends_its_events(string $implementation): void
-    {
-        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
-            $eventStore->create(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-1', 'One')]);
-
-            $eventStore->create(self::UNDECLARED_STREAM, [new TicketOpenedForEventStoreConformance('t-2', 'Two')]);
-
-            self::assertEquals(['t-1', 't-2'], $this->ticketIdsOf($eventStore->load(self::UNDECLARED_STREAM)));
         });
     }
 

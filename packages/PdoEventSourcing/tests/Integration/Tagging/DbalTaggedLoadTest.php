@@ -210,7 +210,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql(self::OTHER_STREAM) as $statement) {
             $connection->executeStatement($statement);
         }
-        self::inTransaction(fn () => $store->create(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        self::inTransaction(fn () => $store->appendTo(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
         self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));

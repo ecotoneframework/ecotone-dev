@@ -241,7 +241,8 @@ subsection below.
   it no longer invents a `projection_<name>` stream. Reaching the class's own `#[Stream]` takes an Enterprise
   licence; without one `emit()` writes to `ecotone_event_stream` (§3). `linkTo($streamName, ...)` still takes an
   explicit target, but the stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a
-  configuration error instead of a table created behind your back.
+  configuration error instead of a table created behind your back. `emit()` is for projections only: called from
+  any other handler it throws `ConfigurationException` naming `linkTo()` as the way to write events from there.
 - **Tables are declared, not discovered.** Every stream table — including one declared with a non-default
   `connectionReferenceName` — is registered with `ecotone:migration:database:setup` under the `event_stream` feature,
   grouped by the connection it lives on; see §8 for the `--connection` option and how the missing-table error names the

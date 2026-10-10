@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -36,6 +37,11 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
  */
 final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
 {
+    private const EMIT_OUTSIDE_PROJECTION_MESSAGE = 'EventStreamEmitter::emit() was called where no projection is handling an event. '
+        . 'emit() links events to the stream of the projection handling the current event, and there is none on this path, so there is no stream to link them to. '
+        . "Call emit() from a #[Projection]'s event handler or its #[ProjectionFlush] method, or, to write events from any other handler, "
+        . 'call EventStreamEmitter::linkTo($streamName, $events) and declare that stream with #[Stream($streamName)] on the class that owns it.';
+
     public function test_emitting_without_stream_attribute_writes_to_default_table(): void
     {
         $projection = new #[Projection('emitting_to_default_stream'), FromAggregateStream(Ticket::class)] class () {
@@ -162,6 +168,26 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         );
     }
 
+    public function test_emitting_from_a_command_handler_outside_a_projection_is_refused(): void
+    {
+        $ecotone = $this->bootstrap($this->commandHandlerEmittingOutsideProjection());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::EMIT_OUTSIDE_PROJECTION_MESSAGE);
+
+        $ecotone->sendCommandWithRouting('emitOutsideProjection', '123');
+    }
+
+    public function test_emitting_without_a_licence_from_a_command_handler_outside_a_projection_is_refused(): void
+    {
+        $ecotone = $this->bootstrap($this->commandHandlerEmittingOutsideProjection(), licenceKey: null);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::EMIT_OUTSIDE_PROJECTION_MESSAGE);
+
+        $ecotone->sendCommandWithRouting('emitOutsideProjection', '123');
+    }
+
     public function test_linking_to_undeclared_stream_is_rejected(): void
     {
         $projection = new #[Projection('linking_to_undeclared_stream'), FromAggregateStream(Ticket::class)] class () {
@@ -225,6 +251,17 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
         self::assertSame(['123'], $ecotone->sendQueryWithRouting('getUpdatedTickets'));
+    }
+
+    private function commandHandlerEmittingOutsideProjection(): object
+    {
+        return new class () {
+            #[CommandHandler('emitOutsideProjection')]
+            public function handle(string $ticketId, EventStreamEmitter $eventStreamEmitter): void
+            {
+                $eventStreamEmitter->emit([new TicketListUpdated($ticketId)]);
+            }
+        };
     }
 
     private function bootstrap(object $projection, ?string $licenceKey = LicenceTesting::VALID_LICENCE): FlowTestSupport

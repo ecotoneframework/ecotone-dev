@@ -153,7 +153,6 @@ class OutboxRelayBenchmark
     private function warmUpConsumer(): void
     {
         $context = (new DbalConnectionFactory(self::databaseDsn()))->createContext();
-        $context->createDataBaseTable();
         $context->purgeQueue($context->createQueue('benchmark_outbox'));
         $context->purgeQueue($context->createQueue('benchmark_target'));
 

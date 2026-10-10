@@ -9,11 +9,11 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
@@ -74,9 +74,9 @@ abstract class DbalMessagingTestCase extends TestCase
     {
         self::deleteTable('enqueue', $connection);
         self::deleteTable(OrderService::ORDER_TABLE, $connection);
-        self::deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        self::deleteTable(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $connection);
         self::deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        self::deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        self::deleteTable(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $connection);
         self::deleteTable('persons', $connection);
         self::deleteTable('activities', $connection);
     }

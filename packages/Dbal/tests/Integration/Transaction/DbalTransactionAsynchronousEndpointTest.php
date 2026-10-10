@@ -18,7 +18,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
@@ -218,7 +218,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $connection = $this->getConnection();
         (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
         (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
-        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
 
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
@@ -340,7 +340,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             $connection = $connectionFactory->createContext()->getDbalConnection();
             (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
             (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
-            (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+            (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
             $this->setupUserTable($connection);
         }
 

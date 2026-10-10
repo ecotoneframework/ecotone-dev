@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Integration\Recoverability;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -14,7 +15,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -40,7 +41,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
             $connection = $connectionFactory->createContext()->getDbalConnection();
             (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
-            (new DeadLetterTableManager(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, true, true))->createTable($connection);
+            (new DeadLetterTableManager(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, true, true))->createTable($connection);
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
@@ -54,6 +55,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -75,12 +77,12 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
-        if (! self::checkIfTableExists($connection, DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE)) {
+        if (! self::checkIfTableExists($connection, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE)) {
             return 0;
         }
 
         return (int) $connection
-            ->executeQuery(sprintf('SELECT COUNT(*) FROM %s', DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE))
+            ->executeQuery(sprintf('SELECT COUNT(*) FROM %s', DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE))
             ->fetchOne();
     }
 }

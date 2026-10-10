@@ -67,6 +67,19 @@ class ConcurrencyException extends MessagingException
         ), self::errorCode());
     }
 
+    public static function forHandledMessage(string $messageId, string $consumerEndpointId, string $routingSlip): self
+    {
+        return new self(sprintf(
+            'Message %s was already recorded as handled (consumer endpoint "%s", routing slip "%s"): another handling of the same message recorded it first, '
+            . 'so this handling is refused instead of recording it twice. Deduplication lets the first one through; when this one is retried it is skipped as already handled, '
+            . 'so nothing needs changing unless the same message id is reused for different messages - then give each message its own MessageHeaders::MESSAGE_ID, '
+            . 'or name what identifies it with #[Deduplicated(expression: ...)].',
+            $messageId,
+            $consumerEndpointId,
+            $routingSlip,
+        ), self::errorCode());
+    }
+
     private static function whereItIsNow(int $expectedVersion, int $currentVersion): string
     {
         return $currentVersion === $expectedVersion

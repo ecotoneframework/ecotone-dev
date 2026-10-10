@@ -3,15 +3,12 @@
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Database\DeadLetterTableManager;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Dbal\Recoverability\DeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -19,9 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 
 /**
  * licence Apache-2.0
@@ -41,13 +36,13 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public const STORE_CHANNEL     = 'dbal_dead_letter';
 
     private string $methodName;
-    private string $connectionReferenceName;
+    private string $referenceName;
     private array $parameterConverters;
 
-    private function __construct(string $methodName, string $connectionReferenceName, string $inputChannelName, array $parameterConverters)
+    private function __construct(string $methodName, string $referenceName, string $inputChannelName, array $parameterConverters)
     {
         $this->methodName              = $methodName;
-        $this->connectionReferenceName = $connectionReferenceName;
+        $this->referenceName           = $referenceName;
         $this->parameterConverters     = $parameterConverters;
         $this->inputMessageChannelName = $inputChannelName;
     }
@@ -57,11 +52,16 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return $referenceName . '.' . $actionChannel;
     }
 
-    public static function createList(string $referenceName, string $connectionReferenceName): self
+    public static function storeReferenceFor(string $referenceName): string
+    {
+        return DeadLetterStore::class . '.' . $referenceName;
+    }
+
+    public static function createList(string $referenceName): self
     {
         return new self(
             'list',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::LIST_CHANNEL),
             [
                 HeaderBuilder::create('limit', self::LIMIT_HEADER),
@@ -70,11 +70,11 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createShow(string $referenceName, string $connectionReferenceName): self
+    public static function createShow(string $referenceName): self
     {
         return new self(
             'show',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::SHOW_CHANNEL),
             [
                 PayloadBuilder::create('messageId'),
@@ -83,31 +83,31 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createCount(string $referenceName, string $connectionReferenceName): self
+    public static function createCount(string $referenceName): self
     {
         return new self(
             'count',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::COUNT_CHANNEL),
             []
         );
     }
 
-    public static function createReplay(string $referenceName, string $connectionReferenceName): self
+    public static function createReplay(string $referenceName): self
     {
         return new self(
             'replay',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::REPLAY_CHANNEL),
             []
         );
     }
 
-    public static function createReplayAll(string $referenceName, string $connectionReferenceName): self
+    public static function createReplayAll(string $referenceName): self
     {
         return new self(
             'replayAll',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::REPLAY_ALL_CHANNEL),
             [
                 ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
@@ -115,63 +115,53 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createDelete(string $referenceName, string $connectionReferenceName): self
+    public static function createDelete(string $referenceName): self
     {
         return new self(
             'delete',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::DELETE_CHANNEL),
             []
         );
     }
 
-    public static function createDeleteAll(string $referenceName, string $connectionReferenceName): self
+    public static function createDeleteAll(string $referenceName): self
     {
         return new self(
             'deleteAll',
-            $connectionReferenceName,
+            $referenceName,
             self::getChannelName($referenceName, self::DELETE_ALL_CHANNEL),
             []
         );
     }
 
-    public static function createStore(string $connectionReferenceName): self
+    public static function createStore(string $referenceName, string $inputChannelName): self
     {
         return new self(
             'store',
-            $connectionReferenceName,
-            self::STORE_CHANNEL,
+            $referenceName,
+            $inputChannelName,
             []
         );
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        return $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, $this->methodName);
+        return $interfaceToCallRegistry->getFor(DeadLetterHandler::class, $this->methodName);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
+        $deadLetterHandlerReference = DeadLetterHandler::class . '.' . $this->referenceName;
         if (! $builder->has($deadLetterHandlerReference)) {
-            $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
-                new Definition(CachedConnectionFactory::class, [
-                    new Definition(DbalReconnectableConnectionFactory::class, [
-                        new Reference($this->connectionReferenceName),
-                    ]),
-                ], 'createFor'),
-                DefaultHeaderMapper::createAllHeadersMapping(),
-                Reference::to(ConversionService::REFERENCE_NAME),
-                Reference::to(RetryRunner::class),
-                Reference::to(DeadLetterTableManager::class),
-            ]);
-
-            $builder->register($deadLetterHandlerReference, $deadLetterHandler);
+            $builder->register($deadLetterHandlerReference, new Definition(DeadLetterHandler::class, [
+                Reference::to(self::storeReferenceFor($this->referenceName)),
+            ]));
         }
 
         $messageHandler = ServiceActivatorBuilder::create(
             $deadLetterHandlerReference,
-            new InterfaceToCallReference(DbalDeadLetterHandler::class, $this->methodName),
+            new InterfaceToCallReference(DeadLetterHandler::class, $this->methodName),
         );
 
         return $messageHandler

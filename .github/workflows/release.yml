@@ -50,9 +50,8 @@ jobs:
 
       - name: Checkout branch related to tag
         run: |
-          raw=$(git branch -r --contains ${{ github.ref }} | head -n1)
-          branch=${raw##*/}
-          echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
+          branch=$(bin/resolve-release-branch "${{ github.ref_name }}")
+          echo "checking out branch $branch for tag ${{ github.ref_name }}"
           git checkout "$branch"
 
       - name: Install PHP-CS-Fixer
@@ -67,6 +66,8 @@ jobs:
         run: php bin/update-required-packages.php ${{ github.ref_name }}
 
       - name: Update Skills marketplace version
+        # ↓ skills marketplace is only published on stable releases (tag has no '-' pre-release suffix)
+        if: "!contains(github.ref_name, '-')"
         env:
           VERSION: ${{ github.ref_name }}
         run: |
@@ -162,9 +163,8 @@ jobs:
       - name: Checkout branch related to tag
         id: release_branch
         run: |
-          raw=$(git branch -r --contains ${{ github.ref }} | head -n1)
-          branch=${raw##*/}
-          echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
+          branch=$(bin/resolve-release-branch "${{ github.ref_name }}")
+          echo "checking out branch $branch for tag ${{ github.ref_name }}"
           git checkout "$branch"
           echo "name=$branch" >> "$GITHUB_OUTPUT"
 

@@ -19,6 +19,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 
 use function json_decode;
 use function json_encode;
+use function strcmp;
 
 use Symfony\Component\Uid\Uuid;
 
@@ -58,7 +59,7 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
     public function list(int $limit, int $offset): array
     {
         $messageIds = array_map('strval', array_keys($this->messages));
-        usort($messageIds, fn (string $first, string $second): int => $this->messages[$second]['failedAt'] <=> $this->messages[$first]['failedAt']);
+        usort($messageIds, fn (string $first, string $second): int => ($this->messages[$second]['failedAt'] <=> $this->messages[$first]['failedAt']) ?: strcmp($first, $second));
 
         return array_map(
             fn (string $messageId): ErrorContext => ErrorContext::fromHeaders(array_merge($this->messages[$messageId]['headers'], [MessageHeaders::MESSAGE_ID => $messageId])),

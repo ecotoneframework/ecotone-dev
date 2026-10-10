@@ -79,6 +79,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->orderBy('failed_at', 'DESC')
+            ->addOrderBy('message_id', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
 

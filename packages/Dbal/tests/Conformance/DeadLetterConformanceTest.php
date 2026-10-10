@@ -59,6 +59,62 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_messages_are_listed_most_recently_failed_first(string $implementation): void
+    {
+        $deadLetter = $this->bootstrap($implementation);
+
+        $deadLetter->store($this->failedMessage('m-2', 'second', 1_700_000_200));
+        $deadLetter->store($this->failedMessage('m-1', 'first', 1_700_000_100));
+        $deadLetter->store($this->failedMessage('m-3', 'third', 1_700_000_300));
+
+        self::assertSame(['m-3', 'm-2', 'm-1'], $this->messageIdsOf($deadLetter->list(10, 0)));
+        self::assertSame(3, $deadLetter->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_messages_that_failed_at_the_same_time_are_listed_by_message_id(string $implementation): void
+    {
+        $deadLetter = $this->bootstrap($implementation);
+
+        $deadLetter->store($this->failedMessage('m-b', 'b', 1_700_000_100));
+        $deadLetter->store($this->failedMessage('m-c', 'c', 1_700_000_100));
+        $deadLetter->store($this->failedMessage('m-a', 'a', 1_700_000_100));
+        $deadLetter->store($this->failedMessage('m-d', 'd', 1_700_000_200));
+
+        self::assertSame(['m-d', 'm-a', 'm-b', 'm-c'], $this->messageIdsOf($deadLetter->list(10, 0)));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_limit_caps_the_page_and_an_offset_skips_that_many_of_the_most_recent(string $implementation): void
+    {
+        $deadLetter = $this->bootstrap($implementation);
+
+        foreach (['m-1', 'm-2', 'm-3', 'm-4', 'm-5'] as $position => $messageId) {
+            $deadLetter->store($this->failedMessage($messageId, $messageId, 1_700_000_000 + $position));
+        }
+
+        self::assertSame(['m-5', 'm-4'], $this->messageIdsOf($deadLetter->list(2, 0)));
+        self::assertSame(['m-3', 'm-2'], $this->messageIdsOf($deadLetter->list(2, 2)));
+        self::assertSame(['m-1'], $this->messageIdsOf($deadLetter->list(2, 4)));
+        self::assertSame([], $this->messageIdsOf($deadLetter->list(2, 6)));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_consecutive_pages_over_messages_that_failed_at_the_same_time_neither_repeat_nor_skip_one(string $implementation): void
+    {
+        $deadLetter = $this->bootstrap($implementation);
+
+        foreach (['m-e', 'm-a', 'm-d', 'm-b', 'm-c'] as $messageId) {
+            $deadLetter->store($this->failedMessage($messageId, $messageId, 1_700_000_000));
+        }
+
+        self::assertSame(
+            ['m-a', 'm-b', 'm-c', 'm-d', 'm-e'],
+            [...$this->messageIdsOf($deadLetter->list(2, 0)), ...$this->messageIdsOf($deadLetter->list(2, 2)), ...$this->messageIdsOf($deadLetter->list(2, 4))],
+        );
+    }
+
+    #[DataProvider('implementations')]
     public function test_a_listed_message_carries_its_error_context(string $implementation): void
     {
         $deadLetter = $this->bootstrap($implementation);

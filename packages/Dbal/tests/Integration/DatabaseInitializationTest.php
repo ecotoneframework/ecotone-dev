@@ -130,13 +130,13 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        self::assertSame([], $gateway->list(10, 0));
-        self::assertSame(0, $gateway->count());
-        try {
-            $gateway->show('m-1');
-            self::fail('Expected the missing dead-letter table to be refused');
-        } catch (ConfigurationException $exception) {
-            self::assertStringContainsString("The 'ecotone_error_messages' table required by the 'dead_letter' feature does not exist", $exception->getMessage());
+        foreach ([fn () => $gateway->list(10, 0), fn () => $gateway->count(), fn () => $gateway->show('m-1')] as $operation) {
+            try {
+                $operation();
+                self::fail('Expected the missing dead-letter table to be refused');
+            } catch (ConfigurationException $exception) {
+                self::assertStringContainsString("The 'ecotone_error_messages' table required by the 'dead_letter' feature does not exist", $exception->getMessage());
+            }
         }
         self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
 

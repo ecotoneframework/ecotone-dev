@@ -22,9 +22,9 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.328.0",
-        "ecotone/jms-converter": "~1.328.0",
-        "ecotone/symfony-bundle": "~1.328.0",
+        "ecotone/dbal": "~1.328.1",
+        "ecotone/jms-converter": "~1.328.1",
+        "ecotone/symfony-bundle": "~1.328.1",
         "ecotone/symfony-starter": "^1.1.0",
         "symfony/orm-pack": "^2.4",
         "symfony/yaml": "^6.4|^7.0|^8.0"

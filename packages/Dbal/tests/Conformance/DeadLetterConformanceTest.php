@@ -12,6 +12,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -26,7 +27,12 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
 {
     public const REPLAYED_CHANNEL = 'deadLetterConformance.replayed';
 
+    private const CUSTOM_GATEWAY = 'deadLetterConformance.customGateway';
+    private const CUSTOM_GATEWAY_CONNECTION = 'deadLetterConformance.customGatewayConnection';
+
     private object $replayed;
+
+    private DeadLetterGateway $customGateway;
 
     public static function implementations(): iterable
     {
@@ -212,6 +218,21 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
         self::assertSame(0, $deadLetter->count());
     }
 
+    #[DataProvider('implementations')]
+    public function test_each_dead_letter_gateway_keeps_its_own_messages(string $implementation): void
+    {
+        $default = $this->bootstrap($implementation);
+        $custom = $this->customGateway;
+        $custom->deleteAll();
+
+        $default->store($this->failedMessage('m-1', 'order coffee', 1_700_000_100));
+        $custom->store($this->failedMessage('m-2', 'order tea', 1_700_000_200));
+
+        self::assertSame(['m-1'], $this->messageIdsOf($default->list(10, 0)));
+        self::assertSame(['m-2'], $this->messageIdsOf($custom->list(10, 0)));
+        self::assertSame('order tea', $custom->show('m-2')->getPayload());
+    }
+
     private function bootstrap(string $implementation): DeadLetterGateway
     {
         $this->replayed = new class () {
@@ -224,9 +245,13 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
             }
         };
 
-        return $this->bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$this->replayed::class],
-            containerOrAvailableServices: [$this->replayed, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            containerOrAvailableServices: [
+                $this->replayed,
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                self::CUSTOM_GATEWAY_CONNECTION => $this->connectionOtherThanThePrimaryOne(),
+            ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
@@ -235,8 +260,19 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
                             'in-memory' => true,
                             'dbal' => false,
                         }),
+                    CustomDeadLetterGateway::createWith(self::CUSTOM_GATEWAY, self::CUSTOM_GATEWAY_CONNECTION),
                 ]),
-        )->setupDatabaseTables()->getGateway(DeadLetterGateway::class);
+        );
+        $this->customGateway = $ecotone->getGateway(self::CUSTOM_GATEWAY);
+
+        return $ecotone->getGateway(DeadLetterGateway::class);
+    }
+
+    private function connectionOtherThanThePrimaryOne(): DbalConnectionFactory
+    {
+        $secondaryDsn = getenv('SECONDARY_DATABASE_DSN') ?: 'mysql://ecotone:secret@localhost:3306/ecotone';
+
+        return new DbalConnectionFactory($secondaryDsn === getenv('DATABASE_DSN') ? (getenv('DATABASE_MARIADB') ?: $secondaryDsn) : $secondaryDsn);
     }
 
     /**

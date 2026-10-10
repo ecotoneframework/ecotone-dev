@@ -1300,7 +1300,8 @@ table was invisible to the command: absent from the status table, `--sql`, and `
 
 **Now:** Ecotone builds one `DatabaseSetupManager` per connection it can see declared in your configuration — the
 default connection(s), plus the connection named by every feature that accepts a `connectionReferenceName`
-(`#[Stream]`, `DbalConfiguration::withDeduplication()`, `withDeadLetter()`, `withDocumentStore()`) — and a
+(`#[Stream]`, `DbalConfiguration::withDeduplication()`, `withDeadLetter()`, `withDocumentStore()`, and each
+`CustomDeadLetterGateway`'s connection) — and a
 `DatabaseSetupManagerRegistry` that holds all of them. `DatabaseSetupManager::class` still resolves to the default
 connection's manager for backward compatibility.
 

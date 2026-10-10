@@ -99,9 +99,15 @@ class DbalDeadLetterModule implements AnnotationModule
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
 
-        return [
-            new DbalTableManagerReference(DeadLetterTableManager::class, $dbalConfiguration->getDeadLetterConnectionReference()),
-        ];
+        $connectionReferences = [$dbalConfiguration->getDeadLetterConnectionReference()];
+        foreach (ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $serviceExtensions) as $customDeadLetterGateway) {
+            $connectionReferences[] = $customDeadLetterGateway->getConnectionReferenceName();
+        }
+
+        return array_map(
+            fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
+            array_values(array_unique($connectionReferences)),
+        );
     }
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, string $description = ''): void

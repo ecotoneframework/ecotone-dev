@@ -143,7 +143,7 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
     configuration: ServiceConfiguration::createWithDefaults()
         ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
         ->withExtensionObjects([
-            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDocumentStore(),
+            DbalConfiguration::createWithDefaults()->withDocumentStore(),
             DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(SpentTodayAcrossDeployments::class, 1),
         ])
         ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
@@ -151,7 +151,7 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
     runForProductionEventStore: true,
     licenceKey: LicenceTesting::VALID_LICENCE,
 )
-    ->initializeDatabase()
+    ->setupDatabaseTables()
     ->sendCommand(new RefundToWalletAcrossDeployments('w-1', 3))
     ->sendCommand(new SpendFromWalletAcrossDeployments('w-1', 10))
     ->sendCommand(new SpendFromWalletAcrossDeployments('w-1', 5));

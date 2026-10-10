@@ -57,7 +57,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
@@ -94,7 +94,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL))
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
@@ -133,7 +133,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send events - should auto-initialize and process
@@ -170,7 +170,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send events - should skip processing
@@ -204,7 +204,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send events first (should be skipped)
@@ -244,7 +244,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send multiple events concurrently - should only initialize once
@@ -287,7 +287,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -342,7 +342,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send events for different partitions
@@ -380,7 +380,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         // Send multiple events
@@ -426,7 +426,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
@@ -461,7 +461,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )
-            ->deleteEventStream(Basket::BASKET_STREAM)->initializeDatabase()
+            ->deleteEventStream(Basket::BASKET_STREAM)->setupDatabaseTables()
             ->deleteProjection($basketProjection::NAME)
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()))
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()));
@@ -490,7 +490,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         $ecotone->triggerProjection($projection::NAME);
@@ -516,7 +516,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
@@ -551,7 +551,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -615,7 +615,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {

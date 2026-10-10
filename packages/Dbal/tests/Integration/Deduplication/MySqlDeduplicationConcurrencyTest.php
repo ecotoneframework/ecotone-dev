@@ -15,7 +15,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,11 +27,11 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
     protected function setUp(): void
     {
         $connection = $this->createConnectionFactory()->createContext()->getDbalConnection();
-        if ($connection->createSchemaManager()->tablesExist([DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE])) {
-            $connection->executeStatement('DROP TABLE ' . DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE);
+        if ($connection->createSchemaManager()->tablesExist([DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE])) {
+            $connection->executeStatement('DROP TABLE ' . DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE);
         }
 
-        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true, null))
+        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, null))
             ->createTable($connection);
     }
 
@@ -51,7 +51,7 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
             {
                 $connection = $connectionFactory->createContext()->getDbalConnection();
                 $alreadyInserted = (bool) $connection->fetchOne(
-                    'SELECT COUNT(*) FROM ' . DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE
+                    'SELECT COUNT(*) FROM ' . DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE
                 );
                 $this->executionOrder[] = $alreadyInserted ? 'row_present_before_handler' : 'row_missing_before_handler';
             }
@@ -63,7 +63,7 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
         $ecotone->sendCommandWithRouting('handle', metadata: [MessageHeaders::MESSAGE_ID => 'message-1']);
@@ -75,7 +75,7 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
     {
         $connectionFactory = $this->createConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
-        $tableManager = new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true, null);
+        $tableManager = new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true, null);
         $tableManager->createTable($connection);
 
         $row = [
@@ -84,10 +84,10 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
             'routing_slip' => '',
             'handled_at' => 0,
         ];
-        $connection->insert(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $row);
+        $connection->insert(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $row);
 
         $this->expectException(UniqueConstraintViolationException::class);
-        $connection->insert(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $row);
+        $connection->insert(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $row);
     }
 
     private function createConnectionFactory(): DbalConnectionFactory

@@ -125,7 +125,7 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
     runForProductionEventStore: true,
     licenceKey: LicenceTesting::VALID_LICENCE,
 )
-    ->initializeDatabase()
+    ->setupDatabaseTables()
     ->sendCommand(new CreateBasket('1'))
     ->sendCommand(new AddProduct('1', 'milk'))
     ->sendCommand(new ObserveBasketHistory('1'));

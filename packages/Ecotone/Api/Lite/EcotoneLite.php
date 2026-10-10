@@ -16,6 +16,7 @@ use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
+use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
@@ -89,8 +90,10 @@ final class EcotoneLite
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
         }
 
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
-            ->getFlowTestSupport();
+        return self::withDatabaseTablesSetUp(
+            self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false),
+            $configuration,
+        );
     }
 
     /**
@@ -130,8 +133,21 @@ final class EcotoneLite
                 ->addExtensionObject(DbalConfiguration::createForTesting());
         }
 
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
-            ->getFlowTestSupport();
+        return self::withDatabaseTablesSetUp(
+            self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false),
+            $configuration,
+        );
+    }
+
+    private static function withDatabaseTablesSetUp(ConfiguredMessagingSystemWithTestSupport $messagingSystem, ServiceConfiguration $configuration): FlowTestSupport
+    {
+        foreach ($configuration->getExtensionObjects() as $extensionObject) {
+            if ($extensionObject instanceof TestConfiguration && $extensionObject->isSettingUpDatabaseTablesOnBootstrap()) {
+                $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpTablesOfProvidedConnections();
+            }
+        }
+
+        return $messagingSystem->getFlowTestSupport();
     }
 
     /**

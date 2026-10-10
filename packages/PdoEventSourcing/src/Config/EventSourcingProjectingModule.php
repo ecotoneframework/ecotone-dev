@@ -9,7 +9,6 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
@@ -250,7 +249,6 @@ class EventSourcingProjectingModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
@@ -276,8 +274,7 @@ class EventSourcingProjectingModule implements AnnotationModule
             ProjectionStateTableManager::class,
             new Definition(ProjectionStateTableManager::class, [
                 ProjectionStateTableManager::DEFAULT_TABLE_NAME,
-                $hasProjections,
-                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $hasProjections && ! $eventSourcingConfiguration->isInMemory(),
                 $consoleInvocationPrefix,
             ])
         );

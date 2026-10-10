@@ -43,7 +43,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
@@ -89,7 +89,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
@@ -148,7 +148,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
                 ]),

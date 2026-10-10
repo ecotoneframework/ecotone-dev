@@ -40,5 +40,5 @@ return EcotoneLite::bootstrap(
         ->withDefaultErrorChannel('errorChannel')
         ->withNamespaces(['Test\\Ecotone\\EventSourcing\\Projecting\\App'])
         ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-        ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
+        ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
 );

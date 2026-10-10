@@ -6,8 +6,6 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
-use Ecotone\Dbal\Database\AutomaticTableInitializationTrait;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -21,15 +19,12 @@ use function is_array;
  */
 final class ProjectionStateTableManager implements DbalTableManager
 {
-    use AutomaticTableInitializationTrait;
-
     public const DEFAULT_TABLE_NAME = 'ecotone_projection_state';
     public const FEATURE_NAME = 'projection_state';
 
     public function __construct(
         private string $tableName,
         private bool   $isUsed,
-        private bool   $shouldAutoInitialize,
         private ?string $consoleInvocationPrefix = null,
     ) {
     }
@@ -91,14 +86,12 @@ final class ProjectionStateTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
+        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix]);
     }
 
-    public function getMissingTableInstructions(Connection $connection): string
+    public function getMissingTableInstructions(): string
     {
-        return AutomaticTableInitializationSupport::isSupported($connection)
-            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix)
-            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     private function getPostgresCreateSql(): string

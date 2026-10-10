@@ -35,7 +35,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
             $connection = $connectionFactory->createContext()->getDbalConnection();
             $connection->executeStatement('DROP TABLE IF EXISTS ecotone_deduplication');
-            (new DeduplicationTableManager('ecotone_deduplication', true, true, null))->createTable($connection);
+            (new DeduplicationTableManager('ecotone_deduplication', true, null))->createTable($connection);
         }
     }
 
@@ -104,7 +104,6 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDeduplication(true, expirationTime: 1),
                     DbalBackedMessageChannelBuilder::create('email'),
                 ]),

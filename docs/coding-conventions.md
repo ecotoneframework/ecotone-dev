@@ -927,42 +927,35 @@ Related: do not pass the store into its own collaborators as a stored dependency
 
 ---
 
-## 16. A table is created on the message path only through the auto-create gate
+## 16. No table is created on the message path
 
 MySQL and MariaDB implicitly commit the surrounding transaction on any DDL statement, so a `CREATE TABLE` in the
 middle of a message breaks the commit or rollback that message's transaction expects. 1.x carried a workaround that
-string-matched the driver's error message and swallowed the failure. 2.0's answer is not a better workaround. It
-decides, in one place, where a table may be created.
+string-matched the driver's error message and swallowed the failure. Wave 8 gated runtime creation per engine; that
+left whether a table appeared mid-message depending on the database underneath (conformance divergence E11), so the
+maintainer removed the concept instead of documenting the split.
 
-What holds, engine by engine:
+A table is created in exactly two places:
 
-- **On MySQL and MariaDB, Ecotone never creates a table while a message is in flight.** A missing table raises the
-  setup `ConfigurationException` (rule 1a) whatever `AutoCreateLevel` is configured.
-  `MissingTableInstructions::buildForUnsupportedAutomaticInitialization()` tells the user why: "creating a table
-  implicitly commits the surrounding transaction there, and Ecotone will not split your message transaction to do
-  that."
-- **Under `AutoCreateLevel::None`, it never creates one on any engine.** `None` is what
-  `DbalConfiguration::createWithDefaults()` sets. Tables come from the CLI, the `DatabaseSetupManager` gateway, or
-  the application's own migration tool.
-- **Under `AutoCreateLevel::CreateOnly` on PostgreSQL or SQLite, a missing table *is* created on first use** —
-  on the message path, inside the message's transaction. That is safe there, because DDL on those engines is
-  transactional. EcotoneLite's test bootstraps run at this level by default (`DbalConfiguration::createDefaultFor()`,
-  `createForTesting()`), and an application can opt in with `DbalConfiguration::withAutoCreateLevel()`.
+- **`ecotone:migration:database:setup`**, or its programmatic twin `DatabaseSetupManager` /
+  `DatabaseSetupManagerRegistry`, or SQL from `--sql` fed to the application's own migration tool;
+- **the test setup action**, `FlowTestSupport::setupDatabaseTables()`, which the `EcotoneLite` flow-test bootstrap
+  calls itself for every connection the test registers. A test turns that off with
+  `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)` and calls the action when it
+  wants the tables. Bootstrap is not the message path.
 
-The first bullet is the guarantee, and it holds because every lazy creation passes one gate:
-`AutomaticTableInitializationSupport::isSupported()`, which refuses any `AbstractMySQLPlatform`. `DbalEventStore`
-and `DbalTagTables` call it directly; the document store, deduplication, dead letter, DBAL channels and projection
-state reach it through `DbalTableManager::shouldBeInitializedAutomatically()`. The DDL text itself lives only in the
-`*TableManager` and `*Schema` classes.
+Everywhere else - every handler, channel, store, projection and console action that is not the setup command - a
+missing table raises the owning `*TableManager`'s missing-table `ConfigurationException` (rule 1a), the same on every
+engine. There is no `AutoCreateLevel` and no gate to consult, and the DDL text lives only in the `*TableManager` and
+`*Schema` classes.
 
-So: a code path that may need a table while a message is in flight asks that gate first and, when refused, throws
-the table manager's missing-table instructions. Do not create a table on the message path any other way, do not
-alter or drop one there, and do not add a workaround for a transaction a DDL statement committed — remove the DDL.
-The whole story for users is `upgrade-2.0.md` §8.
+So: do not create, alter or drop a table on the message path, and do not add a workaround for a transaction a DDL
+statement committed - remove the DDL. `EventStore::delete()` is the one deliberate exception, and it refuses to drop
+a table inside an open transaction on MySQL and MariaDB. The whole story for users is `upgrade-2.0.md` §8.
 
 History: `230bcea5d` and `511b31428` first moved this DDL out of the transaction; `048f614d8` and the rest of rule
-1a replaced that with the refusal and the setup instructions, and the helper those two commits introduced is gone
-with it.
+1a replaced that with the refusal and the setup instructions; wave 10 removed runtime creation with
+`AutomaticTableInitializationSupport`, `AutoCreateLevel` and `EventSourcingConfiguration::withInitializeEventStoreOnStart()`.
 
 ---
 

@@ -3,7 +3,7 @@
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -51,6 +51,6 @@ function migrateSymfony(Connection $connection): void
             )
         SQL);
 
-    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
-    (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+    (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connection);
 }

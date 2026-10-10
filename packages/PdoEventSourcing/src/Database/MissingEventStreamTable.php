@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Database;
 
-use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -18,12 +16,10 @@ final class MissingEventStreamTable
     {
     }
 
-    public function exceptionFor(Connection $connection, string $tableName, ?string $connectionReferenceName = null): ConfigurationException
+    public function exceptionFor(string $tableName, ?string $connectionReferenceName = null): ConfigurationException
     {
         return ConfigurationException::create(
-            AutomaticTableInitializationSupport::isSupported($connection)
-                ? MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix, $connectionReferenceName)
-                : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix, $connectionReferenceName)
+            MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix, $connectionReferenceName)
         );
     }
 }

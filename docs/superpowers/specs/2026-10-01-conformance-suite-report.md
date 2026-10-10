@@ -114,19 +114,19 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 
 | Id | Case | In-memory | DBAL |
 |---|---|---|---|
-| E1 | `load(count: 0)` | refuses (`count must be >= 1 or null`) | returns `[]` |
+| E1 | ~~`load(count: 0)`~~ | converged in wave 10: both refuse, on `load()` and `loadAggregateEvents()` | |
 | E2 | ~~`create()` on an existing stream~~ | resolved by dropping `EventStore::create()` — there is no second way to open a stream left to diverge | |
 | E3 | metadata match `NOT_IN []` | drops events lacking the key | keeps them (`1 = 1`) |
-| E4 | metadata `'2'` against a recorded integer `2` | no match (strict) | match on PostgreSQL, MySQL and MariaDB; **no match on SQLite** |
-| E5 | `loadAggregateEvents(…, '42')` for an id recorded as integer `42` | not found | found on PostgreSQL, MySQL and MariaDB; **not found on SQLite** |
-| E6 | `load()` of a never-created stream | `[]` | `ConfigurationException` with the missing-table instructions |
-| E7 | `appendTo(stream, [])` on a missing stream | creates the stream | no-op |
-| E8 | unconditional append repeating an aggregate type, id and version | stores the duplicate | `ConcurrencyException`, whole batch rejected |
-| E9 | append repeating an event id | stores the duplicate | `ConcurrencyException` (`UNIQUE (event_id)`) |
-| E11 | `appendTo()` on a stream nothing declares | creates it | MySQL and MariaDB refuse — rule 16 by design; PostgreSQL and SQLite create it |
-| E13 | `load(deserialize: false)` | the unwrapped store (`bootstrapFlowTesting()`) returns payload objects | recorded data, as `createInMemory()` does |
-| D1 | a document string that is not JSON | refused on add, **accepted on update** | refused on both by PostgreSQL, MySQL, MariaDB; **accepted on both by SQLite** |
-| D3 | change an object after `addDocument()` | the stored document changes — it is held by reference | unchanged — a copy was stored |
+| E4 | ~~metadata `'2'` against a recorded integer `2`~~ | converged in wave 10: matched everywhere — SQLite and in-memory compare the text form on the read | |
+| E5 | ~~`loadAggregateEvents(…, '42')` for an id recorded as integer `42`~~ | converged in wave 10 with E4: found everywhere | |
+| E6 | `load()` of a never-created stream | `[]` | `ConfigurationException` with the missing-table instructions — **kept, intended** (wave 10): a DBAL stream's table comes from setup |
+| E7 | `appendTo(stream, [])` on a missing stream | creates the stream | no-op — **kept** (wave 10) |
+| E8 | ~~unconditional append repeating an aggregate type, id and version~~ | converged in wave 10: in-memory raises `ConcurrencyException` and records nothing from the batch, as DBAL's unique index does | |
+| E9 | ~~append repeating an event id~~ | converged in wave 10: in-memory raises `ConcurrencyException` too | |
+| E11 | `appendTo()` on a stream no setup created (undeclared, or deleted) | materialises it | **every engine refuses** with the missing-table `ConfigurationException` — wave 10 removed runtime table creation, so the platform split is gone and this is the divergence left: in-memory has no tables |
+| E13 | ~~`load(deserialize: false)`~~ | converged in wave 10: every store returns the recorded data | |
+| D1 | ~~a document string that is not JSON~~ | converged in wave 10: refused on add, update and upsert, on every engine | |
+| D3 | ~~change an object after `addDocument()`~~ | converged in wave 10: in-memory stores and returns copies | |
 
 E1 to E9 hold for both in-memory wirings, because they share `InMemoryEventStore`.
 
@@ -194,6 +194,16 @@ with DBAL staying green, then reverted:
 And for the ratchet: with E1 "fixed" (a count of 0 returning `[]`), both E1 rows failed, naming the entry to remove.
 
 ## 3. The two seams that do not exist yet
+
+**Built in wave 10**, on the maintainer's decisions 7a and 7c. Both stay in `packages/Dbal` — `DeduplicationModule`
+registers its connection lazily, so nothing connects at bootstrap and no move to core is needed. Deduplication's
+storage is `HandledMessages` (`DbalHandledMessages`, `InMemoryHandledMessages`; the transaction-dependent ordering is
+the store answering `recordsBeforeHandling()`), dead letter's is `DeadLetterStore` (`DbalDeadLetterStore`,
+`InMemoryDeadLetterStore`, one per gateway reference), replay stays in the open-core `DeadLetterHandler`. Each is
+chosen through `DbalConfiguration::withDeduplication(..., inMemory:)` / `withDeadLetter(..., inMemory:)` and is in
+memory by default in a flow test with no `DbalConfiguration`. `list()` is ordered most recently failed first, ties by
+message id, so pages neither repeat nor skip. `DeadLetterConformanceTest` and `DeduplicationConformanceTest` prove
+both sides alike on all four engines. The sketch below is what was proposed before; the shipped names follow it.
 
 The audit's "ship an in-memory deduplication / dead-letter" skips a step: neither has a seam to put a second
 implementation behind. Each needs an interface extracted first, and that is a design change for the maintainer.

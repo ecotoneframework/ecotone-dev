@@ -79,6 +79,6 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
 
     private function createStreamTable(string $streamName): void
     {
-        (new EventStreamTableManager([$streamName], true, true))->createTable($this->getConnection());
+        (new EventStreamTableManager([$streamName], true))->createTable($this->getConnection());
     }
 }

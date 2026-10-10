@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -46,119 +47,44 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         $this->dropProjectionStateTable();
     }
 
-    public function test_projection_fails_when_auto_initialization_disabled_and_table_not_created(): void
+    public function test_a_projection_is_refused_with_the_missing_table_instruction_on_every_engine_when_no_setup_ran(): void
     {
         $projection = $this->createPollingProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false));
 
-        $ecotone = $this->bootstrapEcotone(
-            [$projection::class],
-            [$projection],
-            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false)
-        );
-
-        // Verify projection state table does not exist
-        self::assertFalse($this->projectionStateTableExists());
-
-        // Triggering projection should fail with an actionable message because projection_state table doesn't exist
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
 
-        // Initialize projection and send events
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
     }
 
-    public function test_projection_works_after_console_command_creates_table(): void
+    public function test_a_projection_works_once_the_setup_command_created_its_table(): void
     {
         $projection = $this->createPollingProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false));
 
-        $ecotone = $this->bootstrapEcotone(
-            [$projection::class],
-            [$projection],
-            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false)
-        );
-
-        // Verify projection state table does not exist
-        self::assertFalse($this->projectionStateTableExists());
-
-        // Run console command to create tables
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
-
-        // Debug: Print features that were registered
-        $featureNames = array_column($result->getRows(), 0);
-
-        // Verify projection_state table was created
-        self::assertTrue($this->projectionStateTableExists(), 'Projection state table should exist after initialization. Available features: ' . implode(', ', $featureNames));
-
-        // Verify the result contains projection_state feature
-        $featureNames = array_column($result->getRows(), 0);
-        self::assertContains(ProjectionStateTableManager::FEATURE_NAME, $featureNames);
-
-        // Initialize projection and run projection
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
-
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->triggerProjection($projection::NAME);
 
-        // Verify projection worked
-        self::assertEquals([
-            ['ticket_id' => '123', 'ticket_type' => 'alert'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+        self::assertContains(ProjectionStateTableManager::FEATURE_NAME, array_column($result->getRows(), 0));
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
-    public function test_projection_works_with_auto_initialization_enabled(): void
+    public function test_a_projection_works_on_every_engine_once_the_test_bootstrap_set_up_its_table(): void
     {
-        if ($this->isMySQL()) {
-            self::markTestSkipped('Automatic table initialization is not supported on MySQL/MariaDB, see test_projection_state_auto_initialization_is_unsupported_on_mysql_and_mariadb.');
-        }
-
         $projection = $this->createPollingProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults());
 
-        $ecotone = $this->bootstrapEcotone(
-            [$projection::class],
-            [$projection],
-            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)
-        );
-
-        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => true]);
-        // Verify projection state table does not exist
-        self::assertFalse($this->projectionStateTableExists());
-
-        // Initialize projection and run projection
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
-
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->triggerProjection($projection::NAME);
 
-        // Verify projection worked
-        self::assertEquals([
-            ['ticket_id' => '123', 'ticket_type' => 'alert'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
-    }
-
-    public function test_projection_state_auto_initialization_is_unsupported_on_mysql_and_mariadb(): void
-    {
-        if (! $this->isMySQL()) {
-            self::markTestSkipped('This asserts the MySQL/MariaDB-specific restriction, see test_projection_works_with_auto_initialization_enabled for the PostgreSQL/SQLite behaviour.');
-        }
-
-        $projection = $this->createPollingProjection();
-
-        $ecotone = $this->bootstrapEcotone(
-            [$projection::class],
-            [$projection],
-            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)
-        );
-
-        self::assertFalse($this->projectionStateTableExists());
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
-
-        $ecotone->deleteProjection($projection::NAME)
-            ->initializeProjection($projection::NAME);
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
     private function createPollingProjection(): object
@@ -205,7 +131,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         };
     }
 
-    private function bootstrapEcotone(array $classesToResolve, array $services, DbalConfiguration $dbalConfiguration): FlowTestSupport
+    private function bootstrapEcotone(array $classesToResolve, array $services, TestConfiguration $testConfiguration): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
@@ -213,8 +139,9 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withExtensionObjects([$dbalConfiguration]),
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             runForProductionEventStore: true,
+            testConfiguration: $testConfiguration,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -224,11 +151,6 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         /** @var ConsoleCommandRunner $runner */
         $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
         return $runner->execute($commandName, $parameters);
-    }
-
-    private function projectionStateTableExists(): bool
-    {
-        return self::tableExists($this->getConnection(), ProjectionStateTableManager::DEFAULT_TABLE_NAME);
     }
 
     private function dropProjectionStateTable(): void

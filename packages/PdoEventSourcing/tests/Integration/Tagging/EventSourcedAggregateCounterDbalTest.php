@@ -209,7 +209,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
 
     private function bootstrapEcotone(DbalConnectionFactory $connectionFactory, bool $withDynamicConsistencyBoundary = true): FlowTestSupport
     {
-        $extensionObjects = [DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)];
+        $extensionObjects = [DbalConfiguration::createWithDefaults()];
         if ($withDynamicConsistencyBoundary) {
             $extensionObjects[] = DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
@@ -231,7 +231,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

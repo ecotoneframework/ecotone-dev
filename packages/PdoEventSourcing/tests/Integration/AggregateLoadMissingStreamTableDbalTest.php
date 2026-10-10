@@ -45,7 +45,7 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
     {
         $ecotone = $this->bootstrapWithoutTheEventStreamTable();
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->sendCommand(new OpenScreeningWithoutStreamTable('screening-1', 2));
         $ecotone->sendCommand(new AddSeatsToScreeningWithoutStreamTable('screening-1', 3));
@@ -56,7 +56,7 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
     public function test_creating_an_aggregate_after_the_stream_table_is_deleted_in_the_same_process_names_the_setup_command(): void
     {
         $ecotone = $this->bootstrapWithoutTheEventStreamTable();
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         $ecotone->sendCommand(new OpenScreeningWithoutStreamTable('screening-1', 2));
 
         $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
@@ -81,7 +81,7 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false),
+                    DbalConfiguration::createWithDefaults(),
                     EventSourcingConfiguration::createWithDefaults(),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),

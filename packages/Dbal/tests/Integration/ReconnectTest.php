@@ -11,7 +11,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderRegisteringGateway;
@@ -63,7 +63,7 @@ final class ReconnectTest extends DbalMessagingTestCase
 
         // Create the necessary database tables
         $connectionFactory->createContext()->createDataBaseTable();
-        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connectionFactory->createContext()->getDbalConnection());
+        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connectionFactory->createContext()->getDbalConnection());
 
         $ecotone = $this->bootstrapEcotone([
             'tenant_a_connection' => $connectionFactory,

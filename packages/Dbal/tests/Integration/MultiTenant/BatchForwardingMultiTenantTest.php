@@ -27,7 +27,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
     public function test_each_run_publishes_batch_from_next_tenant_outbox_in_round_robin(): void
     {
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
-            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true, null))
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, null))
                 ->createTable($connectionFactory->createContext()->getDbalConnection());
         }
 

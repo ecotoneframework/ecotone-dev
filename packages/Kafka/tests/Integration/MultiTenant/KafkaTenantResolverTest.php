@@ -12,6 +12,7 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -96,6 +97,7 @@ final class KafkaTenantResolverTest extends TestCase
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
                 ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

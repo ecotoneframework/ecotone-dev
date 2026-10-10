@@ -124,7 +124,7 @@ class EventStoreGlobalStreamSource implements StreamSource
                 }
             } while ($events === [] && $scannedRows === $count);
         } catch (TableNotFoundException) {
-            throw $this->missingEventStreamTable->exceptionFor($connection, $streamTable);
+            throw $this->missingEventStreamTable->exceptionFor($streamTable);
         }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);

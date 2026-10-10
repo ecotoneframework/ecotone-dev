@@ -12,7 +12,6 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
@@ -37,13 +36,12 @@ final class EventSourcingConfigurationWithDefaultsTest extends EventSourcingMess
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
         $eventStore = $ecotone->getGateway(EventStore::class);
-        $streamName = Uuid::v7()->toRfc4122();
-        $eventStore->appendTo($streamName, [Event::createWithType('order.placed', ['orderId' => 'order-1'])]);
+        $eventStore->appendTo('ecotone_event_stream', [Event::createWithType('order.placed', ['orderId' => 'order-1'])]);
 
-        self::assertCount(1, $eventStore->load($streamName));
+        self::assertCount(1, $eventStore->load('ecotone_event_stream'));
     }
 }

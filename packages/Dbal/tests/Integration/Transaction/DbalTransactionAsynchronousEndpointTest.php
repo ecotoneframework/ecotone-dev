@@ -18,7 +18,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
@@ -56,7 +56,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -111,7 +110,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -162,7 +160,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -189,7 +186,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -216,9 +212,9 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
     public function test_turning_on_transactions_for_polling_consumer_with_tenant_connection()
     {
         $connection = $this->getConnection();
-        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
-        (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
-        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+        (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true))->createTable($connection);
+        (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connection);
 
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
@@ -234,7 +230,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDefaultErrorChannel('nullChannel'),
                     \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -296,7 +291,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -338,9 +332,9 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
     {
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
             $connection = $connectionFactory->createContext()->getDbalConnection();
-            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
-            (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
-            (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+            (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true))->createTable($connection);
+            (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connection);
             $this->setupUserTable($connection);
         }
 
@@ -359,7 +353,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDefaultErrorChannel('nullChannel'),
                     \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -444,7 +437,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withoutTransactionOnAsynchronousEndpoints(['async'])
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -501,7 +493,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false),
                     DbalBackedMessageChannelBuilder::create('async'),
@@ -545,7 +536,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false),
                     DbalBackedMessageChannelBuilder::create('async'),

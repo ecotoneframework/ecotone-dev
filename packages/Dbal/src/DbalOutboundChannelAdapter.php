@@ -50,7 +50,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         try {
             parent::handle($message);
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained($failure, $this->tableManager, $this->connectionFactory);
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 
@@ -60,17 +60,10 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         $context = $this->connectionFactory->createContext();
         $connection = $context->getDbalConnection();
 
-        if ($this->tableManager->isInitialized($connection)) {
-            $context->createQueue($this->queueName);
-
-            return;
+        if (! $this->tableManager->isInitialized($connection)) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
         $context->createQueue($this->queueName);
     }
 

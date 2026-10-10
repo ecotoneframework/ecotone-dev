@@ -155,7 +155,7 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDocumentStore(),
+                    DbalConfiguration::createWithDefaults()->withDocumentStore(),
                     $boundaryConfiguration,
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
@@ -163,7 +163,7 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

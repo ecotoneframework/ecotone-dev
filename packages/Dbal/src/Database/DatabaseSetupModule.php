@@ -15,11 +15,13 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -77,6 +79,15 @@ class DatabaseSetupModule implements AnnotationModule
             new Reference(self::setupManagerReferenceName($defaultConnectionReference))
         );
 
+        $connectionFactories = [];
+        foreach (array_keys($tableManagerRefsByConnection) as $connectionReferenceName) {
+            $connectionFactories[$connectionReferenceName] = new Reference($connectionReferenceName, ContainerImplementation::NULL_ON_INVALID_REFERENCE);
+        }
+        $messagingConfiguration->registerServiceDefinition(
+            DbalDatabaseTablesSetUp::class,
+            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection])
+        );
+
         $messagingConfiguration->registerServiceDefinition(
             DatabaseSetupManagerRegistry::class,
             new Definition(DatabaseSetupManagerRegistry::class, [$managerReferencesByConnection])
@@ -117,7 +128,7 @@ class DatabaseSetupModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return [new DatabaseTablesSetUpReference(DbalDatabaseTablesSetUp::class)];
     }
 
     public function getModulePackageName(): string

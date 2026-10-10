@@ -200,7 +200,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -402,7 +402,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

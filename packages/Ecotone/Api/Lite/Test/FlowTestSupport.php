@@ -23,6 +23,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessagingException;
@@ -553,13 +554,9 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getServiceFromContainer($serviceName);
     }
 
-    public function initializeDatabase(): self
+    public function setupDatabaseTables(): self
     {
-        try {
-            $databaseSetupManager = $this->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager');
-            $databaseSetupManager->initializeAll();
-        } catch (InvalidArgumentException | \Ecotone\Messaging\Support\InvalidArgumentException) {
-        }
+        $this->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpEveryTable();
 
         return $this;
     }

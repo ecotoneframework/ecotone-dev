@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Support\Assert;
 
 /**
@@ -22,12 +21,13 @@ final class TestConfiguration
         private string $channelToConvertOn,
         private array $spiedChannelNames,
         private bool $inMemoryConsumerPositionTracker,
+        private bool $databaseTablesSetUpOnBootstrap,
     ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self(true, true, null, '', [], true);
+        return new self(true, true, null, '', [], true, true);
     }
 
     public function withFailOnCommandHandlerNotFound(bool $shouldFail): self
@@ -105,5 +105,18 @@ final class TestConfiguration
     public function isInMemoryConsumerPositionTrackerEnabled(): bool
     {
         return $this->inMemoryConsumerPositionTracker;
+    }
+
+    public function withDatabaseTablesSetUpOnBootstrap(bool $enabled): self
+    {
+        $self = clone $this;
+        $self->databaseTablesSetUpOnBootstrap = $enabled;
+
+        return $self;
+    }
+
+    public function isSettingUpDatabaseTablesOnBootstrap(): bool
+    {
+        return $this->databaseTablesSetUpOnBootstrap;
     }
 }

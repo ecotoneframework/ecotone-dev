@@ -222,7 +222,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
         bool $withDynamicConsistencyBoundary = true,
         bool $withSnapshots = false,
     ): FlowTestSupport {
-        $dbalConfiguration = DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true);
+        $dbalConfiguration = DbalConfiguration::createWithDefaults();
         $extensionObjects = [$withSnapshots ? $dbalConfiguration->withDocumentStore() : $dbalConfiguration];
 
         if ($withDynamicConsistencyBoundary) {
@@ -255,7 +255,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

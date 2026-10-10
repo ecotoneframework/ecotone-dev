@@ -16,6 +16,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -113,9 +114,10 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             runForProductionEventStore: true,
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

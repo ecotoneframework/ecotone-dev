@@ -315,7 +315,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }
@@ -602,7 +602,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }
@@ -622,7 +622,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

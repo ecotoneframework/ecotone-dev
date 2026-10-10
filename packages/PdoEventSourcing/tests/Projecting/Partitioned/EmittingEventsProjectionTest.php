@@ -149,7 +149,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone->deleteProjection('partitioned_emitting_linked_projection');
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
         $ecotone->initializeProjection('partitioned_emitting_linked_projection');
 
         $ecotone
@@ -189,8 +189,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true))->createTable($this->getConnection());
-        (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($this->getConnection());
+        (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($this->getConnection());
+        (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($this->getConnection());
 
         $ecotone
             ->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
@@ -202,10 +202,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         // Check that NO events were emitted to the notifications stream
         // because the projection has live=false
         $eventStore = $ecotone->getGateway(EventStore::class);
-        self::assertFalse(
-            $eventStore->hasStream('notifications_stream_non_live'),
-            'No events should have been emitted to the stream because partitioned projection is not live'
-        );
+        self::assertSame([], $eventStore->load('notifications_stream_non_live'));
     }
 
     private function createEmittingProjection(): object

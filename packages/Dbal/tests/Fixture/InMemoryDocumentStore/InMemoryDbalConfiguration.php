@@ -14,7 +14,6 @@ final class InMemoryDbalConfiguration
     public function configuration()
     {
         return DbalConfiguration::createWithDefaults()
-                    ->withAutomaticTableInitialization(true)
                     ->withDocumentStore(inMemoryDocumentStore: true);
     }
 }

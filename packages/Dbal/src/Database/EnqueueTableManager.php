@@ -14,15 +14,12 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class EnqueueTableManager implements DbalTableManager
 {
-    use AutomaticTableInitializationTrait;
-
     public const DEFAULT_TABLE_NAME = 'enqueue';
     public const FEATURE_NAME = 'message_queue';
 
     public function __construct(
         private string $tableName,
         private bool $isUsed,
-        private bool $shouldAutoInitialize,
         private ?string $consoleInvocationPrefix = null,
     ) {
     }
@@ -44,14 +41,12 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
+        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix]);
     }
 
-    public function getMissingTableInstructions(Connection $connection): string
+    public function getMissingTableInstructions(): string
     {
-        return AutomaticTableInitializationSupport::isSupported($connection)
-            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix)
-            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     public function createTable(Connection $connection): void

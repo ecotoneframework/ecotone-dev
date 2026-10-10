@@ -167,14 +167,14 @@ final class UniqueUsernamePerTenantDbalTest extends EventSourcingMessagingTestCa
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']),
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

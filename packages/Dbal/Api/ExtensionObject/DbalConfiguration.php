@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
-use Ecotone\Api\Dbal\AutoCreateLevel;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
@@ -31,7 +30,9 @@ class DbalConfiguration
     private array $defaultConnectionReferenceNames = [DbalConnectionReference::DEFAULT];
 
     private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
+    private bool $deduplicationInMemory = false;
     private bool $deadLetterEnabled = self::DEFAULT_DEAD_LETTER_ENABLED;
+    private bool $deadLetterInMemory = false;
 
     private ?string $deduplicationConnectionReference = null;
     private ?string $deadLetterConnectionReference = null;
@@ -44,7 +45,6 @@ class DbalConfiguration
     private ?array $doctrineORMClasses = null;
     private bool $enableDbalDocumentStore = true;
     private string $dbalDocumentStoreReference = DocumentStore::class;
-    private bool $initializeDbalDocumentStore = true;
     private string $documentStoreConnectionReference = DbalConnectionReference::DEFAULT;
     private bool $inMemoryDocumentStore = false;
     private ?array $documentStoreRelatedAggregates = null;
@@ -53,7 +53,6 @@ class DbalConfiguration
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
     private int $deduplicationRemovalBatchSize = 1000;
 
-    private AutoCreateLevel $autoCreateLevel = AutoCreateLevel::None;
 
     private function __construct()
     {
@@ -75,23 +74,21 @@ class DbalConfiguration
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
             ->withClearAndFlushObjectManagerOnProjectionBatch(false)
-            ->withDocumentStore(true, true)
-            ->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+            ->withDocumentStore(true, true);
     }
 
     /**
-     * Resolves the implicit default used by every module when no explicit `DbalConfiguration` extension
-     * object is registered at all. Identical to createWithDefaults(), except AutoCreateLevel is CreateOnly
-     * when an EcotoneLite test bootstrap (TestConfiguration) is present, so zero-config tests keep working
-     * without disabling transactions/deduplication/dead-letter the way createForTesting() does.
-     *
      * @param object[] $extensionObjects
      */
     public static function createDefaultFor(array $extensionObjects): self
     {
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof TestConfiguration) {
-                return self::createWithDefaults()->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+                $self = self::createWithDefaults();
+                $self->deduplicationInMemory = true;
+                $self->deadLetterInMemory = true;
+
+                return $self;
             }
         }
 
@@ -229,10 +226,11 @@ class DbalConfiguration
      * @param int $expirationTime time in milliseconds that has to pass in order to remove message
      * @param int $removalBatchSize batch size for removing messages (Ecotone does not remove all at once, to avoid database locks)
      */
-    public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000): self
+    public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000, bool $inMemory = false): self
     {
         $self = clone $this;
         $self->deduplicatedEnabled = $isDeduplicatedEnabled;
+        $self->deduplicationInMemory = $inMemory;
         $self->deduplicationConnectionReference = $connectionReference;
         $self->minimumTimeToRemoveMessageInMilliseconds = $expirationTime;
         $self->deduplicationRemovalBatchSize = $removalBatchSize;
@@ -240,10 +238,11 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT): self
+    public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT, bool $inMemory = false): self
     {
         $self = clone $this;
         $self->deadLetterEnabled = $isDeadLetterEnabled;
+        $self->deadLetterInMemory = $inMemory;
         $self->deadLetterConnectionReference = $connectionReference;
 
         return $self;
@@ -260,13 +259,12 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
         $self->inMemoryDocumentStore = $inMemoryDocumentStore;
         $self->dbalDocumentStoreReference = $reference;
-        $self->initializeDbalDocumentStore = $initializeDatabaseTable;
         $self->documentStoreConnectionReference = $connectionReference;
         $self->enableDocumentStoreStateStoredRepository = $enableDocumentStoreStateStoredRepository;
         $self->documentStoreRelatedAggregates = $documentStoreRelatedAggregates;
@@ -289,9 +287,19 @@ class DbalConfiguration
         return $this->deduplicationRemovalBatchSize;
     }
 
+    public function isDeduplicationInMemory(): bool
+    {
+        return $this->deduplicationInMemory;
+    }
+
     public function isDeadLetterEnabled(): bool
     {
         return $this->deadLetterEnabled;
+    }
+
+    public function isDeadLetterInMemory(): bool
+    {
+        return $this->deadLetterInMemory;
     }
 
     public function isTransactionOnAsynchronousEndpoints(): bool
@@ -344,11 +352,6 @@ class DbalConfiguration
         return $this->dbalDocumentStoreReference;
     }
 
-    public function isInitializeDbalDocumentStore(): bool
-    {
-        return $this->initializeDbalDocumentStore;
-    }
-
     public function getDocumentStoreConnectionReference(): string
     {
         return $this->documentStoreConnectionReference;
@@ -382,31 +385,5 @@ class DbalConfiguration
     public function getConsumerPositionTrackingConnectionReference(): string
     {
         return $this->consumerPositionTrackingConnectionReference;
-    }
-
-    /**
-     * @deprecated Use withAutoCreateLevel(AutoCreateLevel::CreateOnly / AutoCreateLevel::None) instead.
-     */
-    public function withAutomaticTableInitialization(bool $enabled): self
-    {
-        return $this->withAutoCreateLevel(AutoCreateLevel::fromBoolean($enabled));
-    }
-
-    public function isAutomaticTableInitializationEnabled(): bool
-    {
-        return $this->autoCreateLevel->isCreateOnly();
-    }
-
-    public function withAutoCreateLevel(AutoCreateLevel $autoCreateLevel): self
-    {
-        $self = clone $this;
-        $self->autoCreateLevel = $autoCreateLevel;
-
-        return $self;
-    }
-
-    public function getAutoCreateLevel(): AutoCreateLevel
-    {
-        return $this->autoCreateLevel;
     }
 }

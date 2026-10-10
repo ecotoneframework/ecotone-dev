@@ -42,6 +42,44 @@ class ConcurrencyException extends MessagingException
         ));
     }
 
+    public static function forRecordedAggregateVersion(string $streamName, string $aggregateType, string $aggregateId, string $aggregateVersion): self
+    {
+        return new self(sprintf(
+            'Aggregate %s %s already has version %s recorded in stream %s, so nothing from this append was recorded: '
+            . 'an aggregate type, id and version are recorded once per stream. '
+            . 'Another save of the same aggregate recorded that version first. Load the aggregate again and retry the command against its current version: '
+            . 'send the command again, or let Ecotone retry it with InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class]). '
+            . 'When appending through EventStore::appendTo() directly, give each event of the aggregate the next free MessageHeaders::EVENT_AGGREGATE_VERSION.',
+            $aggregateType,
+            $aggregateId,
+            $aggregateVersion,
+            $streamName,
+        ), self::errorCode());
+    }
+
+    public static function forRecordedEventId(string $streamName, string $eventId): self
+    {
+        return new self(sprintf(
+            'Event id %s is already recorded in stream %s, so nothing from this append was recorded: an event id is recorded once per stream. '
+            . 'Give each appended event its own MessageHeaders::MESSAGE_ID, or leave it out and an id is generated for it.',
+            $eventId,
+            $streamName,
+        ), self::errorCode());
+    }
+
+    public static function forHandledMessage(string $messageId, string $consumerEndpointId, string $routingSlip): self
+    {
+        return new self(sprintf(
+            'Message %s was already recorded as handled (consumer endpoint "%s", routing slip "%s"): another handling of the same message recorded it first, '
+            . 'so this handling is refused instead of recording it twice. Deduplication lets the first one through; when this one is retried it is skipped as already handled, '
+            . 'so nothing needs changing unless the same message id is reused for different messages - then give each message its own MessageHeaders::MESSAGE_ID, '
+            . 'or name what identifies it with #[Deduplicated(expression: ...)].',
+            $messageId,
+            $consumerEndpointId,
+            $routingSlip,
+        ), self::errorCode());
+    }
+
     private static function whereItIsNow(int $expectedVersion, int $currentVersion): string
     {
         return $currentVersion === $expectedVersion

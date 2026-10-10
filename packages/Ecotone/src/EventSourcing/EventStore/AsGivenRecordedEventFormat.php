@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\EventStore;
 
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\Type;
 
 use function is_array;
 
@@ -13,6 +16,11 @@ use function is_array;
  */
 final class AsGivenRecordedEventFormat implements RecordedEventFormat
 {
+    public function __construct(
+        private ConversionService $conversionService,
+    ) {
+    }
+
     public function recordedFrom(object|array $event): Event
     {
         if ($event instanceof Event) {
@@ -24,5 +32,19 @@ final class AsGivenRecordedEventFormat implements RecordedEventFormat
         }
 
         return Event::create($event);
+    }
+
+    public function recordedDataOf(Event $recordedEvent): Event
+    {
+        $payload = $recordedEvent->getPayload();
+        if (is_array($payload)) {
+            return $recordedEvent;
+        }
+
+        return Event::createWithType(
+            $recordedEvent->getEventName(),
+            $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP()),
+            $recordedEvent->getMetadata(),
+        );
     }
 }

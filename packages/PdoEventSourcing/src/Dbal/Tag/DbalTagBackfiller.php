@@ -45,12 +45,11 @@ final class DbalTagBackfiller
         TagBackfillReport $report,
     ): void {
         if (! $schema->tableExists($connection, $tableName)) {
-            throw $eventStore->missingStreamTableException($connection, $tableName);
+            throw $eventStore->missingStreamTableException($tableName);
         }
 
         if (! $dryRun) {
             TagTransactionRequirement::assertActiveForTagBackfill($connection);
-            $this->tables->ensureExist($eventStore, $connection, $streamName);
         }
 
         $position = $fromNo ?? 1;
@@ -59,7 +58,7 @@ final class DbalTagBackfiller
             $batch = $this->deserialize($eventStore, $rows, $streamName, $skipUndeserializable);
 
             $report->recordScanned($batch);
-            $this->tables->raisingMissingTablesInstruction($eventStore, $connection, fn () => $this->indexBatch($connection, $tableName, $batch, $dryRun, $report));
+            $this->tables->raisingMissingTablesInstruction($eventStore, fn () => $this->indexBatch($connection, $tableName, $batch, $dryRun, $report));
 
             $position = $report->lastNo() + 1;
         } while ($rows !== [] && count($rows) === $batchSize);

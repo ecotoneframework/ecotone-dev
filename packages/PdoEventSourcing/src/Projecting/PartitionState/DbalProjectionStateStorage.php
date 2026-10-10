@@ -83,7 +83,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
     {
-        $this->createSchema();
+        $this->assertTableExists();
 
         $tableName = $this->getTableName();
         $query = <<<SQL
@@ -110,7 +110,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
     {
-        $this->createSchema();
+        $this->assertTableExists();
 
         $connection = $this->getConnection();
         $tableName = $this->getTableName();
@@ -151,7 +151,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
-        $this->createSchema();
+        $this->assertTableExists();
 
         $connection = $this->getConnection();
         $tableName = $this->getTableName();
@@ -183,12 +183,12 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function init(string $projectionName): void
     {
-        $this->createSchema();
+        $this->assertTableExists();
     }
 
     public function delete(string $projectionName): void
     {
-        $this->createSchema();
+        $this->assertTableExists();
 
         $tableName = $this->getTableName();
         $this->getConnection()->executeStatement(<<<SQL
@@ -198,31 +198,22 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         ]);
     }
 
-    public function createSchema(): void
+    private function assertTableExists(): void
     {
         if ($this->isInitialized()) {
             return;
         }
 
-        $connection = $this->getConnection();
-
-        if ($this->tableManager->isInitialized($connection)) {
-            $this->markInitialized();
-
-            return;
+        if (! $this->tableManager->isInitialized($this->getConnection())) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
         }
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
-        }
-
-        $this->tableManager->createTable($connection);
         $this->markInitialized();
     }
 
     public function beginTransaction(): Transaction
     {
-        $this->createSchema();
+        $this->assertTableExists();
 
         $connection = $this->getConnection();
         if ($connection->isTransactionActive()) {

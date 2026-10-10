@@ -70,19 +70,27 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
-        // Register the DeduplicationTableManager service
         $messagingConfiguration->registerServiceDefinition(
             DeduplicationTableManager::class,
             new Definition(DeduplicationTableManager::class, [
-                DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
-                $isDeduplicatedEnabled || $hasDeduplicatedHandlers,
-                $shouldAutoInitialize,
+                DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE,
+                ($isDeduplicatedEnabled || $hasDeduplicatedHandlers) && ! $dbalConfiguration->isDeduplicationInMemory(),
                 $consoleInvocationPrefix,
                 $connectionFactory,
             ])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            HandledMessages::class,
+            $dbalConfiguration->isDeduplicationInMemory()
+                ? new Definition(InMemoryHandledMessages::class)
+                : new Definition(DbalHandledMessages::class, [
+                    new Reference($connectionFactory),
+                    $dbalConfiguration->deduplicationRemovalBatchSize(),
+                    new Reference(DeduplicationTableManager::class),
+                ])
         );
 
         $messagingConfiguration->registerServiceDefinition(
@@ -90,12 +98,10 @@ class DeduplicationModule implements AnnotationModule
             new Definition(
                 DeduplicationInterceptor::class,
                 [
-                    new Reference($connectionFactory),
+                    new Reference(HandledMessages::class),
                     new Reference(EcotoneClockInterface::class),
                     $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication(),
-                    $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
-                    new Reference(DeduplicationTableManager::class),
                 ]
             )
         );

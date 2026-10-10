@@ -246,8 +246,8 @@ subsection below.
 - **Tables are declared, not discovered.** Every stream table — including one declared with a non-default
   `connectionReferenceName` — is registered with `ecotone:migration:database:setup` under the `event_stream` feature,
   grouped by the connection it lives on; see §8 for the `--connection` option and how the missing-table error names the
-  right connection and command. In tests and dev (`DbalConfiguration` automatic table initialization) a missing table
-  is still created on first write, on whichever connection the stream is declared for.
+  right connection and command. Nothing creates a missing stream table on first write any more, on any engine (§8);
+  an `EcotoneLite` flow test's bootstrap sets the tables up on whichever connection each stream is declared for.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
 - **`EventStore` gains two methods and a parameter; `TaggedEventStore` and `AggregateEventStore` are gone.**
@@ -310,13 +310,14 @@ subsection below.
 - **`EventStore::create()` is removed.** **Before:** `create(string $streamName, array $streamEvents = [], array $streamMetadata = [])`
   opened a stream, created its table if it was missing, and appended any events given. **Now:** the method is gone from
   the interface and from every implementation. Stream tables are created by `ecotone:migration:database:setup`
-  (or automatic table initialization in tests and dev, §8), not on the message path, so there was nothing left for
+  (or the flow-test bootstrap, §8), not on the message path, so there was nothing left for
   `create()` to do that `appendTo()` does not: `appendTo()` opens the stream it writes to. The `streamMetadata`
   argument went with it — nothing read stream-level metadata back. **How to adapt:** delete a bare
   `$eventStore->create($streamName)` outright, and replace `create($streamName, $events)` with
   `appendTo($streamName, $events)`. If you relied on `create()` to make the table, run
-  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8). An *empty* stream can
-  no longer be brought into existence — `hasStream()` is false until the first event is appended.
+  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8). An *empty* stream
+  comes from setup alone: `hasStream()` answers whether the stream's table exists, so a declared stream the setup
+  created exists, empty, before its first event, and a stream nothing declares never exists (§8).
 - **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
   additive. **`ecotone:event-store:backfill-tags` on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** The
   backfill's counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an
@@ -1159,81 +1160,90 @@ resulting commit failure. Deduplication additionally special-cased PostgreSQL, b
 row before running the handler without risking that insert being committed early by a table-creation statement later
 in the same transaction.
 
-**Now:** what Ecotone does with a missing table while handling a message depends on the engine and the
-`AutoCreateLevel` below:
+**Now: Ecotone never creates a table while it handles a message, on any engine.** A table is created in exactly two
+places:
 
-- **On MySQL and MariaDB, Ecotone never creates a table while a message is in flight**, whatever level is configured.
-- **Under `AutoCreateLevel::None`, the default, it never creates one on any engine.** Tables come from the CLI, the
-  `DatabaseSetupManager` gateway, or your own migration tool.
-- **Under `AutoCreateLevel::CreateOnly` on PostgreSQL or SQLite, a missing table is created on first use** — inside
-  the message's transaction, which is safe there because DDL on those engines is transactional.
+- **`ecotone:migration:database:setup --initialize`** — or its programmatic twin
+  (`DatabaseSetupManager` / `DatabaseSetupManagerRegistry`), or `--sql` fed to your own migration tool;
+- **the test setup action, `$ecotone->setupDatabaseTables()`**, in an `EcotoneLite` flow test. The flow-test bootstrap
+  (`bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()`) calls it itself, for every connection the test
+  registers, so a flow test does not create tables by hand.
+
+Everywhere else — storing a dead letter, deduplicating a message, writing a document, appending events, reading the
+tag index, a projection's state, sending to or receiving from a DBAL message channel (§8b) — a missing table raises a
+`ConfigurationException` naming the feature, the table, and the exact command (or, without a console, the code) to
+run for the integration your application is running under. The message is the same on PostgreSQL, MySQL, MariaDB and
+SQLite: whether a table appeared mid-message no longer depends on the database underneath.
 
 `ImplicitCommit` is gone, `DbalTransactionInterceptor` raises a hard error again if a commit genuinely fails, and one
 transaction wraps the whole message on every driver — including MySQL and MariaDB. Deduplication's concurrency
-guarantee (a handler running twice for the same message collides on the primary key instead of running twice) now
-works on every driver, not just PostgreSQL. Deduplication cleanup runs on its own endpoint, outside your handler's
+guarantee (a handler running twice for the same message collides on the primary key instead of running twice) works
+on every driver, not just PostgreSQL. Deduplication cleanup runs on its own endpoint, outside your handler's
 transaction, so it no longer holds row locks while your handler runs.
 
-Behaviour is controlled by `AutoCreateLevel`:
+The removed configuration, one by one:
 
-- `AutoCreateLevel::None` — the new default, everywhere except test bootstraps. Ecotone never creates a table; a missing
-  table raises a `ConfigurationException` naming the feature, the table, and the exact command (or, without a
-  console, the code) to run for the integration your application is running under.
-- `AutoCreateLevel::CreateOnly` — create missing tables, never alter or drop an existing one. This is what 1.x always
-  did, under a new name. `EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` use it by
-  default, so in-memory and SQLite tests are unaffected.
+- **`AutoCreateLevel` is removed**, with `DbalConfiguration::withAutoCreateLevel()` and `getAutoCreateLevel()`.
+  **Before:** `AutoCreateLevel::CreateOnly` let PostgreSQL and SQLite create a missing table on first use, inside the
+  message's transaction; MySQL and MariaDB refused whatever level was set, and `None` was the default outside test
+  bootstraps. **Now:** there is no level — runtime creation is gone on every engine, so there is nothing left to
+  choose. **How to adapt:** delete `->withAutoCreateLevel(...)` and the `use Ecotone\Api\Dbal\AutoCreateLevel;` line, and
+  run `ecotone:migration:database:setup --initialize` in your deploy (see below). In a flow test nothing replaces
+  it: the bootstrap sets the tables up.
+- **`DbalConfiguration::withAutomaticTableInitialization()` is removed**, with
+  `isAutomaticTableInitializationEnabled()`. **Before:** a deprecated alias — `true` meant `AutoCreateLevel::CreateOnly`,
+  `false` meant `None`. **Now:** gone with the level it aliased. **How to adapt:** delete the call. A test that passed
+  `false` to watch a missing table be refused passes
+  `testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)` to
+  `bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` instead, and calls `$ecotone->setupDatabaseTables()`
+  when it wants the tables.
+- **`EventSourcingConfiguration::withInitializeEventStoreOnStart()` is removed**, with `isInitializedOnStart()` and the
+  `INITIALIZE_ON_STARTUP` constant. **Before:** already deprecated in favour of `withAutomaticTableInitialization()`, and
+  only ever AND-ed with it to decide whether the event store created its stream table on first append. **Now:** gone
+  with what it modified. **How to adapt:** delete the call; stream tables come from the setup command like every
+  other table.
+- **`DbalConfiguration::withDocumentStore()` loses its `initializeDatabaseTable` parameter**, and
+  `isInitializeDbalDocumentStore()` is removed. **Before:** `false` stopped the document store creating its table on
+  first use even with auto-create on. **Now:** it never creates it. **How to adapt:** drop the argument; it was the
+  fourth positional one, so a positional call passing `enableDocumentStoreStateStoredRepository` and later arguments
+  moves them one place left — or switch to named arguments.
+- **`FlowTestSupport::initializeDatabase()` is renamed `setupDatabaseTables()`**, and it no longer swallows failures.
+  **Before:** it caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup
+  that failed half-way, carried on and failed later on a confusing missing-table error. **Now:** it creates every
+  table the test uses, on every connection that holds one, and refuses with what to do instead: with no module that
+  keeps tables, it says to enable `ModulePackageList::DBAL_PACKAGE` or remove the call; with a used feature on a
+  connection the test does not register, it names the feature and the connection reference to register, or the
+  in-memory option for that feature. **How to adapt:** rename the call. Most calls can go: the bootstrap now makes it.
 
-On MySQL and MariaDB, `AutoCreateLevel::CreateOnly` (`withAutomaticTableInitialization(true)`) is not supported: a
-`CREATE TABLE` there implicitly commits the surrounding transaction, and Ecotone will not split your message
-transaction to work around it. A missing table raises the same `ConfigurationException` as `AutoCreateLevel::None`
-regardless of the level configured, naming the feature, the table, and the exact `ecotone:migration:database:setup`
-command to run instead. PostgreSQL and SQLite are unaffected and auto-create exactly as configured.
+**How to adapt an application:**
 
-Dropping a table is DDL too, and one runs when your code asks for it: `EventStore::delete()` drops the stream's table.
-On MySQL and MariaDB, calling it while a database transaction is open — from a command handler, an asynchronous
-handler or a `#[ConsoleCommand]`, each of which runs inside one by default, or from a `#[ProjectionReset]` handler,
-which always runs inside the projection's own transaction — now raises a `ConfigurationException` before anything is
-dropped. Before, the `DROP TABLE` committed everything the message had written, and the message then failed at commit
-with "There is no active transaction". Outside a transaction `delete()` works on every engine as before, and on
-PostgreSQL and SQLite it also works inside one, because DDL is transactional there.
+- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
+  for a subset). It is the only way tables get created outside tests, on every engine — or use `--sql` to feed your own
+  migration tool.
+  — Symfony: `bin/console ecotone:migration:database:setup --initialize`
+  — Laravel: `php artisan ecotone:migration:database:setup --initialize`
+  — Tempest: `./tempest ecotone:migration:database:setup --initialize`
+  — EcotoneLite / standalone: `$messagingSystem->getServiceFromContainer(DatabaseSetupManager::class)->initializeAll();`
+- Add `--missing` to list only the tables that do not exist yet, instead of every used feature. Combine it with
+  `--sql` (`ecotone:migration:database:setup --missing --sql`) to get `CREATE TABLE` statements for only what's
+  missing — the shape you want when pasting into an existing migration, rather than dumping SQL for tables you
+  already created.
+- Run the setup again after deleting an event stream: `EventStore::delete()` drops the stream's table, and nothing
+  recreates it on the next append any more. A stream no `#[Stream]` (and no aggregate) declares has no table the setup
+  creates, so appending to it is refused — declare it.
+- In an `EcotoneLite` flow test, nothing: the bootstrap sets up the tables of every connection the test registers.
+  A test that must see a table missing opts out with
+  `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)`; a Symfony, Laravel or Tempest
+  kernel test, which does not go through the `EcotoneLite` bootstrap, runs the setup command in its own set-up.
 
-**How to adapt:**
-
-```php
-// 1.x — nothing to configure; tables appeared on first use.
-
-// 2.0 — None is the default everywhere outside test bootstraps. Opt back into auto-create where you want it:
-use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Attribute\ServiceContext;
-
-final class EcotoneConfiguration
-{
-    #[ServiceContext]
-    public function databaseSetup(): DbalConfiguration
-    {
-        return DbalConfiguration::createWithDefaults()
-            ->withAutomaticTableInitialization(true); // AutoCreateLevel::CreateOnly
-    }
-}
-```
-
-Every failure caused by a missing table carries that message, whatever triggered it — storing a dead letter,
-deduplicating a message, writing a document, appending events, reading the tag index, or a Dbal message channel built
-with `withAutoDeclare(false)`, which in 1.x surfaced Doctrine's `TableNotFoundException` on receive and Interop's
-"The transport fails to send the message due to some internal error" on send.
-
-Reading an event stream is not one of those paths any more. `EventStore::load()` and
+Reading an event stream is not one of the paths that answer "nothing there". `EventStore::load()` and
 `EventStore::loadAggregateEvents()` used to probe `information_schema` on every call and answer "no events" when the
-stream table was absent, which turned a missing `ecotone:migration:database:setup` into an
-`AggregateNotFoundException` for an aggregate whose events were never readable in the first place. **They now raise
-the same `ConfigurationException` as every other missing table**, naming the `event_stream` feature, the table and
-the exact command to run, and the probe they paid for on every aggregate load is gone. Projections reading a stream
-table that does not exist raise it too, instead of reporting themselves up to date against a stream nobody created.
-Event-sourced aggregate command handlers, `#[Fetch]`, `Repository::getFor()` and partitioned and global projections
-all surface it. Tests that used an absent stream table to mean "this aggregate has no history" must create the
-tables — `$ecotone->initializeDatabase()` in an `EcotoneLite` test, or
-`$messagingSystem->getServiceFromContainer(DatabaseSetupManager::class)->initializeAll()` — and then start from an
-empty stream instead. `EventStore::hasStream()` is unchanged: it answers whether the stream exists, so it still
+stream table was absent, which turned a missing `ecotone:migration:database:setup` into an `AggregateNotFoundException`
+for an aggregate whose events were never readable in the first place. **They raise the same `ConfigurationException`
+as every other missing table**, and the probe they paid for on every aggregate load is gone. Projections reading a
+stream table that does not exist raise it too, instead of reporting themselves up to date against a stream nobody
+created. Event-sourced aggregate command handlers, `#[Fetch]`, `Repository::getFor()` and partitioned and global
+projections all surface it. `EventStore::hasStream()` is unchanged: it answers whether the stream exists, so it still
 returns `false` rather than raising.
 
 The read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
@@ -1241,32 +1251,18 @@ quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDoc
 `countDocuments()`. If you need to tell "not set up" from "nothing to show" in those places, run
 `ecotone:migration:database:setup --missing` — it lists exactly the tables that are absent.
 
-- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
-  for a subset). On MySQL/MariaDB this is not optional — auto-create never runs there, so the setup command (or
-  `--sql` for your own migration tool) is the only way to get the tables in place before your application runs.
-  - Symfony: `bin/console ecotone:migration:database:setup --initialize`
-  - Laravel: `php artisan ecotone:migration:database:setup --initialize`
-  - Tempest: `./tempest ecotone:migration:database:setup --initialize`
-  - EcotoneLite / standalone: `$messagingSystem->getServiceFromContainer(DatabaseSetupManager::class)->initializeAll();`
-- Add `--missing` to list only the tables that do not exist yet, instead of every used feature. Combine it with
-  `--sql` (`ecotone:migration:database:setup --missing --sql`) to get `CREATE TABLE` statements for only what's
-  missing — the shape you want when pasting into an existing migration, rather than dumping SQL for tables you
-  already created.
-- Or generate SQL for your own migration tool: `ecotone:migration:database:setup --sql`, optionally with
-  `--feature=` or `--missing`, and paste the output into a Doctrine Migrations / Laravel migration.
-- For integration tests against a real database, call
-  `$ecotone->getGateway(DatabaseSetupManager::class)->initializeAll();` once in `setUp()`. `EcotoneLite` in-memory and
-  SQLite bootstraps do not need this.
+Dropping a table is DDL too, and one runs when your code asks for it: `EventStore::delete()` drops the stream's table.
+On MySQL and MariaDB, calling it while a database transaction is open — from a command handler, an asynchronous
+handler or a `#[ConsoleCommand]`, each of which runs inside one by default, or from a `#[ProjectionReset]` handler,
+which always runs inside the projection's own transaction — raises a `ConfigurationException` before anything is
+dropped. Before, the `DROP TABLE` committed everything the message had written, and the message then failed at commit
+with "There is no active transaction". Outside a transaction `delete()` works on every engine, and on PostgreSQL and
+SQLite it also works inside one, because DDL is transactional there.
+
 - Deduplication cleanup: run the endpoint with `ecotone:run ecotone.deduplication.cleanup` on a schedule (a
   Kubernetes CronJob, Supervisor timer, or your own scheduler), or keep using
   `ecotone:deduplication:remove-expired-messages` if you already trigger it from your own cron. Both call the same
   code; neither runs inside your handler's transaction any more.
-- `DbalConfiguration::withAutomaticTableInitialization(bool)` still works: `true` maps to `AutoCreateLevel::CreateOnly`,
-  `false` to `AutoCreateLevel::None`.
-- `EventSourcingConfiguration::withInitializeEventStoreOnStart(bool)` is deprecated in favour of
-  `DbalConfiguration::withAutomaticTableInitialization()` / `AutoCreateLevel`. It still works unchanged (it is
-  combined with the `DbalConfiguration` setting for the event store's own tables), but new code should configure
-  auto-create through `DbalConfiguration` only.
 - Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
   MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
 - On MySQL/MariaDB, delete an event stream outside any database transaction: mark the handler or `#[ConsoleCommand]`
@@ -1275,7 +1271,8 @@ quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDoc
   or `withTransactionOnConsoleCommands(false)`. A projection that deletes the stream it emits to does it in
   `#[ProjectionDelete]`, not `#[ProjectionReset]`, and is deleted before it is rebuilt — through
   `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since that console command runs inside a
-  transaction by default.
+  transaction by default — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
+  before the rebuild emits into it again.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
   from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler
@@ -1304,7 +1301,8 @@ table was invisible to the command: absent from the status table, `--sql`, and `
 
 **Now:** Ecotone builds one `DatabaseSetupManager` per connection it can see declared in your configuration — the
 default connection(s), plus the connection named by every feature that accepts a `connectionReferenceName`
-(`#[Stream]`, `DbalConfiguration::withDeduplication()`, `withDeadLetter()`, `withDocumentStore()`) — and a
+(`#[Stream]`, `DbalConfiguration::withDeduplication()`, `withDeadLetter()`, `withDocumentStore()`, and each
+`CustomDeadLetterGateway`'s connection) — and a
 `DatabaseSetupManagerRegistry` that holds all of them. `DatabaseSetupManager::class` still resolves to the default
 connection's manager for backward compatibility.
 
@@ -1337,6 +1335,22 @@ connection's manager for backward compatibility.
   today that is deduplication, dead letter and the document store, alongside event streams — is now covered the same
   way. `message_queue` (DBAL-backed channels/publishers) and `projection_state` are still tied to the default
   connection; they do not yet accept a per-feature `connectionReferenceName`.
+
+### 8b. DBAL message channels no longer create the `enqueue` table
+
+**Before:** a DBAL-backed message channel (`DbalBackedMessageChannelBuilder`) or a DBAL message publisher created the
+`enqueue` table on its first send or receive, when it found it missing (on PostgreSQL and SQLite under the test
+bootstraps' `AutoCreateLevel::CreateOnly`; in 1.x, everywhere). **Now:** it never does. A channel that finds the table
+missing — on its first send, its first receive, or its declare-on-startup check — raises the missing-table
+`ConfigurationException` naming the `message_queue` feature, the `enqueue` table and the command to run, on every
+engine. This is the change most likely to break an upgrade: an application whose queue table used to appear by itself
+now needs the setup command before its first message.
+
+**How to adapt:** run `ecotone:migration:database:setup --initialize` (or `--feature=message_queue` for this table
+alone, or `--sql` for your migration tool) in your deploy before the application sends or consumes its first DBAL
+message — the same step §8 asks for every other table. `DbalBackedMessageChannelBuilder::withAutoDeclare()` keeps its
+name and still checks for the table before the channel's first send or receive, but checking is all it does now. An `EcotoneLite` flow
+test needs nothing: its bootstrap sets the table up.
 
 ## 9. Changed defaults
 
@@ -1678,8 +1692,8 @@ use Ecotone\Messaging\Scheduling\SleepInterface;                 // internal
 ```
 
 **Now:** each sits beside the public type that takes or returns it — the matcher and its enums with `EventStore`,
-the clock's types with `TimeSpan`, `Future` and `ErrorContext` with `MessageHeaders`, `FetchMode` with
-`AutoCreateLevel` — and `LoggingLevel` gets a `Logging` area of its own:
+the clock's types with `TimeSpan`, `Future` and `ErrorContext` with `MessageHeaders`, `FetchMode` in
+`Ecotone\Api\Dbal` — and `LoggingLevel` gets a `Logging` area of its own:
 
 ```php
 use Ecotone\Api\Dbal\FetchMode;
@@ -1983,6 +1997,17 @@ extends it. Only the framework calls what they add — `compile()`, `getConversi
 
 ## 14. Smaller behaviour changes
 
+- **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
+  events while in-memory refused; both now throw `InvalidArgumentException` saying a count caps how many events are
+  loaded and to pass `null` for all of them. **How to adapt:** pass `null`, or skip the call, where you passed `0`.
+- **A document given as a string must be JSON on every engine and every write.** SQLite stored a non-JSON string,
+  and the in-memory store refused one on `addDocument()` but stored it on `updateDocument()` / `upsertDocument()`;
+  every store now refuses it with a `DocumentException` naming the document and the JSON error. The in-memory
+  document store also keeps a copy: changing an object after storing it, or one it returned, no longer changes what
+  is stored, as on DBAL.
+- **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
+  DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
+  twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.
@@ -2282,6 +2307,21 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
 rename test-support methods without aliases; the renamed methods are listed in each entry.
 
+- **Dead letter and deduplication run in memory in a flow test that registers no `DbalConfiguration`.**
+  **Before:** both existed only on DBAL, so a flow test using either needed a database connection and its tables.
+  **Now:** each has an in-memory implementation beside the DBAL one, selected on the feature's own
+  `DbalConfiguration` method — `withDeadLetter(true, inMemory: true)`, `withDeduplication(inMemory: true)` — and a
+  flow test (`EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()`) with no
+  `DbalConfiguration` registered gets both in memory. An explicit `DbalConfiguration` keeps DBAL, as does every
+  application outside a flow test. Each `DeadLetterGateway` and `CustomDeadLetterGateway` gets its own in-memory store,
+  and a custom gateway's `store()` now writes to its own dead letter — on DBAL, its own connection — instead of the
+  default gateway's. **How to adapt:** a flow test that asserts on the dead-letter or deduplication *table* rather
+  than through `DeadLetterGateway` and its handlers registers `DbalConfiguration::createWithDefaults()` explicitly.
+  `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
+- **`DeadLetterGateway::list()` has a stated order.** Most recently failed first, by the failed message's timestamp;
+  messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
+  messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
+  and skip another. **How to adapt:** nothing.
 - **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
   and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
   accepted: the failed message is sent back to its channel without a delivery delay, so a single

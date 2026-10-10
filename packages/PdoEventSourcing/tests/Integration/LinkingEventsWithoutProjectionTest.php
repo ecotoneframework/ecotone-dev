@@ -61,7 +61,7 @@ final class LinkingEventsWithoutProjectionTest extends EventSourcingMessagingTes
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

@@ -75,7 +75,6 @@ final class WithTenantResolverLicensingTest extends TestCase
                         DbalConnectionFactory::class,
                     ),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)

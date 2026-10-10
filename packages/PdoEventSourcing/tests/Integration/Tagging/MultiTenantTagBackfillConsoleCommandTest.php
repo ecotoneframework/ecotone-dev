@@ -198,7 +198,6 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true)
                         ->withDeduplication(false),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),

@@ -226,8 +226,8 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
     {
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
             $connection = $connectionFactory->createContext()->getDbalConnection();
-            (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true))->createTable($connection);
-            (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+            (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($connection);
+            (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
         }
     }
 }

@@ -35,8 +35,8 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
 {
     private const KNOWN_DIVERGENCES = [
         'R1' => [
-            'sides' => 'a save refused for a stale version — the in-memory repository and the in-memory document store hand the handler the stored instance (DocumentStoreConformanceTest D3), so the change the handler made stays in it; the DBAL document store hands it a copy read from the table, so the stored aggregate is unchanged',
-            'cases' => ['test_a_refused_save_leaves_the_stored_aggregate_as_it_was' => ['in-memory', 'document-store-in-memory']],
+            'sides' => 'a save refused for a stale version — the in-memory repository hands the handler the stored instance, so the change the handler made stays in it; both document stores hand it a copy, so the stored aggregate is unchanged',
+            'cases' => ['test_a_refused_save_leaves_the_stored_aggregate_as_it_was' => ['in-memory']],
         ],
     ];
 

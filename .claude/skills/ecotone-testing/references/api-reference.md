@@ -140,4 +140,4 @@ calling `->run($endpointId)` again; a synchronous or async-channel projection ha
 | `getServiceFromContainer(string $serviceId)` | `object` | Get service from container. Not for reaching Ecotone's own internals in a test -- use `getGateway()`; see `docs/coding-conventions.md` rule 10 |
 | `getCommandBus()` / `getEventBus()` / `getQueryBus()` | `CommandBus` / `EventBus` / `QueryBus` | Get the bus gateway directly |
 | `runConsoleCommand(string $name, array $parameters = [])` | `mixed` | Run a registered console command |
-| `initializeDatabase()` | `self` | Create every registered feature's DB tables -- tables are no longer created on the fly (see `docs/coding-conventions.md` rule 16) |
+| `setupDatabaseTables()` | `self` | Create every table the test uses, on every connection that holds one -- the flow-test bootstrap already calls it unless `TestConfiguration::withDatabaseTablesSetUpOnBootstrap(false)`; nothing creates a table while a message is handled (see `docs/coding-conventions.md` rule 16) |

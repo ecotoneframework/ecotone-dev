@@ -35,11 +35,11 @@ final class SqliteEventStreamSchema implements EventStreamSchema
                 SQL,
             <<<SQL
                 CREATE UNIQUE INDEX IF NOT EXISTS ix_{$indexPrefix}_unique_event ON {$quoted}
-                (json_extract(metadata, '$._aggregate_type'), json_extract(metadata, '$._aggregate_id'), json_extract(metadata, '$._aggregate_version'))
+                (CAST(json_extract(metadata, '$._aggregate_type') AS TEXT), CAST(json_extract(metadata, '$._aggregate_id') AS TEXT), CAST(json_extract(metadata, '$._aggregate_version') AS TEXT))
                 SQL,
             <<<SQL
                 CREATE INDEX IF NOT EXISTS ix_{$indexPrefix}_aggregate ON {$quoted}
-                (json_extract(metadata, '$._aggregate_type'), json_extract(metadata, '$._aggregate_id'), no)
+                (CAST(json_extract(metadata, '$._aggregate_type') AS TEXT), CAST(json_extract(metadata, '$._aggregate_id') AS TEXT), no)
                 SQL,
         ];
     }
@@ -64,7 +64,11 @@ final class SqliteEventStreamSchema implements EventStreamSchema
 
     public function metadataFieldExpression(string $field, bool $comparedWithInteger): string
     {
-        return "json_extract(metadata, '$.{$field}')";
+        if ($comparedWithInteger) {
+            return "json_extract(metadata, '$.{$field}')";
+        }
+
+        return "CAST(json_extract(metadata, '$.{$field}') AS TEXT)";
     }
 
     public function operatorSql(Operator $operator): string

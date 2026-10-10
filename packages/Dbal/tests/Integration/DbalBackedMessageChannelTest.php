@@ -8,6 +8,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -72,7 +73,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($this->getConnection());
+        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($this->getConnection());
 
         $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -363,7 +364,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
                         ->withAutoDeclare(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
         return $ecotoneLite->getMessageChannel($queueName);
@@ -386,7 +388,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 )
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('async'),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
         $wasFinallyRethrown = false;

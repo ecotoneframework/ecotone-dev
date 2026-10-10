@@ -28,17 +28,6 @@ use Throwable;
 final class DocumentStoreConformanceTest extends DbalMessagingTestCase
 {
     private const KNOWN_DIVERGENCES = [
-        'D1' => [
-            'sides' => 'a document string that is not JSON — PostgreSQL, MySQL and MariaDB refuse it on add and on update, in-memory refuses it on add only, SQLite accepts it on both',
-            'cases' => [
-                'test_adding_a_string_that_is_not_json_is_refused' => ['dbal:sqlite'],
-                'test_updating_with_a_string_that_is_not_json_is_refused' => ['in-memory', 'dbal:sqlite'],
-            ],
-        ],
-        'D3' => [
-            'sides' => 'an object changed after addDocument() — in-memory holds the stored object by reference so the stored document changes too, DBAL stored a copy',
-            'cases' => ['test_changing_an_object_after_storing_it_does_not_change_the_stored_document' => ['in-memory']],
-        ],
         'D4' => [
             'sides' => 'document ids differing only in case — the table takes the database default collation, case- and accent-insensitive on MySQL (utf8mb4_0900_ai_ci) and MariaDB (utf8mb4_uca1400_ai_ci), so the second id collides with the first; in-memory, PostgreSQL and SQLite keep two documents. Kept as a documented engine limitation (upgrade-2.0.md): a binary collation is an ALTER the application opts into, not one Ecotone runs',
             'cases' => ['test_document_ids_differing_only_in_case_are_distinct_documents' => ['dbal:mysql', 'dbal:mariadb']],
@@ -149,7 +138,9 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             try {
                 $documentStore->addDocument('orders', 'o-1', 'not a json');
                 self::fail('Expected a string that is not JSON to be refused');
-            } catch (DocumentException) {
+            } catch (DocumentException $exception) {
+                self::assertStringContainsString('Document o-1 cannot be stored in collection orders: it was given as a string that is not JSON', $exception->getMessage());
+                self::assertStringContainsString('Pass the array or object instead', $exception->getMessage());
             }
 
             self::assertNull($documentStore->findDocument('orders', 'o-1'));
@@ -165,6 +156,13 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
             try {
                 $documentStore->updateDocument('orders', 'o-1', 'not a json', expectedVersion: 1);
                 self::fail('Expected a string that is not JSON to be refused');
+            } catch (DocumentException $exception) {
+                self::assertStringContainsString('Document o-1 cannot be stored in collection orders: it was given as a string that is not JSON', $exception->getMessage());
+            }
+
+            try {
+                $documentStore->upsertDocument('orders', 'o-1', 'not a json', expectedVersion: 1);
+                self::fail('Expected a string that is not JSON to be refused on upsert');
             } catch (DocumentException) {
             }
 
@@ -491,6 +489,33 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
 
             $documentStore->addDocument('orders', 'o-1', $order);
             $order->product = 'water';
+
+            self::assertEquals(new MutableOrderForDocumentStoreConformance('milk'), $documentStore->getDocument('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_changing_an_object_after_updating_with_it_does_not_change_the_stored_document(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', new MutableOrderForDocumentStoreConformance('milk'));
+            $order = new MutableOrderForDocumentStoreConformance('water');
+
+            $documentStore->updateDocument('orders', 'o-1', $order, expectedVersion: 1);
+            $order->product = 'bread';
+
+            self::assertEquals(new MutableOrderForDocumentStoreConformance('water'), $documentStore->getDocument('orders', 'o-1'));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_changing_a_returned_object_does_not_change_the_stored_document(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (DocumentStore $documentStore): void {
+            $documentStore->addDocument('orders', 'o-1', new MutableOrderForDocumentStoreConformance('milk'));
+
+            $documentStore->getDocument('orders', 'o-1')->product = 'water';
+            $documentStore->getAllDocuments('orders')[0]->product = 'bread';
 
             self::assertEquals(new MutableOrderForDocumentStoreConformance('milk'), $documentStore->getDocument('orders', 'o-1'));
         });

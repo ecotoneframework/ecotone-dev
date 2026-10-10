@@ -50,7 +50,7 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
         $projection = $this->globalTicketProjection();
         $ecotone = $this->bootstrapWithoutTheEventStreamTable($projection);
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->triggerProjection('missing_table_global_tickets');
@@ -74,7 +74,7 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
         $projection = $this->partitionedTicketProjection();
         $ecotone = $this->bootstrapWithoutTheEventStreamTable($projection);
 
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->triggerProjection('missing_table_partitioned_tickets');
@@ -90,7 +90,7 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

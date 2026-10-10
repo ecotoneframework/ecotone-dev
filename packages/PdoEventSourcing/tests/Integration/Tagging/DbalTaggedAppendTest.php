@@ -170,12 +170,12 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }
@@ -192,12 +192,12 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
-                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->initializeDatabase();
+        $ecotone->setupDatabaseTables();
 
         return $ecotone;
     }

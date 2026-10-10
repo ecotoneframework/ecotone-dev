@@ -30,6 +30,9 @@ use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
+use Ecotone\Lite\Test\DatabaseTablesSetUp;
+use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
+use Ecotone\Lite\Test\WithoutDatabaseTables;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -41,6 +44,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -134,6 +138,14 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         }
 
         $this->registerInMemoryEventStoreIfNeeded($messagingConfiguration, $extensionObjects, $serviceConfiguration);
+
+        $databaseTablesSetUp = ExtensionObjectResolver::resolve(DatabaseTablesSetUpReference::class, $extensionObjects)[0] ?? null;
+        $messagingConfiguration->registerServiceDefinition(
+            DatabaseTablesSetUp::class,
+            $databaseTablesSetUp === null
+                ? new Definition(WithoutDatabaseTables::class)
+                : new Reference($databaseTablesSetUp->referenceName)
+        );
 
         $messagingConfiguration->registerServiceDefinition(
             InMemoryConsoleWriter::class,
@@ -443,7 +455,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class)]),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class, [Reference::to(ConversionService::REFERENCE_NAME)])]),
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,

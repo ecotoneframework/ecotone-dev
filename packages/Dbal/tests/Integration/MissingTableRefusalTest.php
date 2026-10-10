@@ -10,10 +10,13 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\MissingTableInstructions;
+use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -26,6 +29,31 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class MissingTableRefusalTest extends DbalMessagingTestCase
 {
+    public static function documentStoreOperations(): iterable
+    {
+        yield 'add' => [fn (DocumentStore $store) => $store->addDocument('orders', 'o-1', '{"product":"milk"}')];
+        yield 'update' => [fn (DocumentStore $store) => $store->updateDocument('orders', 'o-1', '{"product":"milk"}', 1)];
+        yield 'upsert' => [fn (DocumentStore $store) => $store->upsertDocument('orders', 'o-1', '{"product":"milk"}', 0)];
+        yield 'get' => [fn (DocumentStore $store) => $store->getDocument('orders', 'o-1')];
+        yield 'find' => [fn (DocumentStore $store) => $store->findDocument('orders', 'o-1')];
+        yield 'get version' => [fn (DocumentStore $store) => $store->getDocumentVersion('orders', 'o-1')];
+        yield 'get all' => [fn (DocumentStore $store) => $store->getAllDocuments('orders')];
+        yield 'count' => [fn (DocumentStore $store) => $store->countDocuments('orders')];
+        yield 'delete' => [fn (DocumentStore $store) => $store->deleteDocument('orders', 'o-1')];
+        yield 'drop collection' => [fn (DocumentStore $store) => $store->dropCollection('orders')];
+    }
+
+    #[DataProvider('documentStoreOperations')]
+    public function test_every_document_store_operation_names_the_setup_when_its_table_is_missing(Closure $operation): void
+    {
+        $ecotone = $this->bootstrapWithoutTables(DbalConfiguration::createWithDefaults());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(DocumentStoreTableManager::FEATURE_NAME, DbalDocumentStore::ECOTONE_DOCUMENT_STORE, null));
+
+        $operation($ecotone->getGateway(DocumentStore::class));
+    }
+
     public static function deadLetterOperations(): iterable
     {
         yield 'store' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->store(MessageBuilder::withPayload('failed')->build())];

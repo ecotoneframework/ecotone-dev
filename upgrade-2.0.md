@@ -2023,6 +2023,19 @@ extends it. Only the framework calls what they add — `compile()`, `getConversi
 - **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
   DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
   twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
+- **`Message` and `MessageChannel` extend `Stringable`.** **Before:** neither interface declared `__toString()`, yet
+  Ecotone interpolates both into exception messages and descriptions, so a channel or message that could not be
+  stringified turned the exception being built into `Object of class … could not be converted to string`. Six of
+  Ecotone's own channels were such channels. **Now:** `Ecotone\Api\Messaging\Message` and
+  `Ecotone\Api\Messaging\MessageChannel` (and so `PollableChannel` and `SubscribableChannel`) extend `Stringable`, and
+  every implementation Ecotone ships describes itself. **How to adapt:** a class of yours implementing `Message`,
+  `MessageChannel`, `PollableChannel` or `SubscribableChannel` adds `public function __toString(): string` — PHP
+  refuses to load it otherwise. A message describes its payload and headers (`(string) $this->getHeaders()` is their
+  JSON); a channel returns its name. Internal, nothing to adapt: `MessageHandler`, `MessageHandlerBuilder` and
+  `RouteSelector` extend `Stringable` too, which fixes the one crash reachable from an application — a `#[Router]`
+  subscribed to a direct channel that already has a handler is now refused with a `WrongHandlerAmountException` naming
+  both handlers and the two ways out, a separate input channel or
+  `SimpleMessageChannelBuilder::createPublishSubscribeChannel()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.

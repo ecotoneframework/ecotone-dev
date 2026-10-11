@@ -393,6 +393,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
             $field = $match['field'];
 
             if (! isset($metadata[$field])) {
+                if ($match['operator'] === Operator::NOT_EQUALS || $match['operator'] === Operator::NOT_IN) {
+                    continue;
+                }
+
                 return false;
             }
 

@@ -37,10 +37,6 @@ use Throwable;
 final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
 {
     private const KNOWN_DIVERGENCES = [
-        'E3' => [
-            'sides' => 'a NOT_IN [] metadata match — in-memory drops the events lacking the key, DBAL keeps them',
-            'cases' => ['test_a_metadata_matcher_with_an_empty_not_in_list_excludes_nothing' => ['in-memory', 'in-memory-without-event-sourcing-module']],
-        ],
         'E6' => [
             'sides' => 'load() of a stream that was never created — in-memory returns no events, DBAL refuses with the missing-table instructions. Intended: a DBAL stream lives in a table that ecotone:migration:database:setup, or the test bootstrap, creates before anything reads it, so a missing one is a deployment mistake to name; an in-memory store has no tables, and a stream exists from its first append',
             'cases' => ['test_loading_a_stream_that_was_never_created_is_refused' => ['in-memory', 'in-memory-without-event-sourcing-module']],
@@ -214,7 +210,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_metadata_matcher_never_returns_an_event_that_lacks_the_matched_key(string $implementation): void
+    public function test_a_positive_metadata_match_never_returns_an_event_that_lacks_the_matched_key(string $implementation): void
     {
         $this->conformanceCase($implementation, function (EventStore $eventStore): void {
             $eventStore->appendTo(self::STREAM, [
@@ -226,7 +222,36 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
                 self::STREAM,
                 metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::EQUALS, 'web'),
             )));
-            self::assertSame([], $this->ticketIdsOf($eventStore->load(
+            self::assertEquals(['t-1'], $this->ticketIdsOf($eventStore->load(
+                self::STREAM,
+                metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::IN, ['web', 'phone']),
+            )));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_negative_metadata_match_keeps_an_event_that_lacks_the_matched_key(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore): void {
+            $eventStore->appendTo(self::STREAM, [
+                Event::create(new TicketOpenedForEventStoreConformance('t-1', 'One'), ['channel' => 'web']),
+                new TicketOpenedForEventStoreConformance('t-2', 'Two'),
+                Event::create(new TicketOpenedForEventStoreConformance('t-3', 'Three'), ['channel' => 'phone']),
+            ]);
+
+            self::assertEquals(['t-2', 't-3'], $this->ticketIdsOf($eventStore->load(
+                self::STREAM,
+                metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::NOT_EQUALS, 'web'),
+            )));
+            self::assertEquals(['t-2', 't-3'], $this->ticketIdsOf($eventStore->load(
+                self::STREAM,
+                metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::NOT_IN, ['web']),
+            )));
+            self::assertEquals(['t-2'], $this->ticketIdsOf($eventStore->load(
+                self::STREAM,
+                metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::NOT_IN, ['web', 'phone']),
+            )));
+            self::assertEquals(['t-2'], $this->ticketIdsOf($eventStore->load(
                 self::STREAM,
                 metadataMatcher: (new MetadataMatcher())->withMetadataMatch('channel', Operator::NOT_EQUALS, 'phone')->withMetadataMatch('channel', Operator::NOT_EQUALS, 'web'),
             )));

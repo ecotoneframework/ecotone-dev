@@ -2083,6 +2083,15 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 - **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
   DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
   twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
+- **A negative metadata match keeps the events that lack the field.** **Before:** `MetadataMatcher::withMetadataMatch()`
+  with `Operator::NOT_EQUALS` or `Operator::NOT_IN` dropped every event that carried no such metadata key — the
+  in-memory store failed any match on a missing key, and DBAL's `NULL NOT IN (…)` / `NULL <> ?` filtered the row —
+  while an empty `NOT_IN` list kept them on DBAL and dropped them in memory. **Now:** a missing field satisfies a
+  negative match on every store, so `withMetadataMatch('tenant', Operator::NOT_IN, $excludedTenants)` excludes the
+  listed tenants and keeps the events with no tenant, whatever the list holds. Positive matches (`EQUALS`, `IN`,
+  the comparisons) still never return an event lacking the field. **How to adapt:** if you used a negative match to
+  load only the events that *carry* a field, there is no operator for that any more: add an `EQUALS`/`IN` on the
+  values you expect, or filter the loaded events yourself.
 - **An aggregate's identifier travels on its events as a string.** **Before:** an aggregate's events carried
   `MessageHeaders::EVENT_AGGREGATE_ID` (`_aggregate_id`) as the identifier's raw PHP value, so an `int`
   `#[Identifier]` recorded a JSON integer, while `EventStore::loadAggregateEvents()` takes the id as a `string`.

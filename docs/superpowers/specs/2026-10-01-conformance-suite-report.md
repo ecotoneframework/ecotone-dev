@@ -116,7 +116,7 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 |---|---|---|---|
 | E1 | ~~`load(count: 0)`~~ | converged in wave 10: both refuse, on `load()` and `loadAggregateEvents()` | |
 | E2 | ~~`create()` on an existing stream~~ | resolved by dropping `EventStore::create()` — there is no second way to open a stream left to diverge | |
-| E3 | metadata match `NOT_IN []` | drops events lacking the key | keeps them (`1 = 1`) |
+| E3 | ~~metadata match `NOT_IN []`~~ | converged in wave 11b: a missing field satisfies a negative match (`NOT_EQUALS`, `NOT_IN`) on every store, so an event lacking the key is kept and the empty list reduces to DBAL's existing `1 = 1`. The gap this leaves is under the table | |
 | E4 | ~~metadata `'2'` against a recorded integer `2`~~ | converged in wave 10: matched everywhere — SQLite and in-memory compare the text form on the read | |
 | E5 | ~~`loadAggregateEvents(…, '42')` for an id recorded as integer `42`~~ | converged in wave 10 with E4: found everywhere (option B, the read side). Wave 11b added option A on top: an aggregate now records `_aggregate_id` as the identifier's string form, and `EventStoreEventSourcedRepository::findBy()` reads with it, so a new integer id is never recorded as a JSON integer; B stays, for the ids already recorded that way (`IntegerAggregateIdentifierTest`) | |
 | E6 | `load()` of a never-created stream | `[]` | `ConfigurationException` with the missing-table instructions — **kept, intended** (wave 10): a DBAL stream's table comes from setup |
@@ -129,6 +129,17 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 | D3 | ~~change an object after `addDocument()`~~ | converged in wave 10: in-memory stores and returns copies | |
 
 E1 to E9 hold for both in-memory wirings, because they share `InMemoryEventStore`.
+
+**The gap E3's convergence leaves.** The maintainer's use case is an exclusion set computed at runtime that can be
+empty — `withMetadataMatch('tenant', Operator::NOT_IN, $excludedTenants)` — where an event carrying no `tenant` is
+not excluded. Before wave 11b both stores dropped such an event from every non-empty negative match: in-memory
+because `matchesMetadata()` failed any match on a missing key, DBAL through SQL's three-valued logic
+(`NULL NOT IN ('web')` is unknown, so the row is filtered). Now `InMemoryEventStore` skips a negative match on a
+missing key, and DBAL emits `({field} IS NULL OR {field} NOT IN (…))` and `({field} IS NULL OR {field} <> ?)`.
+That accident was the only way to ask for **"carries this field"**: a `NOT_EQUALS` against a value nobody records
+used to return exactly the events that had the key. There is no operator for it now, and none was added in this
+unit — `Operator` has no `EXISTS`/`IS NOT NULL` case, so an application that needs it filters after loading or
+records an explicit marker value it can match with `EQUALS`.
 
 ### Unspecified or not a divergence — kept out of the registry
 

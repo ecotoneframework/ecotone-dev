@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Dbal;
+namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -27,7 +27,7 @@ final class DbalConnectionRequirementWithoutConnectionTest extends TestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture\\Counter\\']),
-            pathToRootCatalog: __DIR__ . '/../../',
+            pathToRootCatalog: __DIR__ . '/../../../../packages/Tempest/',
         );
     }
 }

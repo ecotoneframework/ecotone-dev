@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\TenantSharedConnection;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -11,8 +11,14 @@ use Ecotone\Api\Tempest\TempestConnectionReference;
 /**
  * licence Apache-2.0
  */
-final class MultiTenantEcotoneConfiguration
+final class TenantSharedConnectionConfiguration
 {
+    #[ServiceContext]
+    public function defaultConnection(): TempestConnectionReference
+    {
+        return TempestConnectionReference::defaultConnection();
+    }
+
     #[ServiceContext]
     public function multiTenantConfiguration(): MultiTenantConfiguration
     {
@@ -20,7 +26,6 @@ final class MultiTenantEcotoneConfiguration
             tenantHeaderName: 'tenant',
             tenantToConnectionMapping: [
                 'tenant_a' => TempestConnectionReference::create('tenant_a'),
-                'tenant_b' => TempestConnectionReference::create('tenant_b'),
             ],
         );
     }

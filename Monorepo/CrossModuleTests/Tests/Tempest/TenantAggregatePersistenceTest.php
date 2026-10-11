@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\MultiTenant;
+namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
@@ -12,9 +12,8 @@ use Ecotone\Tempest\MessagingSystemInitializer;
 use Ecotone\Test\LicenceTesting;
 use PDO;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
-use Test\Ecotone\Tempest\Fixture\TenantAggregate\RegisterTenantProduct;
+use Monorepo\CrossModuleTests\Fixture\Tempest\TenantAggregate\RegisterTenantProduct;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
-use Test\Ecotone\Tempest\TempestTestPaths;
 
 /**
  * licence Apache-2.0
@@ -27,7 +26,7 @@ final class TenantAggregatePersistenceTest extends EcotoneIntegrationTestCase
     protected function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\TenantAggregate\\'],
+            namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\TenantAggregate\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
@@ -40,8 +39,8 @@ final class TenantAggregatePersistenceTest extends EcotoneIntegrationTestCase
         return [
             ...parent::discoverTestLocations(),
             new \Tempest\Discovery\DiscoveryLocation(
-                'Test\\Ecotone\\Tempest\\Fixture\\TenantAggregate\\',
-                TempestTestPaths::fixturePath() . '/TenantAggregate',
+                'Monorepo\\CrossModuleTests\\Fixture\\Tempest\\TenantAggregate\\',
+                dirname(__DIR__, 2) . '/Fixture/Tempest/TenantAggregate',
             ),
         ];
     }

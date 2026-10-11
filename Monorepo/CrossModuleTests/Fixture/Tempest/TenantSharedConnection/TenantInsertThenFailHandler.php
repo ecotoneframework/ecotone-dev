@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\TenantSharedConnection;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\TenantSharedConnection;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use RuntimeException;

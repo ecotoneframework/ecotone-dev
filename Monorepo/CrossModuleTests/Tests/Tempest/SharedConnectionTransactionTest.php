@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Dbal;
+namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
@@ -14,6 +14,7 @@ use RuntimeException;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
 use Tempest\Database\QueryStatements\CreateTableStatement;
+use Tempest\Discovery\DiscoveryLocation;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 use Throwable;
@@ -27,11 +28,22 @@ final class SharedConnectionTransactionTest extends EcotoneIntegrationTestCase
     protected function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\SharedConnection\\'],
+            namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\SharedConnection\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );
+    }
+
+    protected function discoverTestLocations(): array
+    {
+        return [
+            ...parent::discoverTestLocations(),
+            new DiscoveryLocation(
+                'Monorepo\\CrossModuleTests\\Fixture\\Tempest\\SharedConnection\\',
+                dirname(__DIR__, 2) . '/Fixture/Tempest/SharedConnection',
+            ),
+        ];
     }
 
     protected function setUp(): void

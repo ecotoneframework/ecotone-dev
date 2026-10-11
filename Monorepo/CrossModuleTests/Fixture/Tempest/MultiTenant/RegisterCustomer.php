@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\MultiTenant;
 
 /**
  * licence Apache-2.0

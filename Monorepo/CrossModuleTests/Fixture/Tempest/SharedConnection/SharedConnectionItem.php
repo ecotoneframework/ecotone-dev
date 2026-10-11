@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\SharedConnection;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\SharedConnection;
 
 use Tempest\Database\IsDatabaseModel;
 use Tempest\Database\PrimaryKey;

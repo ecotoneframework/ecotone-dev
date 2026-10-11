@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\MultiTenant;
 
 use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Api\Dbal\FetchMode;

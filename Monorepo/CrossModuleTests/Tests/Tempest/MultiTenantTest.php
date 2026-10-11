@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\MultiTenant;
+namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
@@ -13,7 +13,7 @@ use Ecotone\Tempest\MessagingSystemInitializer;
 use Ecotone\Test\LicenceTesting;
 use PDO;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
-use Test\Ecotone\Tempest\Fixture\MultiTenant\RegisterCustomer;
+use Monorepo\CrossModuleTests\Fixture\Tempest\MultiTenant\RegisterCustomer;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
 /**
@@ -28,7 +28,7 @@ final class MultiTenantTest extends EcotoneIntegrationTestCase
     protected function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\'],
+            namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\MultiTenant\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
@@ -41,8 +41,8 @@ final class MultiTenantTest extends EcotoneIntegrationTestCase
         return [
             ...parent::discoverTestLocations(),
             new \Tempest\Discovery\DiscoveryLocation(
-                'Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\',
-                \Test\Ecotone\Tempest\TempestTestPaths::fixturePath() . '/MultiTenant',
+                'Monorepo\\CrossModuleTests\\Fixture\\Tempest\\MultiTenant\\',
+                dirname(__DIR__, 2) . '/Fixture/Tempest/MultiTenant',
             ),
         ];
     }

@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Dbal;
+namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Tempest\EcotoneConfig;
+use Tempest\Discovery\DiscoveryLocation;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
@@ -20,11 +21,22 @@ final class DbalConnectionConnectivityTest extends EcotoneIntegrationTestCase
     protected function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\Dbal\\'],
+            namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\Dbal\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );
+    }
+
+    protected function discoverTestLocations(): array
+    {
+        return [
+            ...parent::discoverTestLocations(),
+            new DiscoveryLocation(
+                'Monorepo\\CrossModuleTests\\Fixture\\Tempest\\Dbal\\',
+                dirname(__DIR__, 2) . '/Fixture/Tempest/Dbal',
+            ),
+        ];
     }
 
     public function test_dbal_connection_derived_from_tempest_postgres_config_executes_query(): void

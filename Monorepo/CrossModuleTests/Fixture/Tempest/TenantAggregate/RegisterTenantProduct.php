@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\TenantAggregate;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\TenantAggregate;
 
 /**
  * licence Apache-2.0

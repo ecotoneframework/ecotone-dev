@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tempest\Dbal;
 
 use Ecotone\Api\Tempest\TempestConnectionReference;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -54,13 +53,5 @@ final class ConnectionReferenceCredentialsTest extends TestCase
 
         $this->assertSame('tenant_a', $reconstructed->getConfigTag());
         $this->assertSame('tenant_a', $reconstructed->getReferenceName());
-    }
-
-    public function test_default_connection_has_no_tag(): void
-    {
-        $reference = TempestConnectionReference::defaultConnection();
-
-        $this->assertNull($reference->getConfigTag());
-        $this->assertSame(DbalConnectionFactory::class, $reference->getReferenceName());
     }
 }

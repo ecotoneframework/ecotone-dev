@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Fixture\TenantAggregate;
+namespace Monorepo\CrossModuleTests\Fixture\Tempest\TenantAggregate;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;

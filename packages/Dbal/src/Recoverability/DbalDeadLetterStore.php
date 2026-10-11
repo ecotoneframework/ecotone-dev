@@ -50,15 +50,15 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->maxRetries(3)
             ->build();
 
-        $this->onTable(fn () => $this->retryRunner->runWithRetry(function () use ($message) {
+        $this->retryRunner->runWithRetry(function () use ($message) {
             try {
-                $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
+                $this->onTable(fn () => $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers()));
             } catch (\Exception $exception) {
                 $this->getConnection()->close();
 
                 throw $exception;
             }
-        }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.'));
+        }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
     }
 
     public function list(int $limit, int $offset): array

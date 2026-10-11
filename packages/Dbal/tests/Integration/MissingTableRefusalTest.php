@@ -27,6 +27,7 @@ use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -82,6 +83,27 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         $this->expectExceptionMessage(MissingTableInstructions::build(DeadLetterTableManager::FEATURE_NAME, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, null));
 
         $operation($ecotone->getGateway(DeadLetterGateway::class));
+    }
+
+    public function test_storing_a_dead_letter_whose_table_is_missing_is_refused_without_retrying(): void
+    {
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), 'logger' => $logger],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+        );
+
+        try {
+            $ecotone->getGateway(DeadLetterGateway::class)->store(MessageBuilder::withPayload('failed')->build());
+            self::fail('Expected storing a dead letter without its table to be refused');
+        } catch (ConfigurationException $exception) {
+            self::assertSame(MissingTableInstructions::build(DeadLetterTableManager::FEATURE_NAME, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, null), $exception->getMessage());
+        }
+
+        self::assertSame([], $logger->getInfo());
     }
 
     public function test_removing_expired_deduplication_entries_names_the_setup_when_deduplication_is_used_and_its_table_is_missing(): void

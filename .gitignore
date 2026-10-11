@@ -21,3 +21,4 @@ phpunit.xml
 packages/Laravel/tests/Application/storage/logs/laravel.log
 packages/Symfony/tests/phpunit/var/*
 Monorepo/*/Symfony/config/reference.php
+Monorepo/CrossModuleTests/Fixture/Symfony/*/config/reference.php

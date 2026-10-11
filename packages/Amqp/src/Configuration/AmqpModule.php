@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpAdmin;
-use Ecotone\Amqp\AmqpBinding;
-use Ecotone\Amqp\AmqpExchange;
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\ModulePackageList;

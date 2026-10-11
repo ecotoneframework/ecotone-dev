@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Amqp\AmqpContext;

@@ -18,8 +18,8 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

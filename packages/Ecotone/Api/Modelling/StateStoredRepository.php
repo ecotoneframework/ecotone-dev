@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Modelling;
+namespace Ecotone\Api\Modelling;
 
 /**
  * @package Ecotone\Modelling

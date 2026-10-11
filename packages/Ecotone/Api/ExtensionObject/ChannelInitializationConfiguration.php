@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Channel\Manager;
+namespace Ecotone\Api\ExtensionObject;
 
 /**
  * Configuration for message channel initialization behavior.

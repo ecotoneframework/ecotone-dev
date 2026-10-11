@@ -3,7 +3,7 @@
 use App\Application\PlaceOrder;
 use App\Domain\ShippingService;
 use App\Infrastructure\NetworkFailingShippingService;
-use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;

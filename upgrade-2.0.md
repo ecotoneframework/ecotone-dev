@@ -74,7 +74,9 @@ the offending `MultiTenantConfiguration` or attribute placement. Laravel's tenan
 Laravel-backed `MultiTenantConfiguration` exists and is licensed; Symfony and Tempest rely on the same core gate.
 
 **How to adapt:** Provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
-`ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). If you are not
+`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). The shipped Laravel
+config sets `'licenceKey' => null` and reads no environment variable; to keep the key in `.env`, write
+`'licenceKey' => env('ECOTONE_LICENCE_KEY')` into your published `config/ecotone.php`. If you are not
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
@@ -142,6 +144,12 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   with `#[Polling(endpointId:)]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
   `#[ProjectionInitialization]`/`#[ProjectionReset]`/`#[ProjectionDelete]` keep their names and move to
   `Ecotone\Api`.
+- **Which of these need an Enterprise licence.** `#[Polling]`, `#[Streaming]`, `#[Partitioned]`,
+  `#[ProjectionDeployment]`, `#[ProjectionRebuild]` and an asynchronous `#[ProjectionBackfill]` are Enterprise, and a
+  projection using any of them is refused at bootstrap without a licence (`LicensingException`). A global projection,
+  synchronous or `#[Asynchronous]`, is open core, and so are all four `ecotone:projection:init|backfill|rebuild|delete`
+  commands — `ecotone:projection:rebuild` runs without a licence; `#[ProjectionRebuild]` only configures how a rebuild
+  is batched and which channel runs it.
 - Console: the `ecotone:es:*` commands are removed with no direct replacement for `reset-projection`,
   `trigger-projection` or `stop-projection`. The nearest v2 surface is `ecotone:projection:init|backfill|rebuild|delete`:
   `backfill` replays the stream into a projection from its current position, which is what `trigger-projection`
@@ -260,7 +268,6 @@ subsection below.
   ```php
   interface EventStore
   {
-      public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
       public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
       public function delete(string $streamName): void;
       public function hasStream(string $streamName): bool;
@@ -752,7 +759,10 @@ no transaction.
   This is the adoption path for an existing application: an aggregate stays exactly as it is and gains a
   cross-aggregate invariant by injecting one model.
 - The default stream is `ecotone_event_stream`; `#[Stream]` now also works on the handler *method*, and wins over a
-  class-level `#[Stream]`.
+  class-level `#[Stream]`. A method-level `#[Stream]` only chooses where that handler's events are appended; it does
+  not declare the stream. `ecotone:migration:database:setup` creates tables for the default stream and for class-level
+  `#[Stream]` attributes only, and the database event store refuses an append to a stream nothing declares — so also
+  declare the same `#[Stream('<name>')]` on a class (an aggregate, or any class the application scans).
 - A tag that would queue most writers (a low-cardinality key like `tenant` or `region`) should be declared
   filter-only — indexed for reads, never counted, so it can't become a bottleneck:
 
@@ -867,13 +877,10 @@ consistency boundary's). Events recorded only by a service handler — not an ag
 and are not checked; keep such a handler's stream and its injected models' aggregates on the same connection by
 convention.
 
-**A missing stream table stops a decision instead of answering it.** `EventStore::load()` and
-`loadAggregateEvents()` keep their open-core contract — a stream whose table does not exist reads as no events, which
-is what an aggregate `#[CommandHandler]` loading a not-yet-created aggregate needs. On the decision path that answer
-is wrong: an aggregate-backed `#[DecisionModel]` would fold zero events and the handler would decide on an empty
-aggregate. The decision read is a separate store method, so the two contracts never need a flag to tell them apart,
-and a missing stream table there raises the same `ConfigurationException` §8 describes, naming the `event_stream`
-feature, the table and both setup commands. `ecotone:event-store:backfill-tags` reports the same error rather than a
+**A missing stream table stops a decision instead of answering it.** An aggregate-backed `#[DecisionModel]` reads
+its events through the same `EventStore::loadAggregateEvents()` an aggregate `#[CommandHandler]` uses, and that read
+raises the `ConfigurationException` §8 describes when the stream table does not exist, naming the `event_stream`
+feature, the table and both setup commands — so the handler is refused instead of deciding on zero events. `ecotone:event-store:backfill-tags` reports the same error rather than a
 report saying nothing was scanned, which is what a mistyped `--stream=` actually means.
 
 **Upgrading while still on 1.x — expand first, deploy code second:**
@@ -1052,7 +1059,8 @@ AmqpBackedMessageChannelBuilder::create('ticket_service.events'),
 ```
 
 Consumers subscribe by having a channel with the mapped name; `#[Distributed]` handlers stay unchanged. Distributed event
-routing wildcards are unchanged (`*` matches a single dotted segment).
+routing wildcards are unchanged: `*` matches any run of characters, dots included, so `userService.*` matches
+`userService.billing.DetailsWereChanged` and `*` alone matches every event.
 
 - The AMQP bus declared a `ecotone.distributed` exchange and per-service queues automatically. Service Map has no exchange
   convention: each mapped channel is an ordinary channel you declare (`AmqpBackedMessageChannelBuilder::create('ticket_service.events')`
@@ -1070,7 +1078,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `#[TargetAggregateIdentifier]` | `#[TargetIdentifier]` |
 | `#[AggregateVersion]` / `#[TargetAggregateVersion]` | `#[Version]` / `#[TargetVersion]` |
 | `WithAggregateEvents` trait | `WithEvents` |
-| `StandardRepository` interface | `StateStoredRepository` (same methods) |
+| `StandardRepository` interface | `Ecotone\Api\Modelling\StateStoredRepository` (same methods; §13j) |
 | `EcotoneLite::bootstrapForTesting()`, `EcotoneLiteConfiguration`, `ecotone/lite-application` package | `EcotoneLite::bootstrapFlowTesting()` / `EcotoneLite::bootstrap()` |
 | `MethodInvocation::getInterfaceToCall()`, `MethodInvocation::replaceArgument()` | `getObjectToInvokeOn()` / `getMethodName()`; pass changed values by returning a new message or header from `#[Before]` / `#[Presend]` |
 | `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` |
@@ -1096,11 +1104,11 @@ Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` 
 **Before:** `#[InternalHandler]` (introduced earlier in 2.0) and `#[ServiceActivator]` were two names for the same
 attribute — `InternalHandler extends ServiceActivator` and both worked identically.
 
-**Now:** `Ecotone\Api\ServiceActivator` no longer exists. `#[InternalHandler]` is the only attribute.
+**Now:** `Ecotone\Messaging\Attribute\ServiceActivator` (`Ecotone\Api\ServiceActivator` in early 2.0 builds) no longer exists. `#[InternalHandler]` is the only attribute.
 
 **How to adapt:**
 - Rename `#[ServiceActivator(...)]` to `#[InternalHandler(...)]` and update the `use` statement
-  (`Ecotone\Api\ServiceActivator` → `Ecotone\Api\InternalHandler`).
+  (`Ecotone\Messaging\Attribute\ServiceActivator` → `Ecotone\Api\Attribute\InternalHandler`).
 - **Check positional arguments — the second one changed meaning.** `ServiceActivator`'s constructor was
   `(inputChannelName, endpointId, outputChannelName, requiresReply, requiredInterceptorNames, changingHeaders)`.
   `InternalHandler`'s is `(inputChannelName, outputChannelName, endpointId, requiredInterceptorNames, changingHeaders, requiresReply)`
@@ -1235,8 +1243,9 @@ The removed configuration, one by one:
 
 **How to adapt an application:**
 
-- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
-  for a subset). It is the only way tables get created outside tests, on every engine — or use `--sql` to feed your own
+- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or repeat `--feature` for a
+  subset: `--feature=deduplication --feature=dead_letter`; one value is one feature, so a comma-separated list is
+  read as a single unknown feature name). It is the only way tables get created outside tests, on every engine — or use `--sql` to feed your own
   migration tool.
   — Symfony: `bin/console ecotone:migration:database:setup --initialize`
   — Laravel: `php artisan ecotone:migration:database:setup --initialize`
@@ -1260,7 +1269,7 @@ The removed configuration, one by one:
   `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)`; a Symfony, Laravel or Tempest
   kernel test, which does not go through the `EcotoneLite` bootstrap, runs the setup command in its own set-up.
 
-Reading an event stream is not one of the paths that answer "nothing there". `EventStore::load()` and
+Reading an event stream raises too. `EventStore::load()` and
 `EventStore::loadAggregateEvents()` used to probe `information_schema` on every call and answer "no events" when the
 stream table was absent, which turned a missing `ecotone:migration:database:setup` into an `AggregateNotFoundException`
 for an aggregate whose events were never readable in the first place. **They raise the same `ConfigurationException`
@@ -1270,10 +1279,8 @@ created. Event-sourced aggregate command handlers, `#[Fetch]`, `Repository::getF
 projections all surface it. `EventStore::hasStream()` is unchanged: it answers whether the stream exists, so it still
 returns `false` rather than raising.
 
-The read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
-quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDocument()`/`getAllDocuments()`/
-`countDocuments()`. If you need to tell "not set up" from "nothing to show" in those places, run
-`ecotone:migration:database:setup --missing` — it lists exactly the tables that are absent.
+`EventStore::hasStream()` is the only read that answers a missing table without raising. To list the tables that are
+absent, run `ecotone:migration:database:setup --missing`.
 
 Dropping a table is DDL too, and one runs when your code asks for it: `EventStore::delete()` drops the stream's table.
 On MySQL and MariaDB, calling it while a database transaction is open — from a command handler, an asynchronous
@@ -1410,7 +1417,10 @@ whose `aggregate.id` is supplied by a `#[Before]` or `#[Presend]` interceptor ra
 
 **Before:** An asynchronous channel name could not be equal to a routing key of a handler.
 
-**Now:** Routing keys and message channels are separate namespaces; the same string may be used for both.
+**Now:** a handler's routing key may equal an asynchronous channel name; sending through the bus by that routing key
+(`sendWithRouting()`, `publishWithRouting()`) reaches the handler. Routing keys are not a separate namespace from
+channels, though: a `#[CommandHandler]` or `#[QueryHandler]` routing key still registers a message channel of the same
+name, which a `#[BusinessMethod]` gateway, an `outputChannelName` or a direct channel send reaches.
 
 **How to adapt:** Nothing; remove workarounds that renamed channels to avoid the clash.
 
@@ -1493,6 +1503,13 @@ Classes outside `Api` are `@internal` and may change in minor versions. `Distrib
 `Ecotone\Modelling\Api\Distribution\*`) become `Ecotone\Api\ExtensionObject\DistributedServiceMap` and
 `Ecotone\Api\Gateway\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
 `Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class (Kafka's `Api` dir is small enough to stay flat).
+
+**The Kafka broker's default container id changes with its class.** Kafka consumers and publishers look the broker up
+by `brokerConfigurationReference`, whose default is `KafkaBrokerConfiguration::class` — so the default id moves from
+`Ecotone\Kafka\Configuration\KafkaBrokerConfiguration` to `Ecotone\Api\Kafka\KafkaBrokerConfiguration`. Code that
+registers the broker with `KafkaBrokerConfiguration::class` follows the move once its import is updated; a broker
+registered under the old id as a string (a Symfony service id, a Laravel binding) or a `brokerConfigurationReference`
+passed as the old string is no longer found. Register it under the new id.
 
 **How to adapt:** Replace the imports using the full old → new mapping in
 [`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
@@ -2076,6 +2093,44 @@ final class ErrorHandler
 A parameter still typed with the old name is refused at bootstrap, as §13g describes for `Message`, naming the class
 it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 
+### 13j. Types the documentation tells applications to name moved into `Api`
+
+**Before:** writing the 2.0 documentation found internal `src` classes that an application has to name because the
+tree offered nothing else — a repository it implements, an attribute it targets with a pointcut, a value it constructs
+or an exception it catches. Each sat outside `Api`.
+
+**Now:** each one below is in its package's `Api`, with the same methods. A type moves together with any type the
+methods an application calls on it name — `AmqpBinding` with `AmqpQueue` and `AmqpExchange`, `DataProtectionConfiguration`
+with `Key` — so none of those methods points back into `src`. Some keep an internal parent the application never calls
+directly (`ConcurrencyException` and `AggregateNotFoundException` extend `MessagingException`; `AmqpStreamChannelBuilder`
+extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` already did).
+
+| 1.x and early 2.0 | 2.0 | Why an application names it |
+|---|---|---|
+| `Ecotone\Modelling\StateStoredRepository` | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+| `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
+| `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
+| `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
+| `Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration` | `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | returned from a `#[ServiceContext]` method, it is the one switch for automatic AMQP and SQS channel initialization |
+| `Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter` | `Ecotone\Api\Projecting\EventStreamingChannelAdapter` | returned from a `#[ServiceContext]` method, it feeds an event stream into a streaming channel (Enterprise) |
+| `Ecotone\Messaging\Support\ConcurrencyException` | `Ecotone\Api\Messaging\ConcurrencyException` | a custom repository throws `ConcurrencyException::forStaleAggregate()`, and retry configuration and `catch` blocks name it |
+| `Ecotone\Modelling\AggregateNotFoundException` | `Ecotone\Api\Modelling\AggregateNotFoundException` | thrown to the caller when a command or a `#[Repository]` lookup finds no aggregate; §14 tells applications which catches of it move |
+| `Ecotone\Messaging\Config\ConnectionReference` | `Ecotone\Api\ExtensionObject\ConnectionReference` | an `#[OnTenantActivation]` / `#[OnTenantDeactivation]` hook receives it, and `MultiTenantConfiguration` takes it; every `*ConnectionReference` extends it |
+| `Ecotone\Amqp\AmqpStreamChannelBuilder` | `Ecotone\Api\Amqp\AmqpStreamChannelBuilder` | returned from a `#[ServiceContext]` method, it declares a RabbitMQ Streams channel (Enterprise; §5, §6) |
+| `Ecotone\Amqp\AmqpQueue` | `Ecotone\Api\Amqp\AmqpQueue` | returned from a `#[ServiceContext]` method, it declares a RabbitMQ queue |
+| `Ecotone\Amqp\AmqpExchange` | `Ecotone\Api\Amqp\AmqpExchange` | declares a RabbitMQ exchange; `AmqpQueue::withDeadLetterExchangeTarget()` and `AmqpBinding` take it |
+| `Ecotone\Amqp\AmqpBinding` | `Ecotone\Api\Amqp\AmqpBinding` | binds an `AmqpQueue` to an `AmqpExchange` |
+| `Ecotone\DataProtection\Configuration\DataProtectionConfiguration` | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | returned from a `#[ServiceContext]` method, it switches data protection on and names its keys (Enterprise) |
+| `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
+| `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
+| `Ecotone\EventSourcing\EventStreamEmitter` | `Ecotone\Api\EventSourcing\EventStreamEmitter` | a projection handler takes it as a parameter to `emit()` or `linkTo()` events (§3) |
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
+deploy, since the compiled container records class names. **One container id changes:** `EventStreamEmitter` is a
+gateway registered under its class name, so its id is now `Ecotone\Api\EventSourcing\EventStreamEmitter`. A handler
+parameter typed with it, and `$container->get(EventStreamEmitter::class)` with the new import, follow on their own; a
+lookup by the old id as a string no longer finds it. None of the other types is a service.
+
 ## 14. Smaller behaviour changes
 
 - **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
@@ -2226,7 +2281,7 @@ query handler, an asynchronous handler, an aggregate or saga handler, a `#[Befor
 An application that runs open-core today with `#[Fetch]` on a handler nothing calls stops booting.
 
 **How to adapt:** provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
-`ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
+`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
 `#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
 with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
 
@@ -2247,6 +2302,41 @@ handler. The message names the parameter, the handler and the three ways out:
 A nullable or defaulted parameter is unchanged: without a licence it receives `null` (or its default), as before.
 
 **How to adapt:** pick one of the three ways out the message names.
+
+### A bare boolean console option switches it on, on Symfony and Laravel
+
+**Before:** a boolean option given without a value — `bin/console ecotone:migration:database:setup --initialize`,
+`php artisan ecotone:run orders --stopOnFailure` — reached the command as `null` and was read as its default, so
+`--initialize` created no table and exited successfully. Only `--initialize=true` (or `true` from code) worked, while
+Ecotone's own missing-table messages print the bare form.
+
+**Now:** a bare boolean option is `true`; `--initialize=false` and leaving the option out keep their meaning.
+
+**How to adapt:** nothing. Deployment scripts that already pass `--initialize=true` behave as before.
+
+### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
+
+**Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in
+milliseconds, and set no attempt limit. With the shipped example (`initialDelay: 100, maxAttempts: 3, multiplier: 2`)
+the first retry's 100 ms delay already exceeded the "maximum delay" of 2 ms, so a lost connection was never retried;
+with `initialDelay: 0` it was retried forever.
+
+**Now:** `initialDelay` and `multiplier` shape an exponential back-off and `maxAttempts` is the number of reconnection
+attempts before the consumer gives up.
+
+**How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
+
+### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
+
+**Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and
+projected on its first event, exactly as with no `#[ProjectionDeployment]` at all.
+
+**Now:** bootstrap fails with `ConfigurationException`: `Projection 'order_list' combines #[Partitioned] with
+#[ProjectionDeployment(manualKickOff: true)], but a partitioned projection initializes each partition on that
+partition's first event, so it cannot wait to be kicked off and manualKickOff would be ignored. …`
+
+**How to adapt:** remove `manualKickOff: true` (the projection behaves as it already did), or remove `#[Partitioned]`
+to keep a global projection that waits for `ecotone:projection:init <name>`.
 
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
@@ -2335,7 +2425,7 @@ repository `EcotoneLite::bootstrapFlowTesting()` uses behaved the same way: a co
 
 **Now:** every document has a version. `addDocument()` stores it at version 1, and each write moves it by one.
 `updateDocument()` and `upsertDocument()` take a **required** fourth parameter, `int $expectedVersion` — the version
-the caller read — and refuse the write with `Ecotone\Messaging\Support\ConcurrencyException` when the document has
+the caller read — and refuse the write with `Ecotone\Api\Messaging\ConcurrencyException` when the document has
 moved since. `0` means "must not be stored yet". `DocumentStore::getDocumentVersion()` returns the current version,
 `0` for a document that is not stored. A write that should replace whatever is stored says so explicitly:
 
@@ -2394,11 +2484,11 @@ repository of a flow test, is now checked against the version it was loaded at:
   `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
   Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
   table and register a repository of your own for the model: a `#[Repository]` class implementing
-  `Ecotone\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
+  `Ecotone\Api\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
   `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
   `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
   `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
-  `Ecotone\Messaging\Support\ConcurrencyException::forStaleAggregate()`, as every other backend does.
+  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
 `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;
@@ -2466,6 +2556,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   default gateway's. **How to adapt:** a flow test that asserts on the dead-letter or deduplication *table* rather
   than through `DeadLetterGateway` and its handlers registers `DbalConfiguration::createWithDefaults()` explicitly.
   `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
+- **A `TestConfiguration` given as an extension object is refused.** **Before:**
+  `EcotoneLite::bootstrapFlowTesting()` and `bootstrapFlowTestingWithEventStore()` removed every `TestConfiguration`
+  found in the `ServiceConfiguration`'s extension objects and used the `testConfiguration:` parameter (or the defaults)
+  instead, so settings passed through `withExtensionObjects()` / `addExtensionObject()` were ignored without a word.
+  **Now:** bootstrap fails with `ConfigurationException`: `EcotoneLite::bootstrapFlowTesting() was given a
+  TestConfiguration as an extension object of the ServiceConfiguration. … pass it as
+  EcotoneLite::bootstrapFlowTesting(..., testConfiguration: $yourTestConfiguration) instead.` **How to adapt:** move the
+  `TestConfiguration` from the extension objects to the `testConfiguration:` argument.
 - **`DeadLetterGateway::list()` has a stated order.** Most recently failed first, by the failed message's timestamp;
   messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
   messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
@@ -2617,7 +2715,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
 - **Testing polling parameters use the names of the matching setters.** `createWithTestingSetup()` took
   `amountOfMessagesToHandle` (a maximum, not an exact count), `maxExecutionTimeInMilliseconds` and `failAtError`, while the
   same settings are `withHandledMessageLimit()`, `withExecutionTimeLimitInMilliseconds()` and `withStopOnError()` (and
-  `--handledMessageLimit` / `--stopOnError` on `ecotone:run`).
+  `--handledMessageLimit` / `--stopOnFailure` on `ecotone:run`).
 
   | 1.x / early 2.0 | 2.0 |
   |---|---|
@@ -2660,7 +2758,7 @@ normal section with "How to adapt" steps when it ships.
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
 | `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
-| Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
+| Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
 | Stateless `#[EventSourcingHandler]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[EventSourcingHandler]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
@@ -2685,4 +2783,5 @@ normal section with "How to adapt" steps when it ships.
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
 14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
-15. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+15. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
+16. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).

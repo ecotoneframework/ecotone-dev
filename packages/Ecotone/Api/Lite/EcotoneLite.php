@@ -17,6 +17,7 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
@@ -84,7 +85,7 @@ final class EcotoneLite
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, [], $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
+        $configuration = self::prepareForFlowTesting($configuration, [], $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTesting');
 
         if ($addInMemoryEventSourcedRepository && ! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
@@ -119,7 +120,7 @@ final class EcotoneLite
     ): FlowTestSupport {
         $modulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
 
-        $configuration = self::prepareForFlowTesting($configuration, $modulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
+        $configuration = self::prepareForFlowTesting($configuration, $modulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTestingWithEventStore');
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -236,18 +237,17 @@ final class EcotoneLite
         return $messagingSystem;
     }
 
-    private static function getExtensionObjectsWithoutTestConfiguration(ServiceConfiguration $configuration): array
+    private static function refuseTestConfigurationPassedAsExtensionObject(ServiceConfiguration $configuration, string $bootstrapMethod): void
     {
-        $extensionObjectsWithoutTestConfiguration = [];
-        foreach ($configuration->getExtensionObjects() as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration) {
-                continue;
-            }
-
-            $extensionObjectsWithoutTestConfiguration[] = $extensionObject;
+        if (! $configuration->hasExtensionObject(TestConfiguration::class)) {
+            return;
         }
 
-        return $extensionObjectsWithoutTestConfiguration;
+        throw ConfigurationException::create(
+            "EcotoneLite::{$bootstrapMethod}() was given a TestConfiguration as an extension object of the ServiceConfiguration. "
+            . 'A flow test runs with exactly one TestConfiguration, the one passed as the testConfiguration: parameter, so this one would be replaced by that one and its settings ignored. '
+            . "Remove it from withExtensionObjects() / addExtensionObject() and pass it as EcotoneLite::{$bootstrapMethod}(..., testConfiguration: \$yourTestConfiguration) instead."
+        );
     }
 
     private static function prepareForFlowTesting(
@@ -257,8 +257,10 @@ final class EcotoneLite
         bool                  $addInMemoryStateStoredRepository,
         ?TestConfiguration    $testConfiguration,
         ?string               $enterpriseLicenceKey,
+        string                $bootstrapMethod,
     ): ServiceConfiguration {
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
+        self::refuseTestConfigurationPassedAsExtensionObject($configuration, $bootstrapMethod);
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
         if (! $configuration->areSkippedPackagesDefined()) {
@@ -267,7 +269,6 @@ final class EcotoneLite
         }
 
         $configuration = $configuration
-            ->withExtensionObjects(self::getExtensionObjectsWithoutTestConfiguration($configuration))
             ->addExtensionObject($testConfiguration);
 
         if ($addInMemoryStateStoredRepository) {

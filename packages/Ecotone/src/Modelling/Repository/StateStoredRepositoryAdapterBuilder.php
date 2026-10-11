@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Repository;
 
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\StateStoredRepository;
 
 use function is_a;
 

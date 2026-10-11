@@ -6,11 +6,11 @@ namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 
 /**
  * licence Apache-2.0

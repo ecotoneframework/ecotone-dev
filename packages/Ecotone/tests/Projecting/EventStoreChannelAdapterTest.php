@@ -14,9 +14,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\EventStreamingChannelAdapter;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

@@ -253,7 +253,7 @@ interface EventStore
 
 ## EventStreamEmitter
 
-Source: `Ecotone\EventSourcing\EventStreamEmitter`
+Source: `Ecotone\Api\EventSourcing\EventStreamEmitter`
 
 Available in projection event handler methods:
 

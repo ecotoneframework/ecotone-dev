@@ -72,7 +72,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])

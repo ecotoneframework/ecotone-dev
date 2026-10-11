@@ -27,6 +27,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
@@ -35,7 +36,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
-use Ecotone\Messaging\Config\ConnectionReference;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 
 /**

@@ -89,11 +89,7 @@ class EcotoneProvider extends ServiceProvider
         if ($retryTemplate) {
             $applicationConfiguration = $applicationConfiguration
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOffWithMaxDelay(
-                        $retryTemplate['initialDelay'],
-                        $retryTemplate['maxAttempts'],
-                        $retryTemplate['multiplier']
-                    )
+                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
                 );
         }
 
@@ -166,6 +162,11 @@ class EcotoneProvider extends ServiceProvider
                     }
                 );
                 $artisanCommand->purpose($oneTimeCommandConfiguration->getDescription());
+                foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {
+                    if ($parameter->isOption() && is_bool($parameter->getDefaultValue())) {
+                        $artisanCommand->getDefinition()->getOption($parameter->getName())->setDefault($parameter->getDefaultValue());
+                    }
+                }
             }
         }
     }

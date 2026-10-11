@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryFuture;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;

@@ -5,7 +5,7 @@ namespace Ecotone\Messaging\Store\Document;
 use function array_map;
 
 use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Messaging\Support\ConcurrencyException;
+use Ecotone\Api\Messaging\ConcurrencyException;
 
 use function json_decode;
 

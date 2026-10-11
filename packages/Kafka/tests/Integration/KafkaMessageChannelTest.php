@@ -11,7 +11,6 @@ use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
@@ -399,7 +398,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: $messageGroupId = $topicName
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -464,7 +462,6 @@ final class KafkaMessageChannelTest extends TestCase
                         channelName: $channelName,
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -502,7 +499,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: $messageGroupId = 'predefined_group_id',
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -596,7 +592,6 @@ final class KafkaMessageChannelTest extends TestCase
                         ->withCommitInterval(1),
                     \Ecotone\Api\ExtensionObject\DistributedServiceMap::initialize()
                         ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -618,7 +613,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: 'consumer1' // Each consumer needs its own consumer group
                     )
                         ->withCommitInterval(1),
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -640,7 +634,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: 'consumer2' // Each consumer needs its own consumer group
                     )
                         ->withCommitInterval(1),
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

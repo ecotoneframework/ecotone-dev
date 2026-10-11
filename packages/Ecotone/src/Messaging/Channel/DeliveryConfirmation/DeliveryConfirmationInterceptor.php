@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Support\MessageBuilder;
 

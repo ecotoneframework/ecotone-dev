@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ObjectManager;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\StateStoredRepository;
 use Interop\Queue\ConnectionFactory;
 
 /**

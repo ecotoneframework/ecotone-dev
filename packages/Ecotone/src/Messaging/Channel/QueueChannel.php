@@ -3,9 +3,9 @@
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\LicensingException;

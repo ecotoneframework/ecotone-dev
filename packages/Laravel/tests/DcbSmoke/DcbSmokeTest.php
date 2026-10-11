@@ -76,6 +76,21 @@ final class DcbSmokeTest extends TestCase
         $commandBus->send(new IssueCoupon('SUMMER24', 1));
     }
 
+    public function test_the_bare_initialize_flag_the_missing_table_message_names_creates_the_tables(): void
+    {
+        $this->dropEcotoneTables();
+
+        $this->app->make(ConsoleKernel::class)->call('ecotone:migration:database:setup --initialize');
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->app->make(CommandBus::class);
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+
+        $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
     private function dropEcotoneTables(): void
     {
         $connection = $this->app->make(DbalConnectionFactory::class)->createContext()->getDbalConnection();

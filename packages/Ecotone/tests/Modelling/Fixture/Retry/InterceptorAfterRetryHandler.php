@@ -6,12 +6,12 @@ namespace Test\Ecotone\Modelling\Fixture\Retry;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use RuntimeException;
 
 /**

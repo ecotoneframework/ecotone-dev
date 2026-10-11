@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit;
 
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\BatchMessage;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 

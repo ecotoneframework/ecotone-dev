@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
@@ -23,7 +24,6 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantHeaderResolver;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ChannelAdapter;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
@@ -122,10 +122,12 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($this->invalidTenantResolverPlacements !== []) {
-            throw ConfigurationException::create(sprintf(
-                'WithTenantResolver attribute on %s is invalid. WithTenantResolver may only be applied to inbound channel adapter methods (e.g. #[KafkaConsumer], #[AmqpConsumer], #[Scheduled]) where messages may arrive from outside the application without a tenant header. Internal Message Channels — including those used by synchronous and asynchronous CommandHandler / EventHandler / QueryHandler / InternalHandler handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. If an asynchronous handler is processing externally-arrived messages, attach #[WithTenantResolver] to the inbound channel adapter that produces those messages, not to the handler.',
-                implode(', ', $this->invalidTenantResolverPlacements)
-            ));
+            $placements = implode(', ', $this->invalidTenantResolverPlacements);
+            throw ConfigurationException::create(
+                "#[WithTenantResolver] on {$placements} is invalid: it may only be placed on an inbound channel adapter method — #[KafkaConsumer], #[RabbitConsumer] or #[Scheduled] — where messages arrive from outside the application without a tenant header. "
+                . 'Internal Message Channels — including those used by synchronous and asynchronous #[CommandHandler] / #[EventHandler] / #[QueryHandler] / #[InternalHandler] handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. '
+                . "Remove #[WithTenantResolver] from {$placements}; if the handler processes messages that arrive from outside the application, place it on the #[KafkaConsumer], #[RabbitConsumer] or #[Scheduled] method that receives them instead."
+            );
         }
 
         if ($this->tenantResolverPlacements !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {

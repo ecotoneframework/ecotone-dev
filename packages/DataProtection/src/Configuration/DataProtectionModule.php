@@ -9,6 +9,9 @@ namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\DataProtection\ChannelProtectionConfiguration;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\Api\DataProtection\Sensitive;
 use Ecotone\Api\DataProtection\WithEncryptionKey;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -22,7 +25,6 @@ use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
-use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

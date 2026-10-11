@@ -1,7 +1,9 @@
 <?php
 
-namespace Ecotone\DataProtection\Encryption;
+namespace Ecotone\Api\DataProtection;
 
+use Ecotone\DataProtection\Encryption\Core;
+use Ecotone\DataProtection\Encryption\Encoding;
 use Ecotone\DataProtection\Encryption\Exception\BadFormatException;
 use Ecotone\DataProtection\Encryption\Exception\CryptoException;
 use Ecotone\DataProtection\Encryption\Exception\EnvironmentIsBrokenException;

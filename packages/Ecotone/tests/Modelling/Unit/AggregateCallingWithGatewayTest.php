@@ -6,7 +6,7 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Modelling\AggregateNotFoundException;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateWithGateway\Bucket;

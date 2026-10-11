@@ -6,7 +6,7 @@ namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 use Doctrine\DBAL\Exception\RetryableException;
-use Ecotone\Messaging\Support\ConcurrencyException;
+use Ecotone\Api\Messaging\ConcurrencyException;
 
 /**
  * licence Enterprise

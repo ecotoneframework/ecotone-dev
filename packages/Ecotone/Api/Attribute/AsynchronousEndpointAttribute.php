@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Attribute;
+namespace Ecotone\Api\Attribute;
 
 /**
  * licence Apache-2.0

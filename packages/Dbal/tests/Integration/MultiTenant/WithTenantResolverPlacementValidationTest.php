@@ -51,6 +51,26 @@ final class WithTenantResolverPlacementValidationTest extends TestCase
         $this->bootstrap([$service::class], [$service]);
     }
 
+    public function test_refusal_names_every_inbound_channel_adapter_the_resolver_may_move_to(): void
+    {
+        $service = new class () {
+            #[CommandHandler('invalidPlacement')]
+            #[WithTenantResolver(expression: "headers['source']")]
+            public function handle(string $payload): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(
+            '#[WithTenantResolver] on ' . $service::class . '::handle is invalid: it may only be placed on an inbound channel adapter method — #[KafkaConsumer], #[RabbitConsumer] or #[Scheduled] — where messages arrive from outside the application without a tenant header. '
+            . 'Internal Message Channels — including those used by synchronous and asynchronous #[CommandHandler] / #[EventHandler] / #[QueryHandler] / #[InternalHandler] handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. '
+            . 'Remove #[WithTenantResolver] from ' . $service::class . '::handle; if the handler processes messages that arrive from outside the application, place it on the #[KafkaConsumer], #[RabbitConsumer] or #[Scheduled] method that receives them instead.'
+        );
+
+        $this->bootstrap([$service::class], [$service]);
+    }
+
     public function test_throws_when_tenant_resolver_placed_on_event_handler(): void
     {
         $service = new class () {

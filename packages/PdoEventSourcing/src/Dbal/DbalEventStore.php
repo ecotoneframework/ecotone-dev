@@ -26,6 +26,7 @@ use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -39,7 +40,6 @@ use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function implode;

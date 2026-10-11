@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\EventSourcing;
 
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTag;
-use Ecotone\Messaging\Support\ConcurrencyException;
 
 use function implode;
 use function sprintf;

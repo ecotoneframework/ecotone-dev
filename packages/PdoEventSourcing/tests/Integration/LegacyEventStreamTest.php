@@ -88,7 +88,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrap();
 
-        $this->expectException(\Ecotone\Messaging\Support\ConcurrencyException::class);
+        $this->expectException(\Ecotone\Api\Messaging\ConcurrencyException::class);
 
         $ecotone->getGateway(EventStore::class)->appendTo(LegacyOrder::LEGACY_STREAM_NAME, [
             \Ecotone\Api\EventSourcing\Event::createWithType(

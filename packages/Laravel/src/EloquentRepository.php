@@ -2,7 +2,7 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Modelling\StateStoredRepository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Illuminate\Database\Eloquent\Model;
 
 /**

@@ -4,9 +4,8 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection\Configuration;
+namespace Ecotone\Api\DataProtection;
 
-use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Messaging\Support\Assert;
 
 class DataProtectionConfiguration

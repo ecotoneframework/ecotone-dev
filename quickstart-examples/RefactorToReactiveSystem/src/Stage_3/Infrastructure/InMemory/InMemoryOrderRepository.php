@@ -8,7 +8,7 @@ use App\ReactiveSystem\Stage_3\Domain\Order\Order;
 use App\ReactiveSystem\Stage_3\Domain\Order\OrderRepository;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Api\Attribute\Repository;
-use Ecotone\Modelling\StateStoredRepository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Ramsey\Uuid\UuidInterface;
 
 #[Repository]

@@ -1702,8 +1702,7 @@ forwarded metadata with framework keys stripped keeps the keys it set itself, by
 
 Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
-moved together later, in §13e. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d
-says why. The rule this closes is
+moved together later, in §13e. `ErrorMessage` moved last, in §13i. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13d. `MetadataMatcher`, the clock's types, `Future`, `ErrorContext`, `LoggingLevel` and `FetchMode` moved into `Api` too
@@ -1773,10 +1772,9 @@ The namespace `FetchMode` left is renamed too: `Ecotone\Dbal\DbaBusinessMethod` 
 is internal — the module, `DbalBusinessMethodHandler` and `DbalParameterConfig` — so an application only ever met
 the old name through `FetchMode`; the three rows are in the namespace map for code that named them anyway.
 
-`ErrorMessage` stays `Ecotone\Messaging\Support\ErrorMessage`, now returning the public `ErrorContext` from
-`getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`,
-like `Handler\Type` and `MessageChannelBuilder`, is still internal while public signatures name it — those three are
-awaiting a separate decision. The rule this closes is
+`ErrorMessage` stayed `Ecotone\Messaging\Support\ErrorMessage` at this step, now returning the public `ErrorContext`
+from `getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`
+was then still internal; once `Message` moved (§13g), `ErrorMessage` followed it (§13i). The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13e. `EcotoneLite`, `FlowTestSupport`, `ConfiguredMessagingSystem` and the channel interfaces moved into `Api` — two container ids change with them
@@ -1993,11 +1991,12 @@ Unknown type or class 'Ecotone\Messaging\Message'`. Fix the import.
 parameter or a reply is the whole message, and that follows the import. Clear Ecotone's cache on deploy all the same,
 in the directories §13e lists, because a compiled container records parameter types by name.
 
-**What stays internal:** the implementations — `GenericMessage`, `ErrorMessage` and `MessageBuilder`, in
-`Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. Two of them
-an application still meets: an error-channel handler can type its parameter `ErrorMessage`, and a test that calls
-`sendMessageDirectToChannel()` builds its `Message` with `MessageBuilder`, since `Api` has no way to construct one.
-Both are recorded as open, not changed by this move.
+**What stays internal:** the implementations — `GenericMessage` and `MessageBuilder`, in
+`Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. One of them
+an application still meets: a test that calls `sendMessageDirectToChannel()` builds its `Message` with
+`MessageBuilder`, since `Api` has no way to construct one — recorded as open, not changed by this move. The third
+implementation, `ErrorMessage`, is one an application types its error-channel handler's parameter with, so it moved
+into `Api` (§13i).
 
 ### 13h. `MessageChannelBuilder` moved into `Api`
 
@@ -2030,6 +2029,46 @@ implementing it needs only the import.
 
 **What stays internal:** `CompilableBuilder`, which it extends, and `MessageChannelWithSerializationBuilder`, which
 extends it. Only the framework calls what they add — `compile()`, `getConversionMediaType()`, `getHeaderMapper()`.
+
+### 13i. `ErrorMessage` moved into `Api`
+
+**Before:** an error-channel handler that wants the failure as a typed object, rather than reading `ErrorContext`'s
+header keys itself, types its parameter `ErrorMessage`, and that class was internal:
+
+```php
+use Ecotone\Messaging\Support\ErrorMessage;   // internal
+```
+
+**Now:** it sits beside the `Message` it implements and the `ErrorContext` its `getErrorContext()` returns:
+
+```php
+use Ecotone\Api\Messaging\ErrorMessage;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Support\ErrorMessage` | `Ecotone\Api\Messaging\ErrorMessage` |
+
+Nothing it names had to move with it: `Message`, `MessageHeaders` and `ErrorContext` were already in `Api`.
+
+**How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same methods —
+`getErrorContext()`, `getExceptionMessage()` and the other `getException…()` accessors, `getHeaders()`, `getPayload()`:
+
+```php
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Messaging\ErrorMessage;
+
+final class ErrorHandler
+{
+    #[InternalHandler('errorChannel')]
+    public function handle(ErrorMessage $errorMessage): void
+    {
+    }
+}
+```
+
+A parameter still typed with the old name is refused at bootstrap, as §13g describes for `Message`, naming the class
+it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 
 ## 14. Smaller behaviour changes
 

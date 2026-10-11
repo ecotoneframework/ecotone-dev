@@ -1,18 +1,12 @@
 <?php
 
-namespace Ecotone\Messaging\Support;
+namespace Ecotone\Api\Messaging;
 
-use Ecotone\Api\Messaging\ErrorContext;
-use Ecotone\Api\Messaging\Message;
-use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Messaging\Support\MessageDescription;
 use Throwable;
 
-/**
- * Class ErrorMessage where payload is thrown exception
- * @package Ecotone\Messaging\Support
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
 /**
  * licence Apache-2.0
  */

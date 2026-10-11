@@ -115,7 +115,7 @@ public function ordersPolling(): PollingMetadata
 
 ```php
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Support\ErrorMessage;
+use Ecotone\Api\Messaging\ErrorMessage;
 
 class ErrorProcessor
 {

@@ -25,18 +25,6 @@ parameters:
 			path: Monorepo/CrossModuleTests/Tests/MessagingTestCase.php
 
 		-
-			message: '#^Cannot access an offset on Ecotone\\Messaging\\Support\\ErrorMessage\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 2
-			path: Monorepo/ExampleApp/Common/Infrastructure/ErrorChannelService.php
-
-		-
-			message: '#^Property Monorepo\\ExampleApp\\Common\\Infrastructure\\ErrorChannelService\:\:\$errorMessages \(array\<Ecotone\\Messaging\\Support\\ErrorMessage\>\) does not accept default value of type array\<string, array\>\.$#'
-			identifier: property.defaultValue
-			count: 1
-			path: Monorepo/ExampleApp/Common/Infrastructure/ErrorChannelService.php
-
-		-
 			message: '#^Call to an undefined method Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\:\:withPublisherConfirms\(\)\.$#'
 			identifier: method.notFound
 			count: 1

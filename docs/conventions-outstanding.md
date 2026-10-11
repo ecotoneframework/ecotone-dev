@@ -451,3 +451,12 @@ Rule 4 (0 confirmed; 11 mechanically flagged, all false positives or exempt on t
 (0 violations, full walk), rule 14 in production code (`#[ConsoleParameterOption]` has no name override, so the rule
 is structurally unviolable — the only violations were in `upgrade-2.0.md`, fixed), and rule 6's 271 legacy inline
 comments plus 789 legacy prose docblocks (grandfathered by the rule's own text; only the fresh ones were actioned).
+
+`ecotone/dbal` in the `require-dev` of Laravel, Symfony and Tempest is kept on purpose, not a cross-package test edge
+to remove (wave 14). Their production code names `Ecotone\Dbal` behind `class_exists` guards — the connection
+resolvers, the connection modules and the tenant database switchers — so each package's own phpstan needs its
+symbols. That is the pattern `packages/Dbal` already follows for `doctrine/orm`: `ManagerRegistryEmulator.php:174`
+and `:187` guard `ORMSetup`/`Setup`, `EntityManagerRegistryEmulator` and `ObjectManagerInterceptor` name it too, and
+`doctrine/orm` sits in Dbal's `require-dev`. What keeps DBAL optional is the bootstrap refusal of a connection
+reference without it, proved in every runner by `LaravelConnectionWithoutDbalTest`, `SymfonyConnectionWithoutDbalTest`
+and `TempestConnectionWithoutDbalTest`, which hide `Ecotone\Dbal` from the autoloader in a separate process.

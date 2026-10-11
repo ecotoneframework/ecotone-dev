@@ -94,6 +94,19 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
         self::assertSame([[1], [2], [3], [4], [5]], $projection->batches);
     }
 
+    public function test_refilling_a_stream_before_returning_later_events_from_another_stream(): void
+    {
+        $projection = $this->createOrderingProjection(batchSize: 20);
+        $ecotone = $this->bootstrapEcotone($projection);
+
+        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', range(1, 25));
+        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [30, 31]);
+
+        $ecotone->triggerProjection($projection::NAME);
+
+        self::assertSame([range(1, 20), [...range(21, 25), 30, 31]], $projection->batches);
+    }
+
     public function test_preserving_stream_order_when_timestamps_decrease(): void
     {
         $projection = $this->createOrderingProjection(batchSize: 2);
@@ -153,6 +166,27 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
                 }
             },
             2 => new #[Projection('ordered_multi_stream_projection'), ProjectionExecution(2), FromStream('ordered_stream_a'), FromStream('ordered_stream_b')] class () {
+                public const NAME = 'ordered_multi_stream_projection';
+
+                public array $sequences = [];
+                public array $batches = [];
+                private array $currentBatch = [];
+
+                #[EventHandler('ordered.event')]
+                public function record(array $event): void
+                {
+                    $this->sequences[] = $event['sequence'];
+                    $this->currentBatch[] = $event['sequence'];
+                }
+
+                #[ProjectionFlush]
+                public function flush(): void
+                {
+                    $this->batches[] = $this->currentBatch;
+                    $this->currentBatch = [];
+                }
+            },
+            20 => new #[Projection('ordered_multi_stream_projection'), ProjectionExecution(20), FromStream('ordered_stream_a'), FromStream('ordered_stream_b')] class () {
                 public const NAME = 'ordered_multi_stream_projection';
 
                 public array $sequences = [];

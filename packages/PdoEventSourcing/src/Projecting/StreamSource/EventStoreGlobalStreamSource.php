@@ -76,10 +76,9 @@ class EventStoreGlobalStreamSource implements StreamSource
     }
 
     /**
-     * @param \Ecotone\Projecting\StreamFilter[] $streamFilters
      * @return StreamEvent[]
      */
-    private function loadTableEvents(Connection $connection, string $streamTable, array $streamFilters, GapAwarePosition $tracking, int $count): array
+    private function loadTableEvents(Connection $connection, string $streamTable, GapAwarePosition $tracking, int $count): array
     {
         $quotedTable = EventStreamSchemaFactory::for($connection)->quoteIdentifier($streamTable);
         [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
@@ -87,38 +86,28 @@ class EventStoreGlobalStreamSource implements StreamSource
             false => ['', [], []],
         };
 
-        $scanPosition = clone $tracking;
-        $events = [];
         try {
-            do {
-                $query = $connection->executeQuery(<<<SQL
-                    SELECT no, event_name, payload, metadata, created_at
-                        FROM {$quotedTable}
-                        WHERE no > :position {$gapQueryPart}
-                    ORDER BY no
-                    LIMIT {$count}
-                    SQL, [
-                    'position' => $scanPosition->getPosition(),
-                    ...$gapQueryPartParams,
-                ], $gapQueryPartParamTypes);
+            $query = $connection->executeQuery(<<<SQL
+                SELECT no, event_name, payload, metadata, created_at
+                    FROM {$quotedTable}
+                    WHERE no > :position {$gapQueryPart}
+                ORDER BY no
+                LIMIT {$count}
+                SQL, [
+                'position' => $tracking->getPosition(),
+                ...$gapQueryPartParams,
+            ], $gapQueryPartParamTypes);
 
-                $scannedRows = 0;
-                $hasMatchingEvent = false;
-                foreach ($query->iterateAssociative() as $row) {
-                    $scannedRows++;
-                    $event = new StreamEvent(
-                        $row['event_name'],
-                        json_decode($row['payload'], true),
-                        json_decode($row['metadata'], true) ?? [],
-                        (int) $row['no'],
-                        $this->getTimestamp($row['created_at'])
-                    );
-                    $events[] = $event;
-                    $hasMatchingEvent = $hasMatchingEvent || $this->matchesAnyFilter($streamFilters, $event->getEventName(), $event->getMetadata());
-                    $scanPosition->advanceTo($event->no, false);
-                }
-                [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = ['', [], []];
-            } while (! $hasMatchingEvent && $scannedRows === $count);
+            $events = [];
+            foreach ($query->iterateAssociative() as $row) {
+                $events[] = new StreamEvent(
+                    $row['event_name'],
+                    json_decode($row['payload'], true),
+                    json_decode($row['metadata'], true) ?? [],
+                    (int) $row['no'],
+                    $this->getTimestamp($row['created_at'])
+                );
+            }
         } catch (TableNotFoundException) {
             throw $this->missingEventStreamTable->exceptionFor($streamTable);
         }
@@ -180,7 +169,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         $offsets = [];
         foreach ($filtersByTable as $streamTable => $tableFilters) {
             $tracking[$streamTable] = GapAwarePosition::fromString($positions[$streamTable] ?? null);
-            $tableEvents[$streamTable] = $this->loadTableEvents($connection, $streamTable, $tableFilters, $tracking[$streamTable], $limit);
+            $tableEvents[$streamTable] = $this->loadTableEvents($connection, $streamTable, $tracking[$streamTable], $limit);
             $offsets[$streamTable] = 0;
         }
 
@@ -189,8 +178,17 @@ class EventStoreGlobalStreamSource implements StreamSource
             $nextEvent = null;
             $nextTable = null;
             foreach ($filtersByTable as $streamTable => $tableFilters) {
-                while (($candidate = $tableEvents[$streamTable][$offsets[$streamTable]] ?? null) !== null
-                    && ! $this->matchesAnyFilter($tableFilters, $candidate->getEventName(), $candidate->getMetadata())) {
+                while (true) {
+                    $candidate = $tableEvents[$streamTable][$offsets[$streamTable]] ?? null;
+                    if ($candidate === null && count($tableEvents[$streamTable]) === $limit) {
+                        $tableEvents[$streamTable] = $this->loadTableEvents($connection, $streamTable, $tracking[$streamTable], $limit);
+                        $offsets[$streamTable] = 0;
+                        continue;
+                    }
+                    if ($candidate === null || $this->matchesAnyFilter($tableFilters, $candidate->getEventName(), $candidate->getMetadata())) {
+                        break;
+                    }
+
                     $tracking[$streamTable]->advanceTo($candidate->no, $candidate->timestamp > $cutoffTimestamp);
                     $offsets[$streamTable]++;
                 }

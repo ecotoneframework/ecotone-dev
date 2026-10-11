@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
-use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
 use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;

@@ -208,3 +208,6 @@ Ecotone\Messaging\Support\ConcurrencyException,Ecotone\Api\Messaging\Concurrency
 Ecotone\Modelling\AggregateNotFoundException,Ecotone\Api\Modelling\AggregateNotFoundException
 Ecotone\Messaging\Config\ConnectionReference,Ecotone\Api\ExtensionObject\ConnectionReference
 Ecotone\Amqp\AmqpStreamChannelBuilder,Ecotone\Api\Amqp\AmqpStreamChannelBuilder
+Ecotone\Amqp\AmqpQueue,Ecotone\Api\Amqp\AmqpQueue
+Ecotone\Amqp\AmqpExchange,Ecotone\Api\Amqp\AmqpExchange
+Ecotone\Amqp\AmqpBinding,Ecotone\Api\Amqp\AmqpBinding

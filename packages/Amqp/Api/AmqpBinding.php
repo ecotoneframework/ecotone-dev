@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Amqp;
+namespace Ecotone\Api\Amqp;
 
 use Ecotone\Messaging\Support\Assert;
 use Interop\Amqp\Impl\AmqpBind as EnqueueBinding;

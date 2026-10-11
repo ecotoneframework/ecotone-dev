@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use AMQPQueueException;
-use Ecotone\Amqp\AmqpBinding;
-use Ecotone\Amqp\AmqpExchange;
-use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;

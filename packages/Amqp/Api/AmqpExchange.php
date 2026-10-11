@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Amqp;
+namespace Ecotone\Api\Amqp;
 
 use Interop\Amqp\AmqpTopic as EnqueueExchange;
 

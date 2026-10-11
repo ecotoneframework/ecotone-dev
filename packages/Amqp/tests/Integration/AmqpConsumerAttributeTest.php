@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;

@@ -144,6 +144,12 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   with `#[Polling(endpointId:)]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
   `#[ProjectionInitialization]`/`#[ProjectionReset]`/`#[ProjectionDelete]` keep their names and move to
   `Ecotone\Api`.
+- **Which of these need an Enterprise licence.** `#[Polling]`, `#[Streaming]`, `#[Partitioned]`,
+  `#[ProjectionDeployment]`, `#[ProjectionRebuild]` and an asynchronous `#[ProjectionBackfill]` are Enterprise, and a
+  projection using any of them is refused at bootstrap without a licence (`LicensingException`). A global projection,
+  synchronous or `#[Asynchronous]`, is open core, and so are all four `ecotone:projection:init|backfill|rebuild|delete`
+  commands — `ecotone:projection:rebuild` runs without a licence; `#[ProjectionRebuild]` only configures how a rebuild
+  is batched and which channel runs it.
 - Console: the `ecotone:es:*` commands are removed with no direct replacement for `reset-projection`,
   `trigger-projection` or `stop-projection`. The nearest v2 surface is `ecotone:projection:init|backfill|rebuild|delete`:
   `backfill` replays the stream into a projection from its current position, which is what `trigger-projection`

@@ -156,6 +156,18 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 3)]));
     }
 
+    public function test_deleting_a_stream_whose_tag_tables_were_never_created_deletes_the_stream(): void
+    {
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
+        $ecotone->setupDatabaseTables();
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['feature' => [TagTableManager::FEATURE_NAME], 'force' => true]);
+        $eventStore = $ecotone->getGateway(EventStore::class);
+
+        $eventStore->delete('ecotone_event_stream');
+
+        self::assertFalse($eventStore->hasStream('ecotone_event_stream'));
+    }
+
     public function test_tag_values_are_case_sensitive(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);

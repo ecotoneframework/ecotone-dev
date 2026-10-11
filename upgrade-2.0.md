@@ -74,7 +74,9 @@ the offending `MultiTenantConfiguration` or attribute placement. Laravel's tenan
 Laravel-backed `MultiTenantConfiguration` exists and is licensed; Symfony and Tempest rely on the same core gate.
 
 **How to adapt:** Provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
-`ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). If you are not
+`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). The shipped Laravel
+config sets `'licenceKey' => null` and reads no environment variable; to keep the key in `.env`, write
+`'licenceKey' => env('ECOTONE_LICENCE_KEY')` into your published `config/ecotone.php`. If you are not
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
@@ -2226,7 +2228,7 @@ query handler, an asynchronous handler, an aggregate or saga handler, a `#[Befor
 An application that runs open-core today with `#[Fetch]` on a handler nothing calls stops booting.
 
 **How to adapt:** provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
-`ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
+`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
 `#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
 with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
 

@@ -8,9 +8,9 @@ use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\AggregateNotFoundException;
 use WeakMap;
 
 /**

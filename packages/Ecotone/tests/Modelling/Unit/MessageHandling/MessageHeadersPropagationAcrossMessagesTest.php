@@ -11,7 +11,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Modelling\AggregateNotFoundException;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

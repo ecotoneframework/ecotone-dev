@@ -6,6 +6,7 @@ namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AggregateRepository;
 
 /**

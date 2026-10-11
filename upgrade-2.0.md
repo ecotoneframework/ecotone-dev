@@ -2111,6 +2111,7 @@ public signatures name, so no `Api` signature points back into `src`.
 | `Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration` | `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | returned from a `#[ServiceContext]` method, it is the one switch for automatic AMQP and SQS channel initialization |
 | `Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter` | `Ecotone\Api\Projecting\EventStreamingChannelAdapter` | returned from a `#[ServiceContext]` method, it feeds an event stream into a streaming channel (Enterprise) |
 | `Ecotone\Messaging\Support\ConcurrencyException` | `Ecotone\Api\Messaging\ConcurrencyException` | a custom repository throws `ConcurrencyException::forStaleAggregate()`, and retry configuration and `catch` blocks name it |
+| `Ecotone\Modelling\AggregateNotFoundException` | `Ecotone\Api\Modelling\AggregateNotFoundException` | thrown to the caller when a command or a `#[Repository]` lookup finds no aggregate; §14 tells applications which catches of it move |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **No container id changes** — none of these is a service

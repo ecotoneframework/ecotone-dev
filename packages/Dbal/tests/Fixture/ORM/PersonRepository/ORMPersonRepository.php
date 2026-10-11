@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\ORM\PersonRepository;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Modelling\AggregateNotFoundException;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 /**

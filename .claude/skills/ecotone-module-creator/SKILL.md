@@ -123,7 +123,7 @@ Steps:
 2. Rename the template module class to `<YourPackage>Module`
 3. Update namespace from template namespace to `Ecotone\<YourPackage>`
 4. Update `composer.json` (name, autoload)
-5. Register package in `ModulePackageList` (add constant + match case)
+5. Register package: constant in `ModulePackageList`, then `packageNames()` and the `forPackage()` match case in `ModuleClassList`
 6. Add to root `composer.json` for monorepo
 
 ## 5. Testing Modules

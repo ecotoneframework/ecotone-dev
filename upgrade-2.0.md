@@ -1682,6 +1682,24 @@ fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`,
 `Precedence` or `MessageHeaders` import fails as soon as the attribute or constant is read. `Event` stays
 extendable — its constructor is still `protected`.
 
+**The framework-only members did not come with them.** `MessageHeaders` and `ModulePackageList` moved because an
+application names their constants; their static helpers are module and transport plumbing that only Ecotone calls,
+so they left the public classes:
+
+| Removed from `Api` | Now |
+|---|---|
+| `MessageHeaders::unsetAllFrameworkHeaders()`, `unsetNonUserKeys()`, `unsetEnqueueMetadata()`, `unsetAggregateKeys()`, `propagateContextHeaders()` | internal, `Ecotone\Messaging\Support\FrameworkHeaders` |
+| `MessageHeaders::getFrameworksHeaderNames()`, `unsetCoreFrameworkHeaders()`, `unsetAsyncKeys()`, `unsetDistributionKeys()`, `unsetBusKeys()` | internal and private to `FrameworkHeaders` |
+| `MessageHeaders::unsetFrameworkKeys()`, `unsetTransportMessageKeys()` | gone — nothing called them |
+| `ModulePackageList::allPackages()` | internal, `Ecotone\Messaging\Config\ModuleClassList::packageNames()`, which now includes `TEST_PACKAGE` |
+| `ModulePackageList::getModuleClassesForPackage()` | internal, `ModuleClassList::forPackage()` |
+
+**How to adapt:** nothing, unless you called one of them. The set of keys Ecotone treats as its own is not a contract
+and changes between releases, so do not re-create these filters from the internal class: an application that
+forwarded metadata with framework keys stripped keeps the keys it set itself, by name —
+`array_intersect_key($metadata, array_flip(['tenantId', 'userId']))`. Code that listed every package to build a
+`withModulePackages()` argument names the packages it needs instead, as `ModulePackageList` constants.
+
 Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
 moved together later, in §13e. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d

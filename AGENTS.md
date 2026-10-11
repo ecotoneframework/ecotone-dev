@@ -77,8 +77,8 @@ Every directory under `packages/` is a separate Composer package with its own `c
   cross-package change needs tests in both packages
 - Splits are managed by `symplify/monorepo-builder` (`monorepo-builder.php`)
 - Template for a new package: `_PackageTemplate/`. Registering it also means adding its name to
-  `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`) and its module class to the right
-  `ModuleClassList` constant
+  `ModulePackageList` (`Ecotone\Api\ExtensionObject\ModulePackageList`), to `ModuleClassList::packageNames()` and
+  `ModuleClassList::forPackage()`, and its module class to the right `ModuleClassList` constant
 
 ## Code Conventions
 

@@ -8,6 +8,7 @@ use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\Amqp\Configuration\RabbitConsumerModule;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\Amqp\Transaction\AmqpTransactionModule;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
@@ -26,7 +27,6 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\Config\EventSourcingProjectingModule;
 use Ecotone\EventSourcing\Tagging\Config\EventTaggingModule;
-use Ecotone\Modelling\DecisionModel\Config\DecisionModelModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Kafka\Configuration\KafkaModule;
@@ -67,6 +67,7 @@ use Ecotone\Modelling\Config\InstantRetry\InstantRetryAttributeModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Modelling\Config\ServiceHandlerModule;
+use Ecotone\Modelling\DecisionModel\Config\DecisionModelModule;
 use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedBusWithServiceMapModule;
 use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedHandlerModule;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -221,4 +222,51 @@ class ModuleClassList
     public const DATA_PROTECTION_MODULES = [
         DataProtectionModule::class,
     ];
+
+    /**
+     * @return string[]
+     */
+    public static function forPackage(string $packageName): array
+    {
+        return match ($packageName) {
+            ModulePackageList::CORE_PACKAGE => self::CORE_MODULES,
+            ModulePackageList::AMQP_PACKAGE => self::AMQP_MODULES,
+            ModulePackageList::DBAL_PACKAGE => self::DBAL_MODULES,
+            ModulePackageList::REDIS_PACKAGE => self::REDIS_MODULES,
+            ModulePackageList::SQS_PACKAGE => self::SQS_MODULES,
+            ModulePackageList::KAFKA_PACKAGE => self::KAFKA_MODULES,
+            ModulePackageList::EVENT_SOURCING_PACKAGE => self::EVENT_SOURCING_MODULES,
+            ModulePackageList::JMS_CONVERTER_PACKAGE => self::JMS_CONVERTER_MODULES,
+            ModulePackageList::TRACING_PACKAGE => self::TRACING_MODULES,
+            ModulePackageList::TEST_PACKAGE => self::TEST_MODULES,
+            ModulePackageList::LARAVEL_PACKAGE => self::LARAVEL_MODULES,
+            ModulePackageList::SYMFONY_PACKAGE => self::SYMFONY_MODULES,
+            ModulePackageList::TEMPEST_PACKAGE => self::TEMPEST_MODULES,
+            ModulePackageList::DATA_PROTECTION_PACKAGE => self::DATA_PROTECTION_MODULES,
+            default => throw ConfigurationException::create(sprintf('Given unknown package name %s. Available packages name are: %s', $packageName, implode(',', self::packageNames())))
+        };
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function packageNames(): array
+    {
+        return [
+            ModulePackageList::CORE_PACKAGE,
+            ModulePackageList::AMQP_PACKAGE,
+            ModulePackageList::REDIS_PACKAGE,
+            ModulePackageList::SQS_PACKAGE,
+            ModulePackageList::KAFKA_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,
+            ModulePackageList::EVENT_SOURCING_PACKAGE,
+            ModulePackageList::JMS_CONVERTER_PACKAGE,
+            ModulePackageList::TRACING_PACKAGE,
+            ModulePackageList::LARAVEL_PACKAGE,
+            ModulePackageList::SYMFONY_PACKAGE,
+            ModulePackageList::TEMPEST_PACKAGE,
+            ModulePackageList::DATA_PROTECTION_PACKAGE,
+            ModulePackageList::TEST_PACKAGE,
+        ];
+    }
 }

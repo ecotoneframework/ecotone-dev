@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModuleClassList;
-
 /**
  * licence Apache-2.0
  */
@@ -26,47 +23,4 @@ final class ModulePackageList
     public const SYMFONY_PACKAGE = 'symfony';
     public const TEMPEST_PACKAGE = 'tempest';
     public const TEST_PACKAGE = 'test';
-
-    public static function getModuleClassesForPackage(string $packageName): array
-    {
-        return match ($packageName) {
-            ModulePackageList::CORE_PACKAGE => ModuleClassList::CORE_MODULES,
-            ModulePackageList::AMQP_PACKAGE => ModuleClassList::AMQP_MODULES,
-            ModulePackageList::DBAL_PACKAGE => ModuleClassList::DBAL_MODULES,
-            ModulePackageList::REDIS_PACKAGE => ModuleClassList::REDIS_MODULES,
-            ModulePackageList::SQS_PACKAGE => ModuleClassList::SQS_MODULES,
-            ModulePackageList::KAFKA_PACKAGE => ModuleClassList::KAFKA_MODULES,
-            ModulePackageList::EVENT_SOURCING_PACKAGE => ModuleClassList::EVENT_SOURCING_MODULES,
-            ModulePackageList::JMS_CONVERTER_PACKAGE => ModuleClassList::JMS_CONVERTER_MODULES,
-            ModulePackageList::TRACING_PACKAGE => ModuleClassList::TRACING_MODULES,
-            ModulePackageList::TEST_PACKAGE => ModuleClassList::TEST_MODULES,
-            ModulePackageList::LARAVEL_PACKAGE => ModuleClassList::LARAVEL_MODULES,
-            ModulePackageList::SYMFONY_PACKAGE => ModuleClassList::SYMFONY_MODULES,
-            ModulePackageList::TEMPEST_PACKAGE => ModuleClassList::TEMPEST_MODULES,
-            ModulePackageList::DATA_PROTECTION_PACKAGE => ModuleClassList::DATA_PROTECTION_MODULES,
-            default => throw ConfigurationException::create(sprintf('Given unknown package name %s. Available packages name are: %s', $packageName, implode(',', self::allPackages())))
-        };
-    }
-
-    /**
-     * @return string[]
-     */
-    public static function allPackages(): array
-    {
-        return [
-            self::CORE_PACKAGE,
-            self::AMQP_PACKAGE,
-            self::REDIS_PACKAGE,
-            self::SQS_PACKAGE,
-            self::KAFKA_PACKAGE,
-            self::DBAL_PACKAGE,
-            self::EVENT_SOURCING_PACKAGE,
-            self::JMS_CONVERTER_PACKAGE,
-            self::TRACING_PACKAGE,
-            self::LARAVEL_PACKAGE,
-            self::SYMFONY_PACKAGE,
-            self::TEMPEST_PACKAGE,
-            self::DATA_PROTECTION_PACKAGE,
-        ];
-    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ModuleClassList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Support\Assert;
 
@@ -234,7 +235,7 @@ class ServiceConfiguration
      */
     public function withModulePackages(array $packagesToLoad): self
     {
-        $availablePackages = array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]);
+        $availablePackages = ModuleClassList::packageNames();
         $packagesToLoad[] = ModulePackageList::CORE_PACKAGE;
         $this->skippedModulesPackages = array_values(array_diff($availablePackages, array_unique($packagesToLoad)));
         $this->areSkippedPackagesDefined = true;

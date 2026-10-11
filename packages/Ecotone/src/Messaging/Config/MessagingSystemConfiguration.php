@@ -275,8 +275,8 @@ final class MessagingSystemConfiguration implements Configuration
     public static function getModuleClassesFor(ServiceConfiguration $serviceConfiguration): array
     {
         $modulesClasses = [];
-        foreach (array_diff(array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]), $serviceConfiguration->getSkippedModulesPackages()) as $availablePackage) {
-            $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));
+        foreach (array_diff(ModuleClassList::packageNames(), $serviceConfiguration->getSkippedModulesPackages()) as $availablePackage) {
+            $modulesClasses = array_merge($modulesClasses, ModuleClassList::forPackage($availablePackage));
         }
 
         return array_filter($modulesClasses, fn (string $moduleClassName): bool => class_exists($moduleClassName) || interface_exists($moduleClassName));
@@ -292,7 +292,7 @@ final class MessagingSystemConfiguration implements Configuration
             $skippedPackages[] = ModulePackageList::TEST_PACKAGE;
         }
 
-        $availablePackages = array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]);
+        $availablePackages = ModuleClassList::packageNames();
 
         return $serviceConfiguration->withModulePackages(array_diff($availablePackages, array_diff($skippedPackages, $requiredModules)));
     }

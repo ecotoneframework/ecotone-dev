@@ -840,9 +840,10 @@ naming its class, constructor arguments and optional factory. `LicenceDecider::p
 `ExpressionLocation::definitionFor*()` are the patterns to copy.
 
 **Module registration is explicit, not discovered.** A new module class must be added to the right
-`ModuleClassList` constant, and a new package's name to `ModulePackageList` (constant, `allPackages()`, and the
-`getModuleClassesForPackage()` match arm). `ModulePackageList` is `Ecotone\Api\ExtensionObject\ModulePackageList`,
-because an application names its constants in `ServiceConfiguration::withModulePackages()`. Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
+`ModuleClassList` constant, and a new package's name to `ModulePackageList` (the constant) and to `ModuleClassList`
+(`packageNames()`, and the `forPackage()` match arm). `ModulePackageList` is `Ecotone\Api\ExtensionObject\ModulePackageList`,
+because an application names its constants in `ServiceConfiguration::withModulePackages()`; the lookups only the
+framework calls stay in the internal `ModuleClassList` (rule 12a). Modules implement `AnnotationModule`, carry `#[ModuleAnnotation]`, and
 are `final`. The `ecotone-module-creator` skill has the full scaffold — including the `NoExternalConfigurationModule`
 base class and the `AnnotationFinder` API — and is the place to look rather than this file.
 

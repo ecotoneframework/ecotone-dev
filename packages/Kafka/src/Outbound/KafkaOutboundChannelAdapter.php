@@ -233,4 +233,9 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             throw MessagePublishingException::create('Failed to send message to Kafka');
         }
     }
+
+    public function __toString(): string
+    {
+        return "kafka outbound: {$this->referenceName}";
+    }
 }

@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\AggregateNotFoundException;
 use WeakMap;
@@ -37,7 +38,7 @@ class MessageHeadersPropagatorInterceptor
         if ($propagateHeaders !== null && ! $propagateHeaders->doPropagation()) {
             $userlandHeaders = [];
         } else {
-            $userlandHeaders = MessageHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
+            $userlandHeaders = FrameworkHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
             unset(
                 $userlandHeaders[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER],
                 $userlandHeaders[AggregateMessage::AGGREGATE_ID],
@@ -89,7 +90,7 @@ class MessageHeadersPropagatorInterceptor
             return $headers;
         }
 
-        return MessageHeaders::propagateContextHeaders($this->getLastHeaders(), $headers);
+        return FrameworkHeaders::propagateContextHeaders($this->getLastHeaders(), $headers);
     }
 
     /**

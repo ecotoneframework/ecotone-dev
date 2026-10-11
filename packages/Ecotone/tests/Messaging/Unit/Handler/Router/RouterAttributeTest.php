@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\WrongHandlerAmountException;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use PHPUnit\Framework\TestCase;
 
@@ -65,6 +66,39 @@ final class RouterAttributeTest extends TestCase
         $ecotone->sendDirectToChannel(NotRequiredRouterHandler::ROUTER_CHANNEL, 'some');
 
         $this->assertFalse($handler->buyChannelCalled);
+    }
+
+    public function test_a_router_sharing_its_direct_input_channel_with_another_handler_is_refused_naming_both(): void
+    {
+        $fixture = new class () {
+            #[Router('router.shared')]
+            public function pick(string $payload): string
+            {
+                return 'router.target';
+            }
+
+            #[InternalHandler('router.shared')]
+            public function handle(string $payload): void
+            {
+            }
+
+            #[InternalHandler('router.target')]
+            public function target(string $payload): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
+
+        try {
+            $ecotone->sendDirectToChannel('router.shared', 'some');
+            $this->fail('A direct channel with two subscribed handlers was not refused');
+        } catch (WrongHandlerAmountException $exception) {
+            $this->assertStringContainsString('Direct channel `router.shared` delivers a message to one handler only', $exception->getMessage());
+            $this->assertStringContainsString('Router - invocation of ' . $fixture::class . '::pick', $exception->getMessage());
+            $this->assertStringContainsString($fixture::class . '::handle', $exception->getMessage());
+            $this->assertStringContainsString("SimpleMessageChannelBuilder::createPublishSubscribeChannel('router.shared')", $exception->getMessage());
+        }
     }
 
     private function bootstrap(CustomRouterHandler $handler)

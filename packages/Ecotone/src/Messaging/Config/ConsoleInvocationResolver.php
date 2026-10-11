@@ -35,7 +35,7 @@ final class ConsoleInvocationResolver
             return false;
         }
 
-        foreach (ModulePackageList::getModuleClassesForPackage($packageName) as $moduleClass) {
+        foreach (ModuleClassList::forPackage($packageName) as $moduleClass) {
             if (class_exists($moduleClass) || interface_exists($moduleClass)) {
                 return true;
             }

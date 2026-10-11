@@ -122,4 +122,9 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
             $this->stopFailingAfterAttempt,
         ]);
     }
+
+    public function __toString(): string
+    {
+        return 'exceptional queue: ' . $this->channelName;
+    }
 }

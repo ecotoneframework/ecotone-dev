@@ -335,4 +335,9 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             $deliveryResult->getFailedDeliveries(),
         ))));
     }
+
+    public function __toString(): string
+    {
+        return "amqp outbound: exchange `{$this->exchangeName}`";
+    }
 }

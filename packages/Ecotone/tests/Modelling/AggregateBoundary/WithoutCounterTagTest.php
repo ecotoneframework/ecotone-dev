@@ -31,13 +31,13 @@ use PHPUnit\Framework\TestCase;
  * licence Enterprise
  * @internal
  */
-final class WithoutOptimisticLockTest extends TestCase
+final class WithoutCounterTagTest extends TestCase
 {
     public function test_an_excluded_state_stored_aggregate_keeps_last_write_wins(): void
     {
         $ecotone = $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, GuardedBasketForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [UnlockedBasketForWithoutCounterTag::class, GuardedBasketForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
         );
         $ecotone->sendCommandWithRouting('unlockedBasket.open', 'b-1');
 
@@ -49,8 +49,8 @@ final class WithoutOptimisticLockTest extends TestCase
     public function test_a_state_stored_aggregate_outside_the_exclusion_still_conflicts(): void
     {
         $ecotone = $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, GuardedBasketForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [UnlockedBasketForWithoutCounterTag::class, GuardedBasketForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
         );
         $ecotone->sendCommandWithRouting('guardedBasket.open', 'b-1');
 
@@ -64,13 +64,13 @@ final class WithoutOptimisticLockTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            UnlockedBasketForWithoutLock::class . ' is fetched into ' . BasketCheckoutForWithoutLock::class
-            . '::checkout, a Dynamic Consistency Boundary handler, but it is listed in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor()'
+            UnlockedBasketForWithoutCounterTag::class . ' is fetched into ' . BasketCheckoutForWithoutCounterTag::class
+            . '::checkout, a Dynamic Consistency Boundary handler, but it is listed in DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor()'
         );
 
         $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, BasketCheckoutForWithoutLock::class, BasketCheckedOutForWithoutLock::class, BasketCheckoutCountForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
+            [UnlockedBasketForWithoutCounterTag::class, BasketCheckoutForWithoutCounterTag::class, BasketCheckedOutForWithoutCounterTag::class, BasketCheckoutCountForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
         );
     }
 
@@ -78,12 +78,12 @@ final class WithoutOptimisticLockTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'Aggregate ' . UntypedBasketForWithoutLock::class . " must declare #[AggregateType('...')]"
+            'Aggregate ' . UntypedBasketForWithoutCounterTag::class . " must declare #[AggregateType('...')]"
         );
 
         $this->bootstrap(
-            [UntypedBasketForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UntypedBasketForWithoutLock::class),
+            [UntypedBasketForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UntypedBasketForWithoutCounterTag::class),
         );
     }
 
@@ -91,13 +91,13 @@ final class WithoutOptimisticLockTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names ' . LedgerForWithoutLock::class
+            'DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor() names ' . LedgerForWithoutCounterTag::class
             . ', which is an #[EventSourcingAggregate]'
         );
 
         $this->bootstrap(
-            [LedgerForWithoutLock::class, LedgerEntryAddedForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(LedgerForWithoutLock::class),
+            [LedgerForWithoutCounterTag::class, LedgerEntryAddedForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(LedgerForWithoutCounterTag::class),
         );
     }
 
@@ -105,43 +105,43 @@ final class WithoutOptimisticLockTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
-            'DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names ' . BasketCheckedOutForWithoutLock::class
+            'DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor() names ' . BasketCheckedOutForWithoutCounterTag::class
             . ', which is not a state-stored #[Aggregate]'
         );
 
         $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(BasketCheckedOutForWithoutLock::class),
+            [UnlockedBasketForWithoutCounterTag::class, BasketCheckedOutForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(BasketCheckedOutForWithoutCounterTag::class),
         );
     }
 
     public function test_a_boundary_scoped_only_by_an_excluded_aggregate_names_the_method_the_aggregate_and_the_option(): void
     {
         $ecotone = $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, ExcludedAggregateBoundaryForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
-            [new ExcludedAggregateBoundaryForWithoutLock()],
+            [UnlockedBasketForWithoutCounterTag::class, BasketCheckedOutForWithoutCounterTag::class, ExcludedAggregateBoundaryForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
+            [new ExcludedAggregateBoundaryForWithoutCounterTag()],
         );
 
         try {
-            $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+            $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutCounterTag('b-1'));
             $this->fail('Expected a ConfigurationException');
         } catch (ConfigurationException $exception) {
-            $this->assertStringContainsString(ExcludedAggregateBoundaryForWithoutLock::class . '::boundary', $exception->getMessage());
-            $this->assertStringContainsString(UnlockedBasketForWithoutLock::class, $exception->getMessage());
-            $this->assertStringContainsString('withoutOptimisticLockFor', $exception->getMessage());
+            $this->assertStringContainsString(ExcludedAggregateBoundaryForWithoutCounterTag::class . '::boundary', $exception->getMessage());
+            $this->assertStringContainsString(UnlockedBasketForWithoutCounterTag::class, $exception->getMessage());
+            $this->assertStringContainsString('withoutCounterTagFor', $exception->getMessage());
         }
     }
 
     public function test_a_boundary_mixing_an_excluded_aggregate_with_a_counted_tag_scopes_the_append(): void
     {
         $ecotone = $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, MixedExcludedAggregateBoundaryForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
-            [new MixedExcludedAggregateBoundaryForWithoutLock()],
+            [UnlockedBasketForWithoutCounterTag::class, BasketCheckedOutForWithoutCounterTag::class, MixedExcludedAggregateBoundaryForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
+            [new MixedExcludedAggregateBoundaryForWithoutCounterTag()],
         );
 
-        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutCounterTag('b-1'));
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
@@ -151,12 +151,12 @@ final class WithoutOptimisticLockTest extends TestCase
     public function test_a_boundary_scoped_only_by_an_aggregate_outside_the_exclusion_scopes_the_append(): void
     {
         $ecotone = $this->bootstrap(
-            [UnlockedBasketForWithoutLock::class, GuardedBasketForWithoutLock::class, BasketCheckedOutForWithoutLock::class, GuardedAggregateBoundaryForWithoutLock::class],
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor(UnlockedBasketForWithoutLock::class),
-            [new GuardedAggregateBoundaryForWithoutLock()],
+            [UnlockedBasketForWithoutCounterTag::class, GuardedBasketForWithoutCounterTag::class, BasketCheckedOutForWithoutCounterTag::class, GuardedAggregateBoundaryForWithoutCounterTag::class],
+            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor(UnlockedBasketForWithoutCounterTag::class),
+            [new GuardedAggregateBoundaryForWithoutCounterTag()],
         );
 
-        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutLock('b-1'));
+        $ecotone->sendCommand(new CheckOutUnlockedBasketForWithoutCounterTag('b-1'));
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
@@ -165,7 +165,7 @@ final class WithoutOptimisticLockTest extends TestCase
 
     private function itemsWithTheBoundarySwitchedOff(): int
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [UnlockedBasketForWithoutLock::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [UnlockedBasketForWithoutCounterTag::class]);
         $ecotone->sendCommandWithRouting('unlockedBasket.open', 'b-1');
         $ecotone->sendCommandWithRouting('unlockedBasket.addWhileAnotherAdditionLands', ['basketId' => 'b-1']);
 
@@ -188,7 +188,7 @@ final class WithoutOptimisticLockTest extends TestCase
 
 #[Aggregate]
 #[AggregateType('UnlockedBasket')]
-final class UnlockedBasketForWithoutLock
+final class UnlockedBasketForWithoutCounterTag
 {
     private int $items = 0;
 
@@ -225,7 +225,7 @@ final class UnlockedBasketForWithoutLock
 
 #[Aggregate]
 #[AggregateType('GuardedBasket')]
-final class GuardedBasketForWithoutLock
+final class GuardedBasketForWithoutCounterTag
 {
     private int $items = 0;
 
@@ -261,7 +261,7 @@ final class GuardedBasketForWithoutLock
 }
 
 #[Aggregate]
-final class UntypedBasketForWithoutLock
+final class UntypedBasketForWithoutCounterTag
 {
     private function __construct(#[Identifier] private string $basketId)
     {
@@ -274,14 +274,14 @@ final class UntypedBasketForWithoutLock
     }
 }
 
-final readonly class CheckOutBasketForWithoutLock
+final readonly class CheckOutBasketForWithoutCounterTag
 {
     public function __construct(public string $basketId)
     {
     }
 }
 
-final readonly class BasketCheckedOutForWithoutLock
+final readonly class BasketCheckedOutForWithoutCounterTag
 {
     public function __construct(
         #[EventTag('basket')] public string $basketId,
@@ -290,30 +290,30 @@ final readonly class BasketCheckedOutForWithoutLock
 }
 
 #[DecisionModel]
-final class BasketCheckoutCountForWithoutLock
+final class BasketCheckoutCountForWithoutCounterTag
 {
     public int $checkouts = 0;
 
     #[EventSourcingHandler]
-    public function when(BasketCheckedOutForWithoutLock $event): void
+    public function when(BasketCheckedOutForWithoutCounterTag $event): void
     {
         $this->checkouts++;
     }
 }
 
-final class BasketCheckoutForWithoutLock
+final class BasketCheckoutForWithoutCounterTag
 {
     #[CommandHandler]
     public function checkout(
-        CheckOutBasketForWithoutLock $command,
-        BasketCheckoutCountForWithoutLock $checkoutCount,
-        #[Fetch('payload.basketId')] UnlockedBasketForWithoutLock $basket,
+        CheckOutBasketForWithoutCounterTag $command,
+        BasketCheckoutCountForWithoutCounterTag $checkoutCount,
+        #[Fetch('payload.basketId')] UnlockedBasketForWithoutCounterTag $basket,
     ): array {
-        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+        return [new BasketCheckedOutForWithoutCounterTag($command->basketId)];
     }
 }
 
-final readonly class LedgerEntryAddedForWithoutLock
+final readonly class LedgerEntryAddedForWithoutCounterTag
 {
     public function __construct(public string $ledgerId)
     {
@@ -322,7 +322,7 @@ final readonly class LedgerEntryAddedForWithoutLock
 
 #[EventSourcingAggregate]
 #[AggregateType('Ledger')]
-final class LedgerForWithoutLock
+final class LedgerForWithoutCounterTag
 {
     #[Identifier]
     private string $ledgerId;
@@ -330,64 +330,64 @@ final class LedgerForWithoutLock
     #[CommandHandler('ledger.open')]
     public static function open(string $ledgerId): array
     {
-        return [new LedgerEntryAddedForWithoutLock($ledgerId)];
+        return [new LedgerEntryAddedForWithoutCounterTag($ledgerId)];
     }
 
     #[EventSourcingHandler]
-    public function applyEntryAdded(LedgerEntryAddedForWithoutLock $event): void
+    public function applyEntryAdded(LedgerEntryAddedForWithoutCounterTag $event): void
     {
         $this->ledgerId = $event->ledgerId;
     }
 }
 
-final readonly class CheckOutUnlockedBasketForWithoutLock
+final readonly class CheckOutUnlockedBasketForWithoutCounterTag
 {
     public function __construct(public string $basketId)
     {
     }
 }
 
-final class ExcludedAggregateBoundaryForWithoutLock
+final class ExcludedAggregateBoundaryForWithoutCounterTag
 {
     #[CommandHandler]
-    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    public function checkout(CheckOutUnlockedBasketForWithoutCounterTag $command): array
     {
-        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+        return [new BasketCheckedOutForWithoutCounterTag($command->basketId)];
     }
 
     #[DecisionBoundary]
-    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    public static function boundary(CheckOutUnlockedBasketForWithoutCounterTag $command): EventCriteria
     {
-        return EventCriteria::aggregate(UnlockedBasketForWithoutLock::class, $command->basketId);
+        return EventCriteria::aggregate(UnlockedBasketForWithoutCounterTag::class, $command->basketId);
     }
 }
 
-final class MixedExcludedAggregateBoundaryForWithoutLock
+final class MixedExcludedAggregateBoundaryForWithoutCounterTag
 {
     #[CommandHandler]
-    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    public function checkout(CheckOutUnlockedBasketForWithoutCounterTag $command): array
     {
-        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+        return [new BasketCheckedOutForWithoutCounterTag($command->basketId)];
     }
 
     #[DecisionBoundary]
-    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    public static function boundary(CheckOutUnlockedBasketForWithoutCounterTag $command): EventCriteria
     {
-        return EventCriteria::aggregate(UnlockedBasketForWithoutLock::class, $command->basketId)->andTag('basket', $command->basketId);
+        return EventCriteria::aggregate(UnlockedBasketForWithoutCounterTag::class, $command->basketId)->andTag('basket', $command->basketId);
     }
 }
 
-final class GuardedAggregateBoundaryForWithoutLock
+final class GuardedAggregateBoundaryForWithoutCounterTag
 {
     #[CommandHandler]
-    public function checkout(CheckOutUnlockedBasketForWithoutLock $command): array
+    public function checkout(CheckOutUnlockedBasketForWithoutCounterTag $command): array
     {
-        return [new BasketCheckedOutForWithoutLock($command->basketId)];
+        return [new BasketCheckedOutForWithoutCounterTag($command->basketId)];
     }
 
     #[DecisionBoundary]
-    public static function boundary(CheckOutUnlockedBasketForWithoutLock $command): EventCriteria
+    public static function boundary(CheckOutUnlockedBasketForWithoutCounterTag $command): EventCriteria
     {
-        return EventCriteria::aggregate(GuardedBasketForWithoutLock::class, $command->basketId);
+        return EventCriteria::aggregate(GuardedBasketForWithoutCounterTag::class, $command->basketId);
     }
 }

@@ -42,7 +42,7 @@ parallel run produces false failures.
 docker compose exec app bash -lc "cd packages/JmsConverter && composer install && composer tests:ci"
 
 # One file
-docker compose exec -T app vendor/bin/phpunit --no-coverage packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php
+docker compose exec -T app vendor/bin/phpunit --no-coverage packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutCounterTagTest.php
 
 # One method — fastest feedback
 docker compose exec -T app vendor/bin/phpunit --no-coverage --filter test_an_excluded_state_stored_aggregate_keeps_last_write_wins

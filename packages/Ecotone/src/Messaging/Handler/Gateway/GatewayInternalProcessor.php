@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\ErrorMessage;
 use Ecotone\Api\Messaging\Future;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Symfony\Component\Uid\Uuid;

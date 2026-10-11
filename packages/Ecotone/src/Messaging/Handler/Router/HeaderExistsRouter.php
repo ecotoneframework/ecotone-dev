@@ -45,4 +45,9 @@ final class HeaderExistsRouter implements RouteSelector, DefinedObject
             $this->fallbackRoute,
         ], 'create');
     }
+
+    public function __toString(): string
+    {
+        return "header exists `{$this->headerName}` ? `{$this->routeToChannel}` : `{$this->fallbackRoute}`";
+    }
 }

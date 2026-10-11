@@ -99,6 +99,11 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
                     ? array_map(fn (array $entry): mixed => $entry['payload'], $payload->getEntries())
                     : [$payload];
             }
+
+            public function __toString(): string
+            {
+                return 'recording';
+            }
         };
     }
 }

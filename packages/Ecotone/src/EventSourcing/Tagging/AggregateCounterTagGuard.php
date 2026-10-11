@@ -25,22 +25,22 @@ final class AggregateCounterTagGuard
     private const TAG_NAME_COLUMN_LENGTH = 100;
 
     /**
-     * @param class-string[] $classesWithoutOptimisticLock
+     * @param class-string[] $classesWithoutCounterTag
      * @param array<class-string, ?string> $aggregateTypesByClass
      */
-    public static function assertEveryClassWithoutOptimisticLockIsAStateStoredAggregate(array $classesWithoutOptimisticLock, array $aggregateTypesByClass): void
+    public static function assertEveryClassWithoutCounterTagIsAStateStoredAggregate(array $classesWithoutCounterTag, array $aggregateTypesByClass): void
     {
-        foreach ($classesWithoutOptimisticLock as $className) {
+        foreach ($classesWithoutCounterTag as $className) {
             if (! class_exists($className) || ! array_key_exists($className, $aggregateTypesByClass)) {
                 throw ConfigurationException::create(sprintf(
-                    'DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names %s, which is not a state-stored #[Aggregate] -- only a state-stored aggregate has a counter tag to opt out of. Sagas carry no counter, and an event-sourced aggregate is guarded by its own stream.',
+                    'DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor() names %s, which is not a state-stored #[Aggregate] -- only a state-stored aggregate has a counter tag to opt out of. Sagas carry no counter, and an event-sourced aggregate is guarded by its own stream.',
                     $className,
                 ));
             }
 
             if ((new ReflectionClass($className))->getAttributes(EventSourcingAggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
                 throw ConfigurationException::create(sprintf(
-                    "DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor() names %s, which is an #[EventSourcingAggregate] -- its stream's own version check is its lock and cannot be switched off. Drop it from withoutOptimisticLockFor().",
+                    "DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor() names %s, which is an #[EventSourcingAggregate] -- it has no counter tag to drop: its stream's own version check guards it, and that cannot be switched off. Drop it from withoutCounterTagFor().",
                     $className,
                 ));
             }

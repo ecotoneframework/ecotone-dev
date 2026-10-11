@@ -62,18 +62,18 @@ final class ModulePackageList
     public const SYMFONY_PACKAGE = 'symfony';
     public const TEMPEST_PACKAGE = 'tempest';
     public const TEST_PACKAGE = 'test';
-
-    public static function allPackages(): array { ... }
-    public static function getModuleClassesForPackage(string $packageName): array { ... }
 }
 ```
 
-There is no `allPackagesExcept()` -- exclusion is done by the caller, e.g. `array_diff(ModulePackageList::allPackages(), $skippedPackages)`.
+`ModulePackageList` holds only the names an application passes to `ServiceConfiguration::withModulePackages()`. The
+lookups only the framework calls live in the internal `Ecotone\Messaging\Config\ModuleClassList`:
+`packageNames()` (every package, `TEST_PACKAGE` included) and `forPackage()` (a package's module classes). Exclusion
+is done by the caller, e.g. `array_diff(ModuleClassList::packageNames(), $skippedPackages)`.
 
 To register a new package:
-1. Add constant: `public const MY_PACKAGE = 'myPackage';`
-2. Add to `allPackages()` return array
-3. Add match case in `getModuleClassesForPackage()`
+1. Add constant to `ModulePackageList`: `public const MY_PACKAGE = 'myPackage';`
+2. Add it to `ModuleClassList::packageNames()`
+3. Add a `MY_PACKAGE_MODULES` constant and a match case in `ModuleClassList::forPackage()`
 
 ## AnnotationModule Interface
 

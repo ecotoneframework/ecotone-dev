@@ -438,7 +438,7 @@ own stream or repository, snapshots included.
 
   ```php
   return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
-      ->withoutOptimisticLockFor([ImportedContact::class, LegacyBasket::class]);
+      ->withoutCounterTagFor([ImportedContact::class, LegacyBasket::class]);
   ```
 
   It still declares `#[AggregateType]`, because that is the name its counter tag would carry and the exclusion can be
@@ -446,7 +446,10 @@ own stream or repository, snapshots included.
   the decision would rest on state nothing guards. A `#[DecisionBoundary]` whose criteria name only excluded
   aggregates is refused the same way, when it is evaluated rather than at bootstrap, because the criteria are built
   at runtime; mixing in a counted tag or an aggregate outside the opt-out is allowed and guards on those.
-  **`withoutOptimisticLockFor()` switches off the counter tag only.** A document-store aggregate that also declares
+  Early 2.0 builds called this `withoutOptimisticLockFor()`; the name promised more than it did, so it is now
+  `withoutCounterTagFor()` and the old name is gone — rename the call, the arguments are the same. The bootstrap
+  refusals below name `withoutCounterTagFor()` too.
+  **`withoutCounterTagFor()` switches off the counter tag only.** A document-store aggregate that also declares
   `#[Version]` is still version-checked by its repository: when both are present, `#[Version]` wins and a stale save
   fails with a `ConcurrencyException`. Remove `#[Version]` from the aggregate to get last write wins.
   Naming an `#[EventSourcingAggregate]` is a bootstrap error too —
@@ -1679,10 +1682,27 @@ fails at that point with PHP's `Trait "Ecotone\Modelling\WithEvents" not found`,
 `Precedence` or `MessageHeaders` import fails as soon as the attribute or constant is read. `Event` stays
 extendable — its constructor is still `protected`.
 
+**The framework-only members did not come with them.** `MessageHeaders` and `ModulePackageList` moved because an
+application names their constants; their static helpers are module and transport plumbing that only Ecotone calls,
+so they left the public classes:
+
+| Removed from `Api` | Now |
+|---|---|
+| `MessageHeaders::unsetAllFrameworkHeaders()`, `unsetNonUserKeys()`, `unsetEnqueueMetadata()`, `unsetAggregateKeys()`, `propagateContextHeaders()` | internal, `Ecotone\Messaging\Support\FrameworkHeaders` |
+| `MessageHeaders::getFrameworksHeaderNames()`, `unsetCoreFrameworkHeaders()`, `unsetAsyncKeys()`, `unsetDistributionKeys()`, `unsetBusKeys()` | internal and private to `FrameworkHeaders` |
+| `MessageHeaders::unsetFrameworkKeys()`, `unsetTransportMessageKeys()` | gone — nothing called them |
+| `ModulePackageList::allPackages()` | internal, `Ecotone\Messaging\Config\ModuleClassList::packageNames()`, which now includes `TEST_PACKAGE` |
+| `ModulePackageList::getModuleClassesForPackage()` | internal, `ModuleClassList::forPackage()` |
+
+**How to adapt:** nothing, unless you called one of them. The set of keys Ecotone treats as its own is not a contract
+and changes between releases, so do not re-create these filters from the internal class: an application that
+forwarded metadata with framework keys stripped keeps the keys it set itself, by name —
+`array_intersect_key($metadata, array_flip(['tenantId', 'userId']))`. Code that listed every package to build a
+`withModulePackages()` argument names the packages it needs instead, as `ModulePackageList` constants.
+
 Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
-moved together later, in §13e. `ErrorMessage` is still `Ecotone\Messaging\Support\ErrorMessage`; §13d
-says why. The rule this closes is
+moved together later, in §13e. `ErrorMessage` moved last, in §13i. The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13d. `MetadataMatcher`, the clock's types, `Future`, `ErrorContext`, `LoggingLevel` and `FetchMode` moved into `Api` too
@@ -1752,10 +1772,9 @@ The namespace `FetchMode` left is renamed too: `Ecotone\Dbal\DbaBusinessMethod` 
 is internal — the module, `DbalBusinessMethodHandler` and `DbalParameterConfig` — so an application only ever met
 the old name through `FetchMode`; the three rows are in the namespace map for code that named them anyway.
 
-`ErrorMessage` stays `Ecotone\Messaging\Support\ErrorMessage`, now returning the public `ErrorContext` from
-`getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`,
-like `Handler\Type` and `MessageChannelBuilder`, is still internal while public signatures name it — those three are
-awaiting a separate decision. The rule this closes is
+`ErrorMessage` stayed `Ecotone\Messaging\Support\ErrorMessage` at this step, now returning the public `ErrorContext`
+from `getErrorContext()`. It implements `Message` and takes one in `create()` and `createFromMessage()`, and `Message`
+was then still internal; once `Message` moved (§13g), `ErrorMessage` followed it (§13i). The rule this closes is
 [conventions rule 12a](docs/coding-conventions.md#12a-the-boundary-holds-in-both-directions).
 
 ### 13e. `EcotoneLite`, `FlowTestSupport`, `ConfiguredMessagingSystem` and the channel interfaces moved into `Api` — two container ids change with them
@@ -1972,11 +1991,12 @@ Unknown type or class 'Ecotone\Messaging\Message'`. Fix the import.
 parameter or a reply is the whole message, and that follows the import. Clear Ecotone's cache on deploy all the same,
 in the directories §13e lists, because a compiled container records parameter types by name.
 
-**What stays internal:** the implementations — `GenericMessage`, `ErrorMessage` and `MessageBuilder`, in
-`Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. Two of them
-an application still meets: an error-channel handler can type its parameter `ErrorMessage`, and a test that calls
-`sendMessageDirectToChannel()` builds its `Message` with `MessageBuilder`, since `Api` has no way to construct one.
-Both are recorded as open, not changed by this move.
+**What stays internal:** the implementations — `GenericMessage` and `MessageBuilder`, in
+`Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. One of them
+an application still meets: a test that calls `sendMessageDirectToChannel()` builds its `Message` with
+`MessageBuilder`, since `Api` has no way to construct one — recorded as open, not changed by this move. The third
+implementation, `ErrorMessage`, is one an application types its error-channel handler's parameter with, so it moved
+into `Api` (§13i).
 
 ### 13h. `MessageChannelBuilder` moved into `Api`
 
@@ -2010,6 +2030,46 @@ implementing it needs only the import.
 **What stays internal:** `CompilableBuilder`, which it extends, and `MessageChannelWithSerializationBuilder`, which
 extends it. Only the framework calls what they add — `compile()`, `getConversionMediaType()`, `getHeaderMapper()`.
 
+### 13i. `ErrorMessage` moved into `Api`
+
+**Before:** an error-channel handler that wants the failure as a typed object, rather than reading `ErrorContext`'s
+header keys itself, types its parameter `ErrorMessage`, and that class was internal:
+
+```php
+use Ecotone\Messaging\Support\ErrorMessage;   // internal
+```
+
+**Now:** it sits beside the `Message` it implements and the `ErrorContext` its `getErrorContext()` returns:
+
+```php
+use Ecotone\Api\Messaging\ErrorMessage;
+```
+
+| 1.x and early 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Messaging\Support\ErrorMessage` | `Ecotone\Api\Messaging\ErrorMessage` |
+
+Nothing it names had to move with it: `Message`, `MessageHeaders` and `ErrorContext` were already in `Api`.
+
+**How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same methods —
+`getErrorContext()`, `getExceptionMessage()` and the other `getException…()` accessors, `getHeaders()`, `getPayload()`:
+
+```php
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Messaging\ErrorMessage;
+
+final class ErrorHandler
+{
+    #[InternalHandler('errorChannel')]
+    public function handle(ErrorMessage $errorMessage): void
+    {
+    }
+}
+```
+
+A parameter still typed with the old name is refused at bootstrap, as §13g describes for `Message`, naming the class
+it cannot find. **No container id changes** — `ErrorMessage` is not a service.
+
 ## 14. Smaller behaviour changes
 
 - **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
@@ -2023,6 +2083,19 @@ extends it. Only the framework calls what they add — `compile()`, `getConversi
 - **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
   DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
   twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
+- **`Message` and `MessageChannel` extend `Stringable`.** **Before:** neither interface declared `__toString()`, yet
+  Ecotone interpolates both into exception messages and descriptions, so a channel or message that could not be
+  stringified turned the exception being built into `Object of class … could not be converted to string`. Six of
+  Ecotone's own channels were such channels. **Now:** `Ecotone\Api\Messaging\Message` and
+  `Ecotone\Api\Messaging\MessageChannel` (and so `PollableChannel` and `SubscribableChannel`) extend `Stringable`, and
+  every implementation Ecotone ships describes itself. **How to adapt:** a class of yours implementing `Message`,
+  `MessageChannel`, `PollableChannel` or `SubscribableChannel` adds `public function __toString(): string` — PHP
+  refuses to load it otherwise. A message describes its payload and headers (`(string) $this->getHeaders()` is their
+  JSON); a channel returns its name. Internal, nothing to adapt: `MessageHandler`, `MessageHandlerBuilder` and
+  `RouteSelector` extend `Stringable` too, which fixes the one crash reachable from an application — a `#[Router]`
+  subscribed to a direct channel that already has a handler is now refused, when the first message reaches the channel,
+  with a `WrongHandlerAmountException` naming both handlers and the two ways out, a separate input channel or
+  `SimpleMessageChannelBuilder::createPublishSubscribeChannel()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.
@@ -2254,10 +2327,19 @@ repository of a flow test, is now checked against the version it was loaded at:
 - **Creating an aggregate under an id that is already stored is refused**, with or without `#[Version]`. In 1.x the
   document-store and in-memory repositories silently replaced the stored aggregate. A flow test that creates the same
   aggregate twice now fails with a `ConcurrencyException`.
-- **Eloquent and Tempest aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
+- **A Tempest-model aggregate or saga with `#[Version]` is refused at bootstrap.** **Before:** Tempest persisted the
+  version, but its database API does not report whether a guarded update matched a row
+  (`UpdateQueryBuilder::execute()` returns `?PrimaryKey`, `Database::execute()` returns `void`), so a conflict could
+  not be observed and a stale save silently overwrote a newer one while the class promised a check. **Now:** a
+  state-stored aggregate or saga that uses `Tempest\Database\IsDatabaseModel` and declares `#[Version]` is a
+  `ConfigurationException` when Ecotone boots, naming the class, the version property, why the check cannot work and
+  the three ways out. **How to adapt:** remove `#[Version]` and accept last write wins, which is what such a model got
+  until now; or stop making the class a Tempest model and store it through the DBAL document-store repository
+  (`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), where `#[Version]` is
+  checked; or make it an `#[EventSourcingAggregate]`. A Tempest model without `#[Version]` is unchanged.
+- **Eloquent aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
   `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
-  it back as `0` on every load. Tempest persists it, but its database API does not report whether a guarded update
-  matched a row, so a conflict cannot be observed. Concurrent saves of either still overwrite each other.
+  it back as `0` on every load. Concurrent saves still overwrite each other.
   `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
   Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
   table and register a repository of your own for the model: a `#[Repository]` class implementing

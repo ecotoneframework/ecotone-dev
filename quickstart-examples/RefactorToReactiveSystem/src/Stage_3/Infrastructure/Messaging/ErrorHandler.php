@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\ReactiveSystem\Stage_3\Infrastructure\Messaging;
 
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Support\ErrorMessage;
+use Ecotone\Api\Messaging\ErrorMessage;
 
 final class ErrorHandler
 {

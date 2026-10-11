@@ -80,7 +80,7 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 
         if ($dynamicConsistencyBoundary->isEnabled()) {
             AggregateCounterTagGuard::assertEveryAggregateHasACountableType($this->aggregateTypesByClass, $this->rawDefinitions);
-            AggregateCounterTagGuard::assertEveryClassWithoutOptimisticLockIsAStateStoredAggregate($dynamicConsistencyBoundary->classesWithoutOptimisticLock(), $this->aggregateTypesByClass);
+            AggregateCounterTagGuard::assertEveryClassWithoutCounterTagIsAStateStoredAggregate($dynamicConsistencyBoundary->classesWithoutCounterTag(), $this->aggregateTypesByClass);
             $this->assertEveryAggregateHandlerRunsInATransaction();
         }
 
@@ -91,8 +91,8 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         $messagingConfiguration->registerServiceDefinition(
             AggregateCounterTags::class,
             new Definition(AggregateCounterTags::class, [
-                $dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : [],
-                $dynamicConsistencyBoundary->isEnabled() ? $this->aggregateClassesByTypeWithoutOptimisticLock($dynamicConsistencyBoundary->classesWithoutOptimisticLock()) : [],
+                $dynamicConsistencyBoundary->isEnabled() ? $this->countedAggregateClassesByType($dynamicConsistencyBoundary->classesWithoutCounterTag()) : [],
+                $dynamicConsistencyBoundary->isEnabled() ? $this->aggregateClassesByTypeWithoutCounterTag($dynamicConsistencyBoundary->classesWithoutCounterTag()) : [],
             ], 'createWith'),
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -160,14 +160,14 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     }
 
     /**
-     * @param class-string[] $classesWithoutOptimisticLock
+     * @param class-string[] $classesWithoutCounterTag
      * @return array<string, class-string>
      */
-    private function countedAggregateClassesByType(array $classesWithoutOptimisticLock): array
+    private function countedAggregateClassesByType(array $classesWithoutCounterTag): array
     {
         $aggregateClassesByType = [];
         foreach ($this->aggregateTypesByClass as $aggregateClass => $aggregateType) {
-            if (in_array($aggregateClass, $classesWithoutOptimisticLock, true)) {
+            if (in_array($aggregateClass, $classesWithoutCounterTag, true)) {
                 continue;
             }
 
@@ -178,13 +178,13 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     }
 
     /**
-     * @param class-string[] $classesWithoutOptimisticLock
+     * @param class-string[] $classesWithoutCounterTag
      * @return array<string, class-string>
      */
-    private function aggregateClassesByTypeWithoutOptimisticLock(array $classesWithoutOptimisticLock): array
+    private function aggregateClassesByTypeWithoutCounterTag(array $classesWithoutCounterTag): array
     {
         $aggregateClassesByType = [];
-        foreach ($classesWithoutOptimisticLock as $aggregateClass) {
+        foreach ($classesWithoutCounterTag as $aggregateClass) {
             $aggregateClassesByType[$this->aggregateTypesByClass[$aggregateClass]] = $aggregateClass;
         }
 

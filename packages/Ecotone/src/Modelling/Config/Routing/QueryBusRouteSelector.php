@@ -38,4 +38,9 @@ class QueryBusRouteSelector implements RouteSelector
 
         return $routes;
     }
+
+    public function __toString(): string
+    {
+        return 'query bus routing';
+    }
 }

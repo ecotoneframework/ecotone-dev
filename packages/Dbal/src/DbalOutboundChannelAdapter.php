@@ -83,4 +83,9 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         $producer = $context->createProducer();
         $producer->sendBatch($this->destination, $messagesToSend);
     }
+
+    public function __toString(): string
+    {
+        return "dbal outbound: {$this->queueName}";
+    }
 }

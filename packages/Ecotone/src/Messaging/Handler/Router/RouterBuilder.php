@@ -145,7 +145,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 
         return new Definition(Router::class, [
             new Reference(ChannelResolver::class),
-            new Definition(InvocationRouter::class, [$methodInvoker]),
+            new Definition(InvocationRouter::class, [$methodInvoker, $interfaceToCallReference->getClassName() . '::' . $interfaceToCallReference->getMethodName()]),
             $this->resolutionRequired,
             $this->defaultResolution,
             $this->applySequence,

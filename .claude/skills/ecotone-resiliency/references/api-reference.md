@@ -126,7 +126,7 @@ use Ecotone\Api\Attribute\ErrorChannel;
 ## ErrorMessage API
 
 ```php
-use Ecotone\Messaging\Support\ErrorMessage;
+use Ecotone\Api\Messaging\ErrorMessage;
 
 $errorMessage->getPayload();            // Original message's payload
 $errorMessage->getExceptionClass();     // Thrown exception's class name

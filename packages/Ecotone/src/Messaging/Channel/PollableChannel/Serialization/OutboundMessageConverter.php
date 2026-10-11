@@ -13,6 +13,7 @@ use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -48,8 +49,8 @@ class OutboundMessageConverter
             );
         }
 
-        $applicationHeaders = MessageHeaders::unsetAggregateKeys($headers);
-        $applicationHeaders = MessageHeaders::unsetEnqueueMetadata($applicationHeaders);
+        $applicationHeaders = FrameworkHeaders::unsetAggregateKeys($headers);
+        $applicationHeaders = FrameworkHeaders::unsetEnqueueMetadata($applicationHeaders);
         $applicationHeaders = $this->headerMapper->mapFromMessageHeaders($applicationHeaders, $conversionService);
         $applicationHeaders[MessageHeaders::MESSAGE_ID] = $headers[MessageHeaders::MESSAGE_ID];
         $applicationHeaders[MessageHeaders::TIMESTAMP] = $headers[MessageHeaders::TIMESTAMP];
@@ -80,8 +81,8 @@ class OutboundMessageConverter
         $messagePayload = $messageToConvert->getPayload();
 
         $applicationHeaders = $messageToConvert->getHeaders()->headers() ?? [];
-        $applicationHeaders = MessageHeaders::unsetAggregateKeys($applicationHeaders);
-        $applicationHeaders = MessageHeaders::unsetEnqueueMetadata($applicationHeaders);
+        $applicationHeaders = FrameworkHeaders::unsetAggregateKeys($applicationHeaders);
+        $applicationHeaders = FrameworkHeaders::unsetEnqueueMetadata($applicationHeaders);
 
         $applicationHeaders                             = $this->headerMapper->mapFromMessageHeaders($applicationHeaders, $conversionService);
         $applicationHeaders[MessageHeaders::MESSAGE_ID] = $messageToConvert->getHeaders()->getMessageId();

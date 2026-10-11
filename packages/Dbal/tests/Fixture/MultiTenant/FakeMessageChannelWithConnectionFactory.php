@@ -45,4 +45,9 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
     {
         return $this->connectionFactory->createContext();
     }
+
+    public function __toString(): string
+    {
+        return 'fake with connection factory: ' . $this->channelName;
+    }
 }

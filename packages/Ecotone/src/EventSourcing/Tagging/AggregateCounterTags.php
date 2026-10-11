@@ -24,21 +24,21 @@ final class AggregateCounterTags
 {
     /**
      * @param array<string, class-string> $aggregateClassesByType
-     * @param array<string, class-string> $aggregateClassesByTypeWithoutOptimisticLock
+     * @param array<string, class-string> $aggregateClassesByTypeWithoutCounterTag
      */
     private function __construct(
         private readonly array $aggregateClassesByType,
-        private readonly array $aggregateClassesByTypeWithoutOptimisticLock = [],
+        private readonly array $aggregateClassesByTypeWithoutCounterTag = [],
     ) {
     }
 
     /**
      * @param array<string, class-string> $aggregateClassesByType
-     * @param array<string, class-string> $aggregateClassesByTypeWithoutOptimisticLock
+     * @param array<string, class-string> $aggregateClassesByTypeWithoutCounterTag
      */
-    public static function createWith(array $aggregateClassesByType, array $aggregateClassesByTypeWithoutOptimisticLock = []): self
+    public static function createWith(array $aggregateClassesByType, array $aggregateClassesByTypeWithoutCounterTag = []): self
     {
-        return new self($aggregateClassesByType, $aggregateClassesByTypeWithoutOptimisticLock);
+        return new self($aggregateClassesByType, $aggregateClassesByTypeWithoutCounterTag);
     }
 
     /**
@@ -90,13 +90,13 @@ final class AggregateCounterTags
     /**
      * @return ?class-string
      */
-    public function aggregateClassWithoutOptimisticLockFor(string $counterTagName): ?string
+    public function aggregateClassWithoutCounterTagFor(string $counterTagName): ?string
     {
         if (! str_starts_with($counterTagName, AggregateCounterTag::NAME_PREFIX)) {
             return null;
         }
 
-        return $this->aggregateClassesByTypeWithoutOptimisticLock[substr($counterTagName, strlen(AggregateCounterTag::NAME_PREFIX))] ?? null;
+        return $this->aggregateClassesByTypeWithoutCounterTag[substr($counterTagName, strlen(AggregateCounterTag::NAME_PREFIX))] ?? null;
     }
 
     public function aggregateTypeOfClass(string $aggregateClass): ?string

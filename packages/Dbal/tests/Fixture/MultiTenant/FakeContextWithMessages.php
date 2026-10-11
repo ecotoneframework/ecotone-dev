@@ -92,4 +92,9 @@ final class FakeContextWithMessages implements Context, PollableChannel
     {
         // No cleanup needed for fake channels
     }
+
+    public function __toString(): string
+    {
+        return 'fake context';
+    }
 }

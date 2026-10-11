@@ -15,6 +15,7 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -39,7 +40,7 @@ final class SymfonyMessageConverter
     public function convertToSymfonyMessage(Message $message, bool $withDelay): Envelope
     {
         $payload = $message->getPayload();
-        $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
+        $headers = FrameworkHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
         $headers = $this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService);
 
         $type = Type::createFromVariable($payload);

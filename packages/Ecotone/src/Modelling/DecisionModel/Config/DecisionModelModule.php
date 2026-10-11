@@ -158,7 +158,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         self::assertNoSagaFetchedIntoADecision($this->handlers);
-        self::assertNoAggregateWithoutOptimisticLockFetchedIntoADecision($this->handlers, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->classesWithoutOptimisticLock());
+        self::assertNoAggregateWithoutCounterTagFetchedIntoADecision($this->handlers, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->classesWithoutCounterTag());
 
         foreach ($this->handlers->loadingBeforeInvocation() as $handler) {
             $batchLoaderReference = self::BATCH_LOADER_REFERENCE_PREFIX . $handler->key();
@@ -322,19 +322,19 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     }
 
     /**
-     * @param class-string[] $classesWithoutOptimisticLock
+     * @param class-string[] $classesWithoutCounterTag
      */
-    private static function assertNoAggregateWithoutOptimisticLockFetchedIntoADecision(DecisionModelHandlers $handlers, array $classesWithoutOptimisticLock): void
+    private static function assertNoAggregateWithoutCounterTagFetchedIntoADecision(DecisionModelHandlers $handlers, array $classesWithoutCounterTag): void
     {
         foreach ($handlers->all() as $handler) {
             foreach ($handler->fetchedAggregateClasses() as $fetchedClass) {
-                if (! in_array($fetchedClass, $classesWithoutOptimisticLock, true)) {
+                if (! in_array($fetchedClass, $classesWithoutCounterTag, true)) {
                     continue;
                 }
 
                 throw ConfigurationException::create(sprintf(
-                    '%s is fetched into %s::%s, a Dynamic Consistency Boundary handler, but it is listed in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor(), so it keeps no counter and a decision taken on its state would be unguarded. '
-                    . 'Drop %s from withoutOptimisticLockFor(), or read it in a handler that does not take part in the boundary.',
+                    '%s is fetched into %s::%s, a Dynamic Consistency Boundary handler, but it is listed in DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor(), so it keeps no counter and a decision taken on its state would be unguarded. '
+                    . 'Drop %s from withoutCounterTagFor(), or read it in a handler that does not take part in the boundary.',
                     $fetchedClass,
                     $handler->className(),
                     $handler->methodName(),

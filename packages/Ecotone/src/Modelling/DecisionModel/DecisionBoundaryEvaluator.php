@@ -81,12 +81,12 @@ final class DecisionBoundaryEvaluator
     private function assertTheCriteriaAreScopedBySomethingCounted(EventCriteria $criteria): void
     {
         $tagNames = [];
-        $aggregateClassesWithoutOptimisticLock = [];
+        $aggregateClassesWithoutCounterTag = [];
         foreach ($criteria->branches() as $branch) {
             foreach ($branch->tags() as $tag) {
-                $aggregateClassWithoutOptimisticLock = $this->aggregateCounterTags->aggregateClassWithoutOptimisticLockFor($tag['name']);
-                if ($aggregateClassWithoutOptimisticLock !== null) {
-                    $aggregateClassesWithoutOptimisticLock[$aggregateClassWithoutOptimisticLock] = true;
+                $aggregateClassWithoutCounterTag = $this->aggregateCounterTags->aggregateClassWithoutCounterTagFor($tag['name']);
+                if ($aggregateClassWithoutCounterTag !== null) {
+                    $aggregateClassesWithoutCounterTag[$aggregateClassWithoutCounterTag] = true;
 
                     continue;
                 }
@@ -99,13 +99,13 @@ final class DecisionBoundaryEvaluator
             }
         }
 
-        if ($aggregateClassesWithoutOptimisticLock !== []) {
+        if ($aggregateClassesWithoutCounterTag !== []) {
             throw ConfigurationException::create(sprintf(
-                "#[DecisionBoundary] %s::%s returns criteria scoped only by aggregate(s) '%s' listed in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor(), which keep no counter tag, so its handler's append would be guarded by nothing. Add a counted tag or an aggregate outside the opt-out to the criteria the boundary returns, or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withoutOptimisticLockFor().",
+                "#[DecisionBoundary] %s::%s returns criteria scoped only by aggregate(s) '%s' listed in DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor(), which keep no counter tag, so its handler's append would be guarded by nothing. Add a counted tag or an aggregate outside the opt-out to the criteria the boundary returns, or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor().",
                 $this->className,
                 $this->boundaryMethodName,
-                implode("', '", array_keys($aggregateClassesWithoutOptimisticLock)),
-                implode("', '", array_keys($aggregateClassesWithoutOptimisticLock)),
+                implode("', '", array_keys($aggregateClassesWithoutCounterTag)),
+                implode("', '", array_keys($aggregateClassesWithoutCounterTag)),
             ));
         }
 

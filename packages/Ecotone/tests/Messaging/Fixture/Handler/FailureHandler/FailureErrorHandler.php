@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\FailureHandler;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Support\ErrorMessage;
+use Ecotone\Api\Messaging\ErrorMessage;
 
 final class FailureErrorHandler
 {

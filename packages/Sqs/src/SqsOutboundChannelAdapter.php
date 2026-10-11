@@ -185,4 +185,9 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         return ['arguments' => $arguments, 'trackedMessages' => $trackedMessages];
     }
+
+    public function __toString(): string
+    {
+        return "sqs outbound: {$this->queueName}";
+    }
 }

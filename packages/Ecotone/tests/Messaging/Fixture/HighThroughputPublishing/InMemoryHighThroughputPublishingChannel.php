@@ -139,4 +139,9 @@ final class InMemoryHighThroughputPublishingChannel implements PollableChannel, 
 
         return is_string($payloadAsString) && str_contains($payloadAsString, $this->failingPayloadFragment);
     }
+
+    public function __toString(): string
+    {
+        return 'in memory high throughput: ' . $this->channelName;
+    }
 }

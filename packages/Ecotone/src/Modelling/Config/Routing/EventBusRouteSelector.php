@@ -34,4 +34,9 @@ class EventBusRouteSelector implements RouteSelector
 
         return $routes;
     }
+
+    public function __toString(): string
+    {
+        return 'event bus routing';
+    }
 }

@@ -82,8 +82,8 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
     {
         $this->skipUnlessTwoConnectionsCanRace();
 
-        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutOptimisticLock: true);
-        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutOptimisticLock: true);
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutCounterTag: true);
+        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutCounterTag: true);
         $anna->sendCommand(new OpenPurseForCounterDbalTest('p-1'));
         $anna->getServiceFromContainer(CompetingWithdrawalForCounterDbalTest::class)->arm(
             fn () => $ben->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 50))
@@ -107,8 +107,8 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
     {
         $this->skipUnlessTwoConnectionsCanRace();
 
-        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutOptimisticLock: true);
-        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutOptimisticLock: true);
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withoutCounterTag: true);
+        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()), withoutCounterTag: true);
         $anna->sendCommand(new OpenUnversionedPurseForCounterDbalTest('p-1'));
         $anna->getServiceFromContainer(CompetingWithdrawalForCounterDbalTest::class)->arm(
             fn () => $ben->sendCommand(new WithdrawFromUnversionedPurseForCounterDbalTest('p-1', 50))
@@ -212,7 +212,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         bool $withDynamicConsistencyBoundary = true,
         bool $withTransactionOnCommandBus = true,
         string $documentStoreConnectionReference = DbalConnectionFactory::class,
-        bool $withoutOptimisticLock = false,
+        bool $withoutCounterTag = false,
     ): FlowTestSupport {
         $extensionObjects = [
             DbalConfiguration::createWithDefaults()
@@ -220,8 +220,8 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
                 ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, connectionReference: $documentStoreConnectionReference, documentStoreRelatedAggregates: [PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class]),
         ];
         if ($withDynamicConsistencyBoundary) {
-            $extensionObjects[] = $withoutOptimisticLock
-                ? DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutOptimisticLockFor([PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class])
+            $extensionObjects[] = $withoutCounterTag
+                ? DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withoutCounterTagFor([PurseForCounterDbalTest::class, UnversionedPurseForCounterDbalTest::class])
                 : DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
 
@@ -231,7 +231,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
                 PurseJsonConverterForCounterDbalTest::class,
                 UnversionedPurseForCounterDbalTest::class,
                 UnversionedPurseJsonConverterForCounterDbalTest::class,
-                ...($withDynamicConsistencyBoundary && ! $withoutOptimisticLock ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
+                ...($withDynamicConsistencyBoundary && ! $withoutCounterTag ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
             ],
             containerOrAvailableServices: [
                 $connectionFactory,

@@ -76,4 +76,9 @@ final class DynamicMessageChannel implements PollableChannel
     {
         return $this->channelResolver->resolve($channelName);
     }
+
+    public function __toString(): string
+    {
+        return 'dynamic: ' . $this->channelName;
+    }
 }

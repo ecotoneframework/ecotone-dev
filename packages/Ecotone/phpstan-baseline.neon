@@ -43,12 +43,6 @@ parameters:
 			path: Api/ExtensionObject/ServiceConfiguration.php
 
 		-
-			message: '#^Cannot cast Ecotone\\Api\\Messaging\\MessageChannel to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: Api/ExtensionObject/SimpleMessageChannelBuilder.php
-
-		-
 			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Gateway\\DocumentException is not subtype of Throwable$#'
 			identifier: throws.notThrowable
 			count: 6
@@ -169,18 +163,6 @@ parameters:
 			path: src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
 
 		-
-			message: '#^Part \$messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DirectChannel.php
-
-		-
-			message: '#^Part \$this\-\>messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DirectChannel.php
-
-		-
 			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -205,12 +187,6 @@ parameters:
 			path: src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
 
 		-
-			message: '#^Part \$channelName \(Ecotone\\Api\\Messaging\\MessageChannel\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DynamicChannel/InternalChannelResolver.php
-
-		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\EventDrivenChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Messaging\\SubscribableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -227,12 +203,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Messaging/Channel/Manager/ChannelSetupModule.php
-
-		-
-			message: '#^Cannot cast Ecotone\\Api\\Messaging\\PollableChannel to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Messaging/Channel/PollableChannelInterceptorAdapter.php
 
 		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\PollableChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Api\\Messaging\\PollableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
@@ -387,24 +357,6 @@ parameters:
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$skippedModulesPackages$#'
 			identifier: parameter.notFound
-			count: 1
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 6
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$this\-\>messageHandlerBuilders\[\$messageHandlerBuilder\-\>getEndpointId\(\)\] \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
 			count: 1
 			path: src/Messaging/Config/MessagingSystemConfiguration.php
 
@@ -601,7 +553,7 @@ parameters:
 			path: src/Messaging/Config/ModuleClassList.php
 
 		-
-			message: '#^Class Ecotone\\Tempest\\Config\\TempestConnectionModule not found\.$#'
+			message: '#^Class Ecotone\\Tempest\\Config\\TempestModule not found\.$#'
 			identifier: class.notFound
 			count: 1
 			path: src/Messaging/Config/ModuleClassList.php
@@ -679,12 +631,6 @@ parameters:
 			path: src/Messaging/Handler/Enricher/InternalEnrichingService.php
 
 		-
-			message: '#^Part \$requestMessage \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: src/Messaging/Handler/Enricher/PropertyEditorAccessor.php
-
-		-
 			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Ecotone\\Api\\Messaging\\Message\|null\.$#'
 			identifier: return.phpDocType
 			count: 1
@@ -743,12 +689,6 @@ parameters:
 			identifier: parameter.notFound
 			count: 1
 			path: src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
-
-		-
-			message: '#^Binary operation "\." between ''Router \- '' and Ecotone\\Messaging\\Handler\\Router\\RouteSelector results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: src/Messaging/Handler/Router/Router.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Handler\\Type\\UnionType\:\:createWith\(\) should return Ecotone\\Messaging\\Handler\\Type\\UnionType but returns Ecotone\\Messaging\\Handler\\Type\.$#'
@@ -827,18 +767,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Messaging/Support/ConcurrencyException.php
-
-		-
-			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Support/GenericMessage.php
-
-		-
-			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: src/Messaging/Support/MessageBuilder.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$classAnnotations$#'
@@ -983,12 +911,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: Api/Scheduling/DatePoint.php
-
-		-
-			message: '#^Part \$replyMessage \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Handler/Enricher/PropertyEditorAccessor.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Scheduling\\CronIntegration\\CronExpression\:\:getRunDate\(\) should return DateTime but returns DateTimeInterface\|false\.$#'

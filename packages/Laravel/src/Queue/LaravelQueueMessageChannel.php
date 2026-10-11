@@ -131,4 +131,9 @@ final class LaravelQueueMessageChannel implements PollableChannel
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
             : 'ecotone';
     }
+
+    public function __toString(): string
+    {
+        return "laravel queue: {$this->connectionName}/{$this->queueName}";
+    }
 }

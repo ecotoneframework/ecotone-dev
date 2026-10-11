@@ -74,4 +74,9 @@ final class HighThroughputTestChannel implements PollableChannel, BatchSupportin
     {
         return true;
     }
+
+    public function __toString(): string
+    {
+        return 'high throughput test: ' . $this->channelName;
+    }
 }

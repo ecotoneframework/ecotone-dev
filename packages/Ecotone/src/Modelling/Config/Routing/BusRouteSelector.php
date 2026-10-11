@@ -25,4 +25,9 @@ class BusRouteSelector implements RouteSelector
 
         return $this->busRoutingConfig->get($routingKey);
     }
+
+    public function __toString(): string
+    {
+        return 'bus routing';
+    }
 }

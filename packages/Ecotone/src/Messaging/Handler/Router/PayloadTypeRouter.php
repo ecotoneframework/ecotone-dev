@@ -74,4 +74,9 @@ final class PayloadTypeRouter implements RouteSelector
 
         return $channelsToRoute;
     }
+
+    public function __toString(): string
+    {
+        return $this->routeByClassName ? 'payload class name' : 'payload type to `' . implode('`, `', $this->typeToChannelMapping) . '`';
+    }
 }

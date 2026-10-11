@@ -16,12 +16,12 @@ final class DynamicConsistencyBoundaryConfiguration
     /**
      * @param string[] $filterOnlyTagNames
      * @param array<class-string, array{thresholdTrigger: int, documentStore: string}> $snapshottedModelClasses
-     * @param class-string[] $classesWithoutOptimisticLock
+     * @param class-string[] $classesWithoutCounterTag
      */
     private function __construct(
         private readonly array $filterOnlyTagNames,
         private readonly array $snapshottedModelClasses = [],
-        private readonly array $classesWithoutOptimisticLock = [],
+        private readonly array $classesWithoutCounterTag = [],
     ) {
     }
 
@@ -35,18 +35,18 @@ final class DynamicConsistencyBoundaryConfiguration
      */
     public function withFilterOnlyTags(array $tagNames): self
     {
-        return new self($tagNames, $this->snapshottedModelClasses, $this->classesWithoutOptimisticLock);
+        return new self($tagNames, $this->snapshottedModelClasses, $this->classesWithoutCounterTag);
     }
 
     /**
      * @param class-string|class-string[] $stateStoredAggregateClasses
      */
-    public function withoutOptimisticLockFor(array|string $stateStoredAggregateClasses): self
+    public function withoutCounterTagFor(array|string $stateStoredAggregateClasses): self
     {
         return new self(
             $this->filterOnlyTagNames,
             $this->snapshottedModelClasses,
-            [...$this->classesWithoutOptimisticLock, ...(array) $stateStoredAggregateClasses],
+            [...$this->classesWithoutCounterTag, ...(array) $stateStoredAggregateClasses],
         );
     }
 
@@ -66,7 +66,7 @@ final class DynamicConsistencyBoundaryConfiguration
             ];
         }
 
-        return new self($this->filterOnlyTagNames, $snapshottedModelClasses, $this->classesWithoutOptimisticLock);
+        return new self($this->filterOnlyTagNames, $snapshottedModelClasses, $this->classesWithoutCounterTag);
     }
 
     /**
@@ -88,8 +88,8 @@ final class DynamicConsistencyBoundaryConfiguration
     /**
      * @return class-string[]
      */
-    public function classesWithoutOptimisticLock(): array
+    public function classesWithoutCounterTag(): array
     {
-        return $this->classesWithoutOptimisticLock;
+        return $this->classesWithoutCounterTag;
     }
 }

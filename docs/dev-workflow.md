@@ -41,6 +41,9 @@ parallel run produces false failures.
 # A package's full CI — each package has its own vendor/, so install it first
 docker compose exec app bash -lc "cd packages/JmsConverter && composer install && composer tests:ci"
 
+# Amqp's lib-mode run takes ~7 minutes, past composer's 300 s script timeout; CI sets COMPOSER_PROCESS_TIMEOUT=3600
+docker compose exec app bash -lc "cd packages/Amqp && composer install && COMPOSER_PROCESS_TIMEOUT=0 composer tests:phpunit:amqp-lib"
+
 # One file
 docker compose exec -T app vendor/bin/phpunit --no-coverage packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutCounterTagTest.php
 
@@ -194,8 +197,8 @@ docker compose exec -T app bash -lc "cd packages/Ecotone && vendor/bin/phpstan a
 
 A per-package run needs that package's own `vendor/`, and the root phpunit bootstrap refuses to start while one
 exists, so move them aside before running the root suites. **The Ecotone and Symfony baselines end in entries only
-PHP 8.2 with `--prefer-lowest` reproduces** (phpstan 2.1.0: `DatePoint::createFromInterface()`, a
-`PropertyEditorAccessor` interpolation, `CronExpression::getRunDate()`, and Symfony's `NodeDefinition::children()`).
+PHP 8.2 with `--prefer-lowest` reproduces** (phpstan 2.1.0: `DatePoint::createFromInterface()` and
+`CronExpression::getRunDate()` returning `DateTimeInterface|false`, and Symfony's `NodeDefinition::children()`).
 A regeneration on PHP 8.5 drops them, so re-append them and confirm the package in `app8_2` with
 `composer update --prefer-lowest`; every other package regenerates identically on 8.5.
 

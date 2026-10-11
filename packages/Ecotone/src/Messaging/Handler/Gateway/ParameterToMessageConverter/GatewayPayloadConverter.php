@@ -28,7 +28,6 @@ class GatewayPayloadConverter implements GatewayParameterConverter
     }
 
     /**
-     * @param string $parameterName
      * @return GatewayPayloadConverter
      */
     public static function create(InterfaceParameter $parameter): self

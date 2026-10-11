@@ -473,7 +473,6 @@ class FileSystemAnnotationFinder implements AnnotationFinder
     /**
      * @param string[] $paths
      * @param string[]|null $namespacesToUse
-     * @param string[] $classes
      */
     private static function getClassesIn(array $paths, ?array $namespacesToUse): array
     {

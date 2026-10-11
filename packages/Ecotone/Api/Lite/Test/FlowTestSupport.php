@@ -163,7 +163,7 @@ final class FlowTestSupport
     }
 
     /**
-     * @param Event[]|object[]|array[] $streamEvents
+     * @param Event[]|object[]|array[] $events
      */
     public function withEventStream(string $streamName, array $events): self
     {
@@ -440,7 +440,7 @@ final class FlowTestSupport
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param class-string<T> $className
      * @return T
      */
@@ -456,7 +456,7 @@ final class FlowTestSupport
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param class-string<T> $className
      * @param string|array $identifiers
      * @return T
@@ -500,7 +500,7 @@ final class FlowTestSupport
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param class-string<T> $referenceName
      * @return T
      */

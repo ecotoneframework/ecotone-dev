@@ -199,8 +199,8 @@ final class DbalBusinessMethodModule implements AnnotationModule
             [null, $interface->getClassAnnotationOf(Type::object(DbalParameter::class))],
             [$interface->getMethodName(), $interface->getMethodAnnotationsOf(Type::object(DbalParameter::class))],
         ];
-        /** @var DbalParameter $dbalParameterAttribute */
         foreach ($dbalParameterGroups as [$methodName, $dbalParameterAttributes]) {
+            /** @var DbalParameter $dbalParameterAttribute */
             foreach ($dbalParameterAttributes as $index => $dbalParameterAttribute) {
                 Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice in {$dbalParameterAttribute->getName()}");
                 Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined in {$dbalParameterAttribute->getName()}");

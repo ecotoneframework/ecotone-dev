@@ -91,12 +91,6 @@ parameters:
 			path: packages/Dbal/src/Connection/JSON.php
 
 		-
-			message: '#^Variable \$dbalParameterAttribute in PHPDoc tag @var does not match any variable in the foreach loop\: \$dbalParameterGroups, \$methodName, \$dbalParameterAttributes$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: packages/Dbal/src/DbalBusinessMethod/DbalBusinessMethodModule.php
-
-		-
 			message: '#^Call to an undefined method Interop\\Queue\\Message\:\:setDeliveryDelay\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -187,24 +181,6 @@ parameters:
 			path: packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/Api/EventSourcing/EventStore.php
-
-		-
-			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Api\\EventSourcing\\LoadedEvents\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/Api/EventSourcing/EventStore.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$internalMessageChannels$#'
-			identifier: parameter.notFound
-			count: 2
-			path: packages/Ecotone/Api/ExtensionObject/DynamicMessageChannelBuilder.php
-
-		-
 			message: '#^Method Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\:\:createWithTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\.$#'
 			identifier: return.type
 			count: 1
@@ -229,20 +205,8 @@ parameters:
 			path: packages/Ecotone/Api/ExtensionObject/ServiceConfiguration.php
 
 		-
-			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Gateway\\DocumentException is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 6
-			path: packages/Ecotone/Api/Gateway/DocumentStore.php
-
-		-
 			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:set\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: packages/Ecotone/Api/Lite/EcotoneLite.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$packagesToLoad$#'
-			identifier: parameter.notFound
 			count: 1
 			path: packages/Ecotone/Api/Lite/EcotoneLite.php
 
@@ -259,38 +223,8 @@ parameters:
 			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$streamEvents$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
-
-		-
-			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
-			identifier: return.phpDocType
-			count: 3
-			path: packages/Ecotone/Api/Lite/Test/FlowTestSupport.php
-
-		-
-			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
-			identifier: return.phpDocType
-			count: 2
-			path: packages/Ecotone/Api/Messaging/ConfiguredMessagingSystem.php
-
-		-
 			message: '#^PHPDoc tag @param has invalid value \(string\[\]\)\: Unexpected token "\\n     ", expected variable at offset 26 on line 2$#'
 			identifier: phpDoc.parseError
-			count: 1
-			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Messaging\\Handler\\TypeDefinitionException\|Ecotone\\Messaging\\MessagingException is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 2
-			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Messaging\\Support\\InvalidArgumentException\|Ecotone\\Messaging\\MessagingException is not subtype of Throwable$#'
-			identifier: throws.notThrowable
 			count: 1
 			path: packages/Ecotone/Api/Messaging/MessageHeaders.php
 
@@ -301,28 +235,10 @@ parameters:
 			path: packages/Ecotone/src/AnnotationFinder/FileSystem/FileSystemAnnotationFinder.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$classes$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/AnnotationFinder/FileSystem/FileSystemAnnotationFinder.php
-
-		-
 			message: '#^Cannot access constant class on array\|object\|string\.$#'
 			identifier: classConstant.nonObject
 			count: 2
 			path: packages/Ecotone/src/EventSourcing/EventSourcedRepositoryAdapter.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/EventSourcing/EventStore/InMemoryEventStore.php
-
-		-
-			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
 
 		-
 			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
@@ -337,28 +253,10 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$channelNamesToReceive$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$currentChannelIndexToSend$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
-
-		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\EventDrivenChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Messaging\\SubscribableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
 			identifier: assign.propertyType
 			count: 1
 			path: packages/Ecotone/src/Messaging/Channel/EventDrivenChannelInterceptorAdapter.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$pollingMetadata$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Channel/InMemoryMessageChannelHolder.php
 
 		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\PollableChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Api\\Messaging\\PollableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
@@ -367,28 +265,10 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Channel/PollableChannelInterceptorAdapter.php
 
 		-
-			message: '#^PHPDoc tag @return with type T is not subtype of native type object\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ExtensionObjectResolver.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/PollerModule.php
-
-		-
 			message: '#^Call to an undefined method Ecotone\\AnnotationFinder\\AnnotatedFinding\:\:getAllAnnotationDefinitions\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ScheduledModule.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 2
-			path: packages/Ecotone/src/Messaging/Config/ConsoleCommandConfiguration.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Config\\Module\:\:getModuleExtensions\(\) invoked with 3 parameters, 2 required\.$#'
@@ -439,18 +319,6 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$skippedModulesPackages$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/ModuleRetrievingService.php
-
-		-
 			message: '#^Method Ecotone\\Messaging\\Conversion\\Converter\:\:convert\(\) invoked with 6 parameters, 5 required\.$#'
 			identifier: arguments.count
 			count: 1
@@ -493,82 +361,16 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Handler/Bridge/BridgeBuilder.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$mappingExpression$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Enricher/Converter/EnrichPayloadWithExpressionPropertyEditor.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Enricher/Converter/EnrichPayloadWithExpressionPropertyEditor.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Enricher/InternalEnrichingService.php
-
-		-
-			message: '#^PHPDoc tag @return with type Ecotone\\Api\\Messaging\\Message\|Ecotone\\Messaging\\Support\\MessageBuilder is not subtype of native type Ecotone\\Api\\Messaging\\Message\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Enricher/InternalEnrichingService.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Ecotone\\Api\\Messaging\\Message\|null\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Gateway/GatewayInternalProcessor.php
-
-		-
-			message: '#^PHPDoc tag @throws with type mixed is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Gateway/GatewayInternalProcessor.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$parameterName$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Gateway/ParameterToMessageConverter/GatewayPayloadConverter.php
-
-		-
 			message: '#^PHPDoc tag @param for parameter \$className with type class\-string\|Ecotone\\Messaging\\Handler\\Type is not subtype of native type Ecotone\\Messaging\\Handler\\Type\\ObjectType\|string\.$#'
 			identifier: parameter.phpDocType
 			count: 1
 			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCall.php
 
 		-
-			message: '#^PHPDoc tag @return with type class\-string\|null is not subtype of native type object\|null\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCall.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$referenceSearchService$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/InterfaceToCallRegistry.php
-
-		-
 			message: '#^Method Ecotone\\Messaging\\Handler\\ParameterConverter\:\:getArgumentFrom\(\) invoked with 2 parameters, 1 required\.$#'
 			identifier: arguments.count
 			count: 1
 			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/AroundMethodInterceptor.php
-
-		-
-			message: '#^PHPDoc tag @return with type Ecotone\\Messaging\\Handler\\Processor\\MethodInvoker\\Converter\\HeaderExpressionBuilder is incompatible with native type Ecotone\\Messaging\\Handler\\Processor\\MethodInvoker\\Converter\\PayloadExpressionBuilder\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/PayloadExpressionBuilder.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$endpointAnnotations$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Handler\\Type\\UnionType\:\:createWith\(\) should return Ecotone\\Messaging\\Handler\\Type\\UnionType but returns Ecotone\\Messaging\\Handler\\Type\.$#'
@@ -589,18 +391,6 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Handler/TypeResolver.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$thisClass$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Messaging/Handler/TypeResolver.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/MessageConverter/DefaultHeaderMapper.php
-
-		-
 			message: '#^Binary operation "%%" between string and int\<0, max\> results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1
@@ -619,64 +409,10 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Scheduling/CronIntegration/DayOfWeekField.php
 
 		-
-			message: '#^PHPDoc tag @return with type int is incompatible with native type Ecotone\\Api\\Scheduling\\Duration\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Messaging/Scheduling/SyncTaskScheduler.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$classAnnotations$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/AggregateResolver/AggregateClassDefinition.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateIdentifierMapping$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateIds$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Modelling/AggregateFlow/SaveAggregate/SaveAggregateServiceTemplate.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$aggregateQueryHandlers$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Modelling/Config/AggregateModule.php
-
-		-
-			message: '#^PHPDoc tag @return with type string\|null is incompatible with native type void\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Ecotone/src/Modelling/Config/Routing/BusRoutingMapBuilder.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$namedEvents$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Projecting/Config/StreamFilterRegistryModule.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$storages$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Ecotone/src/Projecting/ProjectionStateStorageRegistry.php
-
-		-
 			message: '#^Call to an undefined method Symfony\\Component\\DependencyInjection\\ContainerInterface\:\:getServiceIds\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
-
-		-
-			message: '#^Variable \$message in PHPDoc tag @var does not match assigned variable \$timeoutInMilliseconds\.$#'
-			identifier: varTag.differentVariable
-			count: 1
-			path: packages/Enqueue/src/EnqueueInboundChannelAdapter.php
 
 		-
 			message: '#^Method Ecotone\\Enqueue\\EnqueueInboundChannelAdapterBuilder\:\:compileGateway\(\) should return Ecotone\\Messaging\\Config\\Container\\DefinedObject\|Ecotone\\Messaging\\Config\\Container\\Definition\|Ecotone\\Messaging\\Config\\Container\\Reference but returns Ecotone\\Messaging\\Endpoint\\InboundChannelAdapterEntrypoint\|Ecotone\\Messaging\\Handler\\Gateway\\GatewayProxyBuilder\.$#'
@@ -697,86 +433,14 @@ parameters:
 			path: packages/JmsConverter/src/JMSConverter.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$topics$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Kafka/src/Configuration/KafkaConsumerConfiguration.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$deliveryIds$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Kafka/src/Outbound/KafkaDeliveryTracker.php
-
-		-
 			message: '#^Call to an undefined method Doctrine\\DBAL\\Driver\:\:getName\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: packages/Laravel/src/Config/LaravelConnectionResolver.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/Laravel/src/Config/PDO/SQLiteDriver.php
-
-		-
 			message: '#^Method Ecotone\\Laravel\\Config\\PDO\\SqlServerDriver\:\:connect\(\) should return Doctrine\\DBAL\\Driver\\Connection but returns Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection\.$#'
 			identifier: return.type
-			count: 1
-			path: packages/Laravel/src/Config/PDO/SqlServerDriver.php
-
-		-
-			message: '#^PHPDoc tag @return with type Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection is not subtype of native type Doctrine\\DBAL\\Driver\\Connection\.$#'
-			identifier: return.phpDocType
 			count: 1
 			path: packages/Laravel/src/Config/PDO/SqlServerDriver.php
 
@@ -811,30 +475,6 @@ parameters:
 			path: packages/PdoEventSourcing/src/Console/TagVerifySchemaConsoleCommand.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/PdoEventSourcing/src/Dbal/DbalEventStore.php
-
-		-
-			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Messaging\\Config\\ConfigurationException\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/PdoEventSourcing/src/Dbal/DbalEventStore.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$eventNames$#'
-			identifier: parameter.notFound
-			count: 1
-			path: packages/PdoEventSourcing/src/DeserializingEventStore.php
-
-		-
-			message: '#^PHPDoc tag @return with type array\<Ecotone\\Api\\EventSourcing\\Event\> is incompatible with native type Ecotone\\Api\\EventSourcing\\LoadedEvents\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/PdoEventSourcing/src/DeserializingEventStore.php
-
-		-
 			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:getDbalConnection\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -865,12 +505,6 @@ parameters:
 			path: packages/Sqs/Api/SqsBackedMessageChannelBuilder.php
 
 		-
-			message: '#^PHPDoc tag @return with type string is incompatible with native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: packages/Symfony/Api/SymfonyMessengerMessageChannelBuilder.php
-
-		-
 			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:getParameter\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -881,9 +515,3 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: packages/Symfony/DependencyInjection/Compiler/SymfonyConfigurationVariableService.php
-
-		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
-			count: 1
-			path: packages/Symfony/DependencyInjection/MessagingEntrypointCommand.php

@@ -399,11 +399,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
     }
 
-    /**
-     * @param string[] $eventNames
-     * @return Event[]
-     */
-
     private function missingAppendTargetException(string $tableName, string $streamName): ConfigurationException
     {
         if (! $this->streamTableRegistry->isDeclared($streamName)) {

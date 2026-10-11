@@ -30,7 +30,6 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
     /**
      * @param string $parameterName
      * @param string $expression
-     * @return HeaderExpressionBuilder
      */
     public static function create(string $parameterName, string $expression): self
     {

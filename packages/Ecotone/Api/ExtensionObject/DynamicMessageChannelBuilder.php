@@ -44,7 +44,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
      *
      * @param string[] $receivingChannelNames
      * @param string[] $sendingChannelNames
-     * @param MessageChannelBuilder[] $internalMessageChannels
      */
     public static function createRoundRobinWithDifferentChannels(
         string $thisMessageChannelName,
@@ -67,7 +66,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
      * Creates with default round robin strategy for sending and receiving
      *
      * @param string[] $channelNames
-     * @param MessageChannelBuilder[] $internalMessageChannels
      */
     public static function createRoundRobin(
         string $thisMessageChannelName,

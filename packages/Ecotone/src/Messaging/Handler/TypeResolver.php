@@ -274,7 +274,6 @@ class TypeResolver
     }
 
     /**
-     * @param ReflectionClass $thisClass
      * @param ReflectionClass $analyzedClass
      * @param string $methodName
      * @return array|ReflectionClass

@@ -66,9 +66,6 @@ class SyncTaskScheduler
         return $this->clock->now() >= $this->triggerContext->lastScheduledTime();
     }
 
-    /**
-     * @return int
-     */
     private function waitTime(): Duration
     {
         return $this->triggerContext->lastScheduledTime()->durationSince($this->clock->now());

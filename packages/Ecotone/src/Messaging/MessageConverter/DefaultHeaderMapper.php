@@ -96,7 +96,6 @@ class DefaultHeaderMapper implements HeaderMapper
     /**
      * @param array $mappingHeaders
      * @param array $sourceHeaders
-     * @return mixed
      * @throws \Ecotone\Messaging\Handler\TypeDefinitionException
      * @throws \Ecotone\Messaging\MessagingException
      */

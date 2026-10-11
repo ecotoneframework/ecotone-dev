@@ -254,9 +254,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
     }
 
-    /**
-     * @param string[] $skippedModulesPackages
-     */
     private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, ServiceConfiguration $serviceConfiguration): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();

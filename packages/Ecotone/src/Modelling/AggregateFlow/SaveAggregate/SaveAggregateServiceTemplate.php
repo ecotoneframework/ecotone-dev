@@ -57,10 +57,6 @@ class SaveAggregateServiceTemplate
         }
     }
 
-    /**
-     * @param array<string, string> $aggregateIdentifierMapping
-     * @param array<string, string> $aggregateIds
-     */
     public static function getAggregateIds(
         PropertyReaderAccessor $propertyReaderAccessor,
         array $metadata,

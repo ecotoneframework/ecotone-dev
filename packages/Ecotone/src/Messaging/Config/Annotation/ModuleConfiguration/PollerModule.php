@@ -23,7 +23,7 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
     private array $pollingMetadata;
 
     /**
-     * @var PollingMetadata[] $pollingMetadata
+     * @param PollingMetadata[] $pollingMetadata
      */
     public function __construct(array $pollingMetadata)
     {

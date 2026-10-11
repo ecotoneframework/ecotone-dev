@@ -89,7 +89,6 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
      * @param string[] $aggregateClasses
      * @param AggregateClassDefinition[] $aggregateClassDefinitions
      * @param AnnotatedFinding[] $aggregateCommandHandlers
-     * @param AnnotatedFinding[] $aggregateQueryHandlers
      * @param AnnotatedFinding[] $aggregateEventHandlers
      * @param string[] $aggregateRepositoryReferenceNames
      * @param AnnotatedMethod[] $gatewayRepositoryMethods

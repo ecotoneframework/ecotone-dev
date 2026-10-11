@@ -10,8 +10,6 @@ interface EventStore
     public const RAW_REFERENCE = 'ecotone.eventSourcing.eventStore.instance';
 
     /**
-     * Appends events to existing Stream, or creates one and then appends events if it does not exists
-     *
      * @param Event[]|object[]|array[] $streamEvents
      */
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
@@ -44,11 +42,6 @@ interface EventStore
         array $eventNames = [],
         bool $deserialize = true
     ): iterable;
-
-    /**
-     * @param string[] $eventNames
-     * @return Event[]
-     */
 
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }

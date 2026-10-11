@@ -62,7 +62,6 @@ class InterfaceToCallRegistry
     /**
      * @param InterfaceToCall[] $interfacesToCall
      * @param bool $isLocked
-     * @param ReferenceSearchService $referenceSearchService
      * @return InterfaceToCallRegistry
      */
     public static function createWithInterfaces(iterable $interfacesToCall, bool $isLocked): self

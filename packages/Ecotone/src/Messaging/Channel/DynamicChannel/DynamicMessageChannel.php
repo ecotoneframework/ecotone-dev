@@ -16,10 +16,6 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class DynamicMessageChannel implements PollableChannel
 {
-    /**
-     * @param string[] $channelNamesToReceive
-     * @param int $currentChannelIndexToSend
-     */
     public function __construct(
         private string                  $channelName,
         private InternalChannelResolver $channelResolver,

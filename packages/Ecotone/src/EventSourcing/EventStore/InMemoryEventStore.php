@@ -268,10 +268,8 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     }
 
     /**
-     * @param string[] $eventNames
      * @return Event[]
      */
-
     public function loadReverse(
         string $streamName,
         ?int $fromNumber = null,

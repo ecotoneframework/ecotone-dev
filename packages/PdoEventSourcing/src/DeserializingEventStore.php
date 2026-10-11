@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
@@ -81,11 +80,6 @@ final class DeserializingEventStore implements EventStore
 
         return $events;
     }
-
-    /**
-     * @param string[] $eventNames
-     * @return Event[]
-     */
 
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {

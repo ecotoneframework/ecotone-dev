@@ -264,9 +264,6 @@ class BusRoutingMapBuilder extends BusRoutingMap
         return $this->messagingConfiguration;
     }
 
-    /**
-     * @return ?string the destination channel name or null if the event is canceled
-     */
     private function dispatchRoutingEvent(RoutingEvent $routingEvent): void
     {
         foreach ($this->routingEventHandlers as $routingEventHandler) {

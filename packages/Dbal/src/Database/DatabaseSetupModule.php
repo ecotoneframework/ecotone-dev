@@ -34,7 +34,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  *
  * licence Apache-2.0
  */
-class DatabaseSetupModule implements AnnotationModule
+final class DatabaseSetupModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {

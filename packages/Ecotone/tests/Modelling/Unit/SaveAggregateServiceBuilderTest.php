@@ -371,7 +371,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $eventMetadata = $ecotoneLite->popRecordedEventHeaders()[0];
         $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
         $this->assertSame('123', $eventMetadata->get('userland'));
-        $this->assertSame($id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame((string) $id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
         $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
         $this->assertSame(EventSourcingAggregateWithInternalRecorder::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
 
@@ -385,14 +385,14 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $eventMetadata = $eventHeaders[0];
         $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
         $this->assertSame('1234', $eventMetadata->get('userland'));
-        $this->assertSame($id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame((string) $id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
         $this->assertSame(2, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
         $this->assertSame(EventSourcingAggregateWithInternalRecorder::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
 
         $eventMetadata = $eventHeaders[1];
         $this->assertNotSame($eventHeaders[0]->get(MessageHeaders::MESSAGE_ID), $eventMetadata->get(MessageHeaders::MESSAGE_ID));
         $this->assertSame('1234', $eventMetadata->get('userland'));
-        $this->assertSame($newInstanceId, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame((string) $newInstanceId, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
         $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
         $this->assertSame('something', $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
     }

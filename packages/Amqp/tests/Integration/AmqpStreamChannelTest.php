@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -769,6 +770,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ])
         );
 
@@ -890,8 +892,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     )
                         ->withPrefetchCount(2)
                         ->withCommitInterval(2), // Commit every 2 messages,
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -942,8 +944,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     )
                         ->withPrefetchCount(1)
                         ->withCommitInterval(2), // Commit every 2 messages,
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -993,8 +995,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     )
                         ->withCommitInterval(3), // Commit every 3 messages,
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -1063,8 +1065,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     )
                         ->withPrefetchCount(10)
                         ->withCommitInterval(100), // Large commit interval, should be overridden to 1
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -1113,8 +1115,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     )
                         ->withPrefetchCount(10)
                         ->withCommitInterval(100), // Large commit interval, should be overridden to 1
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -1195,8 +1197,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 3 messages to the stream

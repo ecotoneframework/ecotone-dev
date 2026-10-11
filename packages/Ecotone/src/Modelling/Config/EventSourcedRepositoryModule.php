@@ -19,7 +19,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 
 #[ModuleAnnotation]
-class EventSourcedRepositoryModule implements AnnotationModule
+final class EventSourcedRepositoryModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {

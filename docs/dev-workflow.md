@@ -41,6 +41,9 @@ parallel run produces false failures.
 # A package's full CI — each package has its own vendor/, so install it first
 docker compose exec app bash -lc "cd packages/JmsConverter && composer install && composer tests:ci"
 
+# Amqp's lib-mode run takes ~7 minutes, past composer's 300 s script timeout; CI sets COMPOSER_PROCESS_TIMEOUT=3600
+docker compose exec app bash -lc "cd packages/Amqp && composer install && COMPOSER_PROCESS_TIMEOUT=0 composer tests:phpunit:amqp-lib"
+
 # One file
 docker compose exec -T app vendor/bin/phpunit --no-coverage packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutCounterTagTest.php
 
@@ -194,8 +197,8 @@ docker compose exec -T app bash -lc "cd packages/Ecotone && vendor/bin/phpstan a
 
 A per-package run needs that package's own `vendor/`, and the root phpunit bootstrap refuses to start while one
 exists, so move them aside before running the root suites. **The Ecotone and Symfony baselines end in entries only
-PHP 8.2 with `--prefer-lowest` reproduces** (phpstan 2.1.0: `DatePoint::createFromInterface()`, a
-`PropertyEditorAccessor` interpolation, `CronExpression::getRunDate()`, and Symfony's `NodeDefinition::children()`).
+PHP 8.2 with `--prefer-lowest` reproduces** (phpstan 2.1.0: `DatePoint::createFromInterface()` and
+`CronExpression::getRunDate()` returning `DateTimeInterface|false`, and Symfony's `NodeDefinition::children()`).
 A regeneration on PHP 8.5 drops them, so re-append them and confirm the package in `app8_2` with
 `composer update --prefer-lowest`; every other package regenerates identically on 8.5.
 
@@ -219,14 +222,19 @@ not add licence headers.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
-| `split-testing.yml` | pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
+| `test-monorepo.yml` | every branch push **and** pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
+| `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
 | `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
-| `quickstart-examples.yml` | pull request | The quickstart applications, as their own package |
+| `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |
 | `benchmark-pr.yml` | pull request | phpbench on PHP 8.5, for Ecotone, Laravel and Symfony |
 
 Every one of them is `fail-fast: true`, so the first failure cancels the rest.
+
+The four push-triggered workflows share one trigger — `push` on `branches: ['**']` with `tags-ignore: ['*.*']`,
+beside `pull_request` — so a branch pushed and then opened as a pull request runs each of them twice. Each
+concurrency group falls back from the PR number to `github.ref_name`, so a newer push still cancels the older run
+for the same event. If the minutes bite, narrow `branches` to `['2.0', 'dgafka/ecotone-2-0-*']`.
 
 
 ---

@@ -32,7 +32,7 @@ use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 
 #[ModuleAnnotation]
-class StreamFilterRegistryModule implements AnnotationModule
+final class StreamFilterRegistryModule implements AnnotationModule
 {
     /** @param array<string, StreamFilter[]> $streamFilters */
     public function __construct(private array $streamFilters)
@@ -86,7 +86,6 @@ class StreamFilterRegistryModule implements AnnotationModule
     }
 
     /**
-     * @param array<class-string, string> $namedEvents Map of class name to named event name
      * @return array<string, array<string>> Map of projection name to event names (empty array means no filtering)
      */
     public static function collectProjectionEventNames(

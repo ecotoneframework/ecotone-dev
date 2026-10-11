@@ -34,9 +34,6 @@ final class KafkaConsumerConfiguration implements DefinedObject
 
     }
 
-    /**
-     * @param array<string> $topics
-     */
     public static function createWithDefaults(
         string $endpointId,
         string $brokerConfigurationReference = KafkaBrokerConfiguration::class

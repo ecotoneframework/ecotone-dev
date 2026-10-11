@@ -193,16 +193,13 @@ class RouterBuilderTest extends MessagingTestCase
         $this->assertEquals(2, $secondMessage->getHeaders()->get(MessageHeaders::SEQUENCE_SIZE));
     }
 
-    public function test_converting_to_string()
+    public function test_converting_to_string_names_the_routing_method()
     {
-        $inputChannelName = 'inputChannel';
-        $endpointName = 'someName';
-
         $this->assertEquals(
             RouterBuilder::create('ref-name', InterfaceToCall::create(MultipleChannelRouter::class, 'pick'))
-                ->withInputChannelName($inputChannelName)
-                ->withEndpointId($endpointName),
-            sprintf('Router for input channel `%s` with name `%s`', $inputChannelName, $endpointName)
+                ->withInputChannelName('inputChannel')
+                ->withEndpointId('someName'),
+            'Router - invocation of ' . MultipleChannelRouter::class . '::pick'
         );
     }
 }

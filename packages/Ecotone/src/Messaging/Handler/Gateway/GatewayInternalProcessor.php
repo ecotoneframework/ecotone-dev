@@ -50,9 +50,7 @@ class GatewayInternalProcessor implements MessageProcessor, AroundInterceptable
 
     /**
      * @param Message $requestMessage
-     * @return mixed
      * @throws MessagingException
-     * @throws mixed
      */
     public function process(Message $requestMessage): ?Message
     {

@@ -34,7 +34,7 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 /**
  * licence Apache-2.0
  */
-class DbalDeadLetterModule implements AnnotationModule
+final class DbalDeadLetterModule implements AnnotationModule
 {
     public const HELP_COMMAND_NAME = 'ecotone:deadletter:help';
     public const LIST_COMMAND_NAME            = 'ecotone:deadletter:list';

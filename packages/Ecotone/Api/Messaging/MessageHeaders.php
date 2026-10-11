@@ -198,7 +198,6 @@ final class MessageHeaders
     /**
      * @param string $headerName
      * @return mixed
-     * @throws MessagingException
      */
     final public function get(string $headerName)
     {
@@ -275,7 +274,6 @@ final class MessageHeaders
 
     /**
      * @return string
-     * @throws MessagingException
      */
     public function getMessageId(): string
     {
@@ -296,7 +294,6 @@ final class MessageHeaders
 
     /**
      * @return int
-     * @throws MessagingException
      */
     public function getTimestamp(): int
     {
@@ -305,8 +302,6 @@ final class MessageHeaders
 
     /**
      * @return MediaType
-     * @throws MessagingException
-     * @throws Support\InvalidArgumentException
      */
     public function getContentType(): MediaType
     {
@@ -315,7 +310,6 @@ final class MessageHeaders
 
     /**
      * @param array|string[] $headers
-     * @throws MessagingException
      */
     private function initialize(array $headers): void
     {
@@ -357,8 +351,6 @@ final class MessageHeaders
 
     /**
      * @return false|string
-     * @throws Handler\TypeDefinitionException
-     * @throws MessagingException
      */
     public function __toString()
     {
@@ -368,8 +360,6 @@ final class MessageHeaders
     /**
      * @param iterable $dataToConvert
      * @return array
-     * @throws Handler\TypeDefinitionException
-     * @throws MessagingException
      */
     private function convertToScalarsIfPossible(iterable $dataToConvert): array
     {

@@ -58,7 +58,7 @@ use ReflectionParameter;
 /**
  * licence Apache-2.0
  */
-class MessageHandlerRoutingModule implements AnnotationModule
+final class MessageHandlerRoutingModule implements AnnotationModule
 {
     public function __construct(
         private InterfaceToCallRegistry $interfaceToCallRegistry,

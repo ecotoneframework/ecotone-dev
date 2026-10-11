@@ -24,7 +24,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  *
  * licence Apache-2.0
  */
-class ChannelSetupModule extends NoExternalConfigurationModule implements AnnotationModule
+final class ChannelSetupModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {

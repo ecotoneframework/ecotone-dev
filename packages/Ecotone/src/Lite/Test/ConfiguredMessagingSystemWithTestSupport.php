@@ -111,7 +111,7 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param class-string<T> $referenceName
      * @return T
      */

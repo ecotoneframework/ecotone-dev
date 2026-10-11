@@ -11,7 +11,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ExpressionLocation;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
@@ -42,7 +41,6 @@ class InternalEnrichingService
      *
      * @param EnrichGateway|null $enrichGateway
      * @param ExpressionEvaluationService $expressionEvaluationService
-     * @param ReferenceSearchService $referenceSearchService
      * @param ConversionService $conversionService
      * @param PropertyEditor[] $setters
      * @param string $requestPayloadExpression
@@ -121,7 +119,6 @@ class InternalEnrichingService
 
     /**
      * @param Message $message
-     * @return Message|MessageBuilder
      * @throws \Ecotone\Messaging\Handler\TypeDefinitionException
      * @throws \Ecotone\Messaging\MessagingException
      * @throws \Ecotone\Messaging\Support\InvalidArgumentException

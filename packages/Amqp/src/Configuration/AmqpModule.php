@@ -27,7 +27,7 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Apache-2.0
  */
-class AmqpModule implements AnnotationModule
+final class AmqpModule implements AnnotationModule
 {
     /**
      * @param AmqpQueue[] $amqpQueuesFromMessageConsumers

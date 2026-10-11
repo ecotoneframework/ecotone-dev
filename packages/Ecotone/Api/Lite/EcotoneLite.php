@@ -151,7 +151,6 @@ final class EcotoneLite
     }
 
     /**
-     * @param string[] $packagesToLoad
      * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables

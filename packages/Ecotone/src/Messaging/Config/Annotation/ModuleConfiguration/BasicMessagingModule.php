@@ -55,7 +55,7 @@ use Ramsey\Uuid\UuidInterface;
 /**
  * licence Apache-2.0
  */
-class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
+final class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @inheritDoc

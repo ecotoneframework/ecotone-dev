@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Apache-2.0
  */
-class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
+final class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param JMSHandlerAdapterBuilder[] $jmsHandlerAdapters

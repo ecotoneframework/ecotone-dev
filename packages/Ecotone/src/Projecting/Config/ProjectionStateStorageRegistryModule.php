@@ -29,7 +29,7 @@ use Ecotone\Projecting\ProjectionStateStorageReference;
 use Ecotone\Projecting\ProjectionStateStorageRegistry;
 
 #[ModuleAnnotation]
-class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
+final class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param string[] $allProjectionNames

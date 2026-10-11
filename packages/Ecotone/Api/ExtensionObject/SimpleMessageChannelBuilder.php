@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
@@ -106,6 +104,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     public function isPollable(): bool
     {
         return $this->isPollable;
+    }
+
+    public function isDirect(): bool
+    {
+        return $this->messageChannel instanceof DirectChannel;
     }
 
     public function isStreamingChannel(): bool

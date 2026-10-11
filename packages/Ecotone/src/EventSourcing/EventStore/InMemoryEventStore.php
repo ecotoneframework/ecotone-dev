@@ -268,10 +268,8 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
     }
 
     /**
-     * @param string[] $eventNames
      * @return Event[]
      */
-
     public function loadReverse(
         string $streamName,
         ?int $fromNumber = null,
@@ -393,6 +391,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
             $field = $match['field'];
 
             if (! isset($metadata[$field])) {
+                if ($match['operator'] === Operator::NOT_EQUALS || $match['operator'] === Operator::NOT_IN) {
+                    continue;
+                }
+
                 return false;
             }
 

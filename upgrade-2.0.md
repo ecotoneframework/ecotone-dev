@@ -1248,7 +1248,13 @@ The removed configuration, one by one:
   already created.
 - Run the setup again after deleting an event stream: `EventStore::delete()` drops the stream's table, and nothing
   recreates it on the next append any more. A stream no `#[Stream]` (and no aggregate) declares has no table the setup
-  creates, so appending to it is refused — declare it.
+  creates, so reaching it is a configuration mistake, refused with a `ConfigurationException` that names the stream,
+  the `#[Stream('<name>')]` to add, the setup command and the streams that are declared: **at bootstrap** for a
+  projection reading it through `#[FromStream('<name>')]`, and on `EventStore::appendTo()` for a name only known at
+  runtime, once the append finds no table (a table your own migration created keeps working). Both apply to the database event store; `EventSourcingConfiguration::createInMemory()` has no tables, and
+  still opens a stream on its first append. **How to adapt:** add `#[Stream('<name>')]` to the class that owns the
+  stream's events — an event-sourced aggregate, the projection that emits into it, or any class Ecotone scans — and
+  run the setup.
 - In an `EcotoneLite` flow test, nothing: the bootstrap sets up the tables of every connection the test registers.
   A test that must see a table missing opts out with
   `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)`; a Symfony, Laravel or Tempest
@@ -2083,6 +2089,44 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 - **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
   DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
   twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
+- **A negative metadata match keeps the events that lack the field.** **Before:** `MetadataMatcher::withMetadataMatch()`
+  with `Operator::NOT_EQUALS` or `Operator::NOT_IN` dropped every event that carried no such metadata key — the
+  in-memory store failed any match on a missing key, and DBAL's `NULL NOT IN (…)` / `NULL <> ?` filtered the row —
+  while an empty `NOT_IN` list kept them on DBAL and dropped them in memory. **Now:** a missing field satisfies a
+  negative match on every store, so `withMetadataMatch('tenant', Operator::NOT_IN, $excludedTenants)` excludes the
+  listed tenants and keeps the events with no tenant, whatever the list holds. Positive matches (`EQUALS`, `IN`,
+  the comparisons) still never return an event lacking the field. **How to adapt:** if you used a negative match to
+  load only the events that *carry* a field, there is no operator for that any more: add an `EQUALS`/`IN` on the
+  values you expect, or filter the loaded events yourself.
+- **A missing dead-letter table fails fast.** **Before:** `DbalDeadLetterStore` treated a missing table as a transient
+  failure and retried storing the failed message three times on an exponential backoff, closing the connection each
+  time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
+  `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
+  before. Nothing to adapt.
+- **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
+  (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
+  whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading
+  `"PENDING" is not a valid case name for enum Status`, as an unknown value for a backed enum always was. **How to
+  adapt:** only code inspecting the previous exception's class changes.
+- Internal, nothing to adapt unless you used these directly: the 42 module and builder classes whose
+  `create(): static` returned `new self` (`AggregateModule`, `DbalConnectionModule`, `EventSourcingModule`, …) are
+  `final`; `MessagingException::create()`, `createWithFailedMessage()` and `createFromPreviousException()` declare
+  `static` instead of `self`, so a subclass overriding one declares `static` too; `Ecotone\Messaging\Scheduling\TaskExecutor`
+  is gone, `SyncTaskScheduler` and `ScheduledTaskConsumer` take `PollToGatewayTaskExecutor`;
+  `Clock::createBasedOnConfig()` is `Clock::createWithFallback(?ClockInterface $clock, ClockInterface $fallbackClock)`,
+  the testing module supplying `StaticPsrClock` as the fallback; and `RetryRunner` no longer retries a
+  `ConfigurationException`.
+- **An aggregate's identifier travels on its events as a string.** **Before:** an aggregate's events carried
+  `MessageHeaders::EVENT_AGGREGATE_ID` (`_aggregate_id`) as the identifier's raw PHP value, so an `int`
+  `#[Identifier]` recorded a JSON integer, while `EventStore::loadAggregateEvents()` takes the id as a `string`.
+  **Now:** a single identifier is cast to its string form when the events are enriched — in the metadata an
+  event-sourced aggregate records, on every event store, and on the event messages published after any aggregate's
+  save, state-stored ones included; `#[Identifier] int $id = 42` carries `'42'`.
+  Ids already recorded as integers stay readable: SQLite and the in-memory store compare metadata by its text form, as
+  PostgreSQL, MySQL and MariaDB always did, so an aggregate whose history mixes both forms still loads. A composite
+  identifier is unchanged. **How to adapt:** a handler reading the header with `#[Header('_aggregate_id')] int $id`
+  declares `string` (or casts), and code comparing `$event->getMetadata()['_aggregate_id']` with `===` against an
+  `int` compares against the string.
 - **`Message` and `MessageChannel` extend `Stringable`.** **Before:** neither interface declared `__toString()`, yet
   Ecotone interpolates both into exception messages and descriptions, so a channel or message that could not be
   stringified turned the exception being built into `Object of class … could not be converted to string`. Six of
@@ -2093,9 +2137,16 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
   refuses to load it otherwise. A message describes its payload and headers (`(string) $this->getHeaders()` is their
   JSON); a channel returns its name. Internal, nothing to adapt: `MessageHandler`, `MessageHandlerBuilder` and
   `RouteSelector` extend `Stringable` too, which fixes the one crash reachable from an application — a `#[Router]`
-  subscribed to a direct channel that already has a handler is now refused, when the first message reaches the channel,
-  with a `WrongHandlerAmountException` naming both handlers and the two ways out, a separate input channel or
-  `SimpleMessageChannelBuilder::createPublishSubscribeChannel()`.
+  subscribed to a direct channel that already has a handler threw `Object of class … could not be converted to string`.
+- **Two handlers on one direct input channel are refused at bootstrap.** **Before:** a `#[Router]`, `#[InternalHandler]`
+  or any other handler sharing a direct channel with another handler booted, and the first message to reach the
+  channel failed — with the cast error above in 1.x, and in early 2.0 builds with a `WrongHandlerAmountException`. A
+  direct channel delivers a message to one handler only, so the configuration could never work. **Now:** bootstrap
+  throws `WrongHandlerAmountException` naming the channel and both handlers (`Router - invocation of Class::method`,
+  `Service Activator - Class::method`, …) and the two ways out. **How to adapt:** give one of the handlers its own
+  input channel, or register the channel with `SimpleMessageChannelBuilder::createPublishSubscribeChannel('<name>')`
+  so that each of them receives the message. A channel subscribed by hand at runtime keeps the same refusal on the
+  second `subscribe()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.

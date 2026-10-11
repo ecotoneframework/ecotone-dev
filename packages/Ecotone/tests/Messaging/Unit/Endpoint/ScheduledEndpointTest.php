@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 
 /**
  * licence Apache-2.0
@@ -66,11 +71,83 @@ final class ScheduledEndpointTest extends TestCase
         $this->assertSame(ReturningScheduledService::PAYLOAD, $ecotone->receiveMessageFrom(ReturningScheduledService::CHANNEL)->getPayload());
     }
 
+    public function test_a_scheduled_endpoint_runs_on_its_first_poll_without_waiting(): void
+    {
+        [$ecotone, $clock, $service] = $this->bootstrapCountingScheduledEndpointWithFixedRate(1000);
+
+        $ecotone->run('countingScheduler', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 0));
+
+        $this->assertSame(1, $service->calls);
+        $this->assertSame([], $clock->sleptMicroseconds);
+    }
+
+    public function test_a_scheduled_endpoint_waits_its_fixed_rate_before_the_next_run(): void
+    {
+        [$ecotone, $clock, $service] = $this->bootstrapCountingScheduledEndpointWithFixedRate(1000);
+
+        $ecotone->run('countingScheduler', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, executionTimeLimitInMilliseconds: 0));
+
+        $this->assertSame(2, $service->calls);
+        $this->assertSame([1_000_000], $clock->sleptMicroseconds);
+    }
+
     public function test_bootstrap_throws_when_scheduled_method_declares_a_parameter(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting([UnresolvableParameterScheduledService::class], [new UnresolvableParameterScheduledService()]);
+    }
+
+    /**
+     * @return array{0: FlowTestSupport, 1: object, 2: object}
+     */
+    private function bootstrapCountingScheduledEndpointWithFixedRate(int $fixedRateInMilliseconds): array
+    {
+        $service = new class () {
+            public int $calls = 0;
+
+            #[Scheduled('countedTicks', 'countingScheduler')]
+            public function tick(): string
+            {
+                $this->calls++;
+
+                return 'tick';
+            }
+        };
+        $clock = new class () implements ClockInterface, SleepInterface {
+            public array $sleptMicroseconds = [];
+            private DateTimeImmutable $now;
+
+            public function __construct()
+            {
+                $this->now = new DateTimeImmutable('2016-01-01 12:00:00');
+            }
+
+            public function now(): DateTimeImmutable
+            {
+                return $this->now;
+            }
+
+            public function sleep(Duration $duration): void
+            {
+                if ($duration->isNegativeOrZero()) {
+                    return;
+                }
+                $this->sleptMicroseconds[] = $duration->inMicroseconds();
+                $this->now = $this->now->modify("+{$duration->inMicroseconds()} microseconds");
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$service::class],
+            [$service, ClockInterface::class => $clock],
+            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('countedTicks'),
+                PollingMetadata::create('countingScheduler')->setFixedRateInMilliseconds($fixedRateInMilliseconds),
+            ]),
+        );
+
+        return [$ecotone, $clock, $service];
     }
 }
 

@@ -11,7 +11,6 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ExpressionLocation;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Throwable;
 
 /**
@@ -35,12 +34,10 @@ class EnrichPayloadWithExpressionPropertyEditor implements PropertyEditor
      * ExpressionSetter constructor.
      *
      * @param ExpressionEvaluationService $expressionEvaluationService
-     * @param ReferenceSearchService $referenceSearchService
      * @param PropertyEditorAccessor $dataSetter
      * @param PropertyPath $propertyPath
      * @param string $expression
      * @param string $nullResultExpression
-     * @param string $mappingExpression
      */
     public function __construct(ExpressionEvaluationService $expressionEvaluationService, PropertyEditorAccessor $dataSetter, PropertyPath $propertyPath, string $expression, string $nullResultExpression, private ExpressionLocation $location)
     {

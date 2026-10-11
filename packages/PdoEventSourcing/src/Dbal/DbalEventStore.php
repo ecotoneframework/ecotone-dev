@@ -170,7 +170,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 $parameters,
             );
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($tableName, $streamName);
+            throw $this->missingAppendTargetException($tableName, $streamName);
         }
     }
 
@@ -299,7 +299,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         try {
             $connection->executeStatement($sql, $parameters);
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($tableName, $streamName);
+            throw $this->missingAppendTargetException($tableName, $streamName);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         } catch (NotNullConstraintViolationException $exception) {
@@ -399,10 +399,14 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
     }
 
-    /**
-     * @param string[] $eventNames
-     * @return Event[]
-     */
+    private function missingAppendTargetException(string $tableName, string $streamName): ConfigurationException
+    {
+        if (! $this->streamTableRegistry->isDeclared($streamName)) {
+            return $this->missingEventStreamTable->undeclaredStreamAppendedToException($streamName, $this->streamTableRegistry->declaredStreamNames());
+        }
+
+        return $this->missingStreamTableException($tableName, $streamName);
+    }
 
     public function missingStreamTableException(string $tableName, ?string $streamName = null): ConfigurationException
     {
@@ -587,8 +591,11 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 ? $schema->metadataFieldExpression($match['field'], is_int($value))
                 : $match['field'];
 
+            $keepsMissingField = $fieldType === FieldType::METADATA && ($operator === Operator::NOT_EQUALS || $operator === Operator::NOT_IN);
+
             if (is_bool($value)) {
-                $where[] = "{$field} {$schema->operatorSql($operator)} {$schema->booleanLiteral($value)}";
+                $condition = "{$field} {$schema->operatorSql($operator)} {$schema->booleanLiteral($value)}";
+                $where[] = $keepsMissingField ? "({$field} IS NULL OR {$condition})" : $condition;
 
                 continue;
             }
@@ -603,7 +610,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 $placeholders = implode(', ', array_fill(0, count($value), '?'));
                 $where[] = $operator === Operator::IN
                     ? "{$field} IN ({$placeholders})"
-                    : "{$field} NOT IN ({$placeholders})";
+                    : "({$field} IS NULL OR {$field} NOT IN ({$placeholders}))";
                 foreach ($value as $singleValue) {
                     $parameters[] = $singleValue;
                     $types[] = is_int($singleValue) ? ParameterType::INTEGER : ParameterType::STRING;
@@ -612,7 +619,8 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 continue;
             }
 
-            $where[] = "{$field} {$schema->operatorSql($operator)} ?";
+            $condition = "{$field} {$schema->operatorSql($operator)} ?";
+            $where[] = $keepsMissingField ? "({$field} IS NULL OR {$condition})" : $condition;
             $parameters[] = $value;
             $types[] = is_int($value) ? ParameterType::INTEGER : ParameterType::STRING;
         }

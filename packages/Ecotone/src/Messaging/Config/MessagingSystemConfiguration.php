@@ -24,6 +24,7 @@ use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
+use Ecotone\Messaging\Channel\WrongHandlerAmountException;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -253,9 +254,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
     }
 
-    /**
-     * @param string[] $skippedModulesPackages
-     */
     private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, ServiceConfiguration $serviceConfiguration): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
@@ -342,6 +340,7 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->configureDefaultMessageChannels();
         $this->configureAsynchronousEndpoints($interfaceToCallRegistry);
+        $this->refuseHandlersSharingADirectChannel();
 
         foreach ($this->requiredConsumerEndpointIds as $requiredConsumerEndpointId) {
             if (! array_key_exists($requiredConsumerEndpointId, $this->messageHandlerBuilders) && ! array_key_exists($requiredConsumerEndpointId, $this->channelAdapters)) {
@@ -609,6 +608,24 @@ final class MessagingSystemConfiguration implements Configuration
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel && isset($batchForwardingSourceChannels[$messageHandlerBuilder->getOutputMessageChannelName()])) {
                 throw ConfigurationException::create("Channel `{$messageHandlerBuilder->getOutputMessageChannelName()}` is a batched forwarding outbox, which only pushes messages forward to the next channel. It can not be used as output channel of {$messageHandlerBuilder}. Point the output at the Combined Message Channel instead.");
             }
+        }
+    }
+
+    private function refuseHandlersSharingADirectChannel(): void
+    {
+        $subscribedHandlers = [];
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            $channelName = $messageHandlerBuilder->getInputMessageChannelName();
+            $channelBuilder = $this->channelBuilders[$channelName] ?? null;
+            if (! $channelBuilder instanceof SimpleMessageChannelBuilder || ! $channelBuilder->isDirect()) {
+                continue;
+            }
+
+            if (isset($subscribedHandlers[$channelName])) {
+                throw WrongHandlerAmountException::forDirectChannelSharedBy($channelName, (string) $subscribedHandlers[$channelName], (string) $messageHandlerBuilder);
+            }
+
+            $subscribedHandlers[$channelName] = $messageHandlerBuilder;
         }
     }
 

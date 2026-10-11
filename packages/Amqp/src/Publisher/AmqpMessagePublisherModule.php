@@ -27,7 +27,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class AmqpMessagePublisherModule implements AnnotationModule
+final class AmqpMessagePublisherModule implements AnnotationModule
 {
     /**
      * @inheritDoc

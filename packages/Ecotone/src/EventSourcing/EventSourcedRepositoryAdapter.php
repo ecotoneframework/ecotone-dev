@@ -7,13 +7,10 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\GenericMessage;
@@ -173,20 +170,10 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         return (json_decode($marker, true)['foldShape'] ?? null) === $this->eventSourcingHandlerExecutor->foldShapeOf($aggregateClassName);
     }
 
-    private function getAggregateVersion(object|array|string $aggregate): mixed
+    private function getAggregateVersion(object $aggregate): mixed
     {
-        $propertyReader = new PropertyReaderAccessor();
-        $versionAnnotation = Type::attribute(Version::class);
-        $aggregateVersionPropertyName = null;
-        foreach (ClassDefinition::createFor(Type::createFromVariable($aggregate))->getProperties() as $property) {
-            if ($property->hasAnnotation($versionAnnotation)) {
-                $aggregateVersionPropertyName = $property->getName();
-                break;
-            }
-        }
-
-        return $propertyReader->getPropertyValue(
-            PropertyPath::createWith($aggregateVersionPropertyName),
+        return (new PropertyReaderAccessor())->getPropertyValue(
+            PropertyPath::createWith($this->aggregateDefinitionRegistry->getFor($aggregate::class)->getAggregateVersionProperty()),
             $aggregate
         );
     }

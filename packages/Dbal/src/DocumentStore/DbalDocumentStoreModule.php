@@ -29,7 +29,7 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 /**
  * licence Apache-2.0
  */
-class DbalDocumentStoreModule implements AnnotationModule
+final class DbalDocumentStoreModule implements AnnotationModule
 {
     public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone.dbal.documentStore.collectionName';
     public const ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID = 'ecotone.dbal.documentStore.documentId';

@@ -1,13 +1,2 @@
 parameters:
-	ignoreErrors:
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$topics$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Configuration/KafkaConsumerConfiguration.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$deliveryIds$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Outbound/KafkaDeliveryTracker.php
+	ignoreErrors: []

@@ -30,7 +30,7 @@ use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 /**
  * licence Apache-2.0
  */
-class DbalTransactionModule implements AnnotationModule
+final class DbalTransactionModule implements AnnotationModule
 {
     private function __construct(private AnnotationFinder $annotationFinder)
     {

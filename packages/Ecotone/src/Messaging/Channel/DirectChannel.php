@@ -46,7 +46,7 @@ final class DirectChannel implements SubscribableChannel, DefinedObject
     public function subscribe(MessageHandler $messageHandler): void
     {
         if ($this->messageHandler) {
-            throw WrongHandlerAmountException::create("Direct channel `{$this->messageChannelName}` delivers a message to one handler only, yet both {$this->messageHandler} and {$messageHandler} subscribe to it. Give one of them its own input channel, or register the channel with SimpleMessageChannelBuilder::createPublishSubscribeChannel('{$this->messageChannelName}') so that each of them receives the message.");
+            throw WrongHandlerAmountException::forDirectChannelSharedBy($this->messageChannelName, (string) $this->messageHandler, (string) $messageHandler);
         }
 
         $this->messageHandler = $messageHandler;

@@ -28,7 +28,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 /**
  * licence Apache-2.0
  */
-class AmqpTransactionModule implements AnnotationModule
+final class AmqpTransactionModule implements AnnotationModule
 {
     private function __construct()
     {

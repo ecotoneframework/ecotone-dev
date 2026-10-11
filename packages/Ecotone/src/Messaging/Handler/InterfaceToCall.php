@@ -138,9 +138,6 @@ class InterfaceToCall
         return $this->hasMethodAnnotation($className) || $this->hasClassAnnotation($className);
     }
 
-    /**
-     * @return class-string|null
-     */
     public function findSingleAnnotation(Type $className): ?object
     {
         $annotation = $this->findSingleMethodAnnotation($className);

@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 /**
  * licence Apache-2.0
  */
-class EventStoreBuilder extends InputOutputMessageHandlerBuilder
+final class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
     private function __construct(private string $methodName, private array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventStoreReference)
     {

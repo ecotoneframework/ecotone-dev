@@ -29,27 +29,3 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: src/AmqpOutboundChannelAdapter.php
-
-		-
-			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpMessageConsumerModule\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Configuration/AmqpMessageConsumerModule.php
-
-		-
-			message: '#^Method Ecotone\\Amqp\\Configuration\\AmqpModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Configuration\\AmqpModule\) but returns Ecotone\\Amqp\\Configuration\\AmqpModule\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Configuration/AmqpModule.php
-
-		-
-			message: '#^Method Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\) but returns Ecotone\\Amqp\\Publisher\\AmqpMessagePublisherModule\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Publisher/AmqpMessagePublisherModule.php
-
-		-
-			message: '#^Method Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\:\:create\(\) should return static\(Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\) but returns Ecotone\\Amqp\\Transaction\\AmqpTransactionModule\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Transaction/AmqpTransactionModule.php

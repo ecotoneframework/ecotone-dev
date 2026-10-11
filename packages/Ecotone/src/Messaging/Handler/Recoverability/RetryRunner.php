@@ -10,6 +10,7 @@ namespace Ecotone\Messaging\Handler\Recoverability;
 use Closure;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Throwable;
 
@@ -27,7 +28,7 @@ class RetryRunner
                 $closure();
                 break;
             } catch (Throwable $exception) {
-                if (! $exception instanceof $exceptionClass) {
+                if (! $exception instanceof $exceptionClass || $exception instanceof ConfigurationException) {
                     throw $exception;
                 }
 

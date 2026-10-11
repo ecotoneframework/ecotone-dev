@@ -2,6 +2,11 @@ name: Tests
 
 on:
   pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
 
 defaults:
   run:

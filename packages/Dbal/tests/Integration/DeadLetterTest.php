@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -14,6 +18,8 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StubLogger;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -299,6 +305,34 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
         $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+    }
+
+    public function test_storing_a_dead_letter_reconnects_and_retries_when_the_connection_is_lost(): void
+    {
+        $connection = $this->getConnection();
+        $platform = $connection->getDatabasePlatform();
+        if (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof AbstractMySQLPlatform) {
+            self::markTestSkipped('Ending another session needs a server, which SQLite has no notion of');
+        }
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), 'logger' => $logger],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+
+        $sessionId = $connection->fetchOne($platform instanceof PostgreSQLPlatform ? 'SELECT pg_backend_pid()' : 'SELECT CONNECTION_ID()');
+        $otherSession = DriverManager::getConnection($connection->getParams());
+        $otherSession->executeStatement($platform instanceof PostgreSQLPlatform ? "SELECT pg_terminate_backend({$sessionId})" : "KILL {$sessionId}");
+        $otherSession->close();
+
+        $deadLetter->store(MessageBuilder::withPayload('failed')->build());
+
+        self::assertSame(1, $deadLetter->count());
+        self::assertSame(['Storing Error Message in dead letter failed. Trying to self-heal and retry.'], $logger->getInfo());
     }
 
     private function replayAllErrorMessagesById(FlowTestSupport $ecotone): void

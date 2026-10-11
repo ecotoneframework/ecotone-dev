@@ -58,7 +58,7 @@ use Ecotone\Projecting\StreamSourceReference;
 use function in_array;
 
 #[ModuleAnnotation]
-class EventSourcingProjectingModule implements AnnotationModule
+final class EventSourcingProjectingModule implements AnnotationModule
 {
     /**
      * @param string[] $projectionNames

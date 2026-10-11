@@ -35,7 +35,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 /**
  * licence Apache-2.0
  */
-class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param ErrorHandlerConfiguration[] $perHandlerRetryConfigurations

@@ -32,7 +32,7 @@ final class EventStoreEventSourcedRepository implements EventSourcedRepository
      */
     public function findBy(string $aggregateClassName, array $identifiers, int $fromVersion = 1): EventStream
     {
-        $aggregateId = reset($identifiers);
+        $aggregateId = (string) reset($identifiers);
 
         $metadataMatcher = (new MetadataMatcher())
             ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, self::aggregateTypeOf($aggregateClassName))

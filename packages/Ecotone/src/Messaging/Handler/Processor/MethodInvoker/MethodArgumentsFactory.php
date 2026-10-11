@@ -29,7 +29,6 @@ class MethodArgumentsFactory
 {
     /**
      * @param ParameterConverterBuilder[] $passedMethodParameterConverters
-     * @param AttributeDefinition[] $endpointAnnotations
      * @return ParameterConverterBuilder[]
      */
     public static function createDefaultMethodParameters(InterfaceToCall $interfaceToCall, array $passedMethodParameterConverters, bool $ignorePayload = false): array

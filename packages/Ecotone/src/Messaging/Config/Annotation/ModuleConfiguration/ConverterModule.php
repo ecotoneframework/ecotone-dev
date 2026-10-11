@@ -26,7 +26,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-class ConverterModule extends NoExternalConfigurationModule implements AnnotationModule
+final class ConverterModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * ConverterModule constructor.

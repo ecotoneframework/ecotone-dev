@@ -33,7 +33,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class DbalPublisherModule implements AnnotationModule
+final class DbalPublisherModule implements AnnotationModule
 {
     /**
      * @inheritDoc

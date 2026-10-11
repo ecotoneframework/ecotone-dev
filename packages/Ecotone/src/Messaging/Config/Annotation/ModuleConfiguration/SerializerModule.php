@@ -22,7 +22,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class SerializerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class SerializerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const MODULE_NAME = 'gatewaySerializerModule';
     public const ECOTONE_FROM_PHP_CHANNEL = 'ecotone.serializer.convert_from';

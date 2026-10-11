@@ -7,68 +7,8 @@ parameters:
 			path: src/Config/LaravelConnectionResolver.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/MySqlDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/PostgresDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$driverOptions$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/SQLiteDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$password$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/SQLiteDriver.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$username$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Config/PDO/SQLiteDriver.php
-
-		-
 			message: '#^Method Ecotone\\Laravel\\Config\\PDO\\SqlServerDriver\:\:connect\(\) should return Doctrine\\DBAL\\Driver\\Connection but returns Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection\.$#'
 			identifier: return.type
-			count: 1
-			path: src/Config/PDO/SqlServerDriver.php
-
-		-
-			message: '#^PHPDoc tag @return with type Ecotone\\Laravel\\Config\\PDO\\SqlServerConnection is not subtype of native type Doctrine\\DBAL\\Driver\\Connection\.$#'
-			identifier: return.phpDocType
 			count: 1
 			path: src/Config/PDO/SqlServerDriver.php
 

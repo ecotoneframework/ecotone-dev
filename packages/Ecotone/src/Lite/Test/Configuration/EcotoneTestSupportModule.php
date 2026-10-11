@@ -38,6 +38,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -56,10 +57,13 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSource;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\ProjectionStateStorageReference;
 use Ecotone\Projecting\StreamSourceReference;
+use Ecotone\Test\StaticPsrClock;
+use Psr\Clock\ClockInterface;
 
 #[ModuleAnnotation]
 /**
@@ -158,6 +162,14 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             ])
         );
 
+        $messagingConfiguration->registerServiceDefinition(EcotoneClockInterface::class, new Definition(
+            Clock::class,
+            [
+                new Reference(ClockInterface::class, ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+                new Definition(StaticPsrClock::class, ['now']),
+            ],
+            factory: [Clock::class, 'createWithFallback']
+        ));
         $messagingConfiguration->registerServiceDefinition(PinnedTestClockInterceptor::class, new Definition(PinnedTestClockInterceptor::class, [new Reference(EcotoneClockInterface::class)]));
         $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
             PinnedTestClockInterceptor::class,

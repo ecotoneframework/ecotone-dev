@@ -25,9 +25,6 @@ class MessagingEntrypointCommand extends Command
     private DelegatingConsoleWriter $consoleWriter;
     private string $commandDescription;
 
-    /**
-     * @var ConsoleCommandParameter[] $parameters
-     */
     public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner, DelegatingConsoleWriter $consoleWriter, string $commandDescription = '')
     {
         $this->name = $name;

@@ -23,7 +23,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  *
  * licence Apache-2.0
  */
-class DbalConnectionModule implements AnnotationModule
+final class DbalConnectionModule implements AnnotationModule
 {
     private function __construct()
     {

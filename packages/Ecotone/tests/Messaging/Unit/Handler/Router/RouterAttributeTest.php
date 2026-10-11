@@ -88,17 +88,71 @@ final class RouterAttributeTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
-
         try {
-            $ecotone->sendDirectToChannel('router.shared', 'some');
-            $this->fail('A direct channel with two subscribed handlers was not refused');
+            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
+            $this->fail('A direct channel with two subscribed handlers was not refused at bootstrap');
         } catch (WrongHandlerAmountException $exception) {
             $this->assertStringContainsString('Direct channel `router.shared` delivers a message to one handler only', $exception->getMessage());
             $this->assertStringContainsString('Router - invocation of ' . $fixture::class . '::pick', $exception->getMessage());
             $this->assertStringContainsString($fixture::class . '::handle', $exception->getMessage());
             $this->assertStringContainsString("SimpleMessageChannelBuilder::createPublishSubscribeChannel('router.shared')", $exception->getMessage());
         }
+    }
+
+    public function test_two_handlers_sharing_a_direct_input_channel_are_refused_at_bootstrap_naming_both(): void
+    {
+        $fixture = new class () {
+            #[InternalHandler('shared.channel')]
+            public function first(string $payload): void
+            {
+            }
+
+            #[InternalHandler('shared.channel')]
+            public function second(string $payload): void
+            {
+            }
+        };
+
+        try {
+            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
+            $this->fail('Two handlers on one direct channel were not refused at bootstrap');
+        } catch (WrongHandlerAmountException $exception) {
+            $this->assertStringContainsString('Direct channel `shared.channel` delivers a message to one handler only', $exception->getMessage());
+            $this->assertStringContainsString($fixture::class . '::first', $exception->getMessage());
+            $this->assertStringContainsString($fixture::class . '::second', $exception->getMessage());
+            $this->assertStringContainsString("Give one of them its own input channel, or register the channel with SimpleMessageChannelBuilder::createPublishSubscribeChannel('shared.channel') so that each of them receives the message.", $exception->getMessage());
+        }
+    }
+
+    public function test_two_handlers_sharing_a_publish_subscribe_channel_both_receive_the_message(): void
+    {
+        $fixture = new class () {
+            public array $received = [];
+
+            #[InternalHandler('shared.channel')]
+            public function first(string $payload): void
+            {
+                $this->received[] = 'first';
+            }
+
+            #[InternalHandler('shared.channel')]
+            public function second(string $payload): void
+            {
+                $this->received[] = 'second';
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$fixture::class],
+            [$fixture],
+            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+                SimpleMessageChannelBuilder::createPublishSubscribeChannel('shared.channel'),
+            ]),
+        );
+
+        $ecotone->sendDirectToChannel('shared.channel', 'some');
+
+        $this->assertSame(['first', 'second'], $fixture->received);
     }
 
     private function bootstrap(CustomRouterHandler $handler)

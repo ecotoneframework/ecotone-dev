@@ -13,6 +13,7 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
@@ -76,11 +77,12 @@ use Symfony\Component\Uid\Uuid;
 /**
  * licence Apache-2.0
  */
-class EventSourcingModule extends NoExternalConfigurationModule
+final class EventSourcingModule extends NoExternalConfigurationModule
 {
     /**
      * @param array<class-string, Stream> $streamAttributes
      * @param array<string, string> $projectionStreamMapping
+     * @param array<string, string[]> $projectionSourceStreams
      * @param class-string[] $stateStoredCountedAggregateClasses
      */
     private function __construct(
@@ -88,6 +90,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         private AggregateTypeMapping $aggregateTypeMapping,
         private array $streamAttributes,
         private array $projectionStreamMapping,
+        private array $projectionSourceStreams,
         private bool $declaresEventTagsOrCountedAggregates,
         private array $stateStoredCountedAggregateClasses,
     ) {
@@ -119,6 +122,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionStreamMapping[$projectionAttribute->name] = $aggregateToStreamMapping[$projectionClassName] ?? StreamTableRegistry::DEFAULT_STREAM;
         }
 
+        $projectionSourceStreams = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
+            foreach ($annotationRegistrationService->getAnnotationsForClass($projectionClassName, FromStream::class) as $fromStream) {
+                if ($fromStream->eventStoreReferenceName === EventStore::class) {
+                    $projectionSourceStreams[$projectionAttribute->name][] = $fromStream->stream;
+                }
+            }
+        }
+
         $countedAggregateClasses = array_keys(AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService));
 
         return new self(
@@ -126,6 +139,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             AggregateTypeMapping::createWith($aggregateTypeMapping),
             $streamAttributes,
             $projectionStreamMapping,
+            $projectionSourceStreams,
             EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [] || $countedAggregateClasses !== [],
             array_values(array_diff($countedAggregateClasses, $annotationRegistrationService->findAnnotatedClasses(EventSourcingAggregate::class))),
         );
@@ -148,6 +162,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
 
         $streamTableRegistry = $this->buildStreamTableRegistry($eventSourcingConfiguration);
+        if (! $eventSourcingConfiguration->isInMemory()) {
+            $this->refuseProjectionsReadingUndeclaredStreams($streamTableRegistry, new MissingEventStreamTable($consoleInvocationPrefix));
+        }
         $messagingConfiguration->registerServiceDefinition(StreamTableRegistry::class, $streamTableRegistry->getDefinition());
 
         foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
@@ -186,6 +203,17 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary);
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
+    }
+
+    private function refuseProjectionsReadingUndeclaredStreams(StreamTableRegistry $streamTableRegistry, MissingEventStreamTable $missingEventStreamTable): void
+    {
+        foreach ($this->projectionSourceStreams as $projectionName => $streamNames) {
+            foreach ($streamNames as $streamName) {
+                if (! $streamTableRegistry->isDeclared($streamName)) {
+                    throw $missingEventStreamTable->undeclaredStreamReadByProjectionException($projectionName, $streamName, $streamTableRegistry->declaredStreamNames());
+                }
+            }
+        }
     }
 
     private function buildStreamTableRegistry(EventSourcingConfiguration $eventSourcingConfiguration): StreamTableRegistry

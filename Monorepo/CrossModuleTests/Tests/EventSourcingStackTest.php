@@ -31,6 +31,7 @@ final class EventSourcingStackTest extends FullAppTestCase
     {
         return [
             ModulePackageList::EVENT_SOURCING_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,
             ModulePackageList::JMS_CONVERTER_PACKAGE,
         ];
     }

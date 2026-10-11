@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
-use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
@@ -26,6 +26,7 @@ use function json_decode;
 use function json_encode;
 
 use Symfony\Component\Uid\Uuid;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -33,7 +34,6 @@ use Symfony\Component\Uid\Uuid;
 final class DbalDeadLetterStore implements DeadLetterStore
 {
     public const DEFAULT_DEAD_LETTER_TABLE = 'ecotone_error_messages';
-    private bool $isInitialized = false;
 
     public function __construct(
         private ConnectionFactory $connectionFactory,
@@ -46,13 +46,11 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
     public function store(Message $message): void
     {
-        $this->initialize();
-
         $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
             ->maxRetries(3)
             ->build();
 
-        $this->retryRunner->runWithRetry(function () use ($message) {
+        $this->onTable(fn () => $this->retryRunner->runWithRetry(function () use ($message) {
             try {
                 $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
             } catch (\Exception $exception) {
@@ -60,16 +58,12 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
                 throw $exception;
             }
-        }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
+        }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.'));
     }
 
     public function list(int $limit, int $offset): array
     {
-        if (! $this->doesDeadLetterTableExists()) {
-            return [];
-        }
-
-        $messages = $this->getConnection()->createQueryBuilder()
+        $messages = $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->select('*')
             ->from($this->getTableName())
             ->setMaxResults($limit)
@@ -77,7 +71,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
             ->orderBy('failed_at', 'DESC')
             ->addOrderBy('message_id', 'ASC')
             ->executeQuery()
-            ->fetchAllAssociative();
+            ->fetchAllAssociative());
 
         return array_map(function (array $message) {
             return ErrorContext::fromHeaders(array_merge(
@@ -89,16 +83,14 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
     public function find(string $messageId): ?Message
     {
-        $this->initialize();
-
-        $message = $this->getConnection()->createQueryBuilder()
+        $message = $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->select('*')
             ->from($this->getTableName())
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)
             ->setMaxResults(1)
             ->executeQuery()
-            ->fetchAssociative();
+            ->fetchAssociative());
 
         if (! $message) {
             return null;
@@ -111,35 +103,27 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
     public function count(): int
     {
-        if (! $this->doesDeadLetterTableExists()) {
-            return 0;
-        }
-
-        return (int) $this->getConnection()->createQueryBuilder()
+        return (int) $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->select('count(*)')
             ->from($this->getTableName())
             ->executeQuery()
-            ->fetchOne();
+            ->fetchOne());
     }
 
     public function delete(string $messageId): void
     {
-        $this->initialize();
-
-        $this->getConnection()->createQueryBuilder()
+        $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->delete($this->getTableName())
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)
-            ->executeStatement();
+            ->executeStatement());
     }
 
     public function deleteAll(): void
     {
-        $this->initialize();
-
-        $this->getConnection()->createQueryBuilder()
+        $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->delete($this->getTableName())
-            ->executeStatement();
+            ->executeStatement());
     }
 
     private function insertHandledMessage(string $payload, array $headers): void
@@ -179,16 +163,13 @@ final class DbalDeadLetterStore implements DeadLetterStore
         return $this->tableManager->getTableName();
     }
 
-    private function assertTableExists(): void
+    private function onTable(callable $statement): mixed
     {
-        if (! $this->tableManager->isInitialized($this->getConnection())) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        try {
+            return $statement();
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
-    }
-
-    private function doesDeadLetterTableExists(): bool
-    {
-        return $this->getConnection()->createSchemaManager()->tableExists($this->getTableName());
     }
 
     private function getConnection(): Connection
@@ -202,13 +183,5 @@ final class DbalDeadLetterStore implements DeadLetterStore
     private function decodeHeaders(array $message): array
     {
         return json_decode($message['headers'], true, 512, JSON_THROW_ON_ERROR);
-    }
-
-    private function initialize(): void
-    {
-        if (! $this->isInitialized) {
-            $this->assertTableExists();
-            $this->isInitialized = true;
-        }
     }
 }

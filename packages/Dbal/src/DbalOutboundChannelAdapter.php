@@ -6,7 +6,6 @@ namespace Ecotone\Dbal;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Connection\DbalDestination;
 use Ecotone\Dbal\Connection\DbalProducer;
 use Ecotone\Dbal\Database\EnqueueTableManager;
@@ -15,7 +14,6 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Interop\Queue\Context;
 use Throwable;
@@ -56,15 +54,6 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     public function initialize(): void
     {
-        /** @var DbalContext $context */
-        $context = $this->connectionFactory->createContext();
-        $connection = $context->getDbalConnection();
-
-        if (! $this->tableManager->isInitialized($connection)) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
-        }
-
-        $context->createQueue($this->queueName);
     }
 
     protected function sendSingleMessage(Message $message, Context $context): void

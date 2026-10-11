@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\DocumentStore;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
@@ -12,6 +13,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -26,8 +28,7 @@ use function is_string;
 use function json_decode;
 
 use JsonException;
-
-use function spl_object_id;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -40,32 +41,27 @@ final class DbalDocumentStore implements DocumentStore
         private CachedConnectionFactory $cachedConnectionFactory,
         private ConversionService $conversionService,
         private DocumentStoreTableManager $tableManager,
-        private array $initialized = [],
     ) {
     }
 
     public function dropCollection(string $collectionName): void
     {
-        if (! $this->doesTableExists()) {
-            return;
-        }
-
-        $this->getConnection()->delete(
+        $this->onTable(fn () => $this->getConnection()->delete(
             $this->getTableName(),
             [
                 'collection' => $collectionName,
             ]
-        );
+        ));
     }
 
     public function addDocument(string $collectionName, string $documentId, object|array|string $document): void
     {
-        $this->assertTableExists();
-
         try {
             $rowsAffected = $this->insertDocument($collectionName, $documentId, $document);
         } catch (InvalidFieldNameException $missingVersionColumn) {
             throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be added to collection %s. The cause: %s', $documentId, $collectionName, $driverException->getMessage()), $driverException);
         }
@@ -77,8 +73,6 @@ final class DbalDocumentStore implements DocumentStore
 
     public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->assertTableExists();
-
         if ($this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
             return;
         }
@@ -93,8 +87,6 @@ final class DbalDocumentStore implements DocumentStore
 
     public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->assertTableExists();
-
         if ($expectedVersion !== 0 && $this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
             return;
         }
@@ -108,6 +100,8 @@ final class DbalDocumentStore implements DocumentStore
             $this->insertDocument($collectionName, $documentId, $document);
         } catch (UniqueConstraintViolationException) {
             throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, 1);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be added to collection %s. The cause: %s', $documentId, $collectionName, $driverException->getMessage()), $driverException);
         }
@@ -115,10 +109,6 @@ final class DbalDocumentStore implements DocumentStore
 
     public function getDocumentVersion(string $collectionName, string $documentId): int
     {
-        if (! $this->doesTableExists()) {
-            return 0;
-        }
-
         try {
             return (int) $this->getConnection()->createQueryBuilder()
                 ->select('version')
@@ -130,6 +120,8 @@ final class DbalDocumentStore implements DocumentStore
                 ->fetchOne();
         } catch (InvalidFieldNameException $missingVersionColumn) {
             throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             if (! $this->getConnection()->createSchemaManager()->introspectTable($this->getTableName())->hasColumn('version')) {
                 throw $this->missingVersionColumnException($driverException);
@@ -141,27 +133,19 @@ final class DbalDocumentStore implements DocumentStore
 
     public function deleteDocument(string $collectionName, string $documentId): void
     {
-        if (! $this->doesTableExists()) {
-            return;
-        }
-
-        $this->getConnection()->delete(
+        $this->onTable(fn () => $this->getConnection()->delete(
             $this->getTableName(),
             [
                 'collection' => $collectionName,
                 'document_id' => $documentId,
             ]
-        );
+        ));
     }
 
     public function getAllDocuments(string $collectionName): array
     {
-        if (! $this->doesTableExists()) {
-            return [];
-        }
-
-        $select = $this->getDocumentsFor($collectionName)
-            ->fetchAllAssociative();
+        $select = $this->onTable(fn () => $this->getDocumentsFor($collectionName)
+            ->fetchAllAssociative());
 
         $documents = [];
         foreach ($select as $documentRecord) {
@@ -184,15 +168,11 @@ final class DbalDocumentStore implements DocumentStore
 
     public function findDocument(string $collectionName, string $documentId): array|object|string|null
     {
-        if (! $this->doesTableExists()) {
-            return null;
-        }
-
-        $select = $this->getDocumentsFor($collectionName)
+        $select = $this->onTable(fn () => $this->getDocumentsFor($collectionName)
             ->andWhere('document_id = :documentId')
             ->setParameter('documentId', $documentId, Types::TEXT)
             ->setMaxResults(1)
-            ->fetchAllAssociative();
+            ->fetchAllAssociative());
 
         if (! $select) {
             return null;
@@ -204,17 +184,13 @@ final class DbalDocumentStore implements DocumentStore
 
     public function countDocuments(string $collectionName): int
     {
-        if (! $this->doesTableExists()) {
-            return 0;
-        }
-
-        $select = $this->getConnection()->createQueryBuilder()
+        $select = $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->select('COUNT(document_id)')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
             ->setParameter('collection', $collectionName, Types::TEXT)
             ->setMaxResults(1)
-            ->fetchFirstColumn();
+            ->fetchFirstColumn());
 
         if ($select) {
             return $select[0];
@@ -228,10 +204,12 @@ final class DbalDocumentStore implements DocumentStore
         return $this->tableManager->getTableName();
     }
 
-    private function assertTableExists(): void
+    private function onTable(callable $statement): mixed
     {
-        if (! $this->doesTableExists()) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        try {
+            return $statement();
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
     }
 
@@ -241,24 +219,6 @@ final class DbalDocumentStore implements DocumentStore
         $context = $this->cachedConnectionFactory->createContext();
 
         return $context->getDbalConnection();
-    }
-
-    private function doesTableExists(): bool
-    {
-        $connection = $this->getConnection();
-
-        if (isset($this->initialized[spl_object_id($connection)])) {
-            return true;
-        }
-
-        $schemaManager = $connection->createSchemaManager();
-        $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
-
-        if ($tableExists) {
-            $this->initialized[spl_object_id($connection)] = true;
-        }
-
-        return $tableExists;
     }
 
     private function refuseStringThatIsNotJson(string $collectionName, string $documentId, object|array|string $document): void
@@ -342,6 +302,8 @@ final class DbalDocumentStore implements DocumentStore
             return (int) $update->executeStatement();
         } catch (InvalidFieldNameException $missingVersionColumn) {
             throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be updated in collection %s', $documentId, $collectionName), $driverException);
         }

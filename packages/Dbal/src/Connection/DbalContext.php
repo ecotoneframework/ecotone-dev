@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Schema;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Interop\Queue\Consumer;
@@ -223,39 +222,6 @@ class DbalContext implements Context
         }
 
         return $this->connection;
-    }
-
-    public function createDataBaseTable(): void
-    {
-        $connection = $this->getDbalConnection();
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tableExists($this->getTableName())) {
-            return;
-        }
-
-        $table = (new Schema())->createTable($this->getTableName());
-
-        $table->addColumn('id', 'guid', ['length' => 16, 'fixed' => true]);
-        $table->addColumn('published_at', 'bigint');
-        $table->addColumn('body', 'text', ['notnull' => false]);
-        $table->addColumn('headers', 'text', ['notnull' => false]);
-        $table->addColumn('properties', 'text', ['notnull' => false]);
-        $table->addColumn('redelivered', 'boolean', ['notnull' => false]);
-        $table->addColumn('queue', 'string', ['length' => 255]);
-        $table->addColumn('priority', 'integer', ['notnull' => false]);
-        $table->addColumn('delayed_until', 'bigint', ['notnull' => false]);
-        $table->addColumn('time_to_live', 'bigint', ['notnull' => false]);
-        $table->addColumn('delivery_id', 'guid', ['length' => 16, 'fixed' => true, 'notnull' => false]);
-        $table->addColumn('redeliver_after', 'bigint', ['notnull' => false]);
-
-        $table->setPrimaryKey(['id']);
-        $table->addIndex(['priority', 'published_at', 'queue', 'delivery_id', 'delayed_until', 'id']);
-        $table->addIndex(['redeliver_after', 'delivery_id']);
-        $table->addIndex(['time_to_live', 'delivery_id']);
-        $table->addIndex(['delivery_id']);
-
-        $schemaManager->createTable($table);
     }
 
     public function getClock(): EcotoneClockInterface

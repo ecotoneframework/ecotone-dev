@@ -59,6 +59,48 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             ->initializeProjection($projection::NAME);
     }
 
+    public function test_triggering_a_projection_names_the_setup_when_its_state_table_is_missing(): void
+    {
+        $projection = $this->createPollingProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults());
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+        $this->deleteProjectionStateTable($ecotone);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
+
+        $ecotone->triggerProjection($projection::NAME);
+    }
+
+    public function test_a_synchronous_projection_names_the_setup_when_its_state_table_is_missing(): void
+    {
+        $projection = new #[Projection('synchronous_tickets'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function addTicket(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults());
+        $this->deleteProjectionStateTable($ecotone);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+    }
+
+    public function test_initializing_a_projection_names_the_setup_when_its_state_table_is_missing(): void
+    {
+        $projection = $this->createPollingProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], TestConfiguration::createWithDefaults());
+        $this->deleteProjectionStateTable($ecotone);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
+
+        $ecotone->initializeProjection($projection::NAME);
+    }
+
     public function test_a_projection_works_once_the_setup_command_created_its_table(): void
     {
         $projection = $this->createPollingProjection();
@@ -144,6 +186,11 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             testConfiguration: $testConfiguration,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function deleteProjectionStateTable(FlowTestSupport $ecotone): void
+    {
+        $ecotone->runConsoleCommand('ecotone:migration:database:delete', ['feature' => [ProjectionStateTableManager::FEATURE_NAME], 'force' => true]);
     }
 
     private function executeConsoleCommand(FlowTestSupport $ecotone, string $commandName, array $parameters): ConsoleCommandResultSet

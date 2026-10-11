@@ -460,3 +460,13 @@ and `:187` guard `ORMSetup`/`Setup`, `EntityManagerRegistryEmulator` and `Object
 `doctrine/orm` sits in Dbal's `require-dev`. What keeps DBAL optional is the bootstrap refusal of a connection
 reference without it, proved in every runner by `LaravelConnectionWithoutDbalTest`, `SymfonyConnectionWithoutDbalTest`
 and `TempestConnectionWithoutDbalTest`, which hide `Ecotone\Dbal` from the autoloader in a separate process.
+
+### Main fixes whose code 2.0 deleted — checked against the replacement runtime
+
+Two fixes from the `origin/main` merge patched the v1 Prooph projection runtime, which `19b67095f` deleted. Neither
+applies line by line; each was checked against what replaced it, so a later merge need not ask again.
+
+| Main fix | The defect | In 2.0 |
+|---|---|---|
+| `343824b51` (#704) | `GapDetection` handed its retry delays, configured in milliseconds, to Prooph, which waits in microseconds — a thousand-fold shorter wait before giving up on a gap | **Cannot occur.** 2.0 never waits for a gap: `GapAwarePosition` records it in the position and the next load asks for it again (`OR no IN (:gaps)`), and nothing on the projecting path sleeps. Its only time unit is the gap timeout, `Duration(60 * 1_000_000)`, which `Duration`'s constructor reads as microseconds — 60 seconds, compared against `created_at` in seconds. `MultiStreamOrderingAcrossBatchesTest::test_preserving_unconsumed_gaps_when_loading_multiple_streams` fails if that timeout shrinks to milliseconds, since a gap 50 seconds old would then be given up |
+| `0dfd895a9` (#702) | `LazyProophProjectionManager` cached one projection manager per context, bound to the event store it was built over, so after a reconnect a synchronous projection kept writing outside the current transaction | **Absent.** `EventStoreGlobalStreamSource`, `DbalProjectionStateStorage` and `DbalEventStore` resolve their connection through the factory on every call and hold nothing built over it. Main's own test, `SynchronousEventDrivenProjectionTest::test_synchronous_projection_uses_the_current_transaction_after_reconnecting`, came over in the merge without its `EcotoneLite` import and never ran; fixed in `3fed66d0c`, it passes |

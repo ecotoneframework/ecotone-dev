@@ -64,14 +64,14 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
     public function test_synchronous_projection_uses_the_current_transaction_after_reconnecting(): void
     {
         $connection = $this->getConnection();
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
-                    'Test\\Ecotone\\EventSourcing\\Fixture\\Ticket',
-                    'Test\\Ecotone\\EventSourcing\\Fixture\\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                    'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),

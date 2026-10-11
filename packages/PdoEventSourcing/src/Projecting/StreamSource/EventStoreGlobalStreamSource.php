@@ -76,62 +76,43 @@ class EventStoreGlobalStreamSource implements StreamSource
     }
 
     /**
-     * @param \Ecotone\Projecting\StreamFilter[] $streamFilters
+     * @return StreamEvent[]
      */
-    private function loadFromSingleTable(string $streamTable, array $streamFilters, ?string $lastPosition, int $count): StreamPage
+    private function loadTableEvents(Connection $connection, string $streamTable, GapAwarePosition $tracking, int $count): array
     {
-        $connection = $this->getConnection();
-        $schema = EventStreamSchemaFactory::for($connection);
+        $quotedTable = EventStreamSchemaFactory::for($connection)->quoteIdentifier($streamTable);
+        [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
+            true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
+            false => ['', [], []],
+        };
 
-        $quotedTable = $schema->quoteIdentifier($streamTable);
-        $tracking = GapAwarePosition::fromString($lastPosition);
-        $cutoffTimestamp = $this->gapTimeout ? $this->clock->now()->sub($this->gapTimeout)->getTimestamp() : 0;
-
-        $events = [];
         try {
-            do {
-                [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
-                    true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
-                    false => ['', [], []],
-                };
+            $query = $connection->executeQuery(<<<SQL
+                SELECT no, event_name, payload, metadata, created_at
+                    FROM {$quotedTable}
+                    WHERE no > :position {$gapQueryPart}
+                ORDER BY no
+                LIMIT {$count}
+                SQL, [
+                'position' => $tracking->getPosition(),
+                ...$gapQueryPartParams,
+            ], $gapQueryPartParamTypes);
 
-                $query = $connection->executeQuery(<<<SQL
-                    SELECT no, event_name, payload, metadata, created_at
-                        FROM {$quotedTable}
-                        WHERE no > :position {$gapQueryPart}
-                    ORDER BY no
-                    LIMIT {$count}
-                    SQL, [
-                    'position' => $tracking->getPosition(),
-                    ...$gapQueryPartParams,
-                ], $gapQueryPartParamTypes);
-
-                $scannedRows = 0;
-                foreach ($query->iterateAssociative() as $row) {
-                    $scannedRows++;
-                    $metadata = json_decode($row['metadata'], true) ?? [];
-                    $event = new StreamEvent(
-                        $row['event_name'],
-                        json_decode($row['payload'], true),
-                        $metadata,
-                        (int) $row['no'],
-                        $this->getTimestamp($row['created_at'])
-                    );
-                    if ($this->matchesAnyFilter($streamFilters, $row['event_name'], $metadata)) {
-                        $events[] = $event;
-                    }
-                    $tracking->advanceTo($event->no, $event->timestamp > $cutoffTimestamp);
-                }
-            } while ($events === [] && $scannedRows === $count);
+            $events = [];
+            foreach ($query->iterateAssociative() as $row) {
+                $events[] = new StreamEvent(
+                    $row['event_name'],
+                    json_decode($row['payload'], true),
+                    json_decode($row['metadata'], true) ?? [],
+                    (int) $row['no'],
+                    $this->getTimestamp($row['created_at'])
+                );
+            }
         } catch (TableNotFoundException) {
             throw $this->missingEventStreamTable->exceptionFor($streamTable);
         }
 
-        $tracking->cleanByMaxOffset($this->maxGapOffset);
-
-        $this->cleanGapsByTimeout($tracking, $connection, $quotedTable);
-
-        return new StreamPage($events, (string) $tracking);
+        return $events;
     }
 
     /**
@@ -174,34 +155,75 @@ class EventStoreGlobalStreamSource implements StreamSource
     private function loadFromMultipleStreams(array $streamFilters, ?string $lastPosition, int $count): StreamPage
     {
         $positions = $this->decodeMultiStreamPositions($lastPosition);
+        $connection = $this->getConnection();
+        $cutoffTimestamp = $this->gapTimeout ? $this->clock->now()->sub($this->gapTimeout)->getTimestamp() : 0;
 
         $filtersByTable = [];
         foreach ($streamFilters as $streamFilter) {
             $filtersByTable[$this->streamTableRegistry->tableFor($streamFilter->streamName)][] = $streamFilter;
         }
+        $limit = count($filtersByTable) === 1 ? $count : (int) ceil($count / count($filtersByTable)) + 5;
 
-        $orderIndex = [];
-        $i = 0;
-        $newPositions = [];
-        $all = [];
-
+        $tracking = [];
+        $tableEvents = [];
+        $offsets = [];
         foreach ($filtersByTable as $streamTable => $tableFilters) {
-            $orderIndex[$streamTable] = $i++;
-
-            $tableCount = count($filtersByTable);
-            $limit = $tableCount === 1 ? $count : (int) ceil($count / $tableCount) + 5;
-
-            $streamPage = $this->loadFromSingleTable($streamTable, $tableFilters, $positions[$streamTable] ?? null, $limit);
-            $newPositions[$streamTable] = $streamPage->lastPosition;
-
-            foreach ($streamPage->events as $event) {
-                $all[] = [$streamTable, $event];
-            }
+            $tracking[$streamTable] = GapAwarePosition::fromString($positions[$streamTable] ?? null);
+            $tableEvents[$streamTable] = $this->loadTableEvents($connection, $streamTable, $tracking[$streamTable], $limit);
+            $offsets[$streamTable] = 0;
         }
 
-        usort($all, fn (array $aTuple, array $bTuple): int => self::compareInGlobalOrder($orderIndex, $aTuple[0], $aTuple[1], $bTuple[0], $bTuple[1]));
+        $events = [];
+        while (count($events) < $count) {
+            $nextEvent = null;
+            $nextTable = null;
+            foreach ($filtersByTable as $streamTable => $tableFilters) {
+                while (true) {
+                    $candidate = $tableEvents[$streamTable][$offsets[$streamTable]] ?? null;
+                    if ($candidate === null && count($tableEvents[$streamTable]) === $limit) {
+                        $tableEvents[$streamTable] = $this->loadTableEvents($connection, $streamTable, $tracking[$streamTable], $limit);
+                        $offsets[$streamTable] = 0;
+                        continue;
+                    }
+                    if ($candidate === null || $this->matchesAnyFilter($tableFilters, $candidate->getEventName(), $candidate->getMetadata())) {
+                        break;
+                    }
 
-        $events = array_map(fn (array $tuple) => $tuple[1], $all);
+                    $tracking[$streamTable]->advanceTo($candidate->no, $candidate->timestamp > $cutoffTimestamp);
+                    $offsets[$streamTable]++;
+                }
+
+                if ($candidate !== null && ($nextEvent === null || $candidate->timestamp < $nextEvent->timestamp)) {
+                    $nextEvent = $candidate;
+                    $nextTable = $streamTable;
+                }
+            }
+
+            if ($nextEvent === null) {
+                break;
+            }
+
+            $events[] = $nextEvent;
+            $tracking[$nextTable]->advanceTo($nextEvent->no, $nextEvent->timestamp > $cutoffTimestamp);
+            $offsets[$nextTable]++;
+        }
+
+        $newPositions = [];
+        foreach ($tracking as $streamTable => $tableTracking) {
+            $unprojectedFilledGaps = [];
+            foreach (array_slice($tableEvents[$streamTable], $offsets[$streamTable]) as $unprojectedEvent) {
+                if ($unprojectedEvent->no <= $tableTracking->getPosition()) {
+                    $unprojectedFilledGaps[] = $unprojectedEvent->no;
+                }
+            }
+
+            $tableTracking->cleanByMaxOffset($this->maxGapOffset);
+            $this->cleanGapsByTimeout($tableTracking, $connection, EventStreamSchemaFactory::for($connection)->quoteIdentifier($streamTable));
+            $newPositions[$streamTable] = (string) new GapAwarePosition(
+                $tableTracking->getPosition(),
+                [...$tableTracking->getGaps(), ...$unprojectedFilledGaps],
+            );
+        }
 
         return new StreamPage($events, $this->encodeMultiStreamPositions($newPositions));
     }
@@ -233,20 +255,6 @@ class EventStoreGlobalStreamSource implements StreamSource
             $result[$stream] = $pos;
         }
         return $result;
-    }
-
-    /**
-     * @param array<int|string, int> $orderIndex
-     */
-    private static function compareInGlobalOrder(array $orderIndex, int|string $aStream, StreamEvent $a, int|string $bStream, StreamEvent $b): int
-    {
-        if ($aStream === $bStream) {
-            return $a->no <=> $b->no;
-        }
-        if ($a->timestamp === $b->timestamp) {
-            return $orderIndex[$aStream] <=> $orderIndex[$bStream];
-        }
-        return $a->timestamp <=> $b->timestamp;
     }
 
     private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $quotedTable): void

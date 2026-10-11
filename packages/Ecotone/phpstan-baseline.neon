@@ -43,12 +43,6 @@ parameters:
 			path: Api/ExtensionObject/ServiceConfiguration.php
 
 		-
-			message: '#^Cannot cast Ecotone\\Api\\Messaging\\MessageChannel to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: Api/ExtensionObject/SimpleMessageChannelBuilder.php
-
-		-
 			message: '#^PHPDoc tag @throws with type Ecotone\\Api\\Gateway\\DocumentException is not subtype of Throwable$#'
 			identifier: throws.notThrowable
 			count: 6
@@ -193,12 +187,6 @@ parameters:
 			path: src/Messaging/Channel/DynamicChannel/DynamicMessageChannel.php
 
 		-
-			message: '#^Part \$channelName \(Ecotone\\Api\\Messaging\\MessageChannel\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DynamicChannel/InternalChannelResolver.php
-
-		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\EventDrivenChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Messaging\\SubscribableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -215,12 +203,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Messaging/Channel/Manager/ChannelSetupModule.php
-
-		-
-			message: '#^Cannot cast Ecotone\\Api\\Messaging\\PollableChannel to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: src/Messaging/Channel/PollableChannelInterceptorAdapter.php
 
 		-
 			message: '#^Property Ecotone\\Messaging\\Channel\\PollableChannelInterceptorAdapter\:\:\$messageChannel \(Ecotone\\Api\\Messaging\\PollableChannel\) does not accept Ecotone\\Api\\Messaging\\MessageChannel\.$#'

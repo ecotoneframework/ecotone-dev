@@ -64,4 +64,9 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     {
         // No cleanup needed for Symfony messenger channels
     }
+
+    public function __toString(): string
+    {
+        return 'symfony messenger: ' . $this->symfonyTransport::class;
+    }
 }

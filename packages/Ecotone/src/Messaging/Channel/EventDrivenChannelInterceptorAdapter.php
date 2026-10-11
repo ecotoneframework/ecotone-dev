@@ -47,4 +47,9 @@ class EventDrivenChannelInterceptorAdapter extends SendingInterceptorAdapter imp
 
         $this->messageChannel = $messageChannel;
     }
+
+    public function __toString(): string
+    {
+        return (string) $this->messageChannel;
+    }
 }

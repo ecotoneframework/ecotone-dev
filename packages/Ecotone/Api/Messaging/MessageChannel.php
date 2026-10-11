@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Messaging;
 
+use Stringable;
+
 /**
  * Interface MessageChannel
  * @package Ecotone\Messaging
@@ -12,7 +14,7 @@ namespace Ecotone\Api\Messaging;
 /**
  * licence Apache-2.0
  */
-interface MessageChannel
+interface MessageChannel extends Stringable
 {
     /**
      * Send message to this channel

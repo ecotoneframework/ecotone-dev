@@ -1233,8 +1233,9 @@ The removed configuration, one by one:
 
 **How to adapt an application:**
 
-- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
-  for a subset). It is the only way tables get created outside tests, on every engine — or use `--sql` to feed your own
+- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or repeat `--feature` for a
+  subset: `--feature=deduplication --feature=dead_letter`; one value is one feature, so a comma-separated list is
+  read as a single unknown feature name). It is the only way tables get created outside tests, on every engine — or use `--sql` to feed your own
   migration tool.
   — Symfony: `bin/console ecotone:migration:database:setup --initialize`
   — Laravel: `php artisan ecotone:migration:database:setup --initialize`
@@ -2724,4 +2725,5 @@ normal section with "How to adapt" steps when it ships.
     relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
     run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
 14. Add the `version` column to `ecotone_document_store`, pass an expected version (or `DocumentStore::LAST_WRITE_WINS`) to `updateDocument()` / `upsertDocument()`, and add `#[Version]` to document-store aggregates that are changed concurrently (§14).
-15. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+15. Add `ecotone:migration:database:setup --initialize` (or its `--sql` output, fed to your migration tool) to your deployment (§8).
+16. Once it ships: move framework YAML/PHP config options into `#[ServiceContext]` (§12).

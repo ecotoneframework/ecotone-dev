@@ -10,19 +10,19 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class LaravelConnectionWithoutDbalTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (class_exists('Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference')) {
-            self::markTestSkipped('ecotone/dbal is installed in this run, so its absence cannot be observed here; packages/Laravel runs this on its own vendor, which does not install it');
-        }
+        self::hideEcotoneDbalFromTheAutoloader();
     }
 
     public function test_a_laravel_connection_reference_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -64,5 +64,17 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
             . 'Only the Database capabilities ecotone/dbal brings read a connection reference — DBAL transactions, the Outbox, the Dead Letter, the Document Store, multi-tenant connections and the event store — so without it the connection has nothing to serve. '
             . 'Either install it with `composer require ecotone/dbal`, '
             . 'or remove the LaravelConnectionReference from your #[ServiceContext] configuration.';
+    }
+
+    private static function hideEcotoneDbalFromTheAutoloader(): void
+    {
+        foreach (spl_autoload_functions() as $autoloader) {
+            spl_autoload_unregister($autoloader);
+            spl_autoload_register(static function (string $class) use ($autoloader): void {
+                if (! str_starts_with($class, 'Ecotone\\Dbal\\') && ! str_starts_with($class, 'Ecotone\\Api\\Dbal\\')) {
+                    $autoloader($class);
+                }
+            });
+        }
     }
 }

@@ -20,6 +20,12 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionExecution;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
+use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\Messaging\Scheduling\StubUTCClock;
+use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
@@ -139,6 +145,31 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
         $ecotone->triggerProjection($projection::NAME);
 
         self::assertSame([[10], [30], [1], [2], [20]], $projection->batches);
+    }
+
+    public function test_preserving_unconsumed_filled_gaps_outside_max_gap_offset(): void
+    {
+        $projection = $this->createOrderingProjection(batchSize: 1);
+        $ecotone = $this->bootstrapEcotone($projection);
+        $source = new EventStoreGlobalStreamSource(
+            self::getConnectionFactory(),
+            new StubUTCClock(),
+            StreamTableRegistry::createWith([], DbalConnectionFactory::class),
+            new StreamFilterRegistry([$projection::NAME => [new StreamFilter('ordered_stream_a'), new StreamFilter('ordered_stream_b')]]),
+            new MissingEventStreamTable(),
+            [$projection::NAME],
+            maxGapOffset: 3,
+        );
+
+        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', [20, 21, 22, 23, 24]);
+        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [1]);
+
+        $page = $source->load($projection::NAME, 'ordered_stream_a=5:1;ordered_stream_b=0:;', 1);
+        self::assertSame([1], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
+
+        $page = $source->load($projection::NAME, $page->lastPosition, 1);
+        self::assertSame([20], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
+        self::assertSame([], $source->load($projection::NAME, $page->lastPosition, 1)->events);
     }
 
     private function createOrderingProjection(int $batchSize): object

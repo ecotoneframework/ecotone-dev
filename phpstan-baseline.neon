@@ -715,12 +715,6 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Handler/Enricher/InternalEnrichingService.php
 
 		-
-			message: '#^Part \$requestMessage \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: packages/Ecotone/src/Messaging/Handler/Enricher/PropertyEditorAccessor.php
-
-		-
 			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Ecotone\\Api\\Messaging\\Message\|null\.$#'
 			identifier: return.phpDocType
 			count: 1
@@ -851,18 +845,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: packages/Ecotone/src/Messaging/Support/ConcurrencyException.php
-
-		-
-			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: packages/Ecotone/src/Messaging/Support/GenericMessage.php
-
-		-
-			message: '#^Part \$payload \(Ecotone\\Api\\Messaging\\Message\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: packages/Ecotone/src/Messaging/Support/MessageBuilder.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$classAnnotations$#'

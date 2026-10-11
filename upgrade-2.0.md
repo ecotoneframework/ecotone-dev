@@ -1096,11 +1096,11 @@ Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` 
 **Before:** `#[InternalHandler]` (introduced earlier in 2.0) and `#[ServiceActivator]` were two names for the same
 attribute — `InternalHandler extends ServiceActivator` and both worked identically.
 
-**Now:** `Ecotone\Api\ServiceActivator` no longer exists. `#[InternalHandler]` is the only attribute.
+**Now:** `Ecotone\Messaging\Attribute\ServiceActivator` (`Ecotone\Api\ServiceActivator` in early 2.0 builds) no longer exists. `#[InternalHandler]` is the only attribute.
 
 **How to adapt:**
 - Rename `#[ServiceActivator(...)]` to `#[InternalHandler(...)]` and update the `use` statement
-  (`Ecotone\Api\ServiceActivator` → `Ecotone\Api\InternalHandler`).
+  (`Ecotone\Messaging\Attribute\ServiceActivator` → `Ecotone\Api\Attribute\InternalHandler`).
 - **Check positional arguments — the second one changed meaning.** `ServiceActivator`'s constructor was
   `(inputChannelName, endpointId, outputChannelName, requiresReply, requiredInterceptorNames, changingHeaders)`.
   `InternalHandler`'s is `(inputChannelName, outputChannelName, endpointId, requiredInterceptorNames, changingHeaders, requiresReply)`
@@ -2617,7 +2617,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
 - **Testing polling parameters use the names of the matching setters.** `createWithTestingSetup()` took
   `amountOfMessagesToHandle` (a maximum, not an exact count), `maxExecutionTimeInMilliseconds` and `failAtError`, while the
   same settings are `withHandledMessageLimit()`, `withExecutionTimeLimitInMilliseconds()` and `withStopOnError()` (and
-  `--handledMessageLimit` / `--stopOnError` on `ecotone:run`).
+  `--handledMessageLimit` / `--stopOnFailure` on `ecotone:run`).
 
   | 1.x / early 2.0 | 2.0 |
   |---|---|

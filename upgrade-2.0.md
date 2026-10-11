@@ -1050,7 +1050,8 @@ AmqpBackedMessageChannelBuilder::create('ticket_service.events'),
 ```
 
 Consumers subscribe by having a channel with the mapped name; `#[Distributed]` handlers stay unchanged. Distributed event
-routing wildcards are unchanged (`*` matches a single dotted segment).
+routing wildcards are unchanged: `*` matches any run of characters, dots included, so `userService.*` matches
+`userService.billing.DetailsWereChanged` and `*` alone matches every event.
 
 - The AMQP bus declared a `ecotone.distributed` exchange and per-service queues automatically. Service Map has no exchange
   convention: each mapped channel is an ordinary channel you declare (`AmqpBackedMessageChannelBuilder::create('ticket_service.events')`
@@ -1407,7 +1408,10 @@ whose `aggregate.id` is supplied by a `#[Before]` or `#[Presend]` interceptor ra
 
 **Before:** An asynchronous channel name could not be equal to a routing key of a handler.
 
-**Now:** Routing keys and message channels are separate namespaces; the same string may be used for both.
+**Now:** a handler's routing key may equal an asynchronous channel name; sending through the bus by that routing key
+(`sendWithRouting()`, `publishWithRouting()`) reaches the handler. Routing keys are not a separate namespace from
+channels, though: a `#[CommandHandler]` or `#[QueryHandler]` routing key still registers a message channel of the same
+name, which a `#[BusinessMethod]` gateway, an `outputChannelName` or a direct channel send reaches.
 
 **How to adapt:** Nothing; remove workarounds that renamed channels to avoid the clash.
 

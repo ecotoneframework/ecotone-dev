@@ -24,7 +24,7 @@
         "observability",
         "otlp"
     ],
-    "description": "OpenTelemetry distributed tracing for Ecotone \u2014 automatic spans and trace context propagation across sync and async flows.",
+    "description": "OpenTelemetry distributed tracing for Ecotone — automatic spans and trace context propagation across sync and async flows.",
     "repositories": [
         {
             "type": "path",
@@ -89,7 +89,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 16:47:34"
     },
     "config": {
         "allow-plugins": {

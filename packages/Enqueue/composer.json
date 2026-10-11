@@ -24,7 +24,7 @@
         "sqs",
         "redis"
     ],
-    "description": "Enqueue adapter layer for Ecotone \u2014 shared base for AMQP, Redis, and SQS transports.",
+    "description": "Enqueue adapter layer for Ecotone — shared base for AMQP, Redis, and SQS transports.",
     "repositories": [
         {
             "type": "path",
@@ -84,6 +84,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 16:47:34"
     }
 }

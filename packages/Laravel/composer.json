@@ -78,7 +78,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.326.x-dev"
+            "dev-main": "1.328.x-dev"
         },
         "ecotone": {
             "repository": "laravel"
@@ -94,7 +94,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 16:47:34"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

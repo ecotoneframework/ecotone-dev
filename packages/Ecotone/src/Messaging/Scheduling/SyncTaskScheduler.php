@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Scheduling;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollToGatewayTaskExecutor;
 
 /**
  * Class SyncTaskScheduler
@@ -32,10 +33,7 @@ class SyncTaskScheduler
         return new self($clock, $triggerContext, $pollingMetadata);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function schedule(TaskExecutor $taskExecutor, Trigger $trigger): void
+    public function schedule(PollToGatewayTaskExecutor $taskExecutor, Trigger $trigger): void
     {
         $nextExecution = $trigger->nextExecutionTime($this->clock, $this->triggerContext);
         $this->triggerContext = $this->triggerContext->withLastScheduledExecutionTime($nextExecution);

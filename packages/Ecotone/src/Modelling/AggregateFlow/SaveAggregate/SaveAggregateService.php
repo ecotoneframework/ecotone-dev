@@ -7,9 +7,9 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
@@ -36,7 +36,7 @@ final class SaveAggregateService implements MessageProcessor
         $resolvedAggregates = $this->aggregateResolver->resolve($message);
         $metadata = DecisionModelLoadedState::carryInto(
             $message,
-            MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers()),
+            FrameworkHeaders::unsetNonUserKeys($message->getHeaders()->headers()),
         );
 
         if (! $resolvedAggregates) {

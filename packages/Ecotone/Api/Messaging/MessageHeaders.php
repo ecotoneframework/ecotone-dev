@@ -3,17 +3,11 @@
 namespace Ecotone\Api\Messaging;
 
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\Gateway\DistributedBusHeader;
-use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
-use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\InvalidMessageHeaderException;
 use Ecotone\Messaging\MessageHeaderDoesNotExistsException;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\NativeClock;
-use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 
 use function json_encode;
 
@@ -160,160 +154,6 @@ final class MessageHeaders
     final public function headers(): array
     {
         return $this->headers;
-    }
-
-    public static function getFrameworksHeaderNames(): array
-    {
-        return [
-            self::MESSAGE_ID,
-            self::MESSAGE_CORRELATION_ID,
-            self::PARENT_MESSAGE_ID,
-            self::CONTENT_TYPE,
-            self::TYPE_ID,
-            self::CONTENT_ENCODING,
-            self::TIMESTAMP,
-            self::ROUTING_SLIP,
-            self::REPLY_CHANNEL,
-            self::ERROR_CHANNEL,
-            self::SEQUENCE_NUMBER,
-            self::SEQUENCE_SIZE,
-            self::PRIORITY,
-            self::DUPLICATE_MESSAGE,
-            self::TIME_TO_LIVE,
-            self::DELIVERY_DELAY,
-            self::POLLED_CHANNEL_NAME,
-            self::INBOUND_REQUEST_CHANNEL,
-            self::REPLY_CONTENT_TYPE,
-            self::STREAM_BASED_SOURCED,
-            MessagingEntrypointService::ENTRYPOINT,
-            self::CHANNEL_SEND_RETRY_NUMBER,
-        ];
-    }
-
-    public static function unsetFrameworkKeys(array $metadata): array
-    {
-        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
-            unset($metadata[$frameworksHeaderName]);
-        }
-
-        return $metadata;
-    }
-
-    public static function unsetTransportMessageKeys(array $metadata): array
-    {
-        unset($metadata[self::MESSAGE_ID]);
-
-        return $metadata;
-    }
-
-    public static function propagateContextHeaders(array $context, array $headers)
-    {
-        $headers = array_merge($context, $headers);
-        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context)) {
-            $headers[MessageHeaders::MESSAGE_CORRELATION_ID] = $context[MessageHeaders::MESSAGE_CORRELATION_ID];
-        }
-        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context) && $headers[MessageHeaders::MESSAGE_ID] !== $context[MessageHeaders::MESSAGE_ID]) {
-            $headers[MessageHeaders::PARENT_MESSAGE_ID] = $context[MessageHeaders::MESSAGE_ID];
-        }
-
-        return $headers;
-    }
-
-    public static function unsetAllFrameworkHeaders(array $metadata): array
-    {
-        $metadata =  self::unsetCoreFrameworkHeaders($metadata);
-        $metadata = self::unsetAsyncKeys($metadata);
-        $metadata = self::unsetEnqueueMetadata($metadata);
-        $metadata = self::unsetDistributionKeys($metadata);
-        $metadata = self::unsetBusKeys($metadata);
-
-        return self::unsetAggregateKeys($metadata);
-    }
-
-    public static function unsetCoreFrameworkHeaders(array $metadata): array
-    {
-        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
-            unset($metadata[$frameworksHeaderName]);
-        }
-
-        return $metadata;
-    }
-
-    public static function unsetAsyncKeys(array $metadata): array
-    {
-        unset($metadata[self::TYPE_ID]);
-
-        return $metadata;
-    }
-
-    public static function unsetEnqueueMetadata(array $metadata): array
-    {
-        if (isset($metadata[self::CONSUMER_ACK_HEADER_LOCATION])) {
-            unset($metadata[$metadata[self::CONSUMER_ACK_HEADER_LOCATION]]);
-        }
-
-        unset(
-            $metadata[self::DELIVERY_DELAY],
-            $metadata[self::TIME_TO_LIVE],
-            $metadata[self::CONTENT_TYPE],
-            $metadata[self::CONSUMER_ACK_HEADER_LOCATION],
-            $metadata[self::POLLED_CHANNEL_NAME],
-            $metadata[self::INBOUND_REQUEST_CHANNEL],
-            $metadata[self::CONSUMER_POLLING_METADATA],
-            $metadata[self::REPLY_CHANNEL],
-            $metadata[self::TEMPORARY_SPAN_CONTEXT_HEADER],
-        );
-
-        return $metadata;
-    }
-
-    public static function unsetDistributionKeys(array $metadata): array
-    {
-        unset(
-            $metadata[DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE],
-            $metadata[DistributedBusHeader::DISTRIBUTED_ROUTING_KEY],
-            $metadata[DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME],
-            $metadata[DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME],
-        );
-
-        return $metadata;
-    }
-
-    public static function unsetBusKeys(array $metadata): array
-    {
-        unset(
-            $metadata[MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME],
-            $metadata[MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME],
-            $metadata[MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME]
-        );
-
-        return $metadata;
-    }
-
-    public static function unsetAggregateKeys(array $metadata): array
-    {
-        unset(
-            $metadata[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
-            $metadata[AggregateMessage::CALLED_AGGREGATE_CLASS],
-            $metadata[AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD],
-            $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],
-            $metadata[AggregateMessage::TARGET_VERSION],
-            $metadata[AggregateMessage::NULL_EXECUTION_RESULT],
-            $metadata[DecisionModelLoadedState::HEADER_NAME],
-            $metadata[MatchedTagSequences::HEADER_NAME],
-        );
-
-        return $metadata;
-    }
-
-    public static function unsetNonUserKeys(array $metadata): array
-    {
-        $metadata = self::unsetEnqueueMetadata($metadata);
-        $metadata = self::unsetDistributionKeys($metadata);
-        $metadata = self::unsetAsyncKeys($metadata);
-        $metadata = self::unsetBusKeys($metadata);
-
-        return self::unsetAggregateKeys($metadata);
     }
 
     /**

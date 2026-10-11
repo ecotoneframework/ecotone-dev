@@ -6,6 +6,7 @@ namespace Ecotone\OpenTelemetry;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 
 use function is_scalar;
 
@@ -26,7 +27,7 @@ final class EcotoneSpanBuilder
         TracerProviderInterface $tracerProvider,
         int                     $type = SpanKind::KIND_SERVER
     ): SpanBuilderInterface {
-        $userHeaders = MessageHeaders::unsetAllFrameworkHeaders($context->getHeaders()->headers());
+        $userHeaders = FrameworkHeaders::unsetAllFrameworkHeaders($context->getHeaders()->headers());
 
         foreach ($userHeaders as $key => $value) {
             if (! is_scalar($value)) {

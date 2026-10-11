@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
@@ -147,7 +148,7 @@ class SaveAggregateServiceTemplate
                 $eventMetadata = $event->getMetadata();
                 $event = $event->getPayload();
             }
-            $eventMetadata = MessageHeaders::unsetAllFrameworkHeaders($eventMetadata);
+            $eventMetadata = FrameworkHeaders::unsetAllFrameworkHeaders($eventMetadata);
             /** This need to be removed explicitly after saving, to be passed correctly across asynchronous message channels */
             unset($eventMetadata[AggregateMessage::AGGREGATE_ID], $eventMetadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER]);
             $eventMetadata = $headerMapper->mapFromMessageHeaders($eventMetadata, $conversionService);
@@ -155,7 +156,7 @@ class SaveAggregateServiceTemplate
             $eventMetadata = RevisionMetadataEnricher::enrich($eventMetadata, $event);
             $eventMetadata[MessageHeaders::MESSAGE_ID] ??= Uuid::v7()->toRfc4122();
             $eventMetadata[MessageHeaders::TIMESTAMP] ??= $clock->now()->unixTime()->inSeconds();
-            $eventMetadata = MessageHeaders::propagateContextHeaders([
+            $eventMetadata = FrameworkHeaders::propagateContextHeaders([
                 MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
                 MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),
             ], $eventMetadata);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Kafka\Integration\MultiTenant;
+namespace Monorepo\CrossModuleTests\Tests\Kafka;
 
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\QueryHandler;

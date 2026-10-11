@@ -22,6 +22,9 @@ use RdKafka\Conf;
  * derivative or "inspired" version, is prohibited without that licence: it infringes the
  * copyright above and is unlawful, not merely a breach of these terms.
  *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  *
  * @link https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html

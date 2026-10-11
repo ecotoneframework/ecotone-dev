@@ -168,4 +168,9 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             ));
         }
     }
+
+    public function __toString(): string
+    {
+        return "redis outbound: {$this->queueName}";
+    }
 }

@@ -14,7 +14,7 @@ use function is_iterable;
  */
 class InvocationRouter implements RouteSelector
 {
-    public function __construct(private MethodInvoker $methodInvoker)
+    public function __construct(private MethodInvoker $methodInvoker, private string $routingMethod)
     {
     }
 
@@ -25,5 +25,10 @@ class InvocationRouter implements RouteSelector
             $result = [$result];
         }
         return array_unique($result);
+    }
+
+    public function __toString(): string
+    {
+        return 'invocation of ' . $this->routingMethod;
     }
 }

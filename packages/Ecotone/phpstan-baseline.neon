@@ -169,18 +169,6 @@ parameters:
 			path: src/Lite/Test/ConfiguredMessagingSystemWithTestSupport.php
 
 		-
-			message: '#^Part \$messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DirectChannel.php
-
-		-
-			message: '#^Part \$this\-\>messageHandler \(Ecotone\\Messaging\\MessageHandler\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Channel/DirectChannel.php
-
-		-
 			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -743,12 +731,6 @@ parameters:
 			identifier: parameter.notFound
 			count: 1
 			path: src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
-
-		-
-			message: '#^Binary operation "\." between ''Router \- '' and Ecotone\\Messaging\\Handler\\Router\\RouteSelector results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 1
-			path: src/Messaging/Handler/Router/Router.php
 
 		-
 			message: '#^Method Ecotone\\Messaging\\Handler\\Type\\UnionType\:\:createWith\(\) should return Ecotone\\Messaging\\Handler\\Type\\UnionType but returns Ecotone\\Messaging\\Handler\\Type\.$#'

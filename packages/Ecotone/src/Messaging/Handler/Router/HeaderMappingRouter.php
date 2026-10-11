@@ -67,4 +67,9 @@ final class HeaderMappingRouter implements RouteSelector, DefinedObject
             $this->headerValueToChannelMapping,
         ], 'create');
     }
+
+    public function __toString(): string
+    {
+        return "header mapping `{$this->headerName}` to `" . implode('`, `', $this->headerValueToChannelMapping) . '`';
+    }
 }

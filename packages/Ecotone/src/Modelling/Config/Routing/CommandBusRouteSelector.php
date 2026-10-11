@@ -38,4 +38,9 @@ class CommandBusRouteSelector implements RouteSelector
 
         return $routes;
     }
+
+    public function __toString(): string
+    {
+        return 'command bus routing';
+    }
 }

@@ -25,4 +25,9 @@ class HeaderRouter implements RouteSelector
     {
         return [$message->getHeaders()->get($this->headerName)];
     }
+
+    public function __toString(): string
+    {
+        return "header `{$this->headerName}`";
+    }
 }

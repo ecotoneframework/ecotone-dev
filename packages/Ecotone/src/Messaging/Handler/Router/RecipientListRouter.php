@@ -44,4 +44,9 @@ class RecipientListRouter implements RouteSelector, DefinedObject
     {
         return new Definition(self::class, [$this->recipientMessageChannels]);
     }
+
+    public function __toString(): string
+    {
+        return 'recipient list `' . implode('`, `', $this->recipientMessageChannels) . '`';
+    }
 }

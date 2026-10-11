@@ -262,7 +262,6 @@ subsection below.
   ```php
   interface EventStore
   {
-      public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
       public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
       public function delete(string $streamName): void;
       public function hasStream(string $streamName): bool;
@@ -869,13 +868,10 @@ consistency boundary's). Events recorded only by a service handler — not an ag
 and are not checked; keep such a handler's stream and its injected models' aggregates on the same connection by
 convention.
 
-**A missing stream table stops a decision instead of answering it.** `EventStore::load()` and
-`loadAggregateEvents()` keep their open-core contract — a stream whose table does not exist reads as no events, which
-is what an aggregate `#[CommandHandler]` loading a not-yet-created aggregate needs. On the decision path that answer
-is wrong: an aggregate-backed `#[DecisionModel]` would fold zero events and the handler would decide on an empty
-aggregate. The decision read is a separate store method, so the two contracts never need a flag to tell them apart,
-and a missing stream table there raises the same `ConfigurationException` §8 describes, naming the `event_stream`
-feature, the table and both setup commands. `ecotone:event-store:backfill-tags` reports the same error rather than a
+**A missing stream table stops a decision instead of answering it.** An aggregate-backed `#[DecisionModel]` reads
+its events through the same `EventStore::loadAggregateEvents()` an aggregate `#[CommandHandler]` uses, and that read
+raises the `ConfigurationException` §8 describes when the stream table does not exist, naming the `event_stream`
+feature, the table and both setup commands — so the handler is refused instead of deciding on zero events. `ecotone:event-store:backfill-tags` reports the same error rather than a
 report saying nothing was scanned, which is what a mistyped `--stream=` actually means.
 
 **Upgrading while still on 1.x — expand first, deploy code second:**
@@ -1262,7 +1258,7 @@ The removed configuration, one by one:
   `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)`; a Symfony, Laravel or Tempest
   kernel test, which does not go through the `EcotoneLite` bootstrap, runs the setup command in its own set-up.
 
-Reading an event stream is not one of the paths that answer "nothing there". `EventStore::load()` and
+Reading an event stream raises too. `EventStore::load()` and
 `EventStore::loadAggregateEvents()` used to probe `information_schema` on every call and answer "no events" when the
 stream table was absent, which turned a missing `ecotone:migration:database:setup` into an `AggregateNotFoundException`
 for an aggregate whose events were never readable in the first place. **They raise the same `ConfigurationException`
@@ -1272,10 +1268,8 @@ created. Event-sourced aggregate command handlers, `#[Fetch]`, `Repository::getF
 projections all surface it. `EventStore::hasStream()` is unchanged: it answers whether the stream exists, so it still
 returns `false` rather than raising.
 
-The read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
-quietly: `DeadLetterGateway::list()`/`count()` and the document store's `findDocument()`/`getAllDocuments()`/
-`countDocuments()`. If you need to tell "not set up" from "nothing to show" in those places, run
-`ecotone:migration:database:setup --missing` — it lists exactly the tables that are absent.
+`EventStore::hasStream()` is the only read that answers a missing table without raising. To list the tables that are
+absent, run `ecotone:migration:database:setup --missing`.
 
 Dropping a table is DDL too, and one runs when your code asks for it: `EventStore::delete()` drops the stream's table.
 On MySQL and MariaDB, calling it while a database transaction is open — from a command handler, an asynchronous

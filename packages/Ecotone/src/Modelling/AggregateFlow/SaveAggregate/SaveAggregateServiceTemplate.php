@@ -177,7 +177,7 @@ class SaveAggregateServiceTemplate
     public static function enrichAggregateEvents(array $events, int $versionBeforeHandling, array $identifiers, AggregateClassDefinition $aggregateDefinition): array
     {
         $incrementedVersion = $versionBeforeHandling;
-        $aggregateId = count($identifiers) === 1 ? $identifiers[array_key_first($identifiers)] : $identifiers;
+        $aggregateId = count($identifiers) === 1 ? (string) $identifiers[array_key_first($identifiers)] : $identifiers;
         $streamName = $aggregateDefinition->getAggregateStreamName();
         $aggregateType = $aggregateDefinition->getAggregateClassType();
 

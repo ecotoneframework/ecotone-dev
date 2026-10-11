@@ -2083,6 +2083,17 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 - **The in-memory event store refuses a repeated aggregate version or event id** with `ConcurrencyException`, as
   DBAL's unique indexes do, and records nothing from that append. A flow test that appended the same message id
   twice to one stream gives each event its own `MessageHeaders::MESSAGE_ID`.
+- **An aggregate's identifier travels on its events as a string.** **Before:** an aggregate's events carried
+  `MessageHeaders::EVENT_AGGREGATE_ID` (`_aggregate_id`) as the identifier's raw PHP value, so an `int`
+  `#[Identifier]` recorded a JSON integer, while `EventStore::loadAggregateEvents()` takes the id as a `string`.
+  **Now:** a single identifier is cast to its string form when the events are enriched — in the metadata an
+  event-sourced aggregate records, on every event store, and on the event messages published after any aggregate's
+  save, state-stored ones included; `#[Identifier] int $id = 42` carries `'42'`.
+  Ids already recorded as integers stay readable: SQLite and the in-memory store compare metadata by its text form, as
+  PostgreSQL, MySQL and MariaDB always did, so an aggregate whose history mixes both forms still loads. A composite
+  identifier is unchanged. **How to adapt:** a handler reading the header with `#[Header('_aggregate_id')] int $id`
+  declares `string` (or casts), and code comparing `$event->getMetadata()['_aggregate_id']` with `===` against an
+  `int` compares against the string.
 - **`Message` and `MessageChannel` extend `Stringable`.** **Before:** neither interface declared `__toString()`, yet
   Ecotone interpolates both into exception messages and descriptions, so a channel or message that could not be
   stringified turned the exception being built into `Object of class … could not be converted to string`. Six of

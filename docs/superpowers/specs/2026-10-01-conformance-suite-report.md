@@ -118,7 +118,7 @@ test body states one proposed contract, so the chosen side may mean rewriting th
 | E2 | ~~`create()` on an existing stream~~ | resolved by dropping `EventStore::create()` — there is no second way to open a stream left to diverge | |
 | E3 | metadata match `NOT_IN []` | drops events lacking the key | keeps them (`1 = 1`) |
 | E4 | ~~metadata `'2'` against a recorded integer `2`~~ | converged in wave 10: matched everywhere — SQLite and in-memory compare the text form on the read | |
-| E5 | ~~`loadAggregateEvents(…, '42')` for an id recorded as integer `42`~~ | converged in wave 10 with E4: found everywhere | |
+| E5 | ~~`loadAggregateEvents(…, '42')` for an id recorded as integer `42`~~ | converged in wave 10 with E4: found everywhere (option B, the read side). Wave 11b added option A on top: an aggregate now records `_aggregate_id` as the identifier's string form, and `EventStoreEventSourcedRepository::findBy()` reads with it, so a new integer id is never recorded as a JSON integer; B stays, for the ids already recorded that way (`IntegerAggregateIdentifierTest`) | |
 | E6 | `load()` of a never-created stream | `[]` | `ConfigurationException` with the missing-table instructions — **kept, intended** (wave 10): a DBAL stream's table comes from setup |
 | E7 | `appendTo(stream, [])` on a missing stream | creates the stream | no-op — **kept** (wave 10) |
 | E8 | ~~unconditional append repeating an aggregate type, id and version~~ | converged in wave 10: in-memory raises `ConcurrencyException` and records nothing from the batch, as DBAL's unique index does | |

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\HighThroughputPublishing;
 
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Support\MessageBuilder;
 

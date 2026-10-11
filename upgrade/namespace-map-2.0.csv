@@ -201,3 +201,4 @@ Ecotone\Messaging\Support\ErrorMessage,Ecotone\Api\Messaging\ErrorMessage
 Ecotone\Modelling\StateStoredRepository,Ecotone\Api\Modelling\StateStoredRepository
 Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint,Ecotone\Api\Attribute\AsynchronousRunningEndpoint
 Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\AsynchronousEndpointAttribute
+Ecotone\Messaging\BatchMessage,Ecotone\Api\Messaging\BatchMessage

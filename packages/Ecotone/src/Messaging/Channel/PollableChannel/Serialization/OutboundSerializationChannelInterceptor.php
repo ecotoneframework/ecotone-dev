@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\ErrorMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\MessageBuilder;

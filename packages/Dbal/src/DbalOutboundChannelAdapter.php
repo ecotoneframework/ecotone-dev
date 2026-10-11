@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalDestination;
@@ -12,7 +13,6 @@ use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Interop\Queue\Context;

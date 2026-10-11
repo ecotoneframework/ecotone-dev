@@ -12,7 +12,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Test\LicenceTesting;
 use Interop\Amqp\AmqpQueue;

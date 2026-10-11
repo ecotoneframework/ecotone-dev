@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\BatchMessage;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\InMemoryHighThroughputOutboundAdapter;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\InMemoryHighThroughputPublisherModule;

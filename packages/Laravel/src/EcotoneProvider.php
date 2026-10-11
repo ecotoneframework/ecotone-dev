@@ -89,11 +89,7 @@ class EcotoneProvider extends ServiceProvider
         if ($retryTemplate) {
             $applicationConfiguration = $applicationConfiguration
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOffWithMaxDelay(
-                        $retryTemplate['initialDelay'],
-                        $retryTemplate['maxAttempts'],
-                        $retryTemplate['multiplier']
-                    )
+                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
                 );
         }
 

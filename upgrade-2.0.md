@@ -2250,6 +2250,18 @@ A nullable or defaulted parameter is unchanged: without a licence it receives `n
 
 **How to adapt:** pick one of the three ways out the message names.
 
+### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
+
+**Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in
+milliseconds, and set no attempt limit. With the shipped example (`initialDelay: 100, maxAttempts: 3, multiplier: 2`)
+the first retry's 100 ms delay already exceeded the "maximum delay" of 2 ms, so a lost connection was never retried;
+with `initialDelay: 0` it was retried forever.
+
+**Now:** `initialDelay` and `multiplier` shape an exponential back-off and `maxAttempts` is the number of reconnection
+attempts before the consumer gives up.
+
+**How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
+
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
 **Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and

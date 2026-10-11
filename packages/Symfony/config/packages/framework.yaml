@@ -35,8 +35,8 @@ ecotone:
         - "Fixture"
     defaultMemoryLimit: 256
     defaultConnectionExceptionRetry:
-        initialDelay: 100
-        maxAttempts: 3
+        initialDelay: 1
+        maxAttempts: 4
         multiplier: 2
     defaultErrorChannel: "errorChannel"
     defaultSerializationMediaType: "application/json"

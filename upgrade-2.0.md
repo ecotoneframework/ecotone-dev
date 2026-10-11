@@ -1078,7 +1078,7 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `#[TargetAggregateIdentifier]` | `#[TargetIdentifier]` |
 | `#[AggregateVersion]` / `#[TargetAggregateVersion]` | `#[Version]` / `#[TargetVersion]` |
 | `WithAggregateEvents` trait | `WithEvents` |
-| `StandardRepository` interface | `StateStoredRepository` (same methods) |
+| `StandardRepository` interface | `Ecotone\Api\Modelling\StateStoredRepository` (same methods; §13j) |
 | `EcotoneLite::bootstrapForTesting()`, `EcotoneLiteConfiguration`, `ecotone/lite-application` package | `EcotoneLite::bootstrapFlowTesting()` / `EcotoneLite::bootstrap()` |
 | `MethodInvocation::getInterfaceToCall()`, `MethodInvocation::replaceArgument()` | `getObjectToInvokeOn()` / `getMethodName()`; pass changed values by returning a new message or header from `#[Before]` / `#[Presend]` |
 | `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` |
@@ -2093,6 +2093,23 @@ final class ErrorHandler
 A parameter still typed with the old name is refused at bootstrap, as §13g describes for `Message`, naming the class
 it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 
+### 13j. Types the documentation tells applications to name moved into `Api`
+
+**Before:** writing the 2.0 documentation found internal `src` classes that an application has to name because the
+tree offered nothing else — a repository it implements, an attribute it targets with a pointcut, a value it constructs
+or an exception it catches. Each sat outside `Api`.
+
+**Now:** each one below is in its package's `Api`, with the same methods. A type moves together with any type its
+public signatures name, so no `Api` signature points back into `src`.
+
+| 1.x and early 2.0 | 2.0 | Why an application names it |
+|---|---|---|
+| `Ecotone\Modelling\StateStoredRepository` | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+
+**How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
+deploy, since the compiled container records class names. **No container id changes** — none of these is a service
+registered under its class name.
+
 ## 14. Smaller behaviour changes
 
 - **`EventStore::load()` and `loadAggregateEvents()` refuse a `count` of `0` on DBAL too.** Before, DBAL returned no
@@ -2446,7 +2463,7 @@ repository of a flow test, is now checked against the version it was loaded at:
   `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
   Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
   table and register a repository of your own for the model: a `#[Repository]` class implementing
-  `Ecotone\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
+  `Ecotone\Api\Modelling\StateStoredRepository` is chosen ahead of Ecotone's Eloquent repository. Its `findBy()` sets the
   `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
   `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
   `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws

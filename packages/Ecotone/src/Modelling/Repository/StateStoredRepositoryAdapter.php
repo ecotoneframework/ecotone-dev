@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Repository;
 
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
-use Ecotone\Modelling\StateStoredRepository;
 
 class StateStoredRepositoryAdapter implements AggregateRepository
 {

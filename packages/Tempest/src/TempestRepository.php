@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest;
 
-use Ecotone\Modelling\StateStoredRepository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Tempest\Database\IsDatabaseModel;
 
 /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
 use Ecotone\Api\Attribute\Repository;
-use Ecotone\Modelling\StateStoredRepository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 
 #[Repository]
 /**

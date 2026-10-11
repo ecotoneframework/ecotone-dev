@@ -7,6 +7,7 @@ namespace Ecotone\Modelling;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Repository;
 use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\ConcurrencyException;

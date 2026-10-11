@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
 use Ecotone\Api\Attribute\Repository;
-use Ecotone\Modelling\StateStoredRepository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 
 #[Repository]
 /**

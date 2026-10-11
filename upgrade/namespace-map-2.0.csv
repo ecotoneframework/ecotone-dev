@@ -198,3 +198,4 @@ Ecotone\Messaging\Console\InMemoryConsoleProgressBar,Ecotone\Api\Console\InMemor
 Ecotone\Messaging\Message,Ecotone\Api\Messaging\Message
 Ecotone\Messaging\Channel\MessageChannelBuilder,Ecotone\Api\ExtensionObject\MessageChannelBuilder
 Ecotone\Messaging\Support\ErrorMessage,Ecotone\Api\Messaging\ErrorMessage
+Ecotone\Modelling\StateStoredRepository,Ecotone\Api\Modelling\StateStoredRepository

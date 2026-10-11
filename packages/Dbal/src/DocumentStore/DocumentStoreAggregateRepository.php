@@ -3,8 +3,8 @@
 namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\StateStoredRepository;
-use Ecotone\Messaging\Support\ConcurrencyException;
 
 /**
  * licence Apache-2.0

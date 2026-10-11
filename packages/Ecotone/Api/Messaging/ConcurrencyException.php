@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Support;
+namespace Ecotone\Api\Messaging;
 
 use Ecotone\Messaging\MessagingException;
 

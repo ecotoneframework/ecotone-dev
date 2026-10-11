@@ -204,3 +204,4 @@ Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\
 Ecotone\Messaging\BatchMessage,Ecotone\Api\Messaging\BatchMessage
 Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration,Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration
 Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter,Ecotone\Api\Projecting\EventStreamingChannelAdapter
+Ecotone\Messaging\Support\ConcurrencyException,Ecotone\Api\Messaging\ConcurrencyException

@@ -15,11 +15,11 @@ use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function in_array;

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\MissingTableFailure;
@@ -22,7 +23,6 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
-use Ecotone\Messaging\Support\ConcurrencyException;
 
 use function is_string;
 use function json_decode;

@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\Deduplication;
 
 use function array_filter;
 
-use Ecotone\Messaging\Support\ConcurrencyException;
+use Ecotone\Api\Messaging\ConcurrencyException;
 
 use function json_encode;
 

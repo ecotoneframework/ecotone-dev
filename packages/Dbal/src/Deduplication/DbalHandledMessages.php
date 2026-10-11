@@ -9,12 +9,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 

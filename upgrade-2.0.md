@@ -2110,6 +2110,7 @@ public signatures name, so no `Api` signature points back into `src`.
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
 | `Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration` | `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | returned from a `#[ServiceContext]` method, it is the one switch for automatic AMQP and SQS channel initialization |
 | `Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter` | `Ecotone\Api\Projecting\EventStreamingChannelAdapter` | returned from a `#[ServiceContext]` method, it feeds an event stream into a streaming channel (Enterprise) |
+| `Ecotone\Messaging\Support\ConcurrencyException` | `Ecotone\Api\Messaging\ConcurrencyException` | a custom repository throws `ConcurrencyException::forStaleAggregate()`, and retry configuration and `catch` blocks name it |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **No container id changes** — none of these is a service
@@ -2409,7 +2410,7 @@ repository `EcotoneLite::bootstrapFlowTesting()` uses behaved the same way: a co
 
 **Now:** every document has a version. `addDocument()` stores it at version 1, and each write moves it by one.
 `updateDocument()` and `upsertDocument()` take a **required** fourth parameter, `int $expectedVersion` — the version
-the caller read — and refuse the write with `Ecotone\Messaging\Support\ConcurrencyException` when the document has
+the caller read — and refuse the write with `Ecotone\Api\Messaging\ConcurrencyException` when the document has
 moved since. `0` means "must not be stored yet". `DocumentStore::getDocumentVersion()` returns the current version,
 `0` for a document that is not stored. A write that should replace whatever is stored says so explicitly:
 
@@ -2472,7 +2473,7 @@ repository of a flow test, is now checked against the version it was loaded at:
   `#[Version]` property from your version column, since Eloquent never hydrates a declared property; Ecotone then hands
   `save()` that version as `$versionBeforeHandling`, with the property already moved to the next one. `save()` runs
   `UPDATE … WHERE id = ? AND version = ?` and, when it matched no row, throws
-  `Ecotone\Messaging\Support\ConcurrencyException::forStaleAggregate()`, as every other backend does.
+  `Ecotone\Api\Messaging\ConcurrencyException::forStaleAggregate()`, as every other backend does.
 
 A conflict is a technical failure, not a business answer. Retry it by reloading: send the command again, or configure
 `InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class])`;

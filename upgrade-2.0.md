@@ -2093,8 +2093,8 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
   refuses to load it otherwise. A message describes its payload and headers (`(string) $this->getHeaders()` is their
   JSON); a channel returns its name. Internal, nothing to adapt: `MessageHandler`, `MessageHandlerBuilder` and
   `RouteSelector` extend `Stringable` too, which fixes the one crash reachable from an application — a `#[Router]`
-  subscribed to a direct channel that already has a handler is now refused with a `WrongHandlerAmountException` naming
-  both handlers and the two ways out, a separate input channel or
+  subscribed to a direct channel that already has a handler is now refused, when the first message reaches the channel,
+  with a `WrongHandlerAmountException` naming both handlers and the two ways out, a separate input channel or
   `SimpleMessageChannelBuilder::createPublishSubscribeChannel()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute

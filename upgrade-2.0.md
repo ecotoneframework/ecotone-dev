@@ -1248,7 +1248,13 @@ The removed configuration, one by one:
   already created.
 - Run the setup again after deleting an event stream: `EventStore::delete()` drops the stream's table, and nothing
   recreates it on the next append any more. A stream no `#[Stream]` (and no aggregate) declares has no table the setup
-  creates, so appending to it is refused — declare it.
+  creates, so reaching it is a configuration mistake, refused with a `ConfigurationException` that names the stream,
+  the `#[Stream('<name>')]` to add, the setup command and the streams that are declared: **at bootstrap** for a
+  projection reading it through `#[FromStream('<name>')]`, and on `EventStore::appendTo()` for a name only known at
+  runtime, once the append finds no table (a table your own migration created keeps working). Both apply to the database event store; `EventSourcingConfiguration::createInMemory()` has no tables, and
+  still opens a stream on its first append. **How to adapt:** add `#[Stream('<name>')]` to the class that owns the
+  stream's events — an event-sourced aggregate, the projection that emits into it, or any class Ecotone scans — and
+  run the setup.
 - In an `EcotoneLite` flow test, nothing: the bootstrap sets up the tables of every connection the test registers.
   A test that must see a table missing opts out with
   `TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)`; a Symfony, Laravel or Tempest

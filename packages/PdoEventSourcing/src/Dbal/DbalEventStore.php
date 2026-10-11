@@ -170,7 +170,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 $parameters,
             );
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($tableName, $streamName);
+            throw $this->missingAppendTargetException($tableName, $streamName);
         }
     }
 
@@ -299,7 +299,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         try {
             $connection->executeStatement($sql, $parameters);
         } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($tableName, $streamName);
+            throw $this->missingAppendTargetException($tableName, $streamName);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         } catch (NotNullConstraintViolationException $exception) {
@@ -403,6 +403,15 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
      * @param string[] $eventNames
      * @return Event[]
      */
+
+    private function missingAppendTargetException(string $tableName, string $streamName): ConfigurationException
+    {
+        if (! $this->streamTableRegistry->isDeclared($streamName)) {
+            return $this->missingEventStreamTable->undeclaredStreamAppendedToException($streamName, $this->streamTableRegistry->declaredStreamNames());
+        }
+
+        return $this->missingStreamTableException($tableName, $streamName);
+    }
 
     public function missingStreamTableException(string $tableName, ?string $streamName = null): ConfigurationException
     {

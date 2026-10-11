@@ -71,7 +71,8 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
             $eventStore->appendTo('stream_nothing_declares', [new TicketWasRegistered('123', 'Johnny', 'alert')]);
             self::fail('Expected a stream table no setup created to be refused');
         } catch (ConfigurationException $exception) {
-            self::assertStringContainsString(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, 'stream_nothing_declares', null), $exception->getMessage());
+            self::assertStringStartsWith('Event stream `stream_nothing_declares` is appended to, but nothing declares that stream, so no migration will ever create its table', $exception->getMessage());
+            self::assertStringContainsString("Declare it with #[Stream('stream_nothing_declares')]", $exception->getMessage());
         }
 
         self::assertFalse($eventStore->hasStream('stream_nothing_declares'));

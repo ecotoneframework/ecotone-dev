@@ -1504,6 +1504,13 @@ Classes outside `Api` are `@internal` and may change in minor versions. `Distrib
 `Ecotone\Api\Gateway\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
 `Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class (Kafka's `Api` dir is small enough to stay flat).
 
+**The Kafka broker's default container id changes with its class.** Kafka consumers and publishers look the broker up
+by `brokerConfigurationReference`, whose default is `KafkaBrokerConfiguration::class` — so the default id moves from
+`Ecotone\Kafka\Configuration\KafkaBrokerConfiguration` to `Ecotone\Api\Kafka\KafkaBrokerConfiguration`. Code that
+registers the broker with `KafkaBrokerConfiguration::class` follows the move once its import is updated; a broker
+registered under the old id as a string (a Symfony service id, a Laravel binding) or a `brokerConfigurationReference`
+passed as the old string is no longer found. Register it under the new id.
+
 **How to adapt:** Replace the imports using the full old → new mapping in
 [`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
 (two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. The full

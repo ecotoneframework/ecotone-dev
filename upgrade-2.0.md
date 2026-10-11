@@ -2113,9 +2113,16 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
   refuses to load it otherwise. A message describes its payload and headers (`(string) $this->getHeaders()` is their
   JSON); a channel returns its name. Internal, nothing to adapt: `MessageHandler`, `MessageHandlerBuilder` and
   `RouteSelector` extend `Stringable` too, which fixes the one crash reachable from an application — a `#[Router]`
-  subscribed to a direct channel that already has a handler is now refused, when the first message reaches the channel,
-  with a `WrongHandlerAmountException` naming both handlers and the two ways out, a separate input channel or
-  `SimpleMessageChannelBuilder::createPublishSubscribeChannel()`.
+  subscribed to a direct channel that already has a handler threw `Object of class … could not be converted to string`.
+- **Two handlers on one direct input channel are refused at bootstrap.** **Before:** a `#[Router]`, `#[InternalHandler]`
+  or any other handler sharing a direct channel with another handler booted, and the first message to reach the
+  channel failed — with the cast error above in 1.x, and in early 2.0 builds with a `WrongHandlerAmountException`. A
+  direct channel delivers a message to one handler only, so the configuration could never work. **Now:** bootstrap
+  throws `WrongHandlerAmountException` naming the channel and both handlers (`Router - invocation of Class::method`,
+  `Service Activator - Class::method`, …) and the two ways out. **How to adapt:** give one of the handlers its own
+  input channel, or register the channel with `SimpleMessageChannelBuilder::createPublishSubscribeChannel('<name>')`
+  so that each of them receives the message. A channel subscribed by hand at runtime keeps the same refusal on the
+  second `subscribe()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.

@@ -206,6 +206,10 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
      */
     public function __toString()
     {
+        if ($this->methodNameOrInterface instanceof InterfaceToCall) {
+            return 'Router - invocation of ' . $this->methodNameOrInterface->getInterfaceName() . '::' . $this->methodNameOrInterface->getMethodName();
+        }
+
         return sprintf('Router for input channel `%s` with name `%s`', $this->inputMessageChannelName, $this->getEndpointId());
     }
 }

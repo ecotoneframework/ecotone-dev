@@ -6,11 +6,11 @@ namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Interceptor\MethodInvocation;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use stdClass;
 
 final class AroundInterceptorExample

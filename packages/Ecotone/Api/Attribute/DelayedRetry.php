@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
-use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;

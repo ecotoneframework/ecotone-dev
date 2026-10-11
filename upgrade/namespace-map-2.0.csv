@@ -199,3 +199,5 @@ Ecotone\Messaging\Message,Ecotone\Api\Messaging\Message
 Ecotone\Messaging\Channel\MessageChannelBuilder,Ecotone\Api\ExtensionObject\MessageChannelBuilder
 Ecotone\Messaging\Support\ErrorMessage,Ecotone\Api\Messaging\ErrorMessage
 Ecotone\Modelling\StateStoredRepository,Ecotone\Api\Modelling\StateStoredRepository
+Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint,Ecotone\Api\Attribute\AsynchronousRunningEndpoint
+Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\AsynchronousEndpointAttribute

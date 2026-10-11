@@ -55,8 +55,6 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()
-                        ->withInMemoryConsumerPositionTracker(false), // Disable default, use our shared instance
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
                         channelName: $channelName,
@@ -64,7 +62,8 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     ),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Send 5 messages
@@ -98,8 +97,6 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()
-                        ->withInMemoryConsumerPositionTracker(false), // Disable default, use our shared instance
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
                         channelName: $channelName,
@@ -107,7 +104,8 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     ),
-                ])
+                ]),
+            testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
         );
 
         // Run consumer - should process remaining messages

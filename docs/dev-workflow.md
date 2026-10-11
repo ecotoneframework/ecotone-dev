@@ -219,14 +219,19 @@ not add licence headers.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `test-monorepo.yml` | pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
-| `split-testing.yml` | pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
+| `test-monorepo.yml` | every branch push **and** pull request | One unified job: `bin/check-suite-parity.php` first, then PHP 8.5, `--prefer-stable`, `composer validate --strict`, root phpstan, then phpunit against PostgreSQL with MySQL as the secondary connection |
+| `split-testing.yml` | every branch push **and** pull request | Per-package `composer tests:ci` for every package with a `phpunit.xml.dist`, on PHP 8.2, PHP 8.5, and PHP 8.2 `--prefer-lowest`. Tempest is excluded — it needs PHP 8.5 and a monorepo-tied boot harness, so the unified job covers it |
 | `file-licence.yml` | every push **and** pull request | `php bin/check-licence.php` over `packages/*/src` |
 | `contribution-check.yml` | PR opened or edited | Fails unless the PR body has the CLA checkbox ticked |
-| `quickstart-examples.yml` | pull request | The quickstart applications, as their own package |
+| `quickstart-examples.yml` | every branch push **and** pull request | The quickstart applications, as their own package |
 | `benchmark-pr.yml` | pull request | phpbench on PHP 8.5, for Ecotone, Laravel and Symfony |
 
 Every one of them is `fail-fast: true`, so the first failure cancels the rest.
+
+The four push-triggered workflows share one trigger — `push` on `branches: ['**']` with `tags-ignore: ['*.*']`,
+beside `pull_request` — so a branch pushed and then opened as a pull request runs each of them twice. Each
+concurrency group falls back from the PR number to `github.ref_name`, so a newer push still cancels the older run
+for the same event. If the minutes bite, narrow `branches` to `['2.0', 'dgafka/ecotone-2-0-*']`.
 
 
 ---

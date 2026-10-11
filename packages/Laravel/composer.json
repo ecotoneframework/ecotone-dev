@@ -57,6 +57,9 @@
         "ecotone/ecotone": "~1.326.1",
         "laravel/framework": "^11.0|^12.0|^13.0"
     },
+    "suggest": {
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via LaravelConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases."
+    },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
         "guzzlehttp/psr7": "^2.0|^3.0",

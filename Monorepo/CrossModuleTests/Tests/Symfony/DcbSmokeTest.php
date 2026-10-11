@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test;
+namespace Monorepo\CrossModuleTests\Tests\Symfony;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -54,7 +54,7 @@ final class DcbSmokeTest extends TestCase
 
     public function test_a_tagged_event_is_appended_and_a_decision_model_is_injected_into_a_handler(): void
     {
-        require_once __DIR__ . '/DcbSmoke/src/Kernel.php';
+        require_once __DIR__ . '/../../Fixture/Symfony/DcbSmoke/src/Kernel.php';
 
         $kernel = new Kernel('test', true);
         $kernel->boot();
@@ -84,7 +84,7 @@ final class DcbSmokeTest extends TestCase
 
     public function test_a_missing_table_names_the_symfony_console_setup_command(): void
     {
-        require_once __DIR__ . '/DcbSmoke/src/Kernel.php';
+        require_once __DIR__ . '/../../Fixture/Symfony/DcbSmoke/src/Kernel.php';
 
         $kernel = new Kernel('test', true);
         $kernel->boot();
@@ -106,7 +106,7 @@ final class DcbSmokeTest extends TestCase
 
     public function test_the_bare_initialize_flag_the_missing_table_message_names_creates_the_tables(): void
     {
-        require_once __DIR__ . '/DcbSmoke/src/Kernel.php';
+        require_once __DIR__ . '/../../Fixture/Symfony/DcbSmoke/src/Kernel.php';
 
         $kernel = new Kernel('test', true);
         $kernel->boot();

@@ -79,7 +79,7 @@ shared-container setup) and the `Type`/`MediaType` caches (value objects, never 
 store and the document store. On the other three it describes an aspiration, not a convention the tree follows:
 projection state is a work lease, not a record; three of the four state-stored backends have no version to compare
 for an aggregate without `#[Version]`; Eloquent never persists `#[Version]`; and Tempest cannot observe whether a
-guarded update matched. Each limit below carries its evidence, so none of them is re-filed as a violation.
+guarded update matched, so a versioned Tempest model is now refused at bootstrap (Limit 4). Each limit below carries its evidence, so none of them is re-filed as a violation.
 
 **Shipped** (`0f47c62f6`, `b403ebfb8`, `4036d4c20`, `8c2d96d8b`):
 
@@ -151,7 +151,12 @@ same test reaches `EloquentRepository` and fails on the table.
 `RETURNING` works on PostgreSQL, SQLite and MariaDB but not MySQL; driving Tempest's raw `Connection::prepare()`
 means re-implementing its private, serializer-aware `resolveBindings()` and losing `onDatabase()` tags; read-then-write
 leaves the race rule 8 forbids. `ecotone/dbal` is only a composer *suggest* of `ecotone/tempest`, so DBAL is no
-fallback. **Ready to send upstream** (the maintainer's call, not filed):
+fallback. **Decided (wave 11a): refuse, do not file upstream.** `TempestModelVersionGuard`, called from
+`TempestModelModule::prepare()`, refuses a state-stored aggregate or saga that is a Tempest model and declares
+`#[Version]` at bootstrap, naming the class, the property and the three ways out — drop `#[Version]`, store it through
+the DBAL document-store repository, or make it event-sourced (`VersionedTempestModelTest`, and
+`RealBootRuntimeFailureTest` for the real kernel boot). The request below is kept as the record of what would lift
+the refusal; it was not sent:
 
 > **Expose the affected-row count of an update.** `UpdateQueryBuilder::execute()` returns `?PrimaryKey`,
 > `Database::execute()` returns `void`, and `GenericDatabase` keeps the executed `PDOStatement` private, so a caller

@@ -88,6 +88,7 @@ use Ecotone\Sqs\Configuration\SqsMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsModule;
 use Ecotone\SymfonyBundle\Config\SymfonyConnectionModule;
 use Ecotone\Tempest\Config\TempestConnectionModule;
+use Ecotone\Tempest\Config\TempestModelModule;
 
 /**
  * licence Apache-2.0
@@ -213,6 +214,7 @@ class ModuleClassList
 
     public const TEMPEST_MODULES = [
         TempestConnectionModule::class,
+        TempestModelModule::class,
     ];
 
     public const KAFKA_MODULES = [

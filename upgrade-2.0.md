@@ -2327,10 +2327,19 @@ repository of a flow test, is now checked against the version it was loaded at:
 - **Creating an aggregate under an id that is already stored is refused**, with or without `#[Version]`. In 1.x the
   document-store and in-memory repositories silently replaced the stored aggregate. A flow test that creates the same
   aggregate twice now fails with a `ConcurrencyException`.
-- **Eloquent and Tempest aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
+- **A Tempest-model aggregate or saga with `#[Version]` is refused at bootstrap.** **Before:** Tempest persisted the
+  version, but its database API does not report whether a guarded update matched a row
+  (`UpdateQueryBuilder::execute()` returns `?PrimaryKey`, `Database::execute()` returns `void`), so a conflict could
+  not be observed and a stale save silently overwrote a newer one while the class promised a check. **Now:** a
+  state-stored aggregate or saga that uses `Tempest\Database\IsDatabaseModel` and declares `#[Version]` is a
+  `ConfigurationException` when Ecotone boots, naming the class, the version property, why the check cannot work and
+  the three ways out. **How to adapt:** remove `#[Version]` and accept last write wins, which is what such a model got
+  until now; or stop making the class a Tempest model and store it through the DBAL document-store repository
+  (`DbalConfiguration::withDocumentStore(enableDocumentStoreStateStoredRepository: true)`), where `#[Version]` is
+  checked; or make it an `#[EventSourcingAggregate]`. A Tempest model without `#[Version]` is unchanged.
+- **Eloquent aggregates are not version-checked**, with or without `#[Version]`. On an Eloquent model,
   `#[Version]` is not persisted: Ecotone writes it to the declared PHP property, which Eloquent never saves, and reads
-  it back as `0` on every load. Tempest persists it, but its database API does not report whether a guarded update
-  matched a row, so a conflict cannot be observed. Concurrent saves of either still overwrite each other.
+  it back as `0` on every load. Concurrent saves still overwrite each other.
   `#[Version]` on an Eloquent model is accepted and has no effect. If the model needs the check, either keep it out of
   Eloquent — a plain class saved through the document-store repository, where `#[Version]` is checked — or keep the
   table and register a repository of your own for the model: a `#[Repository]` class implementing

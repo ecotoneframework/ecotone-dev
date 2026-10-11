@@ -3,6 +3,43 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.328.2] - 2026-10-10
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.1...1.328.2
+
+## [1.328.1] - 2026-10-10
+
+## What's Changed
+* fix: preserve multi-stream projection order across batches by @jlabedo in https://github.com/ecotoneframework/ecotone-dev/pull/707
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.0...1.328.1
+
+## [1.328.0] - 2026-10-01
+
+## What's Changed
+* fix: consume all tenant channels when a dynamic channel polls Kafka by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/706
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.327.0...1.328.0
+
+## [1.327.0] - 2026-09-27
+
+## What's Changed
+* fix: wait legacy projection gap retries in milliseconds, not microseconds (fixes #701) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/704
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.326.2...1.327.0
+
+## [1.326.2] - 2026-09-25
+
+## What's Changed
+* fix: skip skills split, Discord, and tweet announcements on pre-release tags by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/698
+* Fix Prooph projection manager reuse after reconnect by @lifinsky in https://github.com/ecotoneframework/ecotone-dev/pull/702
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.326.1...1.326.2
+
 ## [1.326.1] - 2026-08-22
 
 ## What's Changed

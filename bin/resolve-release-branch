@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tag="${1:?Pass the release tag}"
+major="${tag#v}"
+major="${major%%.*}"
+
+if ! [[ "$major" =~ ^[0-9]+$ ]]; then
+    echo "Tag $tag does not start with a numeric major version" >&2
+    exit 1
+fi
+
+branch="main"
+if git show-ref --verify --quiet "refs/remotes/origin/${major}.x"; then
+    branch="${major}.x"
+fi
+
+if ! git merge-base --is-ancestor "refs/tags/${tag}^{commit}" "refs/remotes/origin/${branch}"; then
+    echo "Tag $tag is not part of origin/${branch}; tag ${major}.x releases from the ${branch} branch" >&2
+    exit 1
+fi
+
+echo "$branch"

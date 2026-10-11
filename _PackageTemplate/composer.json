@@ -31,6 +31,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\_PackageTemplate\\": "Api/",
             "Ecotone\\_PackageTemplate\\": "src"
         }
     },
@@ -42,16 +43,16 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.62"
+        "ecotone/ecotone": "~1.326.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5|^10.5|^11.0",
-        "phpstan/phpstan": "^1.8",
+        "phpunit/phpunit": "^10.5|^11.0|^12.0",
+        "phpstan/phpstan": "^2.1",
         "psr/container": "^2.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:phpunit": "vendor/bin/phpunit --no-coverage",
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit"
@@ -59,7 +60,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.62-dev"
+            "dev-main": "1.326.x-dev"
         },
         "ecotone": {
             "repository": "_PackageTemplate"

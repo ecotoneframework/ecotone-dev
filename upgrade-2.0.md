@@ -2099,8 +2099,11 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
 tree offered nothing else — a repository it implements, an attribute it targets with a pointcut, a value it constructs
 or an exception it catches. Each sat outside `Api`.
 
-**Now:** each one below is in its package's `Api`, with the same methods. A type moves together with any type its
-public signatures name, so no `Api` signature points back into `src`.
+**Now:** each one below is in its package's `Api`, with the same methods. A type moves together with any type the
+methods an application calls on it name — `AmqpBinding` with `AmqpQueue` and `AmqpExchange`, `DataProtectionConfiguration`
+with `Key` — so none of those methods points back into `src`. Some keep an internal parent the application never calls
+directly (`ConcurrencyException` and `AggregateNotFoundException` extend `MessagingException`; `AmqpStreamChannelBuilder`
+extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` already did).
 
 | 1.x and early 2.0 | 2.0 | Why an application names it |
 |---|---|---|

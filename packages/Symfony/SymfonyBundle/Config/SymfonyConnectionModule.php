@@ -37,6 +37,13 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
     {
         $laravelRelatedMultiTenantConfigurations = [];
         $symfonyConnections = ExtensionObjectResolver::resolve(SymfonyConnectionReference::class, $extensionObjects);
+        foreach ($symfonyConnections as $connection) {
+            SymfonyConnectionDbalGuard::assertDbalInstalledFor(
+                $connection->isManagerRegistryBasedConnection()
+                    ? "SymfonyConnectionReference::createForManagerRegistry('{$connection->getConnectionName()}')"
+                    : "SymfonyConnectionReference::createForConnection('{$connection->getConnectionName()}')"
+            );
+        }
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         foreach ($multiTenantConfigurations as $multiTenantConfiguration) {

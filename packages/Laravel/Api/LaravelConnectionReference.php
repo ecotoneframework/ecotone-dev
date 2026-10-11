@@ -6,6 +6,7 @@ namespace Ecotone\Api\Laravel;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
+use Ecotone\Laravel\Config\LaravelConnectionDbalGuard;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -28,6 +29,8 @@ final class LaravelConnectionReference extends ConnectionReference implements De
 
     public static function defaultConnection(string $connectionName): self
     {
+        LaravelConnectionDbalGuard::assertDbalInstalledFor("LaravelConnectionReference::defaultConnection('{$connectionName}')");
+
         return new self($connectionName, DbalConnectionReference::DEFAULT);
     }
 

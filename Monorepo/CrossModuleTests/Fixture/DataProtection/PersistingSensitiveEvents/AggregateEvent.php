@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents;
+
+use Ecotone\Api\DataProtection\Sensitive;
+use Test\Ecotone\DataProtection\Fixture\TestClass;
+use Test\Ecotone\DataProtection\Fixture\TestEnum;
+
+final readonly class AggregateEvent
+{
+    public function __construct(
+        public string $id,
+        #[Sensitive] public string $sensitiveValue,
+        #[Sensitive] public TestEnum $sensitiveEnum,
+        #[Sensitive] public TestClass $sensitiveObject,
+    ) {
+    }
+}

@@ -50,13 +50,15 @@
             "Test\\Ecotone\\Laravel\\": "tests",
             "App\\MultiTenant\\": "tests/MultiTenant/app",
             "App\\Licence\\Laravel\\": "tests/Licence/app",
-            "App\\MissingReference\\Laravel\\": "tests/MissingReference/src",
-            "App\\DcbSmoke\\Laravel\\": "tests/DcbSmoke/app"
+            "App\\MissingReference\\Laravel\\": "tests/MissingReference/src"
         }
     },
     "require": {
         "ecotone/ecotone": "~1.328.2",
         "laravel/framework": "^11.0|^12.0|^13.0"
+    },
+    "suggest": {
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via LaravelConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases."
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
@@ -67,7 +69,6 @@
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.328.2",
-        "ecotone/pdo-event-sourcing": "~1.328.2",
         "doctrine/dbal": "^4.0",
         "timacdonald/log-fake": "^2.0"
     },
@@ -94,7 +95,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-11 16:47:34"
+        "release-time": "2026-10-11 17:33:51"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

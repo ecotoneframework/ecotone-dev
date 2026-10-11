@@ -17,7 +17,9 @@ use Symfony\App\DcbSmoke\IssueCoupon;
 use Symfony\App\DcbSmoke\Kernel;
 use Symfony\App\DcbSmoke\RedeemCoupon;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\NullOutput;
 
 /**
@@ -87,6 +89,32 @@ final class DcbSmokeTest extends TestCase
         $this->expectExceptionMessage('bin/console ecotone:migration:database:setup --initialize --feature=');
 
         $commandBus->send(new IssueCoupon('SUMMER24', 1));
+    }
+
+    public function test_the_bare_initialize_flag_the_missing_table_message_names_creates_the_tables(): void
+    {
+        require_once __DIR__ . '/DcbSmoke/src/Kernel.php';
+
+        $kernel = new Kernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+        $container->get(CacheClearer::class)->clear('');
+
+        /** @var DbalConnectionFactory $connectionFactory */
+        $connectionFactory = $container->get(DbalConnectionFactory::class);
+        $this->dropTables($connectionFactory->createContext()->getDbalConnection());
+
+        $application = new Application($kernel);
+        $application->setAutoExit(false);
+        $exitCode = $application->run(new ArgvInput(['bin/console', 'ecotone:migration:database:setup', '--initialize']), $output = new BufferedOutput());
+
+        self::assertSame(0, $exitCode, $output->fetch());
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $container->get(CommandBus::class);
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+
+        self::assertCount(1, $container->get(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     private function initializeDatabase(Kernel $kernel): void

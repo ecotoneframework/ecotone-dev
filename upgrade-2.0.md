@@ -2250,6 +2250,17 @@ A nullable or defaulted parameter is unchanged: without a licence it receives `n
 
 **How to adapt:** pick one of the three ways out the message names.
 
+### A bare boolean console option switches it on, on Symfony and Laravel
+
+**Before:** a boolean option given without a value — `bin/console ecotone:migration:database:setup --initialize`,
+`php artisan ecotone:run orders --stopOnFailure` — reached the command as `null` and was read as its default, so
+`--initialize` created no table and exited successfully. Only `--initialize=true` (or `true` from code) worked, while
+Ecotone's own missing-table messages print the bare form.
+
+**Now:** a bare boolean option is `true`; `--initialize=false` and leaving the option out keep their meaning.
+
+**How to adapt:** nothing. Deployment scripts that already pass `--initialize=true` behave as before.
+
 ### Symfony and Laravel `defaultConnectionExceptionRetry` is applied as configured
 
 **Before:** both integrations passed `maxAttempts` as the back-off multiplier and `multiplier` as a maximum delay in

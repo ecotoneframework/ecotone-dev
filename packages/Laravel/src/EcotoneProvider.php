@@ -8,6 +8,7 @@ use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Console\Input\InputInterface;
 
 /**
  * licence Apache-2.0
@@ -138,7 +140,7 @@ class EcotoneProvider extends ServiceProvider
 
                 $artisanCommand = Artisan::command(
                     $commandName,
-                    function (ConfiguredMessagingSystem $configuredMessagingSystem) {
+                    function (ConfiguredMessagingSystem $configuredMessagingSystem) use ($oneTimeCommandConfiguration) {
                         /** @var ConsoleCommandRunner $consoleCommandRunner */
                         $consoleCommandRunner = $configuredMessagingSystem->getGatewayByName(ConsoleCommandRunner::class);
 
@@ -151,7 +153,7 @@ class EcotoneProvider extends ServiceProvider
                         /** @var ConsoleCommandResultSet $result */
                         $result = $delegatingWriter->executeWith(
                             new SymfonyConsoleWriter($self->getOutput()),
-                            fn () => $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), $self->options()))
+                            fn () => $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), EcotoneProvider::optionsWithDeclaredDefaults($self->options(), $self->input, $oneTimeCommandConfiguration)))
                         );
 
                         if ($result) {
@@ -186,6 +188,21 @@ class EcotoneProvider extends ServiceProvider
 
         // Hook into Laravel's optimization commands to clear Ecotone cache
         $this->registerOptimizationHooks();
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    public static function optionsWithDeclaredDefaults(array $options, InputInterface $input, ConsoleCommandConfiguration $commandConfiguration): array
+    {
+        foreach ($commandConfiguration->getParameters() as $parameter) {
+            if ($parameter->isOption() && $parameter->hasDefaultValue() && ! $input->hasParameterOption('--' . $parameter->getName())) {
+                $options[$parameter->getName()] = $parameter->getDefaultValue();
+            }
+        }
+
+        return $options;
     }
 
     public static function getCacheDirectoryPath(): string

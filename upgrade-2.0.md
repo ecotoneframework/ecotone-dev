@@ -2468,6 +2468,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   default gateway's. **How to adapt:** a flow test that asserts on the dead-letter or deduplication *table* rather
   than through `DeadLetterGateway` and its handlers registers `DbalConfiguration::createWithDefaults()` explicitly.
   `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
+- **A `TestConfiguration` given as an extension object is refused.** **Before:**
+  `EcotoneLite::bootstrapFlowTesting()` and `bootstrapFlowTestingWithEventStore()` removed every `TestConfiguration`
+  found in the `ServiceConfiguration`'s extension objects and used the `testConfiguration:` parameter (or the defaults)
+  instead, so settings passed through `withExtensionObjects()` / `addExtensionObject()` were ignored without a word.
+  **Now:** bootstrap fails with `ConfigurationException`: `EcotoneLite::bootstrapFlowTesting() was given a
+  TestConfiguration as an extension object of the ServiceConfiguration. … pass it as
+  EcotoneLite::bootstrapFlowTesting(..., testConfiguration: $yourTestConfiguration) instead.` **How to adapt:** move the
+  `TestConfiguration` from the extension objects to the `testConfiguration:` argument.
 - **`DeadLetterGateway::list()` has a stated order.** Most recently failed first, by the failed message's timestamp;
   messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
   messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one

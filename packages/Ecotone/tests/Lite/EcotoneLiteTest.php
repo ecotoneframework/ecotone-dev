@@ -7,6 +7,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\ChannelConfiguration;
@@ -34,6 +35,28 @@ class EcotoneLiteTest extends TestCase
 
         $ecotone->runConsoleCommand('ecotone:list', []);
         $this->expectNotToPerformAssertions();
+    }
+
+    public function test_flow_testing_refuses_test_configuration_passed_as_extension_object(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('EcotoneLite::bootstrapFlowTesting() was given a TestConfiguration as an extension object of the ServiceConfiguration. A flow test runs with exactly one TestConfiguration, the one passed as the testConfiguration: parameter, so this one would be replaced by that one and its settings ignored. Remove it from withExtensionObjects() / addExtensionObject() and pass it as EcotoneLite::bootstrapFlowTesting(..., testConfiguration: $yourTestConfiguration) instead.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->addExtensionObject(TestConfiguration::createWithDefaults()->withSpyOnChannel('async')),
+        );
+    }
+
+    public function test_flow_testing_with_event_store_refuses_test_configuration_passed_as_extension_object(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('EcotoneLite::bootstrapFlowTestingWithEventStore() was given a TestConfiguration as an extension object of the ServiceConfiguration. A flow test runs with exactly one TestConfiguration, the one passed as the testConfiguration: parameter, so this one would be replaced by that one and its settings ignored. Remove it from withExtensionObjects() / addExtensionObject() and pass it as EcotoneLite::bootstrapFlowTestingWithEventStore(..., testConfiguration: $yourTestConfiguration) instead.');
+
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([TestConfiguration::createWithDefaults()->withSpyOnChannel('async')]),
+        );
     }
 
     public function test_with_spying_on_multiple_channels(): void

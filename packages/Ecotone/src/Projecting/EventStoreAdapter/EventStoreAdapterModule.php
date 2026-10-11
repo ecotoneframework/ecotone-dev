@@ -23,7 +23,7 @@ use Ecotone\Projecting\Config\ProjectingModule;
  * licence Enterprise
  */
 #[ModuleAnnotation]
-class EventStoreAdapterModule implements AnnotationModule
+final class EventStoreAdapterModule implements AnnotationModule
 {
     public function __construct(
         private array $extensions = []

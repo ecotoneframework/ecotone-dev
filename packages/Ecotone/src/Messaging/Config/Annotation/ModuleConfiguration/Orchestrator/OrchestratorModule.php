@@ -36,7 +36,7 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Enterprise
  */
-class OrchestratorModule implements AnnotationModule
+final class OrchestratorModule implements AnnotationModule
 {
     private const ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL = 'ecotone.orchestrator.entrypoint';
     private const ORCHESTRATOR_ROUTING_SLIP_HEADER = 'ecotone.orchestrator.routing_slip';

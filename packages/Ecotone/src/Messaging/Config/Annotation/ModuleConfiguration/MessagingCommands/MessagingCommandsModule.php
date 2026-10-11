@@ -22,7 +22,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 /**
  * licence Apache-2.0
  */
-class MessagingCommandsModule extends NoExternalConfigurationModule implements AnnotationModule
+final class MessagingCommandsModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const ECOTONE_EXECUTE_CONSOLE_COMMAND_EXECUTOR = 'ecotone.consoleCommand.execute';
     public const ECOTONE_CONSOLE_COMMAND_NAME = 'ecotone.consoleCommand.name';

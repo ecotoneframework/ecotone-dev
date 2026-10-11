@@ -32,7 +32,7 @@ use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 
 #[ModuleAnnotation]
-class StreamFilterRegistryModule implements AnnotationModule
+final class StreamFilterRegistryModule implements AnnotationModule
 {
     /** @param array<string, StreamFilter[]> $streamFilters */
     public function __construct(private array $streamFilters)

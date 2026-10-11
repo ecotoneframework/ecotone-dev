@@ -33,7 +33,7 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Apache-2.0
  */
-class MessagingGatewayModule extends NoExternalConfigurationModule implements AnnotationModule
+final class MessagingGatewayModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const MODULE_NAME = 'gatewayModule';
 

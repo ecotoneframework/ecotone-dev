@@ -30,7 +30,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class AsynchronousModule implements AnnotationModule
+final class AsynchronousModule implements AnnotationModule
 {
     /**
      * @param array<string, array<string>> $asyncEndpoints

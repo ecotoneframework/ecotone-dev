@@ -28,7 +28,7 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Apache-2.0
  */
-class MethodInterceptorModule extends NoExternalConfigurationModule implements AnnotationModule
+final class MethodInterceptorModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const MODULE_NAME = 'methodInterceptorModule';
 

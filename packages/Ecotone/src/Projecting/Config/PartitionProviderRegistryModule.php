@@ -27,7 +27,7 @@ use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\SinglePartitionProvider;
 
 #[ModuleAnnotation]
-class PartitionProviderRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
+final class PartitionProviderRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param string[] $allProjectionNames

@@ -23,7 +23,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  * licence Apache-2.0
  */
 #[ModuleAnnotation]
-class DbalConsumerPositionModule extends NoExternalConfigurationModule implements AnnotationModule
+final class DbalConsumerPositionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {

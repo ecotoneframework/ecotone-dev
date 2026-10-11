@@ -51,7 +51,7 @@ use Ecotone\Projecting\StreamSourceRegistry;
  * It allows to register ProjectionExecutorBuilder and ProjectionComponentBuilder implementations
  */
 #[ModuleAnnotation]
-class ProjectingModule implements AnnotationModule
+final class ProjectingModule implements AnnotationModule
 {
     public static function getProjectorExecutorReference(string $projectionName): string
     {

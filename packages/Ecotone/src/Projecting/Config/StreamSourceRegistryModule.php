@@ -25,7 +25,7 @@ use Ecotone\Projecting\StreamSourceReference;
 use Ecotone\Projecting\StreamSourceRegistry;
 
 #[ModuleAnnotation]
-class StreamSourceRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
+final class StreamSourceRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param string[] $userlandStreamSourceReferences

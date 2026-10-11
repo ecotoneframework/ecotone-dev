@@ -77,7 +77,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * licence Apache-2.0
  */
-class EventSourcingModule extends NoExternalConfigurationModule
+final class EventSourcingModule extends NoExternalConfigurationModule
 {
     /**
      * @param array<class-string, Stream> $streamAttributes

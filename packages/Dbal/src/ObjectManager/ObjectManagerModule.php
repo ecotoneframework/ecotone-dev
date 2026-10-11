@@ -24,7 +24,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 /**
  * licence Apache-2.0
  */
-class ObjectManagerModule implements AnnotationModule
+final class ObjectManagerModule implements AnnotationModule
 {
     private function __construct()
     {

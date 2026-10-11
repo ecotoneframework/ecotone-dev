@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class PollerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class PollerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     private array $pollingMetadata;
 

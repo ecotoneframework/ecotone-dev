@@ -28,7 +28,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 /**
  * licence Apache-2.0
  */
-class LoggingModule extends NoExternalConfigurationModule implements AnnotationModule
+final class LoggingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @inheritDoc

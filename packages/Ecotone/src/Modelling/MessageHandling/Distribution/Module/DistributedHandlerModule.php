@@ -37,7 +37,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;
 /**
  * licence Apache-2.0
  */
-class DistributedHandlerModule implements AnnotationModule
+final class DistributedHandlerModule implements AnnotationModule
 {
     public function __construct(
         private BusRoutingMapBuilder $commandBusDistributedRoutes,

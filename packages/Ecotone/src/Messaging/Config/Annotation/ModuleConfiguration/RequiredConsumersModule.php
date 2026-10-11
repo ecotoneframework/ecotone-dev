@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class RequiredConsumersModule extends NoExternalConfigurationModule implements AnnotationModule
+final class RequiredConsumersModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @var string[]

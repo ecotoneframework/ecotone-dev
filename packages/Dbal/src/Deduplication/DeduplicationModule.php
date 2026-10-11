@@ -35,7 +35,7 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Apache-2.0
  */
-class DeduplicationModule implements AnnotationModule
+final class DeduplicationModule implements AnnotationModule
 {
     public const REMOVE_MESSAGE_AFTER_7_DAYS = 1000 * 60 * 60 * 24 * 7;
 

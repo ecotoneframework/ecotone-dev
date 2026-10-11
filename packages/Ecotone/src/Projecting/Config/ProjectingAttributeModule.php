@@ -56,7 +56,7 @@ use ReflectionMethod;
  * This module register projection based on attributes
  */
 #[ModuleAnnotation]
-class ProjectingAttributeModule implements AnnotationModule
+final class ProjectingAttributeModule implements AnnotationModule
 {
     /**
      * @param EcotoneProjectionExecutorBuilder[] $projectionBuilders

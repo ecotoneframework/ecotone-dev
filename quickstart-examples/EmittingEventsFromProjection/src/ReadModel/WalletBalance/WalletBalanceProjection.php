@@ -7,7 +7,7 @@ use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Wallet;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\FromAggregateStream;
-use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Attribute\EventHandler;
 

@@ -2120,10 +2120,13 @@ public signatures name, so no `Api` signature points back into `src`.
 | `Ecotone\DataProtection\Configuration\DataProtectionConfiguration` | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | returned from a `#[ServiceContext]` method, it switches data protection on and names its keys (Enterprise) |
 | `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
 | `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
+| `Ecotone\EventSourcing\EventStreamEmitter` | `Ecotone\Api\EventSourcing\EventStreamEmitter` | a projection handler takes it as a parameter to `emit()` or `linkTo()` events (§3) |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
-deploy, since the compiled container records class names. **No container id changes** — none of these is a service
-registered under its class name.
+deploy, since the compiled container records class names. **One container id changes:** `EventStreamEmitter` is a
+gateway registered under its class name, so its id is now `Ecotone\Api\EventSourcing\EventStreamEmitter`. A handler
+parameter typed with it, and `$container->get(EventStreamEmitter::class)` with the new import, follow on their own; a
+lookup by the old id as a string no longer finds it. None of the other types is a service.
 
 ## 14. Smaller behaviour changes
 

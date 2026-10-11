@@ -7,7 +7,7 @@ use App\Domain\Ticket;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\ProjectionState;
-use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\Attribute\EventHandler;
 
 #[Projection(self::NAME)]

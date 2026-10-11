@@ -3,10 +3,10 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionState;
-use Ecotone\EventSourcing\EventStreamEmitter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;

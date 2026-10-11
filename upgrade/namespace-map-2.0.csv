@@ -214,3 +214,4 @@ Ecotone\Amqp\AmqpBinding,Ecotone\Api\Amqp\AmqpBinding
 Ecotone\DataProtection\Configuration\DataProtectionConfiguration,Ecotone\Api\DataProtection\DataProtectionConfiguration
 Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration,Ecotone\Api\DataProtection\ChannelProtectionConfiguration
 Ecotone\DataProtection\Encryption\Key,Ecotone\Api\DataProtection\Key
+Ecotone\EventSourcing\EventStreamEmitter,Ecotone\Api\EventSourcing\EventStreamEmitter

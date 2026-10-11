@@ -1,8 +1,6 @@
 <?php
 
-namespace Ecotone\EventSourcing;
-
-use Ecotone\Api\EventSourcing\Event;
+namespace Ecotone\Api\EventSourcing;
 
 /**
  * licence Apache-2.0

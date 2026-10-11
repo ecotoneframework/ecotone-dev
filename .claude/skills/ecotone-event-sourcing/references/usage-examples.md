@@ -178,7 +178,7 @@ class OrderListProjection
 ### Projection with EventStreamEmitter
 
 ```php
-use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
 
 #[Projection('notifications')]
 #[FromAggregateStream(Order::class)]

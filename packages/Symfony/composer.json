@@ -46,6 +46,9 @@
         "symfony/dependency-injection": "^6.4|^7.0|^8.0",
         "symfony/framework-bundle": "^6.4|^7.0|^8.0"
     },
+    "suggest": {
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via SymfonyConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases."
+    },
     "require-dev": {
         "doctrine/doctrine-bundle": "^2.12",
         "doctrine/orm": "^3.0",

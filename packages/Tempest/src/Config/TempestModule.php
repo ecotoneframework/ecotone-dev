@@ -46,6 +46,11 @@ final class TempestModule extends NoExternalConfigurationModule implements Annot
         $tempestConnections = ExtensionObjectResolver::resolve(TempestConnectionReference::class, $extensionObjects);
 
         foreach ($tempestConnections as $connection) {
+            TempestConnectionDbalGuard::assertDbalInstalledFor(
+                $connection->getConfigTag() === null
+                    ? "TempestConnectionReference '{$connection->getReferenceName()}'"
+                    : "TempestConnectionReference::create('{$connection->getConfigTag()}')"
+            );
             $messagingConfiguration->registerServiceDefinition(
                 $connection->getReferenceName(),
                 $this->buildConnectionFactoryDefinition($connection)

@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Tempest\Config\TempestConnectionDbalGuard;
 
 /**
  * licence Apache-2.0
@@ -41,6 +42,8 @@ final class TempestConnectionReference extends ConnectionReference implements De
      */
     public static function defaultConnection(): self
     {
+        TempestConnectionDbalGuard::assertDbalInstalledFor('TempestConnectionReference::defaultConnection()');
+
         return new self(DbalConnectionReference::DEFAULT, null);
     }
 

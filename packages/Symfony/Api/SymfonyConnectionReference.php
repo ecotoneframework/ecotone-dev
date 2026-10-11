@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\SymfonyBundle\Config\SymfonyConnectionDbalGuard;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -49,6 +50,8 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         string $connectionName,
         string $managerRegistryReference = 'doctrine',
     ): self {
+        SymfonyConnectionDbalGuard::assertDbalInstalledFor("SymfonyConnectionReference::defaultManagerRegistry('{$connectionName}')");
+
         return self::createForManagerRegistry(
             $connectionName,
             $managerRegistryReference,
@@ -58,6 +61,8 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
 
     public static function defaultConnection(string $connectionName)
     {
+        SymfonyConnectionDbalGuard::assertDbalInstalledFor("SymfonyConnectionReference::defaultConnection('{$connectionName}')");
+
         return new self(
             DbalConnectionReference::DEFAULT,
             null,

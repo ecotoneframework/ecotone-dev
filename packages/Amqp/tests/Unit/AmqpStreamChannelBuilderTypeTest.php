@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Unit;
 
-use Ecotone\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 
 use function PHPStan\Testing\assertType;

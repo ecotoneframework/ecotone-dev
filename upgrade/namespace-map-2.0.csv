@@ -207,3 +207,4 @@ Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter,Ecotone\Api\Pr
 Ecotone\Messaging\Support\ConcurrencyException,Ecotone\Api\Messaging\ConcurrencyException
 Ecotone\Modelling\AggregateNotFoundException,Ecotone\Api\Modelling\AggregateNotFoundException
 Ecotone\Messaging\Config\ConnectionReference,Ecotone\Api\ExtensionObject\ConnectionReference
+Ecotone\Amqp\AmqpStreamChannelBuilder,Ecotone\Api\Amqp\AmqpStreamChannelBuilder

@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Amqp;
+namespace Ecotone\Api\Amqp;
 
-use Ecotone\Api\Amqp\AmqpConnectionReference;
+use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
+use Ecotone\Amqp\AmqpStreamInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 
 /**

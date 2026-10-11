@@ -759,7 +759,10 @@ no transaction.
   This is the adoption path for an existing application: an aggregate stays exactly as it is and gains a
   cross-aggregate invariant by injecting one model.
 - The default stream is `ecotone_event_stream`; `#[Stream]` now also works on the handler *method*, and wins over a
-  class-level `#[Stream]`.
+  class-level `#[Stream]`. A method-level `#[Stream]` only chooses where that handler's events are appended; it does
+  not declare the stream. `ecotone:migration:database:setup` creates tables for the default stream and for class-level
+  `#[Stream]` attributes only, and the database event store refuses an append to a stream nothing declares — so also
+  declare the same `#[Stream('<name>')]` on a class (an aggregate, or any class the application scans).
 - A tag that would queue most writers (a low-cardinality key like `tenant` or `region`) should be declared
   filter-only — indexed for reads, never counted, so it can't become a bottleneck:
 

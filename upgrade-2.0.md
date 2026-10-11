@@ -2098,6 +2098,24 @@ it cannot find. **No container id changes** — `ErrorMessage` is not a service.
   the comparisons) still never return an event lacking the field. **How to adapt:** if you used a negative match to
   load only the events that *carry* a field, there is no operator for that any more: add an `EQUALS`/`IN` on the
   values you expect, or filter the loaded events yourself.
+- **A missing dead-letter table fails fast.** **Before:** `DbalDeadLetterStore` treated a missing table as a transient
+  failure and retried storing the failed message three times on an exponential backoff, closing the connection each
+  time, before raising the setup instructions. **Now:** the `ConfigurationException` naming the
+  `ecotone:migration:database:setup` command is raised on the first attempt; a lost connection is still retried, as
+  before. Nothing to adapt.
+- **An unknown case name for a pure enum is reported as a `ValueError`.** Converting a scalar to a non-backed enum
+  (a header `'PENDING'` into a `#[Header] Status $status` parameter, say) failed with a `MethodInvocationException`
+  whose cause was a `ReflectionException` ("Case … does not exist"); the cause is now a `ValueError` reading
+  `"PENDING" is not a valid case name for enum Status`, as an unknown value for a backed enum always was. **How to
+  adapt:** only code inspecting the previous exception's class changes.
+- Internal, nothing to adapt unless you used these directly: the 42 module and builder classes whose
+  `create(): static` returned `new self` (`AggregateModule`, `DbalConnectionModule`, `EventSourcingModule`, …) are
+  `final`; `MessagingException::create()`, `createWithFailedMessage()` and `createFromPreviousException()` declare
+  `static` instead of `self`, so a subclass overriding one declares `static` too; `Ecotone\Messaging\Scheduling\TaskExecutor`
+  is gone, `SyncTaskScheduler` and `ScheduledTaskConsumer` take `PollToGatewayTaskExecutor`;
+  `Clock::createBasedOnConfig()` is `Clock::createWithFallback(?ClockInterface $clock, ClockInterface $fallbackClock)`,
+  the testing module supplying `StaticPsrClock` as the fallback; and `RetryRunner` no longer retries a
+  `ConfigurationException`.
 - **An aggregate's identifier travels on its events as a string.** **Before:** an aggregate's events carried
   `MessageHeaders::EVENT_AGGREGATE_ID` (`_aggregate_id`) as the identifier's raw PHP value, so an `int`
   `#[Identifier]` recorded a JSON integer, while `EventStore::loadAggregateEvents()` takes the id as a `string`.

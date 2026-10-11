@@ -18,6 +18,7 @@ foreach ($files as $file) {
 }
 
 $enterpriseNotice = require __DIR__ . "/enterprise-licence-notice.php";
+$isEnterpriseLicensedFile = require __DIR__ . "/enterprise-licence-scope.php";
 $enterpriseNoticeLines = explode("\n", $enterpriseNotice);
 $enterpriseNoticeBody = implode("\n", array_slice($enterpriseNoticeLines, 2, -2)) . "\n";
 $enterpriseNoticeBodyLineCount = count($enterpriseNoticeLines) - 4;
@@ -27,7 +28,8 @@ $enterpriseFiles = (new \Symfony\Component\Finder\Finder())
     ->in(__DIR__ . "/../packages/*")
     ->exclude('vendor')
     ->name("*.php")
-    ->contains('/\*\s*(@licence|licence)\s+Enterprise\b/');
+    ->contains('/\*\s*(@licence|licence)\s+Enterprise\b/')
+    ->filter($isEnterpriseLicensedFile);
 
 foreach ($enterpriseFiles as $file) {
     $lines = file($file->getRealPath());

@@ -140,7 +140,7 @@
             "Symfony\\App\\Licence\\": "packages/Symfony/tests/phpunit/Licence/src",
             "Symfony\\App\\DcbSmoke\\": "Monorepo/CrossModuleTests/Fixture/Symfony/DcbSmoke/src",
             "Symfony\\App\\EnvPlaceholderEndpoint\\": "packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src",
-            "Symfony\\App\\EnvPlaceholderKafka\\": "packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src",
+            "Symfony\\App\\EnvPlaceholderKafka\\": "Monorepo/CrossModuleTests/Fixture/Symfony/EnvPlaceholderKafka/src",
             "Tests\\Ecotone\\": "tests",
             "App\\MissingReference\\Laravel\\": "packages/Laravel/tests/MissingReference/src"
         }

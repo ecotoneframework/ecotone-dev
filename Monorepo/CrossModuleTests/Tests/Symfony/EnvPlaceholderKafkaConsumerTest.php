@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\EnvPlaceholderKafka;
+namespace Monorepo\CrossModuleTests\Tests\Symfony;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\MessagePublisher;
@@ -47,7 +47,7 @@ final class EnvPlaceholderKafkaConsumerTest extends TestCase
         putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
         putenv('ECOTONE_KAFKA_SUFFIX=it' . substr(Uuid::v4()->toRfc4122(), 0, 8));
 
-        (new Filesystem())->remove([__DIR__ . '/var', '/tmp/ecotone']);
+        (new Filesystem())->remove([__DIR__ . '/../../Fixture/Symfony/EnvPlaceholderKafka/var', '/tmp/ecotone']);
     }
 
     protected function tearDown(): void

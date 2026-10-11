@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Integration;
+namespace Monorepo\CrossModuleTests\Tests\DataProtection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\DataProtection\DataProtectionConfiguration;
@@ -17,9 +17,9 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents\AggregateEvent;
-use Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents\SomeAggregate;
-use Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents\SomeCommand;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\AggregateEvent;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\SomeAggregate;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\SomeCommand;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 
@@ -55,7 +55,7 @@ class EncryptStoredEventsTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents'])
+                ->withNamespaces(['Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents'])
                 ->withExtensionObjects(
                     array_merge(
                         [

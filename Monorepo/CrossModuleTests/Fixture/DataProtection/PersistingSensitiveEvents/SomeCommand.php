@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents;
+namespace Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents;
 
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;

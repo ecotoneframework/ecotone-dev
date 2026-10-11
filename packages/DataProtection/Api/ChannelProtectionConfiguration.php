@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\DataProtection\Configuration;
+namespace Ecotone\Api\DataProtection;
 
 /**
  * licence Enterprise

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Conversion;
 
-use Ecotone\DataProtection\Encryption\Key;
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
 

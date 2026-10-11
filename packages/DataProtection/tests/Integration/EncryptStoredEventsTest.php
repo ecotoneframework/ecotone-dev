@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Integration;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
-use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Test\LicenceTesting;

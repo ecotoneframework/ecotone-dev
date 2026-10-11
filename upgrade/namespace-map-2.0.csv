@@ -211,3 +211,6 @@ Ecotone\Amqp\AmqpStreamChannelBuilder,Ecotone\Api\Amqp\AmqpStreamChannelBuilder
 Ecotone\Amqp\AmqpQueue,Ecotone\Api\Amqp\AmqpQueue
 Ecotone\Amqp\AmqpExchange,Ecotone\Api\Amqp\AmqpExchange
 Ecotone\Amqp\AmqpBinding,Ecotone\Api\Amqp\AmqpBinding
+Ecotone\DataProtection\Configuration\DataProtectionConfiguration,Ecotone\Api\DataProtection\DataProtectionConfiguration
+Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration,Ecotone\Api\DataProtection\ChannelProtectionConfiguration
+Ecotone\DataProtection\Encryption\Key,Ecotone\Api\DataProtection\Key

@@ -4,6 +4,7 @@ namespace Ecotone\DataProtection\Encryption;
 
 use function array_shift;
 
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\DataProtection\Encryption\Exception\CryptoException;
 use Ecotone\DataProtection\Encryption\Exception\EnvironmentIsBrokenException;
 use Ecotone\DataProtection\Encryption\Exception\IOException;

@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\DataProtection\Unit\Encryption;
 
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\DataProtection\Encryption\Core;
-use Ecotone\DataProtection\Encryption\Key;
 use PHPUnit\Framework\TestCase;
 
 /**

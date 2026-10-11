@@ -2117,6 +2117,9 @@ public signatures name, so no `Api` signature points back into `src`.
 | `Ecotone\Amqp\AmqpQueue` | `Ecotone\Api\Amqp\AmqpQueue` | returned from a `#[ServiceContext]` method, it declares a RabbitMQ queue |
 | `Ecotone\Amqp\AmqpExchange` | `Ecotone\Api\Amqp\AmqpExchange` | declares a RabbitMQ exchange; `AmqpQueue::withDeadLetterExchangeTarget()` and `AmqpBinding` take it |
 | `Ecotone\Amqp\AmqpBinding` | `Ecotone\Api\Amqp\AmqpBinding` | binds an `AmqpQueue` to an `AmqpExchange` |
+| `Ecotone\DataProtection\Configuration\DataProtectionConfiguration` | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | returned from a `#[ServiceContext]` method, it switches data protection on and names its keys (Enterprise) |
+| `Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration` | `Ecotone\Api\DataProtection\ChannelProtectionConfiguration` | returned from a `#[ServiceContext]` method, it protects one channel (Enterprise) |
+| `Ecotone\DataProtection\Encryption\Key` | `Ecotone\Api\DataProtection\Key` | an application creates or loads a key (`Key::createNewRandomKey()`, `Key::loadFromAsciiSafeString()`) to pass to `DataProtectionConfiguration` |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **No container id changes** — none of these is a service

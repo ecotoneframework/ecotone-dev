@@ -6,6 +6,7 @@
 
 namespace Ecotone\DataProtection\Configuration;
 
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 

@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\DataProtection\Unit\Encryption;
 
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\DataProtection\Encryption\Core;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Exception\IOException;
 use Ecotone\DataProtection\Encryption\Exception\WrongKeyOrModifiedCiphertextException;
 use Ecotone\DataProtection\Encryption\File;
-use Ecotone\DataProtection\Encryption\Key;
 use Exception;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -276,7 +276,7 @@ class FileTest extends TestCase
     public function test_file_create_random_key(): void
     {
         $result = Key::createNewRandomKey();
-        self::assertInstanceOf('\Ecotone\DataProtection\Encryption\Key', $result);
+        self::assertInstanceOf('\Ecotone\Api\DataProtection\Key', $result);
     }
 
     public function test_bad_source_path_encrypt(): void

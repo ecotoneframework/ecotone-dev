@@ -2,6 +2,8 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -11,11 +13,9 @@ use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageChannel;
-use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Conversion\XmlHelper;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Exception\CryptoException;
-use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;

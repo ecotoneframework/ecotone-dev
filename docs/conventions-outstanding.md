@@ -171,9 +171,9 @@ class, wins over an exclusion listed on a distant Enterprise configuration — t
 `StateStoredRepositoryAdapter` read an Enterprise setting (rule 7). The test is renamed to assert the refusal
 (`test_a_versioned_aggregate_excluded_from_the_counter_tag_is_still_version_checked_across_two_connections`) and
 `test_an_aggregate_without_a_version_excluded_from_the_counter_tag_keeps_last_write_wins_across_two_connections` pins
-the other half. **Recommended rename** (breaking Enterprise API, the maintainer's call, not done):
-`DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor()`, with the guard messages and `upgrade-2.0.md`
-following it.
+the other half. **Renamed** (wave 11a, the maintainer cleared the break):
+`DynamicConsistencyBoundaryConfiguration::withoutCounterTagFor()`, with the guard messages, the accessor
+(`classesWithoutCounterTag()`) and `upgrade-2.0.md` following it.
 
 **Draft sentences for rule 8** (for the maintainer; the rule is not edited here):
 

@@ -65,9 +65,9 @@ final class DynamicConsistencyBoundary
     /**
      * @return class-string[]
      */
-    public function classesWithoutOptimisticLock(): array
+    public function classesWithoutCounterTag(): array
     {
-        return $this->configuration->classesWithoutOptimisticLock();
+        return $this->configuration->classesWithoutCounterTag();
     }
 
     public function registerServicesForInMemoryStore(Configuration $messagingConfiguration): void

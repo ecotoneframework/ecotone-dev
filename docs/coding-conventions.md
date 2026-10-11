@@ -404,9 +404,10 @@ Locking is a version check on a write, never a pessimistic lock and never a besp
 - Because the check and the write must commit together, tagged appends require an active transaction and say so
   when there is none (`78bb0d244`, and `TagTransactionRequirement` in rule 1).
 
-Switching a lock off is guarded, not free. `withoutOptimisticLockFor()` exists for state-stored aggregates only,
-and `AggregateCounterTagGuard` refuses it for an `#[EventSourcingAggregate]` ("its stream's own version check is
-its lock and cannot be switched off") or for anything that is not an aggregate. `33d927ac9` went further: a
+Switching a lock off is guarded, not free. `withoutCounterTagFor()` exists for state-stored aggregates only,
+and `AggregateCounterTagGuard` refuses it for an `#[EventSourcingAggregate]` ("its stream's own version check
+guards it, and that cannot be switched off") or for anything that is not an aggregate. It drops the DCB counter
+tag, not every lock: a `#[Version]` on the aggregate is still checked by its repository. `33d927ac9` went further: a
 `#[DecisionBoundary]` scoped only by opted-out aggregates guards nothing, so it is refused.
 
 ---
@@ -676,9 +677,9 @@ final class BasketTest extends TestCase
     expected message out of `$wallet::class` and `$walletCharging::class`. Better still, assert the part of the
     message that is the instruction and leave the class name out of it.
 
-  Where an exception does apply, suffix the named fixture per test file (`UnlockedBasketForWithoutLock`) so two
+  Where an exception does apply, suffix the named fixture per test file (`UnlockedBasketForWithoutCounterTag`) so two
   test files in one namespace cannot collide.
-  `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutOptimisticLockTest.php` is a full example of the named
+  `packages/Ecotone/tests/Modelling/AggregateBoundary/WithoutCounterTagTest.php` is a full example of the named
   form — including, at line 81, an exception-message assertion that could have interpolated `::class` instead.
 - **No static properties or static methods** in a test class, for the same reason as rule 3.
 - A private `bootstrap()` helper on the test class is fine and common when several tests need the same wiring.

@@ -438,7 +438,7 @@ own stream or repository, snapshots included.
 
   ```php
   return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
-      ->withoutOptimisticLockFor([ImportedContact::class, LegacyBasket::class]);
+      ->withoutCounterTagFor([ImportedContact::class, LegacyBasket::class]);
   ```
 
   It still declares `#[AggregateType]`, because that is the name its counter tag would carry and the exclusion can be
@@ -446,7 +446,10 @@ own stream or repository, snapshots included.
   the decision would rest on state nothing guards. A `#[DecisionBoundary]` whose criteria name only excluded
   aggregates is refused the same way, when it is evaluated rather than at bootstrap, because the criteria are built
   at runtime; mixing in a counted tag or an aggregate outside the opt-out is allowed and guards on those.
-  **`withoutOptimisticLockFor()` switches off the counter tag only.** A document-store aggregate that also declares
+  Early 2.0 builds called this `withoutOptimisticLockFor()`; the name promised more than it did, so it is now
+  `withoutCounterTagFor()` and the old name is gone — rename the call, the arguments are the same. The bootstrap
+  refusals below name `withoutCounterTagFor()` too.
+  **`withoutCounterTagFor()` switches off the counter tag only.** A document-store aggregate that also declares
   `#[Version]` is still version-checked by its repository: when both are present, `#[Version]` wins and a stale save
   fails with a `ConcurrencyException`. Remove `#[Version]` from the aggregate to get last write wins.
   Naming an `#[EventSourcingAggregate]` is a bootstrap error too —

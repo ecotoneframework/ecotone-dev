@@ -206,3 +206,4 @@ Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration,Ecotone\Api
 Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter,Ecotone\Api\Projecting\EventStreamingChannelAdapter
 Ecotone\Messaging\Support\ConcurrencyException,Ecotone\Api\Messaging\ConcurrencyException
 Ecotone\Modelling\AggregateNotFoundException,Ecotone\Api\Modelling\AggregateNotFoundException
+Ecotone\Messaging\Config\ConnectionReference,Ecotone\Api\ExtensionObject\ConnectionReference

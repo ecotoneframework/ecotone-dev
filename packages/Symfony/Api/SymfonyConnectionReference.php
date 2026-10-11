@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Symfony;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\Messaging\Config\ConnectionReference;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;

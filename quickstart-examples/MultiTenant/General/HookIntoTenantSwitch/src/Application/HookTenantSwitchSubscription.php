@@ -7,7 +7,7 @@ namespace App\MultiTenant\Application;
 use Ecotone\Api\Dbal\Attribute\OnTenantActivation;
 use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Attribute\Header;
-use Ecotone\Messaging\Config\ConnectionReference;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
 
 final readonly class HookTenantSwitchSubscription
 {

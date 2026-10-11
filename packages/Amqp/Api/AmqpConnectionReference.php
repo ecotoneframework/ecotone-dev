@@ -6,7 +6,7 @@ namespace Ecotone\Api\Amqp;
 
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
 use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
-use Ecotone\Messaging\Config\ConnectionReference;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
 
 /**
  * licence Apache-2.0

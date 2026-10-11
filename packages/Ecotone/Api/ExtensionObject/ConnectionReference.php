@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config;
+namespace Ecotone\Api\ExtensionObject;
 
 /**
  * licence Apache-2.0

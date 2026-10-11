@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Api\Console\ConsoleWriter;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
@@ -30,6 +29,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\NativeClock;
 use Psr\Clock\ClockInterface;
 use Psr\Container\ContainerInterface;
 
@@ -54,9 +54,9 @@ class RegisterSingletonMessagingServices implements CompilerPass
             Clock::class,
             [
                 new Reference(ClockInterface::class, ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-                $this->serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
+                new Definition(NativeClock::class),
             ],
-            factory: [Clock::class, 'createBasedOnConfig']
+            factory: [Clock::class, 'createWithFallback']
         ));
         $this->registerDefault($builder, ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $this->registerDefault($builder, ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));

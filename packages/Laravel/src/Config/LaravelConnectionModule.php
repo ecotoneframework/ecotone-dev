@@ -34,12 +34,16 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $laravelConnections = ExtensionObjectResolver::resolve(LaravelConnectionReference::class, $extensionObjects);
+        foreach ($laravelConnections as $connection) {
+            LaravelConnectionDbalGuard::assertDbalInstalledFor("LaravelConnectionReference::create('{$connection->getLaravelConnectionName()}')");
+        }
+
         if (! class_exists(HeaderBasedMultiTenantConnectionFactory::class)) {
             return;
         }
 
         $laravelRelatedMultiTenantConfigurations = [];
-        $laravelConnections = ExtensionObjectResolver::resolve(LaravelConnectionReference::class, $extensionObjects);
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         foreach ($multiTenantConfigurations as $multiTenantConfiguration) {

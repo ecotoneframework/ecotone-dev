@@ -10,8 +10,10 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
@@ -56,6 +58,26 @@ final class ProjectionApiTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage("Projection 'test_projection' cannot use both #[Polling] and #[Partitioned] attributes.");
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+    }
+
+    public function test_it_throws_exception_when_partitioned_projection_asks_for_manual_kick_off(): void
+    {
+        $projection = new #[Projection('test_projection'), FromStream('test_stream'), Partitioned, ProjectionDeployment(manualKickOff: true)] class {
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Projection 'test_projection' combines #[Partitioned] with #[ProjectionDeployment(manualKickOff: true)], but a partitioned projection initializes each partition on that partition's first event, so it cannot wait to be kicked off and manualKickOff would be ignored. Either remove manualKickOff: true from #[ProjectionDeployment] and let each partition initialize on its first event, or remove #[Partitioned] to keep the projection waiting until it is kicked off with ecotone:projection:init test_projection.");
 
         EcotoneLite::bootstrapFlowTesting(
             [$projection::class],

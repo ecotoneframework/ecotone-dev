@@ -2250,6 +2250,18 @@ A nullable or defaulted parameter is unchanged: without a licence it receives `n
 
 **How to adapt:** pick one of the three ways out the message names.
 
+### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
+
+**Before:** a partitioned projection ignored `manualKickOff: true` without a word — each partition initialized and
+projected on its first event, exactly as with no `#[ProjectionDeployment]` at all.
+
+**Now:** bootstrap fails with `ConfigurationException`: `Projection 'order_list' combines #[Partitioned] with
+#[ProjectionDeployment(manualKickOff: true)], but a partitioned projection initializes each partition on that
+partition's first event, so it cannot wait to be kicked off and manualKickOff would be ignored. …`
+
+**How to adapt:** remove `manualKickOff: true` (the projection behaves as it already did), or remove `#[Partitioned]`
+to keep a global projection that waits for `ecotone:projection:init <name>`.
+
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
 **Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an

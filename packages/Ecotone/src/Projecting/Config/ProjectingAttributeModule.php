@@ -123,7 +123,7 @@ final class ProjectingAttributeModule implements AnnotationModule
             $isPolling = $pollingAttribute !== null;
             $isEventStreaming = $streamingAttribute !== null;
 
-            self::verifyCorrectApiUsage($isPolling, $asynchronousChannelName, $projectionAttribute, $isEventStreaming, $partitionAttribute !== null);
+            self::verifyCorrectApiUsage($isPolling, $asynchronousChannelName, $projectionAttribute, $isEventStreaming, $partitionAttribute !== null, $projectionDeployment?->manualKickOff ?? false);
 
             if ($asyncAttribute !== null) {
                 $projectionBuilder->setAsyncAttribute($asyncAttribute);
@@ -302,7 +302,7 @@ final class ProjectingAttributeModule implements AnnotationModule
         return null;
     }
 
-    private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, Projection $projectionAttribute, bool $isEventStreaming, bool $isPartitioned): void
+    private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, Projection $projectionAttribute, bool $isEventStreaming, bool $isPartitioned, bool $isManualKickOff): void
     {
         if ($isPolling && $asynchronousChannelName !== null) {
             throw ConfigurationException::create(
@@ -335,6 +335,13 @@ final class ProjectingAttributeModule implements AnnotationModule
             throw ConfigurationException::create(
                 "Projection '{$projectionAttribute->name}' cannot use both #[Partitioned] and #[Streaming] attributes. " .
                 'Partitioned projections cannot use streaming.'
+            );
+        }
+
+        if ($isPartitioned && $isManualKickOff) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' combines #[Partitioned] with #[ProjectionDeployment(manualKickOff: true)], but a partitioned projection initializes each partition on that partition's first event, so it cannot wait to be kicked off and manualKickOff would be ignored. " .
+                "Either remove manualKickOff: true from #[ProjectionDeployment] and let each partition initialize on its first event, or remove #[Partitioned] to keep the projection waiting until it is kicked off with ecotone:projection:init {$projectionAttribute->name}."
             );
         }
     }

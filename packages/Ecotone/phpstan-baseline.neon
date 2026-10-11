@@ -553,7 +553,7 @@ parameters:
 			path: src/Messaging/Config/ModuleClassList.php
 
 		-
-			message: '#^Class Ecotone\\Tempest\\Config\\TempestConnectionModule not found\.$#'
+			message: '#^Class Ecotone\\Tempest\\Config\\TempestModule not found\.$#'
 			identifier: class.notFound
 			count: 1
 			path: src/Messaging/Config/ModuleClassList.php

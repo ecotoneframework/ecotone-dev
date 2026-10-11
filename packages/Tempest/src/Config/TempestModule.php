@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -24,15 +25,24 @@ use Interop\Queue\ConnectionFactory;
 /**
  * licence Apache-2.0
  */
-final class TempestConnectionModule extends NoExternalConfigurationModule implements AnnotationModule
+final class TempestModule extends NoExternalConfigurationModule implements AnnotationModule
 {
+    /**
+     * @param class-string[] $aggregateClasses
+     */
+    private function __construct(private array $aggregateClasses)
+    {
+    }
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self($annotationRegistrationService->findAnnotatedClasses(Aggregate::class));
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        TempestModelVersionGuard::assertNoVersionedTempestModel($this->aggregateClasses, $interfaceToCallRegistry);
+
         $tempestConnections = ExtensionObjectResolver::resolve(TempestConnectionReference::class, $extensionObjects);
 
         foreach ($tempestConnections as $connection) {

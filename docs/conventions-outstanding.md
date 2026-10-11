@@ -152,7 +152,7 @@ same test reaches `EloquentRepository` and fails on the table.
 means re-implementing its private, serializer-aware `resolveBindings()` and losing `onDatabase()` tags; read-then-write
 leaves the race rule 8 forbids. `ecotone/dbal` is only a composer *suggest* of `ecotone/tempest`, so DBAL is no
 fallback. **Decided (wave 11a): refuse, do not file upstream.** `TempestModelVersionGuard`, called from
-`TempestModelModule::prepare()`, refuses a state-stored aggregate or saga that is a Tempest model and declares
+`TempestModule::prepare()`, refuses a state-stored aggregate or saga that is a Tempest model and declares
 `#[Version]` at bootstrap, naming the class, the property and the three ways out — drop `#[Version]`, store it through
 the DBAL document-store repository, or make it event-sourced (`VersionedTempestModelTest`, and
 `RealBootRuntimeFailureTest` for the real kernel boot). The request below is kept as the record of what would lift

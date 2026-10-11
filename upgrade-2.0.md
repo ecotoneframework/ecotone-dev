@@ -2108,6 +2108,7 @@ public signatures name, so no `Api` signature points back into `src`.
 | `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
 | `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
+| `Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration` | `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | returned from a `#[ServiceContext]` method, it is the one switch for automatic AMQP and SQS channel initialization |
 
 **How to adapt:** replace the imports; every row is in `upgrade/namespace-map-2.0.csv`. Clear Ecotone's cache on
 deploy, since the compiled container records class names. **No container id changes** — none of these is a service

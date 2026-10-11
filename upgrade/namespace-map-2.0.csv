@@ -202,3 +202,4 @@ Ecotone\Modelling\StateStoredRepository,Ecotone\Api\Modelling\StateStoredReposit
 Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint,Ecotone\Api\Attribute\AsynchronousRunningEndpoint
 Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\AsynchronousEndpointAttribute
 Ecotone\Messaging\BatchMessage,Ecotone\Api\Messaging\BatchMessage
+Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration,Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration

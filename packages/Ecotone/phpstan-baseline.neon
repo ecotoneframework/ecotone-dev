@@ -361,24 +361,6 @@ parameters:
 			path: src/Messaging/Config/MessagingSystemConfiguration.php
 
 		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 6
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$this\-\>messageHandlerBuilders\[\$messageHandlerBuilder\-\>getEndpointId\(\)\] \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
 			message: '#^Class Ecotone\\Amqp\\Configuration\\AmqpChannelManagerModule not found\.$#'
 			identifier: class.notFound
 			count: 1

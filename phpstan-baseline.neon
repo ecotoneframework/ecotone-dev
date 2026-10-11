@@ -625,24 +625,6 @@ parameters:
 			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
 
 		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 6
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$messageHandlerBuilder \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilderWithOutputChannel\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 2
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
-			message: '#^Part \$this\-\>messageHandlerBuilders\[\$messageHandlerBuilder\-\>getEndpointId\(\)\] \(Ecotone\\Messaging\\Handler\\MessageHandlerBuilder\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
-
-		-
 			message: '#^PHPDoc tag @var above a method has no effect\.$#'
 			identifier: varTag.misplaced
 			count: 1

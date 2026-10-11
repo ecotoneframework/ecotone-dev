@@ -16,11 +16,8 @@ use Psr\Clock\ClockInterface as PsrClockInterface;
 
 class Clock implements EcotoneClockInterface
 {
-    private static ?EcotoneClockInterface $globalClock = null;
-
     public function __construct(private PsrClockInterface $clock)
     {
-        self::$globalClock = $this;
     }
 
     public static function createBasedOnConfig(?PsrClockInterface $clock, bool $isTestingEnabled): EcotoneClockInterface

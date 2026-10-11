@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Projecting\EventStoreAdapter;
+namespace Ecotone\Api\Projecting;
 
 /**
  * Configuration for feeding events from event store into a streaming channel.
@@ -15,7 +15,7 @@ namespace Ecotone\Projecting\EventStoreAdapter;
  *
  * @example
  * #[ServiceContext]
- * public function eventStoreFeeder(): EventStoreChannelAdapter
+ * public function eventStoreFeeder(): EventStreamingChannelAdapter
  * {
  *     return EventStreamingChannelAdapter::create(
  *         streamChannelName: 'event_stream',

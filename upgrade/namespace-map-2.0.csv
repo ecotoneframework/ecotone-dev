@@ -203,3 +203,4 @@ Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint,Ecotone\Api\Attribute\As
 Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\AsynchronousEndpointAttribute
 Ecotone\Messaging\BatchMessage,Ecotone\Api\Messaging\BatchMessage
 Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration,Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration
+Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter,Ecotone\Api\Projecting\EventStreamingChannelAdapter

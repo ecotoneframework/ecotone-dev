@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\EventStoreAdapter;
 
+use Ecotone\Api\Projecting\EventStreamingChannelAdapter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

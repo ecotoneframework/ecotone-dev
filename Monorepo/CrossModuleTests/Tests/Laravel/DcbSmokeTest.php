@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Laravel\DcbSmoke;
+namespace Monorepo\CrossModuleTests\Tests\Laravel;
 
 use App\DcbSmoke\Laravel\Application\IssueCoupon;
 use App\DcbSmoke\Laravel\Application\RedeemCoupon;
@@ -42,7 +42,7 @@ final class DcbSmokeTest extends TestCase
     {
         putenv('LARAVEL_DCB_SMOKE_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
 
-        $app = require __DIR__ . '/bootstrap/app.php';
+        $app = require __DIR__ . '/../../Fixture/Laravel/DcbSmoke/bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
         EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
 

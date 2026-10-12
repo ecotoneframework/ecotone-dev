@@ -23,6 +23,7 @@
     },
     "require": {
         "ecotone/ecotone": "~1.328.2",
+        "ecotone/jms-converter": "~1.328.2",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

@@ -59,13 +59,16 @@ $connectionFactory = new DbalConnectionFactory($dsn);
 $connection = $connectionFactory->establishConnection();
 
 $messagingSystem = EcotoneLite::bootstrap(
-    objectsToRegister: [
+    containerOrAvailableServices: [
+        new WalletBalanceProjection($connection),
         DbalConnectionFactory::class => $connectionFactory,
-        \Doctrine\DBAL\Connection::class => $connection
     ],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()->withLicenceKey($licenseKey),
+    configuration: ServiceConfiguration::createWithDefaults()
+        ->withNamespaces(['App'])
+        ->withLicenceKey($licenseKey),
     pathToRootCatalog: __DIR__
 );
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 echo "=== Partitioned Projection Example ===\n\n";
 

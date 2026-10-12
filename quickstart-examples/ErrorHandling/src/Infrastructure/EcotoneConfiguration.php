@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Infrastructure;
 
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 final class EcotoneConfiguration
@@ -25,20 +25,17 @@ final class EcotoneConfiguration
     }
 
     #[ServiceContext]
+    public function withoutInstantRetries(): InstantRetryConfiguration
+    {
+        return InstantRetryConfiguration::createWithDefaults()
+                ->withAsynchronousEndpointsRetry(false);
+    }
+
+    #[ServiceContext]
     public function aggregateRepository(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults()
                 ->withDocumentStore(enableDocumentStoreStateStoredRepository: true,);
-    }
-
-    #[ServiceContext]
-    public function distributed(): array
-    {
-        return [
-            DistributedServiceMap::initialize()
-                ->withCommandMapping('example_service', 'example_service'),
-            AmqpBackedMessageChannelBuilder::create('example_service'),
-        ];
     }
 
     #[ServiceContext]

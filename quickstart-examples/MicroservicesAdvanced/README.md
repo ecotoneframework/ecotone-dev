@@ -36,3 +36,14 @@ State, events and projections are stored in `Postgres` database.
 Integration of microservices happens over `RabbitMQ`.   
 The main focus in on the domain model.   
 `Ecotone` solves all integration problems, so the `amount of the code to build and integrate services is minimal`.
+## Enterprise licence
+
+Distributed Bus with Service Map is an Ecotone Enterprise feature, so this example needs a licence key before it starts.
+Set it in the `ECOTONE_LICENSE_KEY` environment variable:
+
+```bash
+ECOTONE_LICENSE_KEY=<your key> php run_example.php
+```
+
+Start a trial at https://ecotone.tech/pricing to get a key. Without one, Ecotone refuses to start and its message
+says where the key goes.

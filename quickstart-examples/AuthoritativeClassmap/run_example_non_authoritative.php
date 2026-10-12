@@ -11,7 +11,7 @@ require __DIR__ . "/vendor/autoload.php";
 try {
     $messagingSystem = EcotoneLite::bootstrap(
         pathToRootCatalog: __DIR__,
-        serviceConfiguration: ServiceConfiguration::createWithDefaults()
+        configuration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
             ->withNamespaces(["App"]),
     );

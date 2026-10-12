@@ -23,7 +23,6 @@
     },
     "require": {
         "ecotone/jms-converter": "~1.328.2",
-        "ecotone/lite-application": "~1.328.2",
         "ecotone/lite-event-sourcing-starter": "^1.0",
         "ecotone/pdo-event-sourcing": "~1.328.2",
         "ramsey/uuid": "^4.0"

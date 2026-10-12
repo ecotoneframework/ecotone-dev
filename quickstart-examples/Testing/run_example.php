@@ -41,6 +41,7 @@ $ecotoneLite = EcotoneLite::bootstrap(
     ServiceConfiguration::createWithDefaults()->withLoadCatalog("src"),
     pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
 );
+$ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 $commandBus = $ecotoneLite->getCommandBus();
 $queryBus = $ecotoneLite->getQueryBus();

@@ -13,12 +13,9 @@ $stageToRun = $argv[1];
 $userId = Uuid::uuid4();
 $tableProductId = Uuid::uuid4();
 
-$messagingSystem = getConfiguredMessagingSystem($stageToRun, $userId, $tableProductId);
+[$messagingSystem, $orderController] = getConfiguredMessagingSystem($stageToRun, $userId, $tableProductId);
 
 /** Run Controller  */
-
-/** @var \App\ReactiveSystem\OrderController $controller */
-$orderController = $messagingSystem->getServiceFromContainer(sprintf("App\ReactiveSystem\%s\UI\OrderController", $stageToRun));
 
 $orderId = Uuid::uuid4()->toString();
 

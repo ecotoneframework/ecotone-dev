@@ -14,12 +14,16 @@ require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
 $receiver = EcotoneLite::bootstrap(
-    [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+    containerOrAvailableServices: [
+        new OrderServiceReceiver(),
+        AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
-        ->withNamespaces(["App\Microservices\Receiver"])
-        ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+        ->withNamespaces(["App\Microservices\Receiver"]),
+    pathToRootCatalog: __DIR__,
+    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+    licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 /** Running consumer for the first time, in order to create queue */
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
@@ -27,12 +31,13 @@ $queryBus = $receiver->getQueryBus();
 
 // Publisher
 $publisher = EcotoneLite::bootstrap(
-    [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+    containerOrAvailableServices: [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
+    configuration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
-            ->withNamespaces(["App\Microservices\Publisher"])
-            ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+            ->withNamespaces(["App\Microservices\Publisher"]),
+        pathToRootCatalog: __DIR__,
+        /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+        licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 $distributedBus = $publisher->getDistributedBus();
 

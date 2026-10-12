@@ -3,24 +3,28 @@
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 
 /** Setup */
-function bootstrapEcotone(string $rootDirectory): ConfiguredMessagingSystem
+function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem
 {
     return EcotoneLite::bootstrap(
         /**
          * In your application you will register Services inside your Dependency Container
          */
-        objectsToRegister: [
+        containerOrAvailableServices: array_merge([
             'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
             'tenant_a_factory' => getTenantAConnection(),
             'tenant_b_factory' => getTenantBConnection(),
-        ],
-        pathToRootCatalog: $rootDirectory
+        ], $services),
+        configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
+        pathToRootCatalog: $rootDirectory,
+        /** Multi-tenancy is an Ecotone Enterprise feature, see README.md for how to get a key */
+        licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
     );
 }
 

@@ -277,11 +277,11 @@ subsection below.
   an `EcotoneLite` flow test's bootstrap sets the tables up on whichever connection each stream is declared for.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
-- **`EventStore` gains two methods and a parameter; `TaggedEventStore` and `AggregateEventStore` are gone.**
-  **Before:** `EventStore::appendTo(string $streamName, array $streamEvents): void` took no condition. Loading a
-  single aggregate's events, or loading/appending by tag, went through two separate interfaces —
-  `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` and, Enterprise only,
-  `Ecotone\Api\EventSourcing\TaggedEventStore::load()`/`appendTo()`. **Now:** both are folded into `EventStore`
+- **`EventStore` gains two methods and a parameter.**
+  **Before:** `EventStore::appendTo(string $streamName, array $streamEvents): void` took no condition, and `load()`
+  read a stream: 1.x's `EventStore` had no method that loads one aggregate's events or loads and appends by tag. (Pre-release 2.0
+  builds had both, behind two separate interfaces — `Ecotone\EventSourcing\EventStore\AggregateEventStore` and, Enterprise
+  only, `Ecotone\Api\EventSourcing\TaggedEventStore`; 1.x had neither.) **Now:** both are methods of `EventStore`
   itself:
 
   ```php
@@ -302,7 +302,7 @@ subsection below.
   the method stays reachable through the `EventStore` *gateway*, which has no support for variadic parameters.
   **How to adapt a custom `EventStore` implementation:** add `loadAggregateEvents()` and `loadByCriteria()` (delegate
   to your existing aggregate-loading and tag-index code, or throw if you don't support tags), and widen
-  `appendTo()`'s signature with the new optional parameter. Replace
+  `appendTo()`'s signature with the new optional parameter. Code written against a pre-release 2.0 build replaces
   `Ecotone\EventSourcing\EventStore\AggregateEventStore` type-hints with plain `EventStore` — the method moved, the
   type did not gain a second interface to intersect. Replace `Ecotone\Api\EventSourcing\TaggedEventStore` the same
   way: `$taggedEventStore->load($criteria)` becomes `$eventStore->loadByCriteria($criteria)`,

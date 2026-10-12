@@ -19,8 +19,6 @@ interface MessagingTestSupport
     public function popRecordedEvents(): array;
 
     /**
-     * Allows to assert metadata of the message
-     *
      * @return Message[]
      */
     public function popRecordedEventMessages(): array;
@@ -41,8 +39,6 @@ interface MessagingTestSupport
     public function popRecordedCommands(): array;
 
     /**
-     *  Allows to assert metadata of the message
-     *
      * @return Message[]
      */
     public function popRecordedCommandMessages(): array;
@@ -53,8 +49,6 @@ interface MessagingTestSupport
     public function popRecordedQueries(): array;
 
     /**
-     *  Allows to assert metadata of the message
-     *
      * @return Message[]
      */
     public function popRecordedQueryMessages(): array;

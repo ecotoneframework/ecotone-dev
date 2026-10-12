@@ -14,9 +14,6 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class RetryTemplateBuilder implements DefinedObject
 {
-    /**
-     * @var int in milliseconds
-     */
     private int $initialDelay;
     private int $multiplier;
     private ?int $maxDelay;

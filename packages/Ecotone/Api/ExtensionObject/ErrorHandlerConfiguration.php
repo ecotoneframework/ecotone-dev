@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 
 /**
@@ -43,9 +42,6 @@ class ErrorHandlerConfiguration
         );
     }
 
-    /**
-     * @return string
-     */
     public function getErrorChannelName(): string
     {
         return $this->errorChannelName;

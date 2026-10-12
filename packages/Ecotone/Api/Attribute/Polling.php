@@ -12,9 +12,7 @@ namespace Ecotone\Api\Attribute;
 use Attribute;
 
 /**
- * Marks a projection as polling-based.
- * When combined with Projection, the projection will be triggered by polling instead of event-driven.
- * The endpointId is used to identify the polling endpoint.
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/execution-modes#polling-enterprise
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 class Polling

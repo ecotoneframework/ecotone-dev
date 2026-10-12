@@ -53,12 +53,11 @@ final class DistributedServiceMap implements DefinedObject
     }
 
     /**
-     * Creates an event subscription for a channel with explicit subscription keys.
-     *
-     * @param string $channelName Target channel to send events to
      * @param array<string> $subscriptionKeys Routing key patterns to match
      * @param array<string> $excludePublishingServices Service names whose events should NOT be sent to this channel
      * @param array<string> $includePublishingServices Service names whose events should ONLY be sent to this channel (whitelist)
+     *
+     * @link https://docs.ecotone.tech/modelling/microservices-php/distributed-bus/distributed-bus-with-service-map/configuration#register-service-map-for-publishing
      */
     public function withEventMapping(string $channelName, array $subscriptionKeys, array $excludePublishingServices = [], array $includePublishingServices = []): self
     {
@@ -96,8 +95,6 @@ final class DistributedServiceMap implements DefinedObject
     }
 
     /**
-     * @param string $sourceServiceName The service publishing the event
-     * @param string $routingKey The event routing key
      * @return array<string>
      */
     public function getAllSubscriptionChannels(string $sourceServiceName, string $routingKey): array

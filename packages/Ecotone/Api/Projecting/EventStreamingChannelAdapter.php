@@ -10,23 +10,9 @@ declare(strict_types=1);
 namespace Ecotone\Api\Projecting;
 
 /**
- * Configuration for feeding events from event store into a streaming channel.
- * Creates a polling projection that continuously reads events and publishes them to the specified channel.
- *
- * Works with both PDO Event Store and In-Memory Event Store implementations.
- *
- * @example
- * #[ServiceContext]
- * public function eventStoreFeeder(): EventStreamingChannelAdapter
- * {
- *     return EventStreamingChannelAdapter::create(
- *         streamChannelName: 'event_stream',
- *         endpointId: 'event_store_feeder',
- *         fromStream: Ticket::class
- *     );
- * }
- *
  * licence Enterprise
+ *
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/scaling-and-advanced#feeding-a-streaming-channel-from-the-event-store
  */
 readonly class EventStreamingChannelAdapter
 {
@@ -62,7 +48,6 @@ readonly class EventStreamingChannelAdapter
     }
 
     /**
-     * Filter events by name using glob patterns (same as distributed bus)
      * @param array<string> $eventNames Glob patterns like ['Ticket.*', 'Order.Created']
      */
     public function withEventNames(array $eventNames): self

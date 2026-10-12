@@ -14,8 +14,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
 /**
- * Manages database setup and teardown for all registered table managers.
- *
  * licence Apache-2.0
  */
 class DatabaseSetupManager implements DefinedObject
@@ -75,9 +73,6 @@ class DatabaseSetupManager implements DefinedObject
         return $statements;
     }
 
-    /**
-     * Creates all tables.
-     */
     public function initializeAll(bool $onlyUsed = true): void
     {
         $connection = $this->getConnection();
@@ -91,9 +86,6 @@ class DatabaseSetupManager implements DefinedObject
         }
     }
 
-    /**
-     * Drops all tables.
-     */
     public function dropAll(bool $onlyUsed = true): void
     {
         $connection = $this->getConnection();
@@ -103,9 +95,6 @@ class DatabaseSetupManager implements DefinedObject
         }
     }
 
-    /**
-     * Initialize specific feature by name.
-     */
     public function initialize(string $featureName): void
     {
         $manager = $this->findManager($featureName);
@@ -118,9 +107,6 @@ class DatabaseSetupManager implements DefinedObject
         $manager->createTable($connection);
     }
 
-    /**
-     * Drop specific feature by name.
-     */
     public function drop(string $featureName): void
     {
         $manager = $this->findManager($featureName);
@@ -129,8 +115,6 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * Get SQL statements for specific features.
-     *
      * @param string[] $featureNames
      * @return string[] SQL statements to create tables for specified features
      */
@@ -153,8 +137,6 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * Get SQL statements to drop specific features.
-     *
      * @param string[] $featureNames
      * @return string[] SQL statements to drop tables for specified features
      */
@@ -172,8 +154,6 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * Returns initialization status for each table manager.
-     *
      * @return array<string, bool> Map of feature name to initialization status
      */
     public function getInitializationStatus(bool $onlyUsed = true): array
@@ -189,8 +169,6 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * Returns usage status for each table manager.
-     *
      * @return array<string, bool> Map of feature name to usage status
      */
     public function getUsageStatus(): array

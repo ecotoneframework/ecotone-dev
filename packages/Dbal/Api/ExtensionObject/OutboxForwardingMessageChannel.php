@@ -11,13 +11,11 @@ use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Support\Assert;
 
 /**
- * Combined Message Channel made of exactly one Dbal backed outbox source and one target channel,
- * published in batches by a dedicated forwarding endpoint instead of a message channel consumer.
- * The source can be given as the Dbal channel builder itself, registering the outbox channel along the way.
- *
  * licence Enterprise
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
+ *
+ * @link https://docs.ecotone.tech/modelling/asynchronous-handling/high-throughput-outbox-forwarding
  */
 final class OutboxForwardingMessageChannel extends CombinedMessageChannel implements OutboxForwardingChannel
 {

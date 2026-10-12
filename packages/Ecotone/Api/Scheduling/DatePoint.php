@@ -40,9 +40,6 @@ class DatePoint extends DateTimeImmutable
         return $this->setTimestamp($timestamp)->setMicrosecond($microsecond);
     }
 
-    /**
-     * @throws RuntimeException When $format or $datetime are invalid
-     */
     public static function createFromFormat(string $format, string $datetime, ?DateTimeZone $timezone = null): static
     {
         return parent::createFromFormat($format, $datetime, $timezone) ?: throw new RuntimeException(static::getLastErrors()['errors'][0] ?? 'Invalid date string or format.');

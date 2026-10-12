@@ -21,9 +21,7 @@ interface MessagePublisher
     public function convertAndSendWithMetadata(object|array $data, array $metadata): void;
 
     /**
-     * Publishes without blocking on delivery confirmation.
-     * Requires High Throughput Publishing with non blocking confirmation enabled on the publisher.
-     * Confirmation is awaited on Future::resolve(), or at the latest when the surrounding Command Bus or asynchronous endpoint finishes.
+     * @link https://docs.ecotone.tech/modelling/asynchronous-handling/non-blocking-batched-delivery#publishing-with-futures
      */
     public function publishDeferred(mixed $data, string $sourceMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): Future;
 }

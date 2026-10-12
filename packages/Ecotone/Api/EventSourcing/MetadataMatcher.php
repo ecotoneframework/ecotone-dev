@@ -67,9 +67,7 @@ final class MetadataMatcher implements DefinedObject
     }
 
     /**
-     * @param Operator $operator
      * @param mixed $value
-     * @throws InvalidArgumentException
      */
     private function validateValue(Operator $operator, $value): void
     {

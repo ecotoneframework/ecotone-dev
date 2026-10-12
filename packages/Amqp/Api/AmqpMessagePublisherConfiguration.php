@@ -6,11 +6,6 @@ use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
 
 /**
- * Class RegisterAmqpPublisher
- * @package Ecotone\Amqp\Configuration
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class AmqpMessagePublisherConfiguration
@@ -71,18 +66,11 @@ class AmqpMessagePublisherConfiguration
         return new self($connectionReference, $exchangeName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }
 
-    /**
-     * @return string
-     */
     public function getConnectionReference(): string
     {
         return $this->connectionReference;
     }
 
-    /**
-     * @param bool $autoDeclareQueueOnSend
-     * @return AmqpMessagePublisherConfiguration
-     */
     public function withAutoDeclareQueueOnSend(bool $autoDeclareQueueOnSend): AmqpMessagePublisherConfiguration
     {
         $this->autoDeclareOnSend = $autoDeclareQueueOnSend;
@@ -104,17 +92,11 @@ class AmqpMessagePublisherConfiguration
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getRoutingKeyFromHeader(): string
     {
         return $this->routingKeyFromHeader;
     }
 
-    /**
-     * @return string
-     */
     public function getDefaultRoutingKey(): string
     {
         return $this->defaultRoutingKey;
@@ -123,8 +105,6 @@ class AmqpMessagePublisherConfiguration
     /**
      * @param string $headerMapper comma separated list of headers to be mapped.
      *                             (e.g. "\*" or "thing1*, thing2" or "*thing1")
-     *
-     * @return AmqpMessagePublisherConfiguration
      */
     public function withHeaderMapper(string $headerMapper): AmqpMessagePublisherConfiguration
     {
@@ -133,18 +113,11 @@ class AmqpMessagePublisherConfiguration
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isDefaultPersistentDelivery(): bool
     {
         return $this->defaultPersistentDelivery;
     }
 
-    /**
-     * @param bool $defaultPersistentDelivery
-     * @return AmqpMessagePublisherConfiguration
-     */
     public function withDefaultPersistentDelivery(bool $defaultPersistentDelivery): AmqpMessagePublisherConfiguration
     {
         $this->defaultPersistentDelivery = $defaultPersistentDelivery;
@@ -157,9 +130,7 @@ class AmqpMessagePublisherConfiguration
     }
 
     /**
-     * @param bool $batchPublishing coalesces published Messages into a single publisher confirms round trip
-     * @param bool $nonBlockingConfirmation publishes without waiting for publisher confirms, which are awaited on Future::resolve() or before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await publisher confirms before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modelling/microservices-php/message-publisher#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): AmqpMessagePublisherConfiguration
     {
@@ -188,41 +159,26 @@ class AmqpMessagePublisherConfiguration
         return $this->confirmationTimeout;
     }
 
-    /**
-     * @return bool
-     */
     public function isAutoDeclareOnSend(): bool
     {
         return $this->autoDeclareOnSend;
     }
 
-    /**
-     * @return string
-     */
     public function getHeaderMapper(): string
     {
         return $this->headerMapper;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOutputDefaultConversionMediaType(): ?string
     {
         return $this->outputDefaultConversionMediaType;
     }
 
-    /**
-     * @return string
-     */
     public function getReferenceName(): string
     {
         return $this->referenceName;
     }
 
-    /**
-     * @return string
-     */
     public function getExchangeName(): string
     {
         return $this->exchangeName;

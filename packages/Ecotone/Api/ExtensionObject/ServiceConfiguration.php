@@ -59,8 +59,6 @@ class ServiceConfiguration
 
     /**
      * @param self[] $applicationConfigurations
-     *
-     * @return ServiceConfiguration
      */
     public function mergeWith(array $applicationConfigurations): self
     {
@@ -100,9 +98,6 @@ class ServiceConfiguration
     }
 
 
-    /**
-     * @param bool $failFast
-     */
     public function withFailFast(bool $failFast): self
     {
         $clone           = clone $this;
@@ -123,9 +118,6 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string $environment
-     */
     public function withEnvironment(string $environment): self
     {
         $clone              = clone $this;
@@ -134,9 +126,6 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string $catalog
-     */
     public function withLoadCatalog(string $catalog): self
     {
         $clone              = clone $this;
@@ -310,9 +299,6 @@ class ServiceConfiguration
         return $this->pollableEndpointAnnotations;
     }
 
-    /**
-     * @return string|null
-     */
     public function getDefaultErrorChannel(): ?string
     {
         return $this->defaultErrorChannel;
@@ -323,9 +309,6 @@ class ServiceConfiguration
         return $this->defaultSerializationMediaType;
     }
 
-    /**
-     * @return bool
-     */
     public function failFast(): bool
     {
         return $this->failFast;
@@ -344,17 +327,11 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @return string
-     */
     public function getEnvironment(): string
     {
         return $this->environment;
     }
 
-    /**
-     * @return bool
-     */
     public function isFailingFast(): bool
     {
         return $this->failFast;

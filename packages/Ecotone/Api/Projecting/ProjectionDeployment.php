@@ -12,26 +12,13 @@ namespace Ecotone\Api\Projecting;
 use Attribute;
 
 /**
- * Configure projection deployment settings for blue/green deployment scenarios.
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/blue-green-deployments
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 class ProjectionDeployment
 {
     public function __construct(
-        /**
-         * When true, projection will not be automatically initialized.
-         * It will require manual trigger
-         *
-         * Default: false (automatic initialization)
-         */
         public readonly bool $manualKickOff = false,
-        /**
-         * When false, emitted events via EventStreamEmitter will not be published.
-         * Use this for blue/green deployment to rebuild projection without
-         * re-emitting events to downstream consumers.
-         *
-         * Default: true (events are emitted)
-         */
         public readonly bool $live = true,
     ) {
     }

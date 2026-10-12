@@ -12,9 +12,7 @@ namespace Ecotone\Api\Projecting;
 use Attribute;
 
 /**
- * Marks a class as a custom StreamSource.
- * The class must implement \Ecotone\Projecting\StreamSource interface.
- * Userland stream sources are prioritized over built-in ones.
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/scaling-and-advanced#custom-extensions
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class StreamSource

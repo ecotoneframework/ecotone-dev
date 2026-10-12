@@ -8,11 +8,6 @@ use Ecotone\Messaging\Support\Assert;
 use Interop\Amqp\Impl\AmqpQueue as EnqueueQueue;
 
 /**
- * Class AmqpQueue
- * @package Ecotone\Amqp
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class AmqpQueue
@@ -25,27 +20,16 @@ class AmqpQueue
     private ?string $withDeadLetterRoutingKey = null;
     private bool $isStream = false;
 
-    /**
-     * AmqpQueue constructor.
-     * @param string $queueName
-     */
     private function __construct(string $queueName)
     {
         $this->enqueueQueue = new EnqueueQueue($queueName);
     }
 
-    /**
-     * @return string
-     */
     public function getQueueName(): string
     {
         return $this->enqueueQueue->getQueueName();
     }
 
-    /**
-     * @param string $queueName
-     * @return AmqpQueue
-     */
     public static function createWith(string $queueName): self
     {
         return new self($queueName);
@@ -61,9 +45,6 @@ class AmqpQueue
         return $self;
     }
 
-    /**
-     * @return EnqueueQueue
-     */
     public function toEnqueueQueue(): EnqueueQueue
     {
         $amqpQueue = clone $this->enqueueQueue;
@@ -97,12 +78,6 @@ class AmqpQueue
         return $this;
     }
 
-    /**
-     * the queue will survive a broker restart
-     *
-     * @param bool $isDurable
-     * @return AmqpQueue
-     */
     public function withDurability(bool $isDurable): self
     {
         Assert::isFalse($this->isStream, "Can't change durability for stream queue. It's always true.");
@@ -111,11 +86,6 @@ class AmqpQueue
         return $this;
     }
 
-    /**
-     * used by only one connection and the queue will be deleted when that connection closes
-     *
-     * @return AmqpQueue
-     */
     public function withExclusivity(): self
     {
         Assert::isFalse($this->isStream, "Can't change exclusivity for stream queue. It's always false.");
@@ -124,11 +94,6 @@ class AmqpQueue
         return $this;
     }
 
-    /**
-     * queue that has had at least one consumer is deleted when last consumer unsubscribes
-     *
-     * @return AmqpQueue
-     */
     public function withAutoDeletion(): self
     {
         Assert::isFalse($this->isStream, "Can't change auto delete for stream queue. It's always false.");
@@ -138,11 +103,7 @@ class AmqpQueue
     }
 
     /**
-     * optional, used by plugins and broker-specific features such as message TTL, queue length limit, etc
-     *
-     * @param string $name
      * @param $value
-     * @return AmqpQueue
      */
     public function withArgument(string $name, $value): self
     {

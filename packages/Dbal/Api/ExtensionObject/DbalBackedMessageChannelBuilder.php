@@ -33,8 +33,7 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * Coalesces published Messages into a single multi row insert.
-     * Non blocking confirmation is not offered here, as the insert blocks until the database confirms it.
+     * @link https://docs.ecotone.tech/modules/dbal-support#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(): static
     {

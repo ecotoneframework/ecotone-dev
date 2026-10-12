@@ -38,14 +38,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * Create a stream channel with consume method enabled and stream queue type
-     *
-     * @param string $channelName
-     * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
-     * @param string $amqpConnectionReferenceName
-     * @param string|null $queueName If null, channel name will be used as queue name
-     * @param string|null $messageGroupId If null, channel name will be used as message group id. This the default consumer group for Consumer with id equal to channel name
-     * @return self
+     * @link https://docs.ecotone.tech/modules/amqp-support-rabbitmq/message-channel#start-position-options
      */
     public static function create(
         string  $channelName,
@@ -60,13 +53,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * Set the prefetch count (QoS) for stream consumption
-     *
-     * Controls how many unacknowledged messages RabbitMQ will deliver to the consumer.
-     * Lower values (e.g., 1) provide better flow control but may reduce throughput.
-     * Higher values allow faster consumption but use more memory.
-     *
-     * @param int $prefetchCount Number of messages to prefetch (default: 100)
+     * @link https://docs.ecotone.tech/modules/amqp-support-rabbitmq/message-channel#prefetch-count
      */
     public function withPrefetchCount(int $prefetchCount): static
     {
@@ -78,17 +65,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * Set the commit interval for position tracking
-     *
-     * Controls how often the consumer position is committed to the position tracker.
-     * - commitInterval=1: Commit after every message (default, safest but slowest)
-     * - commitInterval=10: Commit after every 10 messages (better performance, small risk of reprocessing)
-     * - The last message in a batch is always committed, even if the interval hasn't been reached
-     *
-     * Example with commitInterval=2 and 5 messages:
-     * - Commits happen at offsets: 2, 4, 5 (5 is committed because it's the last in the batch)
-     *
-     * @param int $commitInterval Number of messages to process before committing position (default: 100)
+     * @link https://docs.ecotone.tech/modules/amqp-support-rabbitmq/message-channel#commit-interval
      */
     public function withCommitInterval(int $commitInterval): static
     {

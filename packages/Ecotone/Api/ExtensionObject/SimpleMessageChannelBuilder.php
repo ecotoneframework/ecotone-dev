@@ -24,11 +24,6 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\NullableMessageChannel;
 
 /**
- * Class SimpleMessageChannelBuilder
- * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
@@ -98,9 +93,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $instance;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function isPollable(): bool
     {
         return $this->isPollable;
@@ -133,9 +125,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getMessageChannelName(): string
     {
         return $this->messageChannelName;

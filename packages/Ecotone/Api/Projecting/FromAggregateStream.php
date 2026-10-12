@@ -11,15 +11,7 @@ use Attribute;
 use Ecotone\Api\EventSourcing\EventStore;
 
 /**
- * Configures a projection to read from an aggregate's event stream.
- * Automatically resolves Stream and AggregateType from the aggregate class.
- *
- * Example usage:
- * ```php
- * #[Projection('order_list')]
- * #[FromAggregateStream(Order::class)]
- * class OrderListProjection { ... }
- * ```
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/event-streams-and-handlers#from-aggregate-stream-recommended
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 readonly class FromAggregateStream

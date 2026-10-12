@@ -110,9 +110,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
     }
 
     /**
-     * @param bool $batchPublishing coalesces produced Messages into broker side batches by enabling producer lingering
-     * @param bool $nonBlockingConfirmation produces without flushing, delivery reports are awaited on Future::resolve() or before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await delivery reports before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modelling/microservices-php/message-publisher#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {

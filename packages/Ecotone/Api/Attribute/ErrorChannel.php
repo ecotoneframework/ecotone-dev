@@ -17,9 +17,6 @@ use Ecotone\Messaging\Support\Assert;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class ErrorChannel implements AsynchronousEndpointAttribute, DefinedObject
 {
-    /**
-     * @param string $errorChannelName Name of the error channel to send Message too
-     */
     public function __construct(
         public readonly string   $errorChannelName,
     ) {

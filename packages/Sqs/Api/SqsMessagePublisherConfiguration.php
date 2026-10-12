@@ -76,9 +76,7 @@ final class SqsMessagePublisherConfiguration
     }
 
     /**
-     * @param bool $batchPublishing coalesces published Messages into SQS batch send requests
-     * @param bool $nonBlockingConfirmation dispatches send requests without waiting on their responses, which are awaited on Future::resolve() or before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await a send response before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modelling/microservices-php/message-publisher#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {

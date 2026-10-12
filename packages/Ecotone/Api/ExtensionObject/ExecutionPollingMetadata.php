@@ -4,6 +4,8 @@ namespace Ecotone\Api\ExtensionObject;
 
 /**
  * licence Apache-2.0
+ *
+ * @link https://docs.ecotone.tech/modelling/testing-support/testing-asynchronous-messaging#polling-metadata
  */
 final class ExecutionPollingMetadata
 {
@@ -25,19 +27,13 @@ final class ExecutionPollingMetadata
     }
 
     /**
-     * @param int $handledMessageLimit how many messages should this consumer handle before exiting
      * @param int $executionTimeLimitInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
-     * @param bool $stopOnError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
-     * @return $this
      */
     public static function createWithTestingSetup(int $handledMessageLimit = 100, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {
         return self::createWithDefaults()->withTestingSetup($handledMessageLimit, $executionTimeLimitInMilliseconds, $stopOnError);
     }
 
-    /**
-     * @param bool $stopOnError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
-     */
     public static function createWithFinishWhenNoMessages(bool $stopOnError = true): self
     {
         return self::createWithDefaults()
@@ -72,9 +68,7 @@ final class ExecutionPollingMetadata
     }
 
     /**
-     * @param int $handledMessageLimit how many messages should this consumer handle before exiting
      * @param int $executionTimeLimitInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
-     * @return $this
      */
     public function withTestingSetup(int $handledMessageLimit = 100, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {

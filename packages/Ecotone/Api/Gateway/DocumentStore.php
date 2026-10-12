@@ -15,9 +15,6 @@ interface DocumentStore
 
     public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void;
 
-    /**
-     * Same as replaceDoc except that doc is added to collection if it does not exist.
-     */
     public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void;
 
     public function deleteDocument(string $collectionName, string $documentId): void;
@@ -26,9 +23,6 @@ interface DocumentStore
 
     public function getDocumentVersion(string $collectionName, string $documentId): int;
 
-    /**
-     * Contrary to getDocument in case of not found document it will return null
-     */
     public function findDocument(string $collectionName, string $documentId): array|object|string|null;
 
     /**

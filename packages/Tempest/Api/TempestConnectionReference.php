@@ -12,6 +12,8 @@ use Ecotone\Tempest\Config\TempestConnectionDbalGuard;
 
 /**
  * licence Apache-2.0
+ *
+ * @link https://docs.ecotone.tech/modules/tempest/database-connection-dbal-module
  */
 final class TempestConnectionReference extends ConnectionReference implements DefinedObject
 {
@@ -22,24 +24,11 @@ final class TempestConnectionReference extends ConnectionReference implements De
         parent::__construct($referenceName, $referenceName);
     }
 
-    /**
-     * Reference resolved from a tagged Tempest DatabaseConfig in the container.
-     * No credentials are stored here or in Ecotone's compiled cache — the config
-     * is looked up at runtime from Tempest's container by tag.
-     *
-     * Register the matching config in a Tempest *.config.php:
-     *   return new PostgresConfig(host: '...', tag: 'tenant_a');
-     */
     public static function create(string $configTag, ?string $referenceName = null): self
     {
         return new self($referenceName ?? $configTag, $configTag);
     }
 
-    /**
-     * Reference to the default (untagged) Tempest Connection singleton.
-     * Shares the same PDO that Tempest's IsDatabaseModel / Database use,
-     * so Ecotone's DBAL transactions wrap Tempest ORM writes on the same connection.
-     */
     public static function defaultConnection(): self
     {
         TempestConnectionDbalGuard::assertDbalInstalledFor('TempestConnectionReference::defaultConnection()');

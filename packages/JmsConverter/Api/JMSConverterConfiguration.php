@@ -3,11 +3,6 @@
 namespace Ecotone\Api\JMSConverter;
 
 /**
- * Class JMSConverterConfiguration
- * @package Ecotone\JMSConverter\Configuration
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class JMSConverterConfiguration

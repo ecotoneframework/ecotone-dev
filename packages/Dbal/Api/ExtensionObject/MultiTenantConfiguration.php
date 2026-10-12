@@ -13,7 +13,6 @@ final class MultiTenantConfiguration
 {
     /**
      * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
-     * @param string $referenceName - Name of the reference on which connection factory will be registered in Dependency Container
      */
     private function __construct(
         private string  $tenantHeaderName,

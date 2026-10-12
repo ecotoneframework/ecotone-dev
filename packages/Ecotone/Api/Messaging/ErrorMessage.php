@@ -51,17 +51,11 @@ final class ErrorMessage implements Message
         );
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHeaders(): MessageHeaders
     {
         return $this->message->getHeaders();
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getPayload(): mixed
     {
         return $this->message->getPayload();

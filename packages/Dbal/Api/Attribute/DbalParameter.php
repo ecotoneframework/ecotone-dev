@@ -18,9 +18,6 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class DbalParameter implements DefinedObject, WithExpression
 {
-    /**
-     * @param int|ArrayParameterType|ParameterType|null $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants
-     */
     public function __construct(
         private ?string $name = null,
         private int|ArrayParameterType|ParameterType|null $type = null,

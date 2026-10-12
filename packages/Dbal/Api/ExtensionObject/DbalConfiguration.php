@@ -203,9 +203,6 @@ class DbalConfiguration
         return $self;
     }
 
-    /**
-     * This will enable flushing during persisting aggregate/saga using Ecotone's Doctrine ORM Repository
-     */
     public function withFlushWhenPersisting(bool $isEnabled): self
     {
         $self                                 = clone $this;
@@ -223,8 +220,7 @@ class DbalConfiguration
     }
 
     /**
-     * @param int $expirationTime time in milliseconds that has to pass in order to remove message
-     * @param int $removalBatchSize batch size for removing messages (Ecotone does not remove all at once, to avoid database locks)
+     * @link https://docs.ecotone.tech/modelling/recovering-tracing-and-monitoring/resiliency/idempotent-consumer-deduplication#deduplication-clean-up
      */
     public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000, bool $inMemory = false): self
     {

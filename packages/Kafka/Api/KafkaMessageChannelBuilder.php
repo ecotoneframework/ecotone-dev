@@ -62,8 +62,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * @param string|null $topicName If null, channel name will be used as topic name
-     * @param string|null $messageGroupId If null, channel name will be used as message group id. This the default consumer group for Consumer with id equal to channel name
+     * @link https://docs.ecotone.tech/modules/kafka-support/message-channel
      */
     public static function create(
         string  $channelName,
@@ -104,9 +103,6 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * How long it should try to receive message
-     *
-     * @param int $timeoutInMilliseconds
      * @return static
      */
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
@@ -124,9 +120,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * @param bool $batchPublishing coalesces produced Messages into broker side batches by enabling producer lingering
-     * @param bool $nonBlockingConfirmation produces without flushing, delivery reports are awaited before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await delivery reports before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modules/kafka-support/message-channel#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
@@ -156,9 +150,6 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * Set the commit interval in messages. Offsets will be committed every X messages.
-     *
-     * @param int $commitIntervalInMessages Number of messages to process before committing offset
      * @return static
      */
     public function withCommitInterval(int $commitIntervalInMessages): self

@@ -35,9 +35,7 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * @param bool $batchPublishing coalesces published Messages into SQS batch send requests
-     * @param bool $nonBlockingConfirmation dispatches send requests without waiting on their responses, which are awaited before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await a send response before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modules/amazon-sqs-support#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {

@@ -1,24 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\:\:createWithTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\.$#'
-			identifier: return.type
-			count: 1
-			path: Api/ExtensionObject/ExecutionPollingMetadata.php
-
-		-
-			message: '#^Method Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\:\:withTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\ExecutionPollingMetadata\.$#'
-			identifier: return.type
-			count: 1
-			path: Api/ExtensionObject/ExecutionPollingMetadata.php
-
-		-
-			message: '#^Method Ecotone\\Api\\ExtensionObject\\PollingMetadata\:\:withTestingSetup\(\) should return \$this\(Ecotone\\Api\\ExtensionObject\\PollingMetadata\) but returns Ecotone\\Api\\ExtensionObject\\PollingMetadata\.$#'
-			identifier: return.type
-			count: 1
-			path: Api/ExtensionObject/PollingMetadata.php
-
-		-
 			message: '#^PHPDoc tag @param for parameter \$className contains unresolvable type\.$#'
 			identifier: parameter.unresolvableType
 			count: 1

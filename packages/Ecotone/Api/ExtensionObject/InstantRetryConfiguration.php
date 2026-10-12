@@ -6,6 +6,8 @@ namespace Ecotone\Api\ExtensionObject;
 
 /**
  * licence Apache-2.0
+ *
+ * @link https://docs.ecotone.tech/modelling/recovering-tracing-and-monitoring/resiliency/retries
  */
 final class InstantRetryConfiguration
 {
@@ -18,17 +20,11 @@ final class InstantRetryConfiguration
         return new self(false, 3, [], true, 3, []);
     }
 
-    /**
-     * Enable/Disable global retry for all Command/Event Handlers
-     */
     public function withCommandBusRetry(bool $isEnabled, int $retryTimes = 3, array $retryExceptions = []): self
     {
         return new self($isEnabled, $retryTimes, $retryExceptions, $this->isEnabledForAsynchronousEndpoints, $this->asynchronousRetryTimes, $this->asynchronousExceptions);
     }
 
-    /**
-     * Enable/Disable retries using attributes
-     */
     public function withAsynchronousEndpointsRetry(bool $isEnabled, int $retryTimes = 3, array $retryExceptions = []): self
     {
         return new self($this->isEnabledForCommandBus, $this->commandBusRetryTimes, $this->commandBuExceptions, $isEnabled, $retryTimes, $retryExceptions);

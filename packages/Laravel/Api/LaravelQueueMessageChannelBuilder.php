@@ -57,7 +57,6 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
     }
 
     /**
-     * @param string $headerMapper
      * @return static
      */
     public function withHeaderMapping(string $headerMapper): self

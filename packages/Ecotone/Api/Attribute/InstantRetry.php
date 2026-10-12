@@ -10,14 +10,12 @@ use Attribute;
  * licence Enterprise
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
+ *
+ * @link https://docs.ecotone.tech/modelling/recovering-tracing-and-monitoring/resiliency/retries#instant-retries-exceptions
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class InstantRetry
 {
-    /**
-     * @param int $retryTimes Number of retry attempts
-     * @param array $exceptions Array of exception class names to retry on (empty means all exceptions)
-     */
     public function __construct(
         public readonly int $retryTimes = 3,
         public readonly array $exceptions = []

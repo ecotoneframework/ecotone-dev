@@ -26,7 +26,6 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -414,7 +413,6 @@ final class FlowTestSupport
      * This will only be recorded when Message was sent via Command Bus
      *
      * @return string[]
-     * @throws MessagingException
      */
     public function popRecordedCommandsWithRouting(): array
     {
@@ -455,7 +453,6 @@ final class FlowTestSupport
     /**
      * @template T of object
      * @param class-string<T> $className
-     * @param string|array $identifiers
      * @return T
      */
     public function getSaga(string $className, string|array $identifiers): object

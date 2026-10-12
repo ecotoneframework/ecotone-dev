@@ -12,9 +12,7 @@ namespace Ecotone\Api\Projecting;
 use Attribute;
 
 /**
- * Marks a class as a custom PartitionProvider.
- * The class must implement \Ecotone\Projecting\PartitionProvider interface.
- * Userland partition providers are prioritized over built-in ones.
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/scaling-and-advanced#custom-extensions
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class PartitionProvider

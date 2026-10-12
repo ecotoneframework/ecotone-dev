@@ -41,7 +41,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -72,7 +72,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -104,7 +104,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )

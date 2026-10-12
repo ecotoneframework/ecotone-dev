@@ -72,7 +72,7 @@ final class InMemoryDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\InMemoryDocumentStore',
                 ]),

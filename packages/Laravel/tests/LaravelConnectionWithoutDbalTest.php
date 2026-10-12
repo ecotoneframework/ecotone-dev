@@ -32,7 +32,7 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::LARAVEL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::LARAVEL_PACKAGE])
                 ->withExtensionObjects([LaravelConnectionReference::create('reporting')]),
         );
     }
@@ -54,7 +54,7 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
             [$configuration::class],
             [$configuration],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::LARAVEL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::LARAVEL_PACKAGE]),
         );
     }
 

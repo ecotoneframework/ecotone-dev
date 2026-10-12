@@ -48,7 +48,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -77,7 +77,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
                         ->withPublisherConfirms(false),
@@ -108,7 +108,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -144,7 +144,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -190,7 +190,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -220,7 +220,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
                         ->withAutoDeclare(false),
@@ -258,7 +258,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )
@@ -306,7 +306,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withFailFast(false),
         );
 

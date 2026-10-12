@@ -24,7 +24,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\SuccessTransaction']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

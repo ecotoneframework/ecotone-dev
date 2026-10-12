@@ -535,7 +535,7 @@ class JMSConverterTest extends TestCase
             array_map(fn (object $converter) => $converter::class, $converters),
             $converters,
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withExtensionObjects($configuration ? [$configuration] : [])
         )
             ->getServiceFromContainer(ConversionService::REFERENCE_NAME);

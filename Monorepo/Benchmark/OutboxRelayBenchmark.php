@@ -231,7 +231,7 @@ class OutboxRelayBenchmark
                 $targetServices,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages(array_merge(
+                ->withEnabledModulePackageNames(array_merge(
                     [ModulePackageList::DBAL_PACKAGE],
                     $targetPackage !== null ? [$targetPackage] : [],
                 ))

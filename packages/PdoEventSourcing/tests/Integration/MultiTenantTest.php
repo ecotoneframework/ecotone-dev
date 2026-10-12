@@ -41,7 +41,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant',
@@ -121,7 +121,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant',
@@ -192,7 +192,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection',

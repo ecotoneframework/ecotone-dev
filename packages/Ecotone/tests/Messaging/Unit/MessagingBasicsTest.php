@@ -64,7 +64,7 @@ final class MessagingBasicsTest extends TestCase
             InMemoryPSRContainer::createFromObjects([
                 Booking::class => new Booking(),
             ]),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withEnvironment('prod')
                 ->withFailFast(false)
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Behat\Booking']),
@@ -84,7 +84,7 @@ final class MessagingBasicsTest extends TestCase
                 \Test\Ecotone\Messaging\Fixture\Behat\Shopping\Bookshop::class => new \Test\Ecotone\Messaging\Fixture\Behat\Shopping\Bookshop(),
                 \Test\Ecotone\Messaging\Fixture\Behat\Shopping\ToReservationRequestTransformer::class => new \Test\Ecotone\Messaging\Fixture\Behat\Shopping\ToReservationRequestTransformer(),
             ]),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withEnvironment('prod')
                 ->withFailFast(false)
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Behat\Shopping']),
@@ -285,7 +285,7 @@ final class MessagingBasicsTest extends TestCase
         return EcotoneLite::bootstrap(
             [],
             InMemoryPSRContainer::createFromObjects($objects),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withEnvironment('prod')
                 ->withFailFast(false)
                 ->withNamespaces([$namespace]),

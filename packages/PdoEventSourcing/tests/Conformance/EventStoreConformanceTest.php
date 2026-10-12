@@ -733,7 +733,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             classesToResolve: [$converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     match ($implementation) {
                         'in-memory' => EventSourcingConfiguration::createInMemory(),

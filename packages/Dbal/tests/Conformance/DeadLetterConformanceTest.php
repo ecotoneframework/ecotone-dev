@@ -253,7 +253,7 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
                 self::CUSTOM_GATEWAY_CONNECTION => $this->connectionOtherThanThePrimaryOne(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDeadLetter(true, inMemory: match ($implementation) {

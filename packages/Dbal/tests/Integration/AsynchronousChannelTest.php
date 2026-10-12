@@ -121,7 +121,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
                 ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor']),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -141,7 +141,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: array_merge($services, [DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',

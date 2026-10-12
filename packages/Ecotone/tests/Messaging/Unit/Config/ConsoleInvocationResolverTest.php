@@ -18,7 +18,7 @@ final class ConsoleInvocationResolverTest extends TestCase
     public function test_resolves_symfony_console_prefix_when_only_symfony_package_is_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE]);
 
         $this->assertSame('bin/console', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
@@ -26,7 +26,7 @@ final class ConsoleInvocationResolverTest extends TestCase
     public function test_resolves_laravel_console_prefix_when_only_laravel_package_is_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::LARAVEL_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::LARAVEL_PACKAGE]);
 
         $this->assertSame('php artisan', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
@@ -34,7 +34,7 @@ final class ConsoleInvocationResolverTest extends TestCase
     public function test_resolves_tempest_console_prefix_when_only_tempest_package_is_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
 
         $this->assertSame('./tempest', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
@@ -42,7 +42,7 @@ final class ConsoleInvocationResolverTest extends TestCase
     public function test_resolves_no_console_prefix_when_no_framework_integration_package_is_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]);
 
         $this->assertNull(ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
@@ -50,7 +50,7 @@ final class ConsoleInvocationResolverTest extends TestCase
     public function test_prefers_symfony_when_multiple_framework_integration_packages_are_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
 
         $this->assertSame('bin/console', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }

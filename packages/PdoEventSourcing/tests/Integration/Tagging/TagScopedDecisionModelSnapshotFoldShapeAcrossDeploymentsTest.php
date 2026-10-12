@@ -100,7 +100,7 @@ final class TagScopedDecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends
                 self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDocumentStore(),
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(SpentTodayAcrossDeployments::class, 1),

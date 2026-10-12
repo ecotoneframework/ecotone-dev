@@ -54,7 +54,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
@@ -114,7 +114,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
@@ -204,7 +204,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),

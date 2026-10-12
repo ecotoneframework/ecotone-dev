@@ -70,7 +70,7 @@ final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createForTesting()->withTransactionOnCommandBus(true),

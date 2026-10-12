@@ -62,7 +62,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
                     ),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'milk', metadata: ['tenant' => 'tenant_a']);

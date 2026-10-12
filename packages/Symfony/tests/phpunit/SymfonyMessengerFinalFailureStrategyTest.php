@@ -50,7 +50,7 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
@@ -74,7 +74,7 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
         EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create('some')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),

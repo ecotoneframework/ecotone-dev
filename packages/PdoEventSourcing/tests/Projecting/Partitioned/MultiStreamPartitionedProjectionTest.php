@@ -322,7 +322,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new SharedStreamEventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -609,7 +609,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new DifferentStreamEventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -629,7 +629,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

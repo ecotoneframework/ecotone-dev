@@ -242,7 +242,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -276,7 +276,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
             licenceKey: $licenceKey,

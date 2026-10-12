@@ -66,7 +66,7 @@ final class WithTenantResolverLicensingTest extends TestCase
             [$service::class],
             [$service, 'tenant_a_connection' => new FakeConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',

@@ -98,7 +98,7 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withFailFast($failFast)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState',

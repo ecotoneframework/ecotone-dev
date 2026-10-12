@@ -62,7 +62,7 @@ class EcotoneProvider extends ServiceProvider
             ->withCacheDirectoryPath($cacheDirectory);
 
         if ($modulePackages !== null) {
-            $applicationConfiguration = $applicationConfiguration->withModulePackages($modulePackages);
+            $applicationConfiguration = $applicationConfiguration->withEnabledModulePackageNames($modulePackages);
         }
 
         if (Config::get('ecotone.licenceKey') !== null) {

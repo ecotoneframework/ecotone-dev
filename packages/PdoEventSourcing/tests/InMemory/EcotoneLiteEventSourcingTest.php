@@ -32,7 +32,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -54,7 +54,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -78,7 +78,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -113,7 +113,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test'),
         );
 
@@ -147,7 +147,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connection), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false),

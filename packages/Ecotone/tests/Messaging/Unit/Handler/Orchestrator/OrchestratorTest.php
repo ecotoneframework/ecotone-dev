@@ -67,7 +67,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -89,7 +89,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, AuthorizationProcess::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -113,7 +113,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, CommandHandlerAuthorizationProcessor::class],
             [$orchestrator = new AuthorizationOrchestrator(), new CommandHandlerAuthorizationProcessor()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -137,7 +137,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, AsynchronousEventHandlerAuthorizationProcessor::class],
             [$orchestrator = new AuthorizationOrchestrator(), new AsynchronousEventHandlerAuthorizationProcessor()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -159,7 +159,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -181,7 +181,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
             [$orchestrator = new AuthorizationOrchestrator()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -202,7 +202,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorGatewayWithIncorrectRouting::class],
             [],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
     }
@@ -215,7 +215,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorGatewayWithIncorrectMetadata::class],
             [],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
     }
@@ -226,7 +226,7 @@ class OrchestratorTest extends TestCase
             [SimpleOrchestrator::class],
             [new SimpleOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -239,7 +239,7 @@ class OrchestratorTest extends TestCase
             [SimpleOrchestrator::class],
             [new SimpleOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -255,7 +255,7 @@ class OrchestratorTest extends TestCase
             [StringReturnTypeOrchestrator::class],
             [new StringReturnTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -269,7 +269,7 @@ class OrchestratorTest extends TestCase
             [InvalidReturnTypeOrchestrator::class],
             [new InvalidReturnTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -283,7 +283,7 @@ class OrchestratorTest extends TestCase
             [NoReturnTypeOrchestrator::class],
             [new NoReturnTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -297,7 +297,7 @@ class OrchestratorTest extends TestCase
             [UnionTypeOrchestrator::class],
             [new UnionTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -311,7 +311,7 @@ class OrchestratorTest extends TestCase
             [NullableArrayOrchestrator::class],
             [new NullableArrayOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -325,7 +325,7 @@ class OrchestratorTest extends TestCase
             [ArrayWithNonStringOrchestrator::class],
             [new ArrayWithNonStringOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -342,7 +342,7 @@ class OrchestratorTest extends TestCase
             [VoidReturnTypeOrchestrator::class],
             [new VoidReturnTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
     }
@@ -353,7 +353,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorEndingDuringFlow::class],
             [$service = new OrchestratorEndingDuringFlow()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -368,7 +368,7 @@ class OrchestratorTest extends TestCase
             [CombinedOrchestrator::class],
             [$service = new CombinedOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -383,7 +383,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorWithInternalBus::class],
             [$service = new OrchestratorWithInternalBus()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -398,7 +398,7 @@ class OrchestratorTest extends TestCase
             [AsynchronousOrchestrator::class],
             [$service = new AsynchronousOrchestrator()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -416,7 +416,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorWithAsynchronousStep::class],
             [$service = new OrchestratorWithAsynchronousStep()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -435,7 +435,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorWithAsynchronousAndInputOutputChannels::class],
             [$service = new OrchestratorWithAsynchronousAndInputOutputChannels()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -461,7 +461,7 @@ class OrchestratorTest extends TestCase
             [AuthorizationOrchestrator::class, AuthorizationProcessGateway::class],
             [new AuthorizationOrchestrator()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
     }
 
@@ -473,7 +473,7 @@ class OrchestratorTest extends TestCase
             [SimpleOrchestrator::class],
             [new SimpleOrchestrator()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             // No license key provided - should throw exception
         );
     }
@@ -484,7 +484,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorWithSplitterStep::class],
             [$service = new OrchestratorWithSplitterStep()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -505,7 +505,7 @@ class OrchestratorTest extends TestCase
             [OrchestratorWithSplitterOutputChannel::class],
             [$service = new OrchestratorWithSplitterOutputChannel()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 

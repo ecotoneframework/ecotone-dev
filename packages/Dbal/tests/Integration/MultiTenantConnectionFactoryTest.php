@@ -176,7 +176,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
             array_merge([new BetService()], $connections),
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
                         ->setExecutionAmountLimit(1),

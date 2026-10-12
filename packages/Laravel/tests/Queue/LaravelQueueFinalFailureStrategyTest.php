@@ -55,7 +55,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
@@ -79,7 +79,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
@@ -96,7 +96,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [DelayedService::class],
             $container,
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database'),
                 ])

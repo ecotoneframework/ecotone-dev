@@ -30,7 +30,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
         new ProductConverter(),
     ],
     configuration: ServiceConfiguration::createWithDefaults()
-        ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
 );
 
 /** @var ProductRepository $repository */

@@ -47,7 +47,7 @@ final class AppendConditionWithoutBoundaryTest extends EventSourcingMessagingTes
             classesToResolve: [UntaggedEventForAppendConditionWithoutBoundaryTest::class, EventsConverterForAppendConditionWithoutBoundaryTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForAppendConditionWithoutBoundaryTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             runForProductionEventStore: true,
         );
         $ecotone->setupDatabaseTables();

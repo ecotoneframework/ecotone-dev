@@ -45,7 +45,7 @@ class EcotoneExtension extends Extension
         ;
 
         if ($modulePackages !== null) {
-            $serviceConfiguration = $serviceConfiguration->withModulePackages($modulePackages);
+            $serviceConfiguration = $serviceConfiguration->withEnabledModulePackageNames($modulePackages);
         }
 
         if ($config['licenceKey'] !== null) {

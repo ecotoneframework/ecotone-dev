@@ -539,7 +539,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                             SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                         ]),
                 ])
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

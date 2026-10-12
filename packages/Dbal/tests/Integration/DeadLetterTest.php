@@ -254,7 +254,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
                 ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             classesToResolve: [$handler::class],
@@ -318,7 +318,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), 'logger' => $logger],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
         $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
@@ -359,7 +359,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge([\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], $extensionObjects))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',

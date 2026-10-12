@@ -86,7 +86,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Transaction',
                 ]),
@@ -181,7 +181,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
         );
         $ecotone->sendCommandWithRouting('command.prepare');
         $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
@@ -270,7 +270,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
         );
 
         $ecotone->sendCommand(new PrepareOrdersByClassCommandForTransaction());
@@ -293,7 +293,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Transaction',
                 ]),
@@ -312,7 +312,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         'tenant',

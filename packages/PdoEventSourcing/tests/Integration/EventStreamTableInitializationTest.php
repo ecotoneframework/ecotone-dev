@@ -99,7 +99,7 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ])

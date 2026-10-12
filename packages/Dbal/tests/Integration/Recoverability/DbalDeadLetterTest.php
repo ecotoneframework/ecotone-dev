@@ -121,7 +121,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults(),
                 ]),

@@ -58,7 +58,7 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpExchange::createDirectExchange(self::CUSTOM_EXCHANGE),
@@ -86,7 +86,7 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpExchange::createTopicExchange(self::TOPIC_EXCHANGE),
@@ -119,7 +119,7 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpExchange::createFanoutExchange(self::FANOUT_EXCHANGE),

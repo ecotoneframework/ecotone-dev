@@ -62,7 +62,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'])]);
@@ -87,7 +87,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -110,7 +110,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertNotNull($ecotone);
@@ -160,7 +160,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertNotNull($ecotone);
@@ -182,7 +182,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertNotNull($ecotone);
@@ -203,7 +203,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -222,7 +222,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -241,7 +241,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -260,7 +260,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -279,7 +279,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -298,7 +298,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -329,7 +329,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class, $customStreamSource::class],
             [$projection, $customStreamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -382,7 +382,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class, $customStateStorage::class],
             [$projection, $customStateStorage],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -418,7 +418,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class, $customPartitionProvider::class],
             [$projection, $customPartitionProvider],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -438,7 +438,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -498,7 +498,7 @@ final class ProjectionEnterpriseTest extends TestCase
                     [$projection::class],
                     [$projection],
                     configuration: ServiceConfiguration::createWithDefaults()
-                        ->withModulePackages([])
+                        ->withEnabledModulePackageNames([])
                 );
                 $refusals[$methodName] = '';
             } catch (LicensingException $exception) {
@@ -530,7 +530,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -561,7 +561,7 @@ final class ProjectionEnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 

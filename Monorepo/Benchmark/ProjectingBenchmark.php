@@ -46,7 +46,7 @@ class ProjectingBenchmark
                 ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
                 ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
                 ->withDefaultErrorChannel('errorChannel')
-                ->withModulePackages([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                 ]),

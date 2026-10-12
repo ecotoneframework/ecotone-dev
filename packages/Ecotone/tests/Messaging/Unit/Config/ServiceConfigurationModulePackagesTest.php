@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Config\ModuleClassList;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,18 +18,21 @@ use PHPUnit\Framework\TestCase;
  */
 final class ServiceConfigurationModulePackagesTest extends TestCase
 {
-    public function test_only_test_package_is_skipped_when_module_packages_were_not_defined(): void
+    public function test_every_package_except_test_is_enabled_when_enabled_module_package_names_were_not_defined(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults();
 
-        $this->assertFalse($serviceConfiguration->areSkippedPackagesDefined());
-        $this->assertSame([ModulePackageList::TEST_PACKAGE], $serviceConfiguration->getSkippedModulesPackages());
+        $this->assertFalse($serviceConfiguration->areEnabledModulePackageNamesDefined());
+        $this->assertSame(
+            array_values(array_diff(ModuleClassList::packageNames(), [ModulePackageList::TEST_PACKAGE])),
+            $serviceConfiguration->getEnabledModulePackageNames()
+        );
     }
 
     public function test_loading_empty_list_of_packages_keeps_core_package(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([]);
+            ->withEnabledModulePackageNames([]);
 
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::CORE_PACKAGE));
         $this->assertFalse($serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE));
@@ -38,7 +42,7 @@ final class ServiceConfigurationModulePackagesTest extends TestCase
     public function test_loading_given_packages_together_with_core_package(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE]);
 
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::CORE_PACKAGE));
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE));
@@ -49,7 +53,7 @@ final class ServiceConfigurationModulePackagesTest extends TestCase
     public function test_test_package_can_be_loaded_explicitly(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::TEST_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::TEST_PACKAGE]);
 
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE));
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::CORE_PACKAGE));
@@ -58,8 +62,8 @@ final class ServiceConfigurationModulePackagesTest extends TestCase
     public function test_last_call_to_module_packages_wins(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-            ->withModulePackages([ModulePackageList::AMQP_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+            ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE]);
 
         $this->assertFalse($serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE));
         $this->assertTrue($serviceConfiguration->isModulePackageEnabled(ModulePackageList::AMQP_PACKAGE));

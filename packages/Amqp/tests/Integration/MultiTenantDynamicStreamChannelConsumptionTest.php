@@ -66,7 +66,7 @@ final class MultiTenantDynamicStreamChannelConsumptionTest extends AmqpMessaging
             [$handler::class],
             [$handler, ...$this->getConnectionFactoryReferences()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($tenantAChannel),

@@ -101,7 +101,7 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages(
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
                 [ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::SYMFONY_PACKAGE, ]
             ),
@@ -126,7 +126,7 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages(
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
                 [ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::SYMFONY_PACKAGE, ]
             ),

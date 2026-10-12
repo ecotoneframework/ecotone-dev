@@ -94,7 +94,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         tenantHeaderName: 'tenant',

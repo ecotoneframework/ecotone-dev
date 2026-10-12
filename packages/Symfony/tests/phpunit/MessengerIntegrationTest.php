@@ -51,7 +51,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -73,7 +73,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -108,7 +108,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -131,7 +131,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -154,7 +154,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
@@ -177,7 +177,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -199,7 +199,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -222,7 +222,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -247,7 +247,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -270,7 +270,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncEventHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -304,7 +304,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])
@@ -325,7 +325,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
                 ])

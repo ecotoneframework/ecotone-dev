@@ -149,7 +149,7 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
             classesToResolve: [$streamDeletion::class],
             containerOrAvailableServices: [$streamDeletion, DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
@@ -175,7 +175,7 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
             classesToResolve: [$projection::class, Ticket::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Ticket'])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',

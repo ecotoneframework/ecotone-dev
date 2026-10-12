@@ -61,7 +61,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -118,7 +118,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     // First two commits should succeed, third should fail but recover
                     ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, false, true]),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -165,7 +165,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -193,7 +193,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     // Configure to break connection during dead letter storage
                     ConnectionBreakingConfiguration::createWithBreakBeforeCommit([true, false]),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -239,7 +239,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ['tenant_a' => 'tenant_a_connection'],
                     ),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -296,7 +296,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -362,7 +362,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
                     ),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -442,7 +442,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -500,7 +500,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 3)
                         ->withAsynchronousEndpointsRetry(false),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');
@@ -542,7 +542,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');

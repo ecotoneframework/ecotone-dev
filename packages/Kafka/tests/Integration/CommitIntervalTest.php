@@ -50,7 +50,7 @@ final class CommitIntervalTest extends TestCase
             [KafkaConsumerWithCommitInterval::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaConsumerWithCommitInterval()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('testTopic', $topicName),
@@ -133,7 +133,7 @@ final class CommitIntervalTest extends TestCase
             [$consumerClass],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $consumerInstance ?? new $consumerClass()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('testTopic', $topicName),

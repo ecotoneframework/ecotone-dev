@@ -144,7 +144,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('handlerLevelErrorChannel'),
                 ]),

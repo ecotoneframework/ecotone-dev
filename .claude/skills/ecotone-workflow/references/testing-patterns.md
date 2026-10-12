@@ -230,7 +230,7 @@ public function test_orchestrator_executes_steps_in_order(): void
         [AuthorizationOrchestrator::class],
         [$orchestrator = new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -249,7 +249,7 @@ public function test_orchestrator_via_business_interface(): void
         [AuthorizationOrchestrator::class, AuthorizationProcess::class],
         [new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -272,7 +272,7 @@ public function test_async_orchestrator(): void
         [AsyncWorkflow::class],
         [$service = new AsyncWorkflow()],
         ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             ->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
             ])

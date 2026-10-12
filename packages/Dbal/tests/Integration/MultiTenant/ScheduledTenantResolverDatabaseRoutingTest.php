@@ -174,7 +174,7 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
             ),
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(
                     $asynchronous
                         ? [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]

@@ -147,7 +147,7 @@ final class ClosureExpressionTest extends TestCase
         $configuration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
             ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-            ->withModulePackages([ModulePackageList::CORE_PACKAGE]);
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE]);
         $service = new ClosureExpressionService();
         $availableServices = [
             ClosureExpressionService::class => $service,

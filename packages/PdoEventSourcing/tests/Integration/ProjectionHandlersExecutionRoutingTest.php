@@ -27,7 +27,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [ProjectionWithObjectRouting::class, AnEvent::class, AnAggregate::class, Converters::class],
             containerOrAvailableServices: [$projection = new ProjectionWithObjectRouting(), new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true
         );
 

@@ -94,7 +94,7 @@ final class LiteralEventTagDecisionModelDbalTest extends EventSourcingMessagingT
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [self::getConnectionFactory(), new InvoiceIssuingHandlerForDbalLiteralTag(), new InvoiceConverterForDbalLiteralTag()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),

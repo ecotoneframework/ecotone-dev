@@ -61,7 +61,7 @@ class ComponentTestBuilder
         FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);
 
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $serviceConfiguration = $configuration ?? ServiceConfiguration::createWithDefaults()->withModulePackages([]);
+        $serviceConfiguration = $configuration ?? ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]);
         if ($defaultEnterpriseMode) {
             $serviceConfiguration = $serviceConfiguration->withLicenceKey(LicenceTesting::VALID_LICENCE);
         }

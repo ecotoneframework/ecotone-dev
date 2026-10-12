@@ -52,7 +52,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         $messageId = '1';
@@ -86,7 +86,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         $messageId = '1';
@@ -120,7 +120,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         // First call with orderId header
@@ -159,7 +159,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         // First call with specific payload
@@ -198,7 +198,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         // First call
@@ -251,7 +251,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         // First call with tracking_one
@@ -300,7 +300,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         // First call with custom tracking name

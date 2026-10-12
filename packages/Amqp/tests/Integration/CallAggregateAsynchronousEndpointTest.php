@@ -29,7 +29,7 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
                 ...self::getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('calendar'),
                 ])

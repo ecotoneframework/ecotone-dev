@@ -77,7 +77,7 @@ public function test_with_dbal_module(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [MyProjection::class],
         configuration: ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([
+            ->withEnabledModulePackageNames([
                 ModulePackageList::DBAL_PACKAGE,
                 ModulePackageList::EVENT_SOURCING_PACKAGE,
             ]),
@@ -94,7 +94,7 @@ public function test_with_dbal_module(): void
 | "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler class not in `classesToResolve` | Add the named class or load its namespace |
 | "Cannot move time backwards" | `changeTimeTo()` earlier than the test clock | Use a later time or `advanceTimeBy()` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
-| "Module not found" | Wrong `ModulePackageList` config | Check `withModulePackages([...])` lists the needed packages |
+| "Module not found" | Wrong `ModulePackageList` config | Check `withEnabledModulePackageNames([...])` lists the needed packages |
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
 | Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
 

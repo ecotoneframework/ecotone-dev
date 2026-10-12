@@ -72,7 +72,7 @@ final class DocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         ))->getGateway(DocumentStore::class)
         ;

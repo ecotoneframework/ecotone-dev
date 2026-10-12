@@ -59,7 +59,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends ConnectionTestCase
             [$handler::class],
             [$handler, SqsConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($tenantAChannel),
                     SqsBackedMessageChannelBuilder::create($tenantBChannel),

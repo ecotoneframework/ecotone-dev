@@ -71,7 +71,7 @@ final class LiteFlowTestingBenchmark
             [$handler::class],
             [$handler],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('execution'))
         );
         $this->executed = 0;
@@ -114,7 +114,7 @@ final class LiteFlowTestingBenchmark
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );

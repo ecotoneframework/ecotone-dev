@@ -88,7 +88,7 @@ final class AsynchronousChannelsInFlowTestsTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Registered asynchronous endpoint `notifyAboutOrder`, however channel configuration for `notifications` was not provided.');
 
-        EcotoneLite::bootstrap([$handler::class], [$handler], ServiceConfiguration::createWithDefaults()->withModulePackages([]));
+        EcotoneLite::bootstrap([$handler::class], [$handler], ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     private function notificationHandler(): object

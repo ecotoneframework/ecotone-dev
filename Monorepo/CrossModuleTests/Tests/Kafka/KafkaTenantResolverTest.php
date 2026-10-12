@@ -95,7 +95,7 @@ final class KafkaTenantResolverTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('tenant_a_topic', $tenantATopic),
                     TopicConfiguration::createWithReferenceName('tenant_b_topic', $tenantBTopic),

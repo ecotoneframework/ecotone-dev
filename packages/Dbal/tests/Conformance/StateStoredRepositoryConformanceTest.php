@@ -227,7 +227,7 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
         if ($implementation === 'in-memory') {
             return $this->bootstrapFlowTesting(
                 classesToResolve: $classesToResolve,
-                configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([]),
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             );
         }
 
@@ -235,7 +235,7 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDocumentStore(
                         inMemoryDocumentStore: $implementation === 'document-store-in-memory',

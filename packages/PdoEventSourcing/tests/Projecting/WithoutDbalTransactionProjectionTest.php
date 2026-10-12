@@ -295,7 +295,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
@@ -327,7 +327,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             runForProductionEventStore: true,

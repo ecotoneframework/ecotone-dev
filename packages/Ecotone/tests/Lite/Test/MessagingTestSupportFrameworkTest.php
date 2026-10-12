@@ -47,7 +47,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -66,7 +66,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withNamespaces(["Test\Ecotone\Modelling\Fixture\Order"]),
@@ -87,7 +87,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';
@@ -104,7 +104,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -123,7 +123,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -142,7 +142,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
@@ -185,7 +185,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
@@ -222,7 +222,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -244,7 +244,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -266,7 +266,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
@@ -288,7 +288,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
@@ -305,7 +305,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -322,7 +322,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -339,7 +339,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
@@ -357,7 +357,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(true),
@@ -374,7 +374,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
@@ -391,7 +391,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(true),
@@ -408,7 +408,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [Order::class],
             [],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
@@ -435,7 +435,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class],
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             allowGatewaysToBeRegisteredInContainer: true
         );
@@ -463,7 +463,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
                 ->withCacheDirectoryPath($cacheDirectoryPath)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             useCachedVersion: true
         );
@@ -473,7 +473,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
                 ->withCacheDirectoryPath($cacheDirectoryPath)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             useCachedVersion: true
         );

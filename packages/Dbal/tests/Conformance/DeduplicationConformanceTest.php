@@ -179,7 +179,7 @@ final class DeduplicationConformanceTest extends DbalMessagingTestCase
             classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers, DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDeduplication(expirationTime: self::ONE_HOUR_IN_MILLISECONDS, inMemory: match ($implementation) {

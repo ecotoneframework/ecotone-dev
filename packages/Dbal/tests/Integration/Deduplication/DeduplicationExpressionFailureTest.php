@@ -24,7 +24,7 @@ final class DeduplicationExpressionFailureTest extends DbalMessagingTestCase
             classesToResolve: [BrokenDeduplicationExpressionHandler::class],
             containerOrAvailableServices: [new BrokenDeduplicationExpressionHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
         );
 
         $this->expectException(ExpressionEvaluationException::class);

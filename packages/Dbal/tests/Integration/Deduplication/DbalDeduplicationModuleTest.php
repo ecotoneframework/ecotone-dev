@@ -36,7 +36,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -64,7 +64,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                 ])
@@ -97,7 +97,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -125,7 +125,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 60000),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -156,7 +156,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -187,7 +187,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(false),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -216,7 +216,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
                         ->withAutoDeclare(false),
@@ -243,7 +243,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -268,7 +268,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -293,7 +293,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -318,7 +318,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -344,7 +344,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -369,7 +369,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),
@@ -395,7 +395,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                     DbalBackedMessageChannelBuilder::create('async_expression'),

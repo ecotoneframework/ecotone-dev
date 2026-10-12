@@ -28,7 +28,7 @@ final class ValueObjectIdentifierTest extends TestCase
             containerOrAvailableServices: [new ArticleEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier',
                 ]),

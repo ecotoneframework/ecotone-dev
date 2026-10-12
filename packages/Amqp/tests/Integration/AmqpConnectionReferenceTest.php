@@ -30,7 +30,7 @@ final class AmqpConnectionReferenceTest extends AmqpMessagingTestCase
                 AmqpConnectionReference::DEFAULT => $connection_factory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queue_name),
                 ]),

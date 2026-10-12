@@ -433,7 +433,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DATA_PROTECTION_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\NonPollable'])
                 ->withExtensionObjects(
                     [
@@ -519,7 +519,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration'])
                 ->withExtensionObjects([
                     $channelProtectionConfiguration,

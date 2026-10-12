@@ -77,7 +77,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
@@ -149,7 +149,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),

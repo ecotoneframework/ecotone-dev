@@ -270,9 +270,9 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
-            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',

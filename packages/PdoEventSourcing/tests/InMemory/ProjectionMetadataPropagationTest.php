@@ -28,7 +28,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
                 ])
@@ -55,7 +55,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
@@ -76,7 +76,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),

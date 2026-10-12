@@ -34,7 +34,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),

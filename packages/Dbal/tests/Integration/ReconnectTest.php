@@ -87,7 +87,7 @@ final class ReconnectTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge([
                     DbalBackedMessageChannelBuilder::create('orders'),
                     DbalBackedMessageChannelBuilder::create('processOrders'),

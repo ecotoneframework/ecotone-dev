@@ -29,7 +29,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
             [TestEventConverter::class],
             [new TestEventConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     $eventSourcingConfiguration,

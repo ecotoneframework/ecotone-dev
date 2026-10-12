@@ -166,7 +166,7 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
                 new PublishedHeadersCollectorForTagSnapshotDbalTest(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDocumentStore(),
                     $boundaryConfiguration,

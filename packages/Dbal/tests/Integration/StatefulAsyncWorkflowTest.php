@@ -62,7 +62,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
                 $this->getConnectionFactory(),
             ],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
             pathToRootCatalog: __DIR__ . '/../../'
         );

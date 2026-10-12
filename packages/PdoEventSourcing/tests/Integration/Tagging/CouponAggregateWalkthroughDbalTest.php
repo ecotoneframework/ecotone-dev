@@ -172,7 +172,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
             classesToResolve: [...self::CLASSES, PublishedEventHeadersCollectorForDbalCouponTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalCouponTest(), new CompetingWriteInjectorForDbalCouponTest(), new PublishedEventHeadersCollectorForDbalCouponTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),

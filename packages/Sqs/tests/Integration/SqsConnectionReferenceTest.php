@@ -33,7 +33,7 @@ final class SqsConnectionReferenceTest extends ConnectionTestCase
                 SqsConnectionReference::DEFAULT => $connection_factory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queue_name),
                 ])

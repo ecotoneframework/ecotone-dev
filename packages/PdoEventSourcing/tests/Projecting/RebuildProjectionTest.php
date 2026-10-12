@@ -436,7 +436,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
             classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->withExtensionObjects(is_array($channels) ? $channels : []),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

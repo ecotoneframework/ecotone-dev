@@ -30,7 +30,7 @@ final class SetupDatabaseTablesWithoutDatabaseTest extends TestCase
             self::fail('Expected setting up tables without a database module to be refused');
         } catch (ConfigurationException $exception) {
             self::assertStringContainsString('setupDatabaseTables() has no database tables to set up', $exception->getMessage());
-            self::assertStringContainsString('withModulePackages([ModulePackageList::DBAL_PACKAGE])', $exception->getMessage());
+            self::assertStringContainsString('withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])', $exception->getMessage());
             self::assertStringContainsString('or remove the call', $exception->getMessage());
         }
     }

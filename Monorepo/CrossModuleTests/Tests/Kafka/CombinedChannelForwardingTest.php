@@ -57,7 +57,7 @@ final class CombinedChannelForwardingTest extends TestCase
             [$orderService::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'kafkaOutbox', 'orderProcessing'),
                     KafkaMessageChannelBuilder::create('kafkaOutbox', topicName: $uniqueId, messageGroupId: $uniqueId),

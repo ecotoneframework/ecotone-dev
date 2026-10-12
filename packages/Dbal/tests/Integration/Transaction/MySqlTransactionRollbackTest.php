@@ -96,7 +96,7 @@ final class MySqlTransactionRollbackTest extends TestCase
             containerOrAvailableServices: [$orderService, DbalConnectionFactory::class => $this->createConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
     }
 

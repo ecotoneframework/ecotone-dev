@@ -78,7 +78,7 @@ class ProjectingTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
@@ -140,7 +140,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $streamSource::class],
             [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -201,7 +201,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $streamSource::class],
             [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
@@ -577,7 +577,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $streamSource::class],
             [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -640,7 +640,7 @@ class ProjectingTest extends TestCase
             [$projectionA::class, $projectionB::class],
             [$projectionA, $projectionB],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -856,7 +856,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
             [$projection, $userlandPartitionProvider, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
@@ -920,7 +920,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
             [$projection, $userlandPartitionProvider, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
@@ -1068,7 +1068,7 @@ class ProjectingTest extends TestCase
             [$projection::class, $userlandStorage::class, $streamSource::class],
             [$projection, $userlandStorage, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             addInMemoryStateStoredRepository: false,
         );

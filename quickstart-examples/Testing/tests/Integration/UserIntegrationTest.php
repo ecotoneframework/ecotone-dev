@@ -27,7 +27,7 @@ final class UserIntegrationTest extends TestCase
             [new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
             ServiceConfiguration::createWithDefaults()
                 ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ]),

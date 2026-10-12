@@ -56,7 +56,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -76,7 +76,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -107,7 +107,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [new ClosureDeduplicatedHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
     }
 
@@ -121,7 +121,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
     }
 
@@ -167,7 +167,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             [$poller, $receiver, 'tenant_a_connection' => new FakeConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
                         ->setExecutionAmountLimit(1)
@@ -209,7 +209,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

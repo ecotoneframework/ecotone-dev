@@ -220,7 +220,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule
     {
         $streams = [
             StreamTableRegistry::DEFAULT_STREAM => [
-                'table' => $eventSourcingConfiguration->getEventStreamTableName(),
+                'table' => $eventSourcingConfiguration->getDefaultEventStreamTableName(),
                 'connection' => $eventSourcingConfiguration->getConnectionReferenceName(),
             ],
         ];

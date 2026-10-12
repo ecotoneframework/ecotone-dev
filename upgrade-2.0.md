@@ -1570,6 +1570,36 @@ registers the broker with `KafkaBrokerConfiguration::class` follows the move onc
 registered under the old id as a string (a Symfony service id, a Laravel binding) or a `brokerConfigurationReference`
 passed as the old string is no longer found. Register it under the new id.
 
+**The gateways' container ids change with their classes too.** Ecotone registers each gateway below — and the clock —
+under its interface's `::class`, so its container id is the class's FQCN and moves with it. No alias is kept under the
+1.x id:
+
+| Service | 1.x id | 2.0 id | Defaults that follow it |
+|---|---|---|---|
+| `CommandBus` | `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` | |
+| `EventBus` | `Ecotone\Modelling\EventBus` | `Ecotone\Api\Gateway\EventBus` | |
+| `QueryBus` | `Ecotone\Modelling\QueryBus` | `Ecotone\Api\Gateway\QueryBus` | |
+| `DistributedBus` | `Ecotone\Modelling\DistributedBus` | `Ecotone\Api\Gateway\DistributedBus` | `DistributedServiceMap::initialize(referenceName:)`, `FlowTestSupport::getDistributedBus()` |
+| `MessagePublisher` | `Ecotone\Messaging\MessagePublisher` | `Ecotone\Api\Gateway\MessagePublisher` | the default reference name of `AmqpMessagePublisherConfiguration`, `SqsMessagePublisherConfiguration`, `RedisMessagePublisherConfiguration` and `KafkaPublisherConfiguration`; `getMessagePublisher()` |
+| `DocumentStore` | `Ecotone\Messaging\Store\Document\DocumentStore` | `Ecotone\Api\Gateway\DocumentStore` | `DbalConfiguration::withDocumentStore(reference:)` |
+| `DeadLetterGateway` | `Ecotone\Dbal\Recoverability\DeadLetterGateway` | `Ecotone\Api\Dbal\Gateway\DeadLetterGateway` | |
+| `SerializerGateway` (1.x `Serializer`, renamed; §7) | `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` | |
+| `EcotoneClockInterface` | `Ecotone\Messaging\Scheduling\EcotoneClockInterface` | `Ecotone\Api\Gateway\EcotoneClockInterface` | |
+| `EventStore` (§13b) | `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` | `EventSourcingConfiguration::create(eventStoreReferenceName:)`, `#[FromStream]` and `#[FromAggregateStream]`'s `eventStoreReferenceName` |
+
+**Code that names these by `::class` is unaffected** once its import is updated: a constructor or handler parameter
+typed `CommandBus`, `$container->get(CommandBus::class)`, `$app->make(EventStore::class)`,
+`$ecotone->getGateway(DeadLetterGateway::class)`, and every default in the last column follow the class. **What breaks
+is the 1.x id spelled as a string**: a Symfony `services.yaml` argument or alias such as `'@Ecotone\Modelling\CommandBus'`,
+a Laravel `app('Ecotone\EventSourcing\EventStore')` or a binding keyed on the old name, an
+`EventSourcingConfiguration::create(eventStoreReferenceName: 'Ecotone\EventSourcing\EventStore')`, a
+`#[FromStream('orders', eventStoreReferenceName: 'Ecotone\EventSourcing\EventStore')]`, or a publisher, distributed bus or
+document store reference passed as the old string. Nothing is registered under the old id any more, so a lookup
+fails, and a reference name that was meant to match the default now names a separate service. A clock you registered
+yourself under the old `EcotoneClockInterface` id is not the one Ecotone uses: it looks the clock up under the new id
+and, finding nothing there, uses its own. Spell the new id, or use `::class`. `EventStore::RAW_REFERENCE` is the
+exception: it is a string constant, still `'ecotone.eventSourcing.eventStore.instance'`.
+
 **How to adapt:** Replace the imports using the full old → new mapping in
 [`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
 (two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. The full
@@ -1667,8 +1697,11 @@ use Ecotone\Api\EventSourcing\EventStore;
 | `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` |
 
 **How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same interface name, same
-methods. The event store's container id is unchanged: `EventStore::RAW_REFERENCE` is still
-`'ecotone.eventSourcing.eventStore.instance'`.
+methods. **The gateway's container id moves with the class**, from `Ecotone\EventSourcing\EventStore` to
+`Ecotone\Api\EventSourcing\EventStore`, and so does the default `eventStoreReferenceName` of
+`EventSourcingConfiguration::create()`, `#[FromStream]` and `#[FromAggregateStream]` — the table in §13 lists what
+breaks: a lookup or reference spelling the 1.x id as a string. Only `EventStore::RAW_REFERENCE`, a string constant,
+is unchanged: still `'ecotone.eventSourcing.eventStore.instance'`.
 
 **`ConversionService` is internal, at its 1.x name — this is its second move inside 2.0.** An earlier 2.0 build moved
 it to `Ecotone\Api\Conversion\ConversionService`, and this section then told you to follow it. It has moved back to
@@ -1906,8 +1939,8 @@ because `PollableChannel` extends it.
 methods, same parameters — `EcotoneLite::bootstrapFlowTesting(classesToResolve: …, licenceKey: …)` takes the same
 named arguments, and a channel you implemented yourself keeps its methods, now implementing the `Api` interface.
 
-**Two container ids change, unlike every move before this one.** §13a to §13d moved no container service, so no id
-moved with them. Two of these types are services registered under their class name, so the id is the new FQCN:
+**Two container ids change**, as the gateways' did in §13 and `EventStore`'s in §13b; §13a, §13c and §13d moved no
+container service. Two of these types are services registered under their class name, so the id is the new FQCN:
 
 | Service | 1.x and early 2.0 id | 2.0 id |
 |---|---|---|

@@ -39,6 +39,9 @@ use PHPUnit\Framework\TestCase;
  * Keeping this notice in the copy does not grant that licence and does not make the copy
  * permitted. Renaming the class or the namespace does not either.
  *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  *
  * @internal

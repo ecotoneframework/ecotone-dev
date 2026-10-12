@@ -8,13 +8,14 @@ use function array_keys;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 /**
  * licence Apache-2.0
  */
 final class StreamTableRegistry implements DefinedObject
 {
-    public const DEFAULT_STREAM = 'ecotone_event_stream';
+    public const DEFAULT_STREAM = AggregateDefinitionResolver::DEFAULT_STREAM;
 
     /**
      * @param array<string, array{table: string, connection: string}> $streams

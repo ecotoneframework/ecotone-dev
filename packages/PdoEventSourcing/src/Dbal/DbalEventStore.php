@@ -580,7 +580,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
             return [$where, $parameters, $types];
         }
 
-        foreach ($metadataMatcher->data() as $match) {
+        foreach ($metadataMatcher->data as $match) {
             /** @var FieldType $fieldType */
             $fieldType = $match['fieldType'];
             /** @var Operator $operator */

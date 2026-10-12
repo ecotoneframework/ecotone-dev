@@ -383,7 +383,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
     private function matchesMetadata(MetadataMatcher $metadataMatcher, array $metadata): bool
     {
-        foreach ($metadataMatcher->data() as $match) {
+        foreach ($metadataMatcher->data as $match) {
             if ($match['fieldType'] !== FieldType::METADATA) {
                 continue;
             }
@@ -408,7 +408,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
     private function matchesEventProperty(MetadataMatcher $metadataMatcher, Event $event): bool
     {
-        foreach ($metadataMatcher->data() as $match) {
+        foreach ($metadataMatcher->data as $match) {
             if ($match['fieldType'] !== FieldType::MESSAGE_PROPERTY) {
                 continue;
             }

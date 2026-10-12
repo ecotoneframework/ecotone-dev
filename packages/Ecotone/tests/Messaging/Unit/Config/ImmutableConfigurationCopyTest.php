@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Closure;
+use Ecotone\Api\EventSourcing\FieldType;
+use Ecotone\Api\EventSourcing\MetadataMatcher;
+use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
 use PHPUnit\Framework\TestCase;
 
@@ -23,6 +26,21 @@ final class ImmutableConfigurationCopyTest extends TestCase
             $original,
             fn (ChannelInitializationConfiguration $configuration) => $configuration->withAutomaticChannelInitialization(false),
             ['automaticChannelInitialization' => false],
+        );
+    }
+
+    public function test_metadata_matcher_copy_appends_only_the_new_match(): void
+    {
+        $original = MetadataMatcher::create([])->withMetadataMatch('_aggregate_id', Operator::EQUALS, '123');
+
+        self::assertSame(['data'], array_keys(get_object_vars($original)));
+        self::assertCopyChangesOnly(
+            $original,
+            fn (MetadataMatcher $matcher) => $matcher->withMetadataMatch('event_name', Operator::IN, ['created'], FieldType::MESSAGE_PROPERTY),
+            ['data' => [
+                ['field' => '_aggregate_id', 'operator' => Operator::EQUALS, 'value' => '123', 'fieldType' => FieldType::METADATA],
+                ['field' => 'event_name', 'operator' => Operator::IN, 'value' => ['created'], 'fieldType' => FieldType::MESSAGE_PROPERTY],
+            ]],
         );
     }
 

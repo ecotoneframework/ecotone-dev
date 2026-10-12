@@ -10,7 +10,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->parameters()->set('app.env_multiplier', '%env(int:APP_MULTIPLIER)%');
 
     $containerConfigurator->extension('ecotone', [
-        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
+        'enabledModulePackageNames' => [ModulePackageList::SYMFONY_PACKAGE,
             ModulePackageList::DBAL_PACKAGE, ],
     ]);
 

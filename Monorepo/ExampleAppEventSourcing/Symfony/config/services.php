@@ -16,7 +16,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
-        'modulePackages' => \json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? [],
+        'enabledModulePackageNames' => \json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? [],
     ]);
 
     $services = $containerConfigurator->services();

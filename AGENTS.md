@@ -275,10 +275,16 @@ noise floor before it states a result.
 
 - Conventional subjects, scoped: `feat(dcb):`, `fix(event-sourcing):`, `refactor(modelling):`, `test(dbal):`,
   `docs(2.0):`, `style(dcb):`. One increment per commit
-- Every commit carries an 08:00 timestamp:
+- **Every commit is timestamped at 08:00, or at any time from 18:00 onwards — never between the two.**
+  Merge commits included: the five commits on this branch that break the rule are all merges where the
+  environment variables were left off, so `git merge` took the wall clock.
   ```bash
   GIT_AUTHOR_DATE="$(date +%Y-%m-%d) 08:00:00" GIT_COMMITTER_DATE="$(date +%Y-%m-%d) 08:00:00" git commit ...
+  # and on a merge, which otherwise takes the wall clock:
+  GIT_AUTHOR_DATE="$(date +%Y-%m-%d) 08:00:00" GIT_COMMITTER_DATE="$(date +%Y-%m-%d) 08:00:00" git merge ...
   ```
+  Both variables matter: a commit can pass on its author date and fail on its committer date, which is
+  what a cherry-pick or a rebase leaves behind.
 - `Monorepo/*/Symfony/config/reference.php` is gitignored and untracked - it regenerates on every Symfony run
 
 ## Opening a Pull Request

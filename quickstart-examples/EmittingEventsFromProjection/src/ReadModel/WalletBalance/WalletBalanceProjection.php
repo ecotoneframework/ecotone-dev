@@ -10,6 +10,7 @@ use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Reference;
 
 #[Projection(self::PROJECTION_NAME)]
 #[FromAggregateStream(Wallet::class)]
@@ -17,31 +18,29 @@ final class WalletBalanceProjection
 {
     const PROJECTION_NAME = "wallet_balance";
 
-    public function __construct(private DocumentStore $documentStore) {}
-
     #[EventHandler]
-    public function whenMoneyWasAdded(MoneyWasAddedToWallet $event, EventStreamEmitter $eventStreamEmitter): void
+    public function whenMoneyWasAdded(MoneyWasAddedToWallet $event, EventStreamEmitter $eventStreamEmitter, #[Reference] DocumentStore $documentStore): void
     {
-        $wallet =  $this->getWalletFor($event->walletId);
+        $wallet =  $this->getWalletFor($documentStore, $event->walletId);
         $wallet = $wallet->add($event->amount);
-        $this->saveWallet($wallet);
+        $this->saveWallet($documentStore, $wallet);
 
         $eventStreamEmitter->emit([new WalletBalanceWasChanged($event->walletId, $wallet->currentBalance)]);
     }
 
     #[EventHandler]
-    public function whenMoneyWasSubtract(MoneyWasSubtractedFromWallet $event, EventStreamEmitter $eventStreamEmitter): void
+    public function whenMoneyWasSubtract(MoneyWasSubtractedFromWallet $event, EventStreamEmitter $eventStreamEmitter, #[Reference] DocumentStore $documentStore): void
     {
-        $wallet =  $this->getWalletFor($event->walletId);
+        $wallet =  $this->getWalletFor($documentStore, $event->walletId);
         $wallet = $wallet->subtract($event->amount);
-        $this->saveWallet($wallet);
+        $this->saveWallet($documentStore, $wallet);
 
         $eventStreamEmitter->emit([new WalletBalanceWasChanged($event->walletId, $wallet->currentBalance)]);
     }
 
-    private function getWalletFor(string $walletId): WalletBalanceState
+    private function getWalletFor(DocumentStore $documentStore, string $walletId): WalletBalanceState
     {
-        $wallet = $this->documentStore->findDocument(self::PROJECTION_NAME, $walletId);
+        $wallet = $documentStore->findDocument(self::PROJECTION_NAME, $walletId);
         if (is_null($wallet)) {
             $wallet = new WalletBalanceState($walletId, 0);
         }
@@ -49,8 +48,8 @@ final class WalletBalanceProjection
         return $wallet;
     }
 
-    private function saveWallet(WalletBalanceState $wallet): void
+    private function saveWallet(DocumentStore $documentStore, WalletBalanceState $wallet): void
     {
-        $this->documentStore->upsertDocument(self::PROJECTION_NAME, $wallet->walletId, $wallet, DocumentStore::LAST_WRITE_WINS);
+        $documentStore->upsertDocument(self::PROJECTION_NAME, $wallet->walletId, $wallet, DocumentStore::LAST_WRITE_WINS);
     }
 }

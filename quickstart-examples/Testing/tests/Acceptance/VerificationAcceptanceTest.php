@@ -21,6 +21,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\App\Fixture\StubTokenGenerator;
@@ -43,7 +44,8 @@ final class VerificationAcceptanceTest extends TestCase
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
-                ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
+                ->advanceTimeBy(TimeSpan::withHours(25))
+                ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)
                 ->popRecordedCommandsWithRouting()
         );
     }

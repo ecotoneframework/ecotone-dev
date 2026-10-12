@@ -326,7 +326,7 @@ final class DbalDocumentStore implements DocumentStore
     private function getDocumentsFor(string $collectionName): QueryBuilder
     {
         return $this->getConnection()->createQueryBuilder()
-            ->select('document', 'document_type')
+            ->select('document_id', 'collection', 'document', 'document_type')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
             ->setParameter('collection', $collectionName, Types::TEXT);
@@ -348,7 +348,13 @@ final class DbalDocumentStore implements DocumentStore
                 MediaType::createApplicationXPHP()
             );
         } catch (ConversionException $conversionException) {
-            throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be converted from JSON to PHP object', $select['document_id']), $conversionException);
+            throw DocumentException::createFromPreviousException(sprintf(
+                "Document with id '%s' in collection '%s' can not be converted from JSON to PHP object of type %s: %s Make the type readable by your converter again, or rewrite or delete the document with DocumentStore::upsertDocument() or DocumentStore::deleteDocument().",
+                $select['document_id'],
+                $select['collection'],
+                $select['document_type'],
+                $conversionException->getMessage(),
+            ), $conversionException);
         }
 
         return $data;

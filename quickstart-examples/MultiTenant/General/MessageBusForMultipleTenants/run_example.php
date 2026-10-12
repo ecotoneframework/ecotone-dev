@@ -1,13 +1,14 @@
 <?php
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
+use App\MultiTenant\Application\PersonService;
 use App\MultiTenant\Application\RegisterPerson;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 
-$messagingSystem = bootstrapEcotone(__DIR__);
+$messagingSystem = bootstrapEcotone(__DIR__, [new PersonService()]);
 runMigrationForTenants();
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();

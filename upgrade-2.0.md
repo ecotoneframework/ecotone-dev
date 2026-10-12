@@ -2684,6 +2684,21 @@ application reaches the dead letter through `DeadLetterGateway`, and through the
 constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL` and `REPLAY_ALL_CHANNEL`, whose values
 end in `replay` and `replayAll` (§15).
 
+### Forced trace flushing refuses a tracer provider that cannot flush
+
+**Before:** with the `tracing` package loaded, `TracerProviderInterface` bound to an API-level provider such as
+OpenTelemetry's `NoopTracerProvider` let the application boot, and the first command, query or distributed bus call died
+with `Call to undefined method OpenTelemetry\API\Trace\NoopTracerProvider::forceFlush()`, after its handler had run.
+
+**Now:** the forced flush, which `TracingConfiguration` turns on by default for bus calls and asynchronous messages,
+refuses such a provider with a `ConfigurationException` when it is first resolved, before any handler runs: `Tracing
+forces a flush of collected spans after every bus call and every handled asynchronous message, but
+OpenTelemetry\API\Trace\TracerProviderInterface is bound to OpenTelemetry\API\Trace\NoopTracerProvider, which cannot flush: …`
+
+**How to adapt:** bind `OpenTelemetry\API\Trace\TracerProviderInterface` to an SDK tracer provider
+(`OpenTelemetry\SDK\Trace\TracerProvider`), or turn the forced flush off with
+`TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)`.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

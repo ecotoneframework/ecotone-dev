@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Event\CustomerRegistered;
+use App\Tests\ClassExcludedFromClassmapWithAttribute;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
@@ -9,8 +10,9 @@ exec("composer update --ignore-platform-reqs");
 
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [new ClassExcludedFromClassmapWithAttribute()],
     pathToRootCatalog: __DIR__,
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+    configuration: ServiceConfiguration::createWithDefaults()
         ->doNotLoadCatalog()
         ->withNamespaces(["App"]),
 );

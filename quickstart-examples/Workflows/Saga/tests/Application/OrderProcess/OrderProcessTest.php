@@ -28,7 +28,7 @@ final class OrderProcessTest extends TestCase
             [
                 OrderService::class => new StubOrderService($totalPrice)
             ],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_saga')));
 
         $ecotoneLite->publishEvent(new OrderWasPlaced($orderId));
 
@@ -53,13 +53,13 @@ final class OrderProcessTest extends TestCase
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor())
             ],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_saga')));
 
         $this->assertEquals(
             OrderProcessStatus::READY_TO_BE_SHIPPED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->run('async')
+                ->run('async_saga')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }
@@ -74,14 +74,15 @@ final class OrderProcessTest extends TestCase
                 PaymentService::class => new PaymentService(new PaymentProcessor(successAfterAttempt: 3))
             ],
             configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(// Make Message Channel aware of the delay
-                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true)));
+                SimpleMessageChannelBuilder::createQueueChannel('async_saga', delayable: true)));
 
         $this->assertEquals(
             OrderProcessStatus::CANCELLED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->advanceTimeBy(new TimeSpan(hours: 1))
-                ->run('async')
+                ->run('async_saga')
+                ->advanceTimeBy(new TimeSpan(hours: 1, minutes: 1))
+                ->run('async_saga')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }

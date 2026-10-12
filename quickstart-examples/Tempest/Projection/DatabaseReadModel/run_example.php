@@ -33,9 +33,10 @@ $eventStore = $messagingSystem->getServiceFromContainer(EventStore::class);
 
 echo "== Tempest Projection Quickstart - Database Read Model ==\n\n";
 
-if ($eventStore->hasStream(User::class)) {
-    $eventStore->delete(User::class);
+if ($eventStore->hasStream(User::STREAM)) {
+    $eventStore->delete(User::STREAM);
 }
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 echo "1) Delete projection (clean slate)\n";
 $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => 'user_list_database']);

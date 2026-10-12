@@ -13,15 +13,14 @@ use Ecotone\Api\Attribute\EventHandler;
 
 final class NotificationSubscriber
 {
-    public function __construct(private readonly OrderRepository $orderRepository,
-        private readonly UserRepository $userRepository, private readonly NotificationSender $notificationSender)
+    public function __construct(private readonly UserRepository $userRepository, private readonly NotificationSender $notificationSender)
     {}
 
     #[Asynchronous(MessageChannelConfiguration::ASYNCHRONOUS_CHANNEL)]
     #[EventHandler(endpointId: "notifyWhenOrderWasPlaced")]
-    public function whenOrderWasPlaced(OrderWasPlaced $event): void
+    public function whenOrderWasPlaced(OrderWasPlaced $event, OrderRepository $orderRepository): void
     {
-        $order = $this->orderRepository->getBy($event->orderId);
+        $order = $orderRepository->getBy($event->orderId);
         $user = $this->userRepository->getBy($order->getUserId());
 
         $this->notificationSender->send(new OrderConfirmationNotification(

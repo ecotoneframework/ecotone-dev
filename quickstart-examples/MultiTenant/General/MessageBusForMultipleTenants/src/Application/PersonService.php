@@ -12,9 +12,9 @@ use Ecotone\Api\Attribute\QueryHandler;
 final class PersonService
 {
     #[CommandHandler]
-    public function handle(RegisterPerson $command, PersonRepository $personRepository): void
+    public function handle(RegisterPerson $command, #[Reference] MultiTenantConnectionFactory $connectionFactory): void
     {
-        $personRepository->save(Person::register($command));
+        (new PersonRepository($connectionFactory))->save(Person::register($command));
     }
 
     #[QueryHandler('person.getAllRegistered')]

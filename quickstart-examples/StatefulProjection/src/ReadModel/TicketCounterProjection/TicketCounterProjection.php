@@ -17,9 +17,9 @@ final class TicketCounterProjection
     const NAME = "ticket_counter";
 
     #[EventHandler]
-    public function when(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter, #[ProjectionState] TicketCounterState $state = new TicketCounterState(0)): TicketCounterState
+    public function when(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter, #[ProjectionState] ?TicketCounterState $state = null): TicketCounterState
     {
-        $state = $state->increase();
+        $state = ($state ?? new TicketCounterState(0))->increase();
 
         $eventStreamEmitter->emit([new TicketCounterWasChanged($state->count)]);
 

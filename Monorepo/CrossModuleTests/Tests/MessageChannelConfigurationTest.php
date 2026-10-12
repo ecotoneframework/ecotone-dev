@@ -46,7 +46,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_using_requeuing_on_failure(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -55,7 +55,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames($modulePackagesToLoad)
+                ->withEnabledModulePackageNames($enabledModulePackageNames)
                 ->withExtensionObjects([
                     $messageChannelBuilder,
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -78,7 +78,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_using_default_error_channel(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -87,7 +87,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames($modulePackagesToLoad)
+                ->withEnabledModulePackageNames($enabledModulePackageNames)
                 ->withExtensionObjects([
                     $messageChannelBuilder,
                     SimpleMessageChannelBuilder::createQueueChannel(self::ERROR_CHANNEL)
@@ -107,7 +107,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_custom_serialization(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -116,7 +116,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($modulePackagesToLoad, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects([
                     $messageChannelBuilder
                 ])
@@ -137,7 +137,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_serialization_on_the_channel(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -148,7 +148,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($modulePackagesToLoad, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects([
                     $messageChannelBuilder
                         ->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)
@@ -169,7 +169,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_it_passes_all_application_headers_by_default(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -178,7 +178,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($modulePackagesToLoad, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects([
                     $messageChannelBuilder
                 ]),
@@ -200,7 +200,7 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_it_passes_filtered_application_headers(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
-        array                                  $modulePackagesToLoad,
+        array                                  $enabledModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -211,7 +211,7 @@ final class MessageChannelConfigurationTest extends TestCase
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($modulePackagesToLoad, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects([
                     $messageChannelBuilder
                         ->withHeaderMapping('token')

@@ -118,9 +118,9 @@ final class EcotoneLite
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null,
     ): FlowTestSupport {
-        $modulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
+        $enabledModulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
 
-        $configuration = self::prepareForFlowTesting($configuration, $modulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTestingWithEventStore');
+        $configuration = self::prepareForFlowTesting($configuration, $enabledModulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTestingWithEventStore');
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -252,7 +252,7 @@ final class EcotoneLite
 
     private static function prepareForFlowTesting(
         ?ServiceConfiguration $configuration,
-        array                 $packagesToLoad,
+        array                 $enabledModulePackageNames,
         array                 $classesToResolve,
         bool                  $addInMemoryStateStoredRepository,
         ?TestConfiguration    $testConfiguration,
@@ -265,7 +265,7 @@ final class EcotoneLite
 
         if (! $configuration->areEnabledModulePackageNamesDefined()) {
             $configuration = $configuration
-                ->withEnabledModulePackageNames($packagesToLoad);
+                ->withEnabledModulePackageNames($enabledModulePackageNames);
         }
 
         $configuration = $configuration

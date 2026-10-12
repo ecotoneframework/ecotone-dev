@@ -1048,11 +1048,26 @@ below).
   // 2.0
   [AmqpConnectionReference::DEFAULT => new AmqpExtConnectionFactory(['dsn' => $dsn])]
   ```
-- Code that reaches into a transport's `Context` / `Consumer` / `Producer` / `Destination` / `Message` classes (e.g.
-  `Enqueue\AmqpExt\AmqpContext`, `Enqueue\Sqs\SqsContext`, `Enqueue\Redis\RedisContext`,
-  `Ecotone\Dbal\Connection\DbalContext`) is unaffected — only the `ConnectionFactory` class itself moved into Ecotone's
-  namespace for DBAL, AMQP, SQS and Redis alike. `Interop\Queue\Context` type-hints on a DBAL connection should use
-  `Ecotone\Dbal\Connection\DbalContext` as before.
+- For AMQP, SQS and Redis, code that reaches into a transport's `Context` / `Consumer` / `Producer` / `Destination` /
+  `Message` classes (e.g. `Enqueue\AmqpExt\AmqpContext`, `Enqueue\Sqs\SqsContext`, `Enqueue\Redis\RedisContext`) is
+  unaffected — only the `ConnectionFactory` class moved into Ecotone's namespace.
+- **DBAL is different: every vendored `Enqueue\Dbal` class moved, not only the factory.** 1.x `ecotone/dbal` shipped
+  its own copy of `enqueue/dbal` under the `Enqueue\Dbal` namespace (and declared a conflict with the real package).
+  2.0 moves all of it to `Ecotone\Dbal\Connection`, under the same class names, and the `Enqueue\Dbal` namespace no
+  longer exists:
+
+  | 1.x | 2.0 |
+  |---|---|
+  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` |
+  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` |
+  | `Enqueue\Dbal\DbalContext` | `Ecotone\Dbal\Connection\DbalContext` |
+  | `Enqueue\Dbal\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` | `Ecotone\Dbal\Connection\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` |
+  | `Enqueue\Dbal\DbalDestination`, `DbalMessage` | `Ecotone\Dbal\Connection\DbalDestination`, `DbalMessage` |
+  | `Enqueue\Dbal\DbalConsumerHelperTrait`, `DbalType`, `JSON` | `Ecotone\Dbal\Connection\DbalConsumerHelperTrait`, `DbalType`, `JSON` |
+
+  Every row is in `upgrade/namespace-map-2.0.csv`. Apart from the factory, these are transport internals an application
+  meets only when it writes transport code: an `Interop\Queue\Context` type-hint on a DBAL connection becomes
+  `Ecotone\Dbal\Connection\DbalContext`, in place of 1.x's `Enqueue\Dbal\DbalContext`.
 - `enqueue/amqp-ext`, `enqueue/amqp-lib`, `enqueue/amqp-tools`, `enqueue/sqs`, `enqueue/redis` and `enqueue/dsn` remain
   composer dependencies of their respective packages and are used internally — unlike `enqueue/dbal`, which was dropped
   entirely when DBAL was internalised. Only the class you reference in your own configuration changed.

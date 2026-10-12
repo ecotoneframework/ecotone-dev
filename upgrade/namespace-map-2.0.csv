@@ -165,6 +165,16 @@ Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\Dist
 Ecotone\Kafka\Api\KafkaHeader,Ecotone\Api\Kafka\KafkaHeader
 Ecotone\EventSourcing\Config\ProophProjectingModule,Ecotone\EventSourcing\Config\EventSourcingProjectingModule
 Enqueue\Dbal\DbalConnectionFactory,Ecotone\Dbal\Connection\DbalConnectionFactory
+Enqueue\Dbal\ManagerRegistryConnectionFactory,Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory
+Enqueue\Dbal\DbalContext,Ecotone\Dbal\Connection\DbalContext
+Enqueue\Dbal\DbalConsumer,Ecotone\Dbal\Connection\DbalConsumer
+Enqueue\Dbal\DbalProducer,Ecotone\Dbal\Connection\DbalProducer
+Enqueue\Dbal\DbalSubscriptionConsumer,Ecotone\Dbal\Connection\DbalSubscriptionConsumer
+Enqueue\Dbal\DbalDestination,Ecotone\Dbal\Connection\DbalDestination
+Enqueue\Dbal\DbalMessage,Ecotone\Dbal\Connection\DbalMessage
+Enqueue\Dbal\DbalConsumerHelperTrait,Ecotone\Dbal\Connection\DbalConsumerHelperTrait
+Enqueue\Dbal\DbalType,Ecotone\Dbal\Connection\DbalType
+Enqueue\Dbal\JSON,Ecotone\Dbal\Connection\JSON
 Enqueue\AmqpExt\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpExtConnectionFactory
 Enqueue\AmqpLib\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpLibConnectionFactory
 Enqueue\Sqs\SqsConnectionFactory,Ecotone\Sqs\Connection\SqsConnectionFactory

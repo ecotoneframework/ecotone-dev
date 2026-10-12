@@ -1093,9 +1093,6 @@ It does not add licence headers; `bin/add-apache-licence.php` does.
 - The monorepo **root** `vendor/` is always loaded, even for a single package's run, because Ecotone's annotation
   finder requires the root `vendor/autoload.php`. Keep it installed and in sync.
 - `vendor/bin/phpunit --no-coverage` for a single file; a plain run trips PHPUnit 12's coverage requirement.
-- **Every commit is timestamped at 08:00, or at any time from 18:00 onwards — never between the two.**
-  Merge commits included, and both `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE`:
-  `GIT_AUTHOR_DATE="$(date +%Y-%m-%d) 08:00:00" GIT_COMMITTER_DATE="$(date +%Y-%m-%d) 08:00:00" git commit ...`
 - `Monorepo/*/Symfony/config/reference.php` is gitignored and untracked — it regenerates on every Symfony run.
 - Conventional commit subjects: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `test(scope):`, `docs(scope):`,
   `style(scope):`. One increment per commit.

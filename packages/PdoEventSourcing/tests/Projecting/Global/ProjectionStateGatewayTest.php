@@ -12,7 +12,9 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionState;
+use Ecotone\Api\Projecting\ProjectionStateGateway;
 use Ecotone\Test\LicenceTesting;
+use Error;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
@@ -64,6 +66,16 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
         );
     }
 
+    public function test_a_projection_manager_reference_given_to_the_state_gateway_is_refused_at_bootstrap(): void
+    {
+        $projection = $this->createCounterProjection();
+
+        $this->expectException(Error::class);
+        $this->expectExceptionMessage('Unknown named parameter $projectionManagerReference');
+
+        $this->bootstrapEcotone([$projection::class, CounterStateGatewayWithProjectionManagerReference::class, StateAndEventConverter::class], [$projection, new StateAndEventConverter()]);
+    }
+
     private function createCounterProjection(): object
     {
         return new #[Projection(self::NAME), FromAggregateStream(Ticket::class)] class () {
@@ -104,4 +116,10 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+}
+
+interface CounterStateGatewayWithProjectionManagerReference
+{
+    #[ProjectionStateGateway('ticket_counter', projectionManagerReference: 'my_projection_manager')]
+    public function fetchState(): CounterState;
 }

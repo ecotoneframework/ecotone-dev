@@ -173,9 +173,6 @@ final class FlowTestSupport
     }
 
     /**
-     * Append events to the default event stream for testing.
-     * This is a convenience method for tests that don't need to specify a stream name.
-     *
      * @param Event[]|object[]|array[] $events
      */
     public function withEvents(array $events): self

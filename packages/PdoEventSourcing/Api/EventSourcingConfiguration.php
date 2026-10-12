@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
-use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 
 /**
@@ -14,9 +13,10 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
     public const LOAD_BATCH_SIZE = 1000;
+    public const DEFAULT_EVENT_STREAM_TABLE_NAME = 'ecotone_event_stream';
 
     private int $loadBatchSize = self::LOAD_BATCH_SIZE;
-    private string $eventStreamTableName = StreamTableRegistry::DEFAULT_STREAM;
+    private string $defaultEventStreamTableName = self::DEFAULT_EVENT_STREAM_TABLE_NAME;
     private string $eventStoreReferenceName;
     private string $connectionReferenceName;
     private bool $isInMemory = false;
@@ -59,9 +59,9 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this;
     }
 
-    public function withEventStreamTableName(string $eventStreamTableName): static
+    public function withDefaultEventStreamTableName(string $defaultEventStreamTableName): static
     {
-        $this->eventStreamTableName = $eventStreamTableName;
+        $this->defaultEventStreamTableName = $defaultEventStreamTableName;
 
         return $this;
     }
@@ -71,9 +71,9 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->loadBatchSize;
     }
 
-    public function getEventStreamTableName(): string
+    public function getDefaultEventStreamTableName(): string
     {
-        return $this->eventStreamTableName;
+        return $this->defaultEventStreamTableName;
     }
 
     public function getEventStoreReferenceName(): string

@@ -8,22 +8,16 @@ declare(strict_types=1);
 namespace Ecotone\Api\Projecting;
 
 use Attribute;
-use Ecotone\Projecting\ProjectingManager;
 
 #[Attribute]
 final class ProjectionStateGateway
 {
-    public function __construct(private string $projectionName, private string $projectionManagerReference = ProjectingManager::class)
+    public function __construct(private string $projectionName)
     {
     }
 
     public function getProjectionName(): string
     {
         return $this->projectionName;
-    }
-
-    public function getProjectionManagerReference(): string
-    {
-        return $this->projectionManagerReference;
     }
 }

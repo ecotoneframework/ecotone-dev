@@ -125,7 +125,6 @@ Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder,Ecotone\Api\Extens
 Ecotone\Dbal\Configuration\DbalConfiguration,Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration
 Ecotone\Dbal\DbalBackedMessageChannelBuilder,Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder
 Ecotone\Dbal\Configuration\DbalMessagePublisherConfiguration,Ecotone\Api\Dbal\ExtensionObject\DbalMessagePublisherConfiguration
-Ecotone\Dbal\DbalConnectionReference,Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference
 Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder,Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder
 Ecotone\Dbal\MultiTenant\MultiTenantConfiguration,Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration
 Ecotone\Dbal\OutboxForwardingMessageChannel,Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel
@@ -154,7 +153,7 @@ Ecotone\Modelling\EventBus,Ecotone\Api\Gateway\EventBus
 Ecotone\Modelling\DistributedBus,Ecotone\Api\Gateway\DistributedBus
 Ecotone\Messaging\MessagePublisher,Ecotone\Api\Gateway\MessagePublisher
 Ecotone\Messaging\Future,Ecotone\Api\Messaging\Future
-Ecotone\Messaging\Gateway\SerializerGateway,Ecotone\Api\Gateway\SerializerGateway
+Ecotone\Messaging\Gateway\Converter\Serializer,Ecotone\Api\Gateway\SerializerGateway
 Ecotone\Messaging\Scheduling\EcotoneClockInterface,Ecotone\Api\Gateway\EcotoneClockInterface
 Ecotone\Messaging\Store\Document\DocumentStore,Ecotone\Api\Gateway\DocumentStore
 Ecotone\Dbal\Recoverability\DeadLetterGateway,Ecotone\Api\Dbal\Gateway\DeadLetterGateway
@@ -165,6 +164,16 @@ Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\Dist
 Ecotone\Kafka\Api\KafkaHeader,Ecotone\Api\Kafka\KafkaHeader
 Ecotone\EventSourcing\Config\ProophProjectingModule,Ecotone\EventSourcing\Config\EventSourcingProjectingModule
 Enqueue\Dbal\DbalConnectionFactory,Ecotone\Dbal\Connection\DbalConnectionFactory
+Enqueue\Dbal\ManagerRegistryConnectionFactory,Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory
+Enqueue\Dbal\DbalContext,Ecotone\Dbal\Connection\DbalContext
+Enqueue\Dbal\DbalConsumer,Ecotone\Dbal\Connection\DbalConsumer
+Enqueue\Dbal\DbalProducer,Ecotone\Dbal\Connection\DbalProducer
+Enqueue\Dbal\DbalSubscriptionConsumer,Ecotone\Dbal\Connection\DbalSubscriptionConsumer
+Enqueue\Dbal\DbalDestination,Ecotone\Dbal\Connection\DbalDestination
+Enqueue\Dbal\DbalMessage,Ecotone\Dbal\Connection\DbalMessage
+Enqueue\Dbal\DbalConsumerHelperTrait,Ecotone\Dbal\Connection\DbalConsumerHelperTrait
+Enqueue\Dbal\DbalType,Ecotone\Dbal\Connection\DbalType
+Enqueue\Dbal\JSON,Ecotone\Dbal\Connection\JSON
 Enqueue\AmqpExt\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpExtConnectionFactory
 Enqueue\AmqpLib\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpLibConnectionFactory
 Enqueue\Sqs\SqsConnectionFactory,Ecotone\Sqs\Connection\SqsConnectionFactory
@@ -198,7 +207,7 @@ Ecotone\Messaging\Console\InMemoryConsoleProgressBar,Ecotone\Api\Console\InMemor
 Ecotone\Messaging\Message,Ecotone\Api\Messaging\Message
 Ecotone\Messaging\Channel\MessageChannelBuilder,Ecotone\Api\ExtensionObject\MessageChannelBuilder
 Ecotone\Messaging\Support\ErrorMessage,Ecotone\Api\Messaging\ErrorMessage
-Ecotone\Modelling\StateStoredRepository,Ecotone\Api\Modelling\StateStoredRepository
+Ecotone\Modelling\StandardRepository,Ecotone\Api\Modelling\StateStoredRepository
 Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint,Ecotone\Api\Attribute\AsynchronousRunningEndpoint
 Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute,Ecotone\Api\Attribute\AsynchronousEndpointAttribute
 Ecotone\Messaging\BatchMessage,Ecotone\Api\Messaging\BatchMessage

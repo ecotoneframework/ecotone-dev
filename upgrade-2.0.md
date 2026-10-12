@@ -48,7 +48,12 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   channel; register a channel yourself (extension object or `#[ServiceContext]`) only when the test needs a different one
   — for example `SimpleMessageChannelBuilder::createQueueChannel('orders', delayable: false)` or a DBAL/AMQP channel. A
   configured channel replaces the provided one.
-- Remove `ModulePackageList::ASYNCHRONOUS_PACKAGE` from any skip list and delete calls to
+- `ModulePackageList::ASYNCHRONOUS_PACKAGE` and `ModulePackageList::allPackagesExcept()` are **deleted**, not only
+  unnecessary: naming either fails with PHP's undefined-constant or undefined-method error. Remove
+  `ASYNCHRONOUS_PACKAGE` from every list, the load lists of `withModulePackages()` included — there is no package by
+  that name to load. 1.x's `withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))`
+  skipped everything but the packages it listed, which is what `withModulePackages([ModulePackageList::DBAL_PACKAGE])`
+  now says directly: pass the same list to `withModulePackages()` and drop `allPackagesExcept()`. Delete calls to
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
 - `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
   Core and Asynchronous are always loaded. Example: `->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE])`.
@@ -84,8 +89,10 @@ messages yourself.
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`
 with `fromStreams`/`fromCategories`/`fromAll`, `ProjectionManager`, `ProjectionRunningConfiguration`, the
-`ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`, `resetProjection()`,
-`stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2 (`Ecotone\Api\ProjectionV2`).
+`ecotone:es:*` console commands), and the new v2 (`Ecotone\Projecting\Attribute\ProjectionV2`). The
+`FlowTestSupport` projection helpers — `initializeProjection()`, `resetProjection()`, `stopProjection()`,
+`deleteProjection()`, `triggerProjection()` — served both: each drove a v2 projection when one had the name, and the v1
+`ProjectionManager` otherwise.
 
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projecting\Projection`). v1's
 Prooph-based projection runtime, its lifecycle configuration classes and its `ecotone:es:*` console commands are
@@ -133,6 +140,11 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
     }
     ```
     A partitioned projection takes the partition key as the method's argument.
+    `#[ProjectionStateGateway]`'s second parameter was spelled `projectioManagerReference` in 1.x, and its getter
+    `getProjectioManagerReference()`. Both are corrected, to `projectionManagerReference` and
+    `getProjectionManagerReference()`, without an alias, so a 1.x attribute that passes the old spelling by name
+    fails with PHP's `Unknown named parameter $projectioManagerReference`. The 1.x value named the v1
+    `ProjectionManager`, which is gone; drop the argument.
   - **lifecycle** — the console commands: `ecotone:projection:init <name>` (or `--all`), `ecotone:projection:backfill
     <name>`, `ecotone:projection:rebuild <name>` and `ecotone:projection:delete <name>`, in place of v1's `init`,
     `reset`/`rebuild` and `delete` operations.
@@ -172,6 +184,13 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   with. `deleteProjection()` no longer cascades into deleting a projection's `EventStreamEmitter`-emitted events,
   and `initializeProjection()` after a delete only recreates empty state — it does not replay history (use
   `resetProjection()` for that).
+- **`FlowTestSupport::resetProjection()` replays, also for a projection that was `#[ProjectionV2]` in 1.x.**
+  **Before:** for a v2 projection, `resetProjection()` deleted the projection and initialised it again, and stopped
+  there: the projection was left empty until the next event or `triggerProjection()`. **Now:** it deletes, initialises
+  and replays every event the projection reads, so the projection's handlers run again for each of them before the call
+  returns. **How to adapt:** a test that reset a 1.x `#[ProjectionV2]` and asserted the read model was empty asserts
+  the rebuilt read model instead; to see an empty projection, call `deleteProjection()` and `initializeProjection()`.
+  A test that reset and then called `triggerProjection()` to rebuild can drop that second call.
 - `EventSourcingConfiguration`'s projection-table-name and projection-manager-reference configuration are
   removed; only event-store-meaningful configuration remains.
 
@@ -258,11 +277,11 @@ subsection below.
   an `EcotoneLite` flow test's bootstrap sets the tables up on whichever connection each stream is declared for.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
-- **`EventStore` gains two methods and a parameter; `TaggedEventStore` and `AggregateEventStore` are gone.**
-  **Before:** `EventStore::appendTo(string $streamName, array $streamEvents): void` took no condition. Loading a
-  single aggregate's events, or loading/appending by tag, went through two separate interfaces —
-  `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` and, Enterprise only,
-  `Ecotone\Api\EventSourcing\TaggedEventStore::load()`/`appendTo()`. **Now:** both are folded into `EventStore`
+- **`EventStore` gains two methods and a parameter.**
+  **Before:** `EventStore::appendTo(string $streamName, array $streamEvents): void` took no condition, and `load()`
+  read a stream: 1.x's `EventStore` had no method that loads one aggregate's events or loads and appends by tag. (Pre-release 2.0
+  builds had both, behind two separate interfaces — `Ecotone\EventSourcing\EventStore\AggregateEventStore` and, Enterprise
+  only, `Ecotone\Api\EventSourcing\TaggedEventStore`; 1.x had neither.) **Now:** both are methods of `EventStore`
   itself:
 
   ```php
@@ -283,7 +302,7 @@ subsection below.
   the method stays reachable through the `EventStore` *gateway*, which has no support for variadic parameters.
   **How to adapt a custom `EventStore` implementation:** add `loadAggregateEvents()` and `loadByCriteria()` (delegate
   to your existing aggregate-loading and tag-index code, or throw if you don't support tags), and widen
-  `appendTo()`'s signature with the new optional parameter. Replace
+  `appendTo()`'s signature with the new optional parameter. Code written against a pre-release 2.0 build replaces
   `Ecotone\EventSourcing\EventStore\AggregateEventStore` type-hints with plain `EventStore` — the method moved, the
   type did not gain a second interface to intersect. Replace `Ecotone\Api\EventSourcing\TaggedEventStore` the same
   way: `$taggedEventStore->load($criteria)` becomes `$eventStore->loadByCriteria($criteria)`,
@@ -991,7 +1010,8 @@ parameter to one of those Enqueue class names.
 
 **Now:** Every transport has an Ecotone-owned connection factory (internalised from the matching `php-enqueue/*`
 package, MIT-licensed, with a `code comes from https://github.com/php-enqueue/...` attribution comment) plus an
-Ecotone-owned `<Package>ConnectionReference` in that package's `Api/` namespace, mirroring `DbalConnectionReference`.
+Ecotone-owned `<Package>ConnectionReference` in that package's `Api/` namespace — `DbalConnectionReference`,
+`AmqpConnectionReference`, `SqsConnectionReference` and `RedisConnectionReference`, all four new in 2.0.
 The reference name a user ever needs to type is one of these Ecotone classes; every default parameter across the
 framework now points at `<Package>ConnectionReference::DEFAULT` instead of an Enqueue class name. Internally, the
 factories still implement `Interop\Queue\ConnectionFactory` (`Interop\Amqp\AmqpConnectionFactory` for AMQP) — that
@@ -1008,8 +1028,11 @@ seam is unchanged and is what lets the underlying transport be replaced later wi
 `DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
 `defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
 each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
-`TempestConnectionReference`, which already resolved to `DbalConnectionReference::DEFAULT` and are unaffected by this
-change.
+`TempestConnectionReference`. The four transport references are new in 2.0; the three framework ones existed in 1.x.
+There they resolved to `Enqueue\Dbal\DbalConnectionFactory::class`; they now resolve to
+`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Dbal\Connection\DbalConnectionFactory'`. Code that builds
+them with `defaultConnection()` or the constructor follows on its own; a lookup of the old string id does not (see
+below).
 
 **How to adapt:**
 - Replace the `use Enqueue\...\...ConnectionFactory;` import with the matching `Ecotone\...\Connection\...ConnectionFactory`
@@ -1025,11 +1048,26 @@ change.
   // 2.0
   [AmqpConnectionReference::DEFAULT => new AmqpExtConnectionFactory(['dsn' => $dsn])]
   ```
-- Code that reaches into a transport's `Context` / `Consumer` / `Producer` / `Destination` / `Message` classes (e.g.
-  `Enqueue\AmqpExt\AmqpContext`, `Enqueue\Sqs\SqsContext`, `Enqueue\Redis\RedisContext`,
-  `Ecotone\Dbal\Connection\DbalContext`) is unaffected — only the `ConnectionFactory` class itself moved into Ecotone's
-  namespace for DBAL, AMQP, SQS and Redis alike. `Interop\Queue\Context` type-hints on a DBAL connection should use
-  `Ecotone\Dbal\Connection\DbalContext` as before.
+- For AMQP, SQS and Redis, code that reaches into a transport's `Context` / `Consumer` / `Producer` / `Destination` /
+  `Message` classes (e.g. `Enqueue\AmqpExt\AmqpContext`, `Enqueue\Sqs\SqsContext`, `Enqueue\Redis\RedisContext`) is
+  unaffected — only the `ConnectionFactory` class moved into Ecotone's namespace.
+- **DBAL is different: every vendored `Enqueue\Dbal` class moved, not only the factory.** 1.x `ecotone/dbal` shipped
+  its own copy of `enqueue/dbal` under the `Enqueue\Dbal` namespace (and declared a conflict with the real package).
+  2.0 moves all of it to `Ecotone\Dbal\Connection`, under the same class names, and the `Enqueue\Dbal` namespace no
+  longer exists:
+
+  | 1.x | 2.0 |
+  |---|---|
+  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` |
+  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` |
+  | `Enqueue\Dbal\DbalContext` | `Ecotone\Dbal\Connection\DbalContext` |
+  | `Enqueue\Dbal\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` | `Ecotone\Dbal\Connection\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` |
+  | `Enqueue\Dbal\DbalDestination`, `DbalMessage` | `Ecotone\Dbal\Connection\DbalDestination`, `DbalMessage` |
+  | `Enqueue\Dbal\DbalConsumerHelperTrait`, `DbalType`, `JSON` | `Ecotone\Dbal\Connection\DbalConsumerHelperTrait`, `DbalType`, `JSON` |
+
+  Every row is in `upgrade/namespace-map-2.0.csv`. Apart from the factory, these are transport internals an application
+  meets only when it writes transport code: an `Interop\Queue\Context` type-hint on a DBAL connection becomes
+  `Ecotone\Dbal\Connection\DbalContext`, in place of 1.x's `Enqueue\Dbal\DbalContext`.
 - `enqueue/amqp-ext`, `enqueue/amqp-lib`, `enqueue/amqp-tools`, `enqueue/sqs`, `enqueue/redis` and `enqueue/dsn` remain
   composer dependencies of their respective packages and are used internally — unlike `enqueue/dbal`, which was dropped
   entirely when DBAL was internalised. Only the class you reference in your own configuration changed.
@@ -1092,7 +1130,7 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `CronExpression::factory()` | `new CronExpression()` |
-| `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
+| `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 | `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
@@ -1101,8 +1139,8 @@ Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` 
 
 ### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
 
-**Before:** `#[InternalHandler]` (introduced earlier in 2.0) and `#[ServiceActivator]` were two names for the same
-attribute — `InternalHandler extends ServiceActivator` and both worked identically.
+**Before:** `#[InternalHandler]` and `#[ServiceActivator]` were two names for the same attribute, both in 1.x —
+`InternalHandler extends ServiceActivator` and both worked identically.
 
 **Now:** `Ecotone\Messaging\Attribute\ServiceActivator` (`Ecotone\Api\ServiceActivator` in early 2.0 builds) no longer exists. `#[InternalHandler]` is the only attribute.
 
@@ -1202,30 +1240,39 @@ transaction, so it no longer holds row locks while your handler runs.
 
 The removed configuration, one by one:
 
-- **`AutoCreateLevel` is removed**, with `DbalConfiguration::withAutoCreateLevel()` and `getAutoCreateLevel()`.
-  **Before:** `AutoCreateLevel::CreateOnly` let PostgreSQL and SQLite create a missing table on first use, inside the
-  message's transaction; MySQL and MariaDB refused whatever level was set, and `None` was the default outside test
-  bootstraps. **Now:** there is no level — runtime creation is gone on every engine, so there is nothing left to
-  choose. **How to adapt:** delete `->withAutoCreateLevel(...)` and the `use Ecotone\Api\Dbal\AutoCreateLevel;` line, and
-  run `ecotone:migration:database:setup --initialize` in your deploy (see below). In a flow test nothing replaces
-  it: the bootstrap sets the tables up.
 - **`DbalConfiguration::withAutomaticTableInitialization()` is removed**, with
-  `isAutomaticTableInitializationEnabled()`. **Before:** a deprecated alias — `true` meant `AutoCreateLevel::CreateOnly`,
-  `false` meant `None`. **Now:** gone with the level it aliased. **How to adapt:** delete the call. A test that passed
+  `isAutomaticTableInitializationEnabled()`. **Before:** the switch for creating tables on first use, on by default:
+  with no call, the dead letter, deduplication, document store, DBAL channel and event store tables were each created
+  by the first message that needed them, on every engine. `withAutomaticTableInitialization(false)` turned that off,
+  leaving the tables to `ecotone:migration:database:setup --initialize`. **Now:** runtime creation is gone on every
+  engine, so there is nothing left to switch — every application is in the position `false` put it in. **How to
+  adapt:** delete the call, and run `ecotone:migration:database:setup --initialize` in your deploy (see below) — an
+  application that relied on the default `true` has to add this step, or its first message fails on a missing table.
+  In a flow test nothing replaces it: the bootstrap sets the tables up. A test that passed
   `false` to watch a missing table be refused passes
   `testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)` to
   `bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` instead, and calls `$ecotone->setupDatabaseTables()`
   when it wants the tables.
-- **`EventSourcingConfiguration::withInitializeEventStoreOnStart()` is removed**, with `isInitializedOnStart()` and the
-  `INITIALIZE_ON_STARTUP` constant. **Before:** already deprecated in favour of `withAutomaticTableInitialization()`, and
-  only ever AND-ed with it to decide whether the event store created its stream table on first append. **Now:** gone
-  with what it modified. **How to adapt:** delete the call; stream tables come from the setup command like every
-  other table.
+- **`AutoCreateLevel` and `DbalConfiguration::withAutoCreateLevel()` never shipped.** They existed only in pre-release
+  2.0 builds, between `withAutomaticTableInitialization()` and its removal; 1.x never had them. **How to adapt:** only
+  code written against a pre-release build has anything to do: delete `->withAutoCreateLevel(...)` and the
+  `use Ecotone\Api\Dbal\AutoCreateLevel;` line.
+- **`EventSourcingConfiguration::withInitializeEventStoreOnStart()` is removed**, with `isInitializedOnStart()`, and
+  `LazyProophEventStore::INITIALIZE_ON_STARTUP`, its default, went with the Prooph store (§4). **Before:** on by default; `false` stopped the
+  event store creating its tables on first append even while `withAutomaticTableInitialization()` was on — the two
+  were AND-ed. It was not deprecated. **Now:** gone with what it modified. **How to adapt:** delete the call; stream
+  tables come from the setup command like every other table.
 - **`DbalConfiguration::withDocumentStore()` loses its `initializeDatabaseTable` parameter**, and
   `isInitializeDbalDocumentStore()` is removed. **Before:** `false` stopped the document store creating its table on
-  first use even with auto-create on. **Now:** it never creates it. **How to adapt:** drop the argument; it was the
-  fourth positional one, so a positional call passing `enableDocumentStoreStateStoredRepository` and later arguments
-  moves them one place left — or switch to named arguments.
+  first use even with `withAutomaticTableInitialization()` on. **Now:** it never creates it. **How to adapt:** drop the
+  argument; it was the fourth positional one, so a positional call passing the arguments after it moves them one place
+  left — or switch to named arguments.
+- **`withDocumentStore()`'s `enableDocumentStoreStandardRepository` parameter is renamed
+  `enableDocumentStoreStateStoredRepository`**, and `isEnableDocumentStoreStandardRepository()` is renamed
+  `isEnableDocumentStoreStateStoredRepository()`, following `StandardRepository` → `StateStoredRepository` (§7). No
+  alias is kept. **Before:** `withDocumentStore(enableDocumentStoreStandardRepository: true)`. **Now:** that call fails
+  with PHP's `Unknown named parameter $enableDocumentStoreStandardRepository`. **How to adapt:**
+  `withDocumentStore(enableDocumentStoreStateStoredRepository: true)`; the behaviour is unchanged.
 - **A database event store without the DBAL module is refused at bootstrap.** **Before:** enabling
   `ModulePackageList::EVENT_SOURCING_PACKAGE` without `ModulePackageList::DBAL_PACKAGE` booted, and the first append
   failed on a missing event stream table whose instructions named `DatabaseSetupManager` and
@@ -1233,13 +1280,16 @@ The removed configuration, one by one:
   start with a `ConfigurationException` that names the module to add. **How to adapt:** add
   `ModulePackageList::DBAL_PACKAGE` (`'dbal'` in the `modulePackages` option of the Symfony bundle, `config/ecotone.php`
   or `EcotoneConfig`), or register `EventSourcingConfiguration::createInMemory()` to keep the events in memory.
-- **`FlowTestSupport::initializeDatabase()` is renamed `setupDatabaseTables()`**, and it no longer swallows failures.
-  **Before:** it caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup
-  that failed half-way, carried on and failed later on a confusing missing-table error. **Now:** it creates every
+- **New: `FlowTestSupport::setupDatabaseTables()`.** **Before:** 1.x had no such method: a flow test got its tables
+  the way the application did, created on first use. (Pre-release 2.0 builds called it `initializeDatabase()`, and it
+  caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup that failed
+  half-way, carried on and failed later on a confusing missing-table error.) **Now:** it creates every
   table the test uses, on every connection that holds one, and refuses with what to do instead: with no module that
   keeps tables, it says to enable `ModulePackageList::DBAL_PACKAGE` or remove the call; with a used feature on a
   connection the test does not register, it names the feature and the connection reference to register, or the
-  in-memory option for that feature. **How to adapt:** rename the call. Most calls can go: the bootstrap now makes it.
+  in-memory option for that feature. **How to adapt:** from 1.x, nothing — the bootstrap makes the call itself, so a
+  test needs it only after opting out with `withDatabaseTablesSetUpOnBootstrap(false)`. Code written against a
+  pre-release build renames `initializeDatabase()` to `setupDatabaseTables()`, and most such calls can go.
 
 **How to adapt an application:**
 
@@ -1391,12 +1441,21 @@ test needs nothing: its bootstrap sets the table up.
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
+| `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
+| `PollingMetadata::withTestingSetup()` messages handled | 1 | **1, unchanged** | — |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
+**The two `withTestingSetup()` methods now disagree.** `ExecutionPollingMetadata`'s static `createWithTestingSetup()`
+and its instance `withTestingSetup()` both moved to 100 handled messages; `PollingMetadata::withTestingSetup()` — the
+same name and the same parameters, on the endpoint's polling configuration — still handles 1. Do not infer one from
+the other: pass `handledMessageLimit:` explicitly wherever the number matters.
+
 Test-suite impact of the new defaults:
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
-  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
+  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
+  `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
+  `--handledMessageLimit=1` on `ecotone:run`).
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
@@ -1511,6 +1570,36 @@ registers the broker with `KafkaBrokerConfiguration::class` follows the move onc
 registered under the old id as a string (a Symfony service id, a Laravel binding) or a `brokerConfigurationReference`
 passed as the old string is no longer found. Register it under the new id.
 
+**The gateways' container ids change with their classes too.** Ecotone registers each gateway below — and the clock —
+under its interface's `::class`, so its container id is the class's FQCN and moves with it. No alias is kept under the
+1.x id:
+
+| Service | 1.x id | 2.0 id | Defaults that follow it |
+|---|---|---|---|
+| `CommandBus` | `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` | |
+| `EventBus` | `Ecotone\Modelling\EventBus` | `Ecotone\Api\Gateway\EventBus` | |
+| `QueryBus` | `Ecotone\Modelling\QueryBus` | `Ecotone\Api\Gateway\QueryBus` | |
+| `DistributedBus` | `Ecotone\Modelling\DistributedBus` | `Ecotone\Api\Gateway\DistributedBus` | `DistributedServiceMap::initialize(referenceName:)`, `FlowTestSupport::getDistributedBus()` |
+| `MessagePublisher` | `Ecotone\Messaging\MessagePublisher` | `Ecotone\Api\Gateway\MessagePublisher` | the default reference name of `AmqpMessagePublisherConfiguration`, `SqsMessagePublisherConfiguration`, `RedisMessagePublisherConfiguration` and `KafkaPublisherConfiguration`; `getMessagePublisher()` |
+| `DocumentStore` | `Ecotone\Messaging\Store\Document\DocumentStore` | `Ecotone\Api\Gateway\DocumentStore` | `DbalConfiguration::withDocumentStore(reference:)` |
+| `DeadLetterGateway` | `Ecotone\Dbal\Recoverability\DeadLetterGateway` | `Ecotone\Api\Dbal\Gateway\DeadLetterGateway` | |
+| `SerializerGateway` (1.x `Serializer`, renamed; §7) | `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` | |
+| `EcotoneClockInterface` | `Ecotone\Messaging\Scheduling\EcotoneClockInterface` | `Ecotone\Api\Gateway\EcotoneClockInterface` | |
+| `EventStore` (§13b) | `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` | `EventSourcingConfiguration::create(eventStoreReferenceName:)`, `#[FromStream]` and `#[FromAggregateStream]`'s `eventStoreReferenceName` |
+
+**Code that names these by `::class` is unaffected** once its import is updated: a constructor or handler parameter
+typed `CommandBus`, `$container->get(CommandBus::class)`, `$app->make(EventStore::class)`,
+`$ecotone->getGateway(DeadLetterGateway::class)`, and every default in the last column follow the class. **What breaks
+is the 1.x id spelled as a string**: a Symfony `services.yaml` argument or alias such as `'@Ecotone\Modelling\CommandBus'`,
+a Laravel `app('Ecotone\EventSourcing\EventStore')` or a binding keyed on the old name, an
+`EventSourcingConfiguration::create(eventStoreReferenceName: 'Ecotone\EventSourcing\EventStore')`, a
+`#[FromStream('orders', eventStoreReferenceName: 'Ecotone\EventSourcing\EventStore')]`, or a publisher, distributed bus or
+document store reference passed as the old string. Nothing is registered under the old id any more, so a lookup
+fails, and a reference name that was meant to match the default now names a separate service. A clock you registered
+yourself under the old `EcotoneClockInterface` id is not the one Ecotone uses: it looks the clock up under the new id
+and, finding nothing there, uses its own. Spell the new id, or use `::class`. `EventStore::RAW_REFERENCE` is the
+exception: it is a string constant, still `'ecotone.eventSourcing.eventStore.instance'`.
+
 **How to adapt:** Replace the imports using the full old → new mapping in
 [`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
 (two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. The full
@@ -1608,8 +1697,11 @@ use Ecotone\Api\EventSourcing\EventStore;
 | `Ecotone\EventSourcing\EventStore` | `Ecotone\Api\EventSourcing\EventStore` |
 
 **How to adapt:** replace the import; the row is in `upgrade/namespace-map-2.0.csv`. Same interface name, same
-methods. The event store's container id is unchanged: `EventStore::RAW_REFERENCE` is still
-`'ecotone.eventSourcing.eventStore.instance'`.
+methods. **The gateway's container id moves with the class**, from `Ecotone\EventSourcing\EventStore` to
+`Ecotone\Api\EventSourcing\EventStore`, and so does the default `eventStoreReferenceName` of
+`EventSourcingConfiguration::create()`, `#[FromStream]` and `#[FromAggregateStream]` — the table in §13 lists what
+breaks: a lookup or reference spelling the 1.x id as a string. Only `EventStore::RAW_REFERENCE`, a string constant,
+is unchanged: still `'ecotone.eventSourcing.eventStore.instance'`.
 
 **`ConversionService` is internal, at its 1.x name — this is its second move inside 2.0.** An earlier 2.0 build moved
 it to `Ecotone\Api\Conversion\ConversionService`, and this section then told you to follow it. It has moved back to
@@ -1716,6 +1808,8 @@ so they left the public classes:
 | `MessageHeaders::unsetFrameworkKeys()`, `unsetTransportMessageKeys()` | gone — nothing called them |
 | `ModulePackageList::allPackages()` | internal, `Ecotone\Messaging\Config\ModuleClassList::packageNames()`, which now includes `TEST_PACKAGE` |
 | `ModulePackageList::getModuleClassesForPackage()` | internal, `ModuleClassList::forPackage()` |
+| `ModulePackageList::allPackagesExcept()` | gone — pass the packages it kept to `withModulePackages()` (§1) |
+| `ModulePackageList::ASYNCHRONOUS_PACKAGE` | gone — asynchronous processing is part of Core and always loads (§1) |
 
 **How to adapt:** nothing, unless you called one of them. The set of keys Ecotone treats as its own is not a contract
 and changes between releases, so do not re-create these filters from the internal class: an application that
@@ -1845,8 +1939,8 @@ because `PollableChannel` extends it.
 methods, same parameters — `EcotoneLite::bootstrapFlowTesting(classesToResolve: …, licenceKey: …)` takes the same
 named arguments, and a channel you implemented yourself keeps its methods, now implementing the `Api` interface.
 
-**Two container ids change, unlike every move before this one.** §13a to §13d moved no container service, so no id
-moved with them. Two of these types are services registered under their class name, so the id is the new FQCN:
+**Two container ids change**, as the gateways' did in §13 and `EventStore`'s in §13b; §13a, §13c and §13d moved no
+container service. Two of these types are services registered under their class name, so the id is the new FQCN:
 
 | Service | 1.x and early 2.0 id | 2.0 id |
 |---|---|---|
@@ -2107,7 +2201,7 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 
 | 1.x and early 2.0 | 2.0 | Why an application names it |
 |---|---|---|
-| `Ecotone\Modelling\StateStoredRepository` | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+| `Ecotone\Modelling\StandardRepository` (1.x; `Ecotone\Modelling\StateStoredRepository` in pre-release 2.0) | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
 | `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
 | `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
@@ -2540,6 +2634,26 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
 
+### Renamed parameters and methods that have no entry of their own
+
+**Before:** each name in the left column worked in 1.x. **Now:** each is renamed with no alias, or changed as
+described. A call that uses an old name fails loudly — PHP's `Unknown named parameter $…` for a named argument,
+`Call to undefined method …` for a method — and none of the renames changes what the call does.
+
+| 1.x | 2.0 |
+|---|---|
+| `CommandHandler::getIdentifierMapping()`, `EventHandler::getIdentifierMapping()` (read by code that inspects the attribute instance, such as a custom module) | `getAggregateIdentifierMapping()` |
+| `class OrderStream extends Stream` — `#[Stream]` could be extended | `Ecotone\Api\EventSourcing\Stream` is `final`; a subclass fails to load with PHP's `Class … cannot extend final class Ecotone\Api\EventSourcing\Stream`. Write `#[Stream('orders')]` where the subclass was used |
+| `Duration::minutes(seconds: 5)` — the parameter was misnamed and always meant minutes | `Duration::minutes(minutes: 5)`; positional `Duration::minutes(5)` is unchanged |
+| `EventSourcedRepository::findBy($aggregateClassName, $identifiers, fromAggregateVersion: 3)` | `findBy(…, fromVersion: 3)`; an implementing class keeps working whatever it names the parameter |
+| `DbalDeadLetterBuilder::createList()`, `createShow()`, `createCount()`, `createDelete()`, `createDeleteAll()`, `createReply()`, `createReplyAll()` — each `($referenceName, $connectionReferenceName)` | `createList($referenceName)` and so on, with `createReplay()` / `createReplayAll()` for the last two (§15). The connection is no longer an argument: the builder addresses the dead letter registered under `$referenceName`, which carries its own connection. PHP ignores a surplus positional argument, so a 1.x positional call still runs and its connection argument is dropped; a named `connectionReferenceName:` fails |
+| `DbalDeadLetterBuilder::createStore($connectionReferenceName)` | `createStore($referenceName, $inputChannelName)`; a 1.x one-argument call fails with PHP's `Too few arguments` |
+
+**How to adapt:** rename the call. `DbalDeadLetterBuilder`'s factories are the dead letter module's own plumbing; an
+application reaches the dead letter through `DeadLetterGateway`, and through the builder only for its channel-name
+constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL` and `REPLAY_ALL_CHANNEL`, whose values
+end in `replay` and `replayAll` (§15).
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
@@ -2568,12 +2682,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
   messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
   and skip another. **How to adapt:** nothing.
-- **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
-  and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
-  accepted: the failed message is sent back to its channel without a delivery delay, so a single
+- **Retries may use a zero back-off.** In 1.x `RetryTemplateBuilder::fixedBackOff(0)` and an exponential back-off
+  starting at `0` threw `Initial delay must be greater than 0`, and `#[DelayedRetry(initialDelayMs: 0)]` threw
+  `DelayedRetry initialDelayMs must be greater than 0` (the parameter is now `initialDelayInMilliseconds`, see below). A
+  zero delay is now accepted: the failed message is sent back to its channel without a delivery delay, so a single
   `run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))` walks it through every retry and
   into the dead letter. Negative delays still throw, naming the value
-  (`Retry initial delay must be 0 or greater, got -1 ms`).
+  (`Retry initial delay must be 0 or greater, got -1 ms`; on the attribute,
+  `DelayedRetry initialDelayInMilliseconds must be 0 or greater, got -1`).
   **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
 - **Retry exhaustion counts deliveries, not "retries".** With `maxRetryAttempts(3)` the handler is delivered 4 times
   (1 initial + 3 retries), but the log said `retried maximum number of \`4\` times` and the exception said

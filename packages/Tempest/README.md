@@ -140,8 +140,14 @@ return new EcotoneConfig(
 | `cacheConfiguration` | `bool` | `false` (from `ECOTONE_CACHE_CONFIGURATION` env) | Cache the messaging system definition for production |
 | `defaultSerializationMediaType` | `string` | `''` | Override the default message serialization format |
 | `defaultErrorChannel` | `string` | `''` | Channel name for unhandled async exceptions |
-| `modulePackages` | `array` | `[]` | Module packages to load in addition to Core |
+| `enabledModulePackageNames` | `?array` | `null` (every installed package) | Module packages to load in addition to Core, as `ModulePackageList` constants; `[]` loads Core alone |
+| `test` | `bool` | `false` | Load the test support module |
 | `licenceKey` | `string` | `''` | Enterprise licence key |
+
+Any other named argument is refused when the configuration is constructed, with a `ConfigurationException` naming
+the arguments `EcotoneConfig` reads. The 1.x `skippedModulePackageNames` and the earlier 2.0 `modulePackages` are
+refused with their replacement: `skippedModulePackageNames` listed packages to skip, `enabledModulePackageNames` lists
+packages to load.
 
 ## Console Commands
 

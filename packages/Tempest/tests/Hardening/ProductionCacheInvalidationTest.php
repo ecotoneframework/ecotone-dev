@@ -126,7 +126,7 @@ final class ProductionCacheInvalidationTest extends TestCase
         $container = new GenericContainer();
         $container->config(new EcotoneConfig(
             namespaces: $namespaces,
-            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
 
         return $container;

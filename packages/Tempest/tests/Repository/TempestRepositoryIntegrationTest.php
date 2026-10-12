@@ -26,7 +26,7 @@ final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\Order\\'],
-            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: false,
         );
     }

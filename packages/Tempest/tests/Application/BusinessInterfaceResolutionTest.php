@@ -18,7 +18,7 @@ final class BusinessInterfaceResolutionTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\Counter\\'],
-            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         );
     }

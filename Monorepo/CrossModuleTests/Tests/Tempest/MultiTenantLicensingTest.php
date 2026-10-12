@@ -30,7 +30,7 @@ final class MultiTenantLicensingTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\MultiTenant\\'],
-            modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
+            enabledModulePackageNames: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );

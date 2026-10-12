@@ -101,7 +101,7 @@ final class InMemoryHighThroughputOutboundAdapter
         }
 
         $failedMessages = [];
-        foreach ($payload->getEntries() as $entry) {
+        foreach ($payload->entries as $entry) {
             if ($this->matchesFailingFragment($entry['payload'])) {
                 $failedMessages[] = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])

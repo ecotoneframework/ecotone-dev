@@ -27,7 +27,7 @@ final class BatchMessageTest extends TestCase
                 ['payload' => 'first payload', 'headers' => []],
                 ['payload' => $orderPlaced, 'headers' => ['priority' => 5]],
             ],
-            $batch->getEntries(),
+            $batch->entries,
         );
     }
 
@@ -59,7 +59,7 @@ final class BatchMessageTest extends TestCase
                 ['payload' => 'first payload', 'headers' => []],
                 ['payload' => 'second payload', 'headers' => ['priority' => 5]],
             ],
-            $batch->getEntries(),
+            $batch->entries,
         );
     }
 }

@@ -70,7 +70,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     protected function handleBatch(BatchMessage $batchMessage, Context $context): void
     {
-        foreach ($batchMessage->getEntries() as $entry) {
+        foreach ($batchMessage->entries as $entry) {
             $this->sendSingleMessage($this->convertBatchEntryToMessage($entry), $context);
         }
     }

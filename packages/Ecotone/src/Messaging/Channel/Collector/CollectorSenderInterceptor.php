@@ -87,7 +87,7 @@ final class CollectorSenderInterceptor
         foreach ($collectedMessages as $collectedMessage) {
             $payload = $collectedMessage->getPayload();
             if ($payload instanceof BatchMessage) {
-                foreach ($payload->getEntries() as $entry) {
+                foreach ($payload->entries as $entry) {
                     $entries[] = $entry;
                 }
 

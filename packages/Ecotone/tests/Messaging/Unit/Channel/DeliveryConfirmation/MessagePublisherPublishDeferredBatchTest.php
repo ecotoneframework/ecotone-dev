@@ -36,7 +36,7 @@ final class MessagePublisherPublishDeferredBatchTest extends TestCase
                 ['payload' => 'first order', 'headers' => []],
                 ['payload' => 'second order', 'headers' => ['priority' => 5]],
             ],
-            $batchPayload->getEntries(),
+            $batchPayload->entries,
         );
         $this->assertSame(0, $outboundAdapter->awaitedDeliveriesCount());
 

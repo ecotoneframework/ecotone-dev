@@ -9,6 +9,7 @@ use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
+use Ecotone\Api\Messaging\BatchMessage;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,6 +41,21 @@ final class ImmutableConfigurationCopyTest extends TestCase
             ['data' => [
                 ['field' => '_aggregate_id', 'operator' => Operator::EQUALS, 'value' => '123', 'fieldType' => FieldType::METADATA],
                 ['field' => 'event_name', 'operator' => Operator::IN, 'value' => ['created'], 'fieldType' => FieldType::MESSAGE_PROPERTY],
+            ]],
+        );
+    }
+
+    public function test_batch_message_copy_appends_only_the_new_entry(): void
+    {
+        $original = BatchMessage::constructEmpty()->append('first', ['id' => '1']);
+
+        self::assertSame(['entries'], array_keys(get_object_vars($original)));
+        self::assertCopyChangesOnly(
+            $original,
+            fn (BatchMessage $batchMessage) => $batchMessage->append('second', ['id' => '2']),
+            ['entries' => [
+                ['payload' => 'first', 'headers' => ['id' => '1']],
+                ['payload' => 'second', 'headers' => ['id' => '2']],
             ]],
         );
     }

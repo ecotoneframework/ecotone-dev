@@ -76,7 +76,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messagesToPublish = $payload instanceof BatchMessage
             ? array_map(
                 fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),
-                $payload->getEntries(),
+                $payload->entries,
             )
             : [$message];
 

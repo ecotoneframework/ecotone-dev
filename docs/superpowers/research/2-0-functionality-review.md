@@ -563,6 +563,75 @@ exists at HEAD, except `#[ServiceActivator]` (§7a) and `#[ProjectionV2]` (§3).
   stays in `src`, the ledger records why, `:67`).
 - **Classification D**, each low impact. grep of each old name in `upgrade-2.0.md`: 0 hits. **Confidence:** certain.
 
+
+## Addendum, wave 20 — found by running every quickstart example
+
+Wave 20 made the quickstart examples run on 2.0 and ran each one; these three surfaced there. Numbering continues from
+R31 and the totals above are wave 16's.
+
+### R32 — a document-stored aggregate or saga using `WithEvents` cannot be loaded back
+
+- **What broke:** `WithEvents` declares `private ?array $recordedEvents = null` (HEAD
+  `packages/Ecotone/Api/Modelling/WithEvents.php:12`, unchanged from 1.x). 2.0 turned JMS null serialization on by
+  default (`upgrade-2.0.md:1390`; applied at `packages/JmsConverter/src/JMSConverter.php:34-38`), so the document store
+  now writes `"recordedEvents":null`, and on the next load JMS reaches its type check for that key and throws
+  `JMS\Serializer\Exception\RuntimeException: You must define a type for …::$recordedEvents`. Every state-stored
+  aggregate or saga kept in the DBAL document store that uses `WithEvents` fails on its second load. With
+  `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` it loads again: confirmed
+  both ways on a clean database with `quickstart-examples/BuildingBlocks`.
+- **Seen in:** `BuildingBlocks` (`OrderSaga`), `Testing` (`VerificationProcess`), `Workflows/Saga` (`OrderProcess`),
+  `MicroservicesAdvanced` (`Issue`) — each example's `run_example.php` stops there, and all their other 2.0 fixes are in.
+- **Classification D.** The default change is documented (§9); its consequence for `WithEvents`, which 2.0 itself
+  ships, is not: grep `recordedEvents`, `WithEvents` in `upgrade-2.0.md` finds the trait only as a rename. **Covered
+  now:** no test loads a `WithEvents` aggregate back from the DBAL document store. **Confidence:** certain.
+
+### R33 — `EventSourcingConfiguration::createInMemory()` gives a projection no state storage outside flow tests
+
+- **What broke:** with the in-memory event store, `EventSourcingProjectingModule` registers no stream source and no
+  projection state storage (`packages/PdoEventSourcing/src/Config/EventSourcingProjectingModule.php:294`, `:428`);
+  only the test-support module supplies the in-memory ones
+  (`packages/Ecotone/src/Lite/Test/Configuration/EcotoneTestSupportModule.php:253`). So `EcotoneLite::bootstrap()` with
+  `createInMemory()` and a `#[Projection]` boots, then the first event dies with `RuntimeException: No projection state
+  storage found for projection: …` (`packages/Ecotone/src/Projecting/ProjectionStateStorageRegistry.php:34`) — a
+  runtime failure with no way out named, against rules 1 and 1a.
+- **Seen in:** `quickstart-examples/EventSourcing`, which on 1.x used exactly this (`main:quickstart-examples/EventSourcing/src/Infrastructure/EcotoneConfiguration.php:14`)
+  and ran. Wave 20 moved the example to the DBAL event store it already had a connection for, so it runs; the defect
+  stays.
+- **Classification D.** grep `createInMemory` in `upgrade-2.0.md`: no entry saying it is test-only now. **Covered now:**
+  no test bootstraps it outside flow testing. **Confidence:** certain.
+
+### R34 — a multi-tenant application has no way to create Ecotone's tables in its tenant databases
+
+- **What broke:** 1.x created tables lazily, on the first message that needed one, so a multi-tenant application got
+  them in each tenant's database. 2.0 creates none on the message path (conventions rule 16), and leaves it to
+  `ecotone:migration:database:setup`, which cannot open a tenant connection: run in a multi-tenant application it stops
+  at ``Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.``
+  (`packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php:105`), and with
+  `--connection=tenant_a_connection` at `No database setup manager registered for connection 'tenant_a_connection'.
+  Known connections: Ecotone\Dbal\Connection\DbalConnectionFactory`
+  (`packages/Dbal/Api/ExtensionObject/DatabaseSetupManagerRegistry.php:34`).
+- **The documented escape cannot be built.** `upgrade-2.0.md:1356-1363` calls multi-tenant connections out of scope
+  and tells the application to provision each tenant itself, for example with
+  `DatabaseSetupManager::getCreateSqlStatementsForFeatures()` against a connection factory it constructs. But
+  `DatabaseSetupManager` (`packages/Dbal/Api/ExtensionObject/DatabaseSetupManager.php:21`, in `Api`) takes
+  `DbalTableManager[]` in its public constructor (`:26-28`), and `DbalTableManager` is
+  `Ecotone\Dbal\Database\DbalTableManager`, in `src`: a rule-12a leak, a public `Api` constructor that requires an
+  internal type — a new instance of the open ledger row on the `Api` inward surface.
+- **The refusal points at a locked door.** The missing-table `ConfigurationException` these applications hit says
+  `Run: bin/console ecotone:migration:database:setup --initialize --feature=event_stream` and offers `--sql` as the
+  alternative (`packages/Dbal/src/Database/MissingTableInstructions.php:28-29`). Run in
+  `quickstart-examples/MultiTenant/Symfony/EventSourcing`, both forms stop at `Lack of context about tenant in Message
+  Headers`. The message names a way out that does not exist — a rule-1 failure in its own right, and not one to fix by
+  weakening the message, since there is no correct instruction to give yet.
+- **The capability exists, unreachable:** `DbalDatabaseTablesSetUp` already iterates
+  `databaseConnectionsOfEveryTenant()` (`packages/Dbal/src/Database/DbalDatabaseTablesSetUp.php:76`), and its only
+  wiring is the flow-test bootstrap (`packages/Dbal/src/Database/DatabaseSetupModule.php:87-88`, `:131`).
+- **Seen in:** `MultiTenant/Laravel/AsynchronousEvents` (`ecotone_deduplication`), `MultiTenant/Laravel/EventSourcing`
+  and `MultiTenant/Symfony/EventSourcing` (`ecotone_event_stream`), `MultiTenant/Symfony/AsynchronousEvents`
+  (`enqueue`), `MultiTenant/General/HookIntoTenantSwitch` (`ecotone_document_store`).
+- **Classification D.** **Covered now:** no test runs the setup command against a multi-tenant connection.
+  **Confidence:** certain.
+
 ---
 
 ## Sub-review notes not raised as findings

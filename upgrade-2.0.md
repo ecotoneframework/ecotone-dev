@@ -314,6 +314,17 @@ subsection below.
   always the `(aggregate_type, aggregate_id, aggregate_version)` unique index, not the lock, and `GapAwarePosition`
   already tolerates the gaps the lock used to shrink. It defaulted to off, so most applications see no behaviour
   change; delete any call to `withWriteLockStrategy()`.
+- **`EventSourcingConfiguration::withEventStreamTableName()` is renamed `withDefaultEventStreamTableName()`, and
+  names a different table.** **Before:** it named Prooph's stream catalogue, default `event_streams` — the registry of
+  which streams exist, not where any event was stored. **Now:** there is no catalogue, and
+  `withDefaultEventStreamTableName()` (with `getDefaultEventStreamTableName()`, default
+  `EventSourcingConfiguration::DEFAULT_EVENT_STREAM_TABLE_NAME`, `ecotone_event_stream`) names the table the default
+  stream is stored in: every aggregate with no `#[Stream]`, `FlowTestSupport::withEvents()`, projections of the default
+  stream and `ecotone:migration:database:setup` all use it. The old name is not kept as an alias, because a 1.x call
+  that renamed the catalogue would otherwise move every aggregate's events into the catalogue's table. **How to
+  adapt:** delete a 1.x `withEventStreamTableName()` call — the catalogue it configured is no longer read, and can be
+  dropped by hand. Call `withDefaultEventStreamTableName()` only to store the default stream's events in a table other
+  than `ecotone_event_stream`.
 - **`EventStore::create()` is removed.** **Before:** `create(string $streamName, array $streamEvents = [], array $streamMetadata = [])`
   opened a stream, created its table if it was missing, and appended any events given. **Now:** the method is gone from
   the interface and from every implementation. Stream tables are created by `ecotone:migration:database:setup`

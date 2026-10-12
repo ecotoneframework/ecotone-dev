@@ -41,4 +41,4 @@ ecotone:
     defaultErrorChannel: "errorChannel"
     defaultSerializationMediaType: "application/json"
     loadSrcNamespaces: false
-    modulePackages: ["amqp","jmsConverter","tracing"]
+    modulePackages: ["amqp","jmsConverter"]

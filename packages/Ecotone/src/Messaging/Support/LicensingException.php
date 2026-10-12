@@ -28,7 +28,12 @@ final class LicensingException extends MessagingException
 {
     public static function create(string $message, ?int $errorCode = null): static
     {
-        return new static($message . ' To evaluate Enterprise features, email us at "support@simplycodedsoftware.com" for a trial key. Production licenses are available at https://ecotone.tech', is_null($errorCode) ? static::errorCode() : $errorCode);
+        return new static(
+            $message
+            . ' To evaluate Enterprise features, start a trial at https://ecotone.tech/pricing or email us at "support@simplycodedsoftware.com" for a trial key. Production licenses are available at https://ecotone.tech.'
+            . " Pass the key with ServiceConfiguration::withLicenceKey() or the licenceKey: argument of EcotoneLite::bootstrap() (Ecotone Lite), 'licenceKey' in config/ecotone.php (Laravel), ecotone.licenceKey in your Symfony configuration, or the licenceKey argument of EcotoneConfig (Tempest).",
+            is_null($errorCode) ? static::errorCode() : $errorCode
+        );
     }
 
     protected static function errorCode(): int

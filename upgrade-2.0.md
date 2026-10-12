@@ -2741,6 +2741,7 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\EventSourcing\MetadataMatcher` | `data()` | `$data` |
 | `Ecotone\Api\Messaging\BatchMessage` | `getEntries()` | `$entries` |
 | `Ecotone\Api\ExtensionObject\DistributedServiceMap` | `getCommandMapping()`, `getDistributedBusAnnotations()` | `$commandMapping`, `$distributedBusAnnotations` |
+| `Ecotone\Api\DataProtection\DataProtectionConfiguration` | `keys()` | `$keys` |
 
 **How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
 attribute instance, or a test. Replace each call with the property in the right column. Constructing these objects is unchanged.

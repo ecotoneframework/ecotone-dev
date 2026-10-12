@@ -15,7 +15,7 @@ class DataProtectionConfiguration
     /**
      * @param array<string, Key> $keys
      */
-    private function __construct(private array $keys, private string $defaultKey)
+    final private function __construct(public readonly array $keys, public readonly string $defaultKey)
     {
     }
 
@@ -28,23 +28,11 @@ class DataProtectionConfiguration
     {
         Assert::keyNotExists($this->keys, $name, sprintf('Encryption key name `%s` already exists', $name));
 
-        $config = clone $this;
-        $config->keys[$name] = $key;
-
-        if ($asDefault) {
-            $config->defaultKey = $name;
-        }
-
-        return $config;
+        return new static(...[...get_object_vars($this), 'keys' => array_replace($this->keys, [$name => $key]), 'defaultKey' => $asDefault ? $name : $this->defaultKey]);
     }
 
     public function keyName(?string $name): string
     {
         return $name !== null && array_key_exists($name, $this->keys) ? $name : $this->defaultKey;
-    }
-
-    public function keys(): array
-    {
-        return $this->keys;
     }
 }

@@ -1441,12 +1441,21 @@ test needs nothing: its bootstrap sets the table up.
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
+| `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
+| `PollingMetadata::withTestingSetup()` messages handled | 1 | **1, unchanged** | — |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
+**The two `withTestingSetup()` methods now disagree.** `ExecutionPollingMetadata`'s static `createWithTestingSetup()`
+and its instance `withTestingSetup()` both moved to 100 handled messages; `PollingMetadata::withTestingSetup()` — the
+same name and the same parameters, on the endpoint's polling configuration — still handles 1. Do not infer one from
+the other: pass `handledMessageLimit:` explicitly wherever the number matters.
+
 Test-suite impact of the new defaults:
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
-  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
+  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
+  `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
+  `--handledMessageLimit=1` on `ecotone:run`).
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.

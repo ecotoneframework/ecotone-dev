@@ -9,7 +9,6 @@ use function array_map;
 
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Config\ConfigurationException;
 
@@ -67,19 +66,7 @@ final class DbalDatabaseTablesSetUp implements DatabaseTablesSetUp
      */
     private function setUp(ConnectionFactory $connectionFactory, array $tableManagers): void
     {
-        if (! $connectionFactory instanceof MultiTenantConnectionFactory) {
-            (new DatabaseSetupManager(new DbalReconnectableConnectionFactory($connectionFactory), $tableManagers))->initializeAll();
-
-            return;
-        }
-
-        foreach ($connectionFactory->databaseConnectionsOfEveryTenant() as $tenantConnection) {
-            foreach ($tableManagers as $tableManager) {
-                if (! $tableManager->isInitialized($tenantConnection)) {
-                    $tableManager->createTable($tenantConnection);
-                }
-            }
-        }
+        (new DatabaseSetupManager(new DbalReconnectableConnectionFactory($connectionFactory), $tableManagers))->initializeAll();
     }
 
     /**

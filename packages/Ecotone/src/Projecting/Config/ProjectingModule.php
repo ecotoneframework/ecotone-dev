@@ -112,6 +112,7 @@ final class ProjectingModule implements AnnotationModule
                     $projectionBuilder->backfillAsyncChannelName(),
                     $projectionBuilder->rebuildPartitionBatchSize(),
                     $projectionBuilder->rebuildAsyncChannelName(),
+                    $projectionBuilder->isPartitioned(),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);

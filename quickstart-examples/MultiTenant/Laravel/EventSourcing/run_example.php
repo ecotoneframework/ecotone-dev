@@ -6,6 +6,7 @@ use App\MultiTenant\Application\Command\UnregisterProduct;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
@@ -20,6 +21,10 @@ try {
     restore_exception_handler();
 }
 runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
+/** Initializes the projection up front in each tenant's database: on MySQL, its DDL inside the first command's transaction would end that transaction with an implicit commit */
+foreach (['tenant_a', 'tenant_b'] as $tenant) {
+    Artisan::call('ecotone:projection:init', ['name' => 'registered_products', '--header' => ["tenant:{$tenant}"]]);
+}
 
 /** @var CommandBus $commandBus */
 $commandBus = $app->get(CommandBus::class);

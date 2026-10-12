@@ -47,10 +47,13 @@ function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFact
     return ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
 }
 
-function runMigrationForTenants(): void
+function runMigrationForTenants(ConfiguredMessagingSystem $messagingSystem): void
 {
     migrate(getTenantAConnection()->getConnection());
     migrate(getTenantBConnection()->getConnection());
+
+    /** Creates Ecotone's own tables in the database of every tenant */
+    $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 }
 
 function migrate(Connection $connection): void

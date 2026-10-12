@@ -8,17 +8,16 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
 /**
- * Manages database setup and teardown for all registered table managers.
- *
  * licence Apache-2.0
  */
-class DatabaseSetupManager implements DefinedObject
+final class DatabaseSetupManager implements DefinedObject
 {
     /**
      * @param DbalTableManager[] $tableManagers
@@ -30,7 +29,7 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * @return string[] List of feature names that require database tables
+     * @return string[]
      */
     public function getFeatureNames(bool $onlyUsed = true): array
     {
@@ -41,157 +40,102 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * @return string[] SQL statements to create all tables
+     * @return string[]
      */
     public function getCreateSqlStatements(bool $onlyUsed = true): array
     {
-        $connection = $this->getConnection();
-        $statements = [];
-
-        foreach ($this->getManagers($onlyUsed) as $manager) {
-            $sql = $manager->getCreateTableSql($connection);
-            if (is_array($sql)) {
-                $statements = array_merge($statements, $sql);
-            } else {
-                $statements[] = $sql;
-            }
-        }
-
-        return $statements;
+        return $this->createSqlStatementsOf($this->getManagers($onlyUsed));
     }
 
     /**
-     * @return string[] SQL statements to drop all tables
+     * @return string[]
      */
     public function getDropSqlStatements(bool $onlyUsed = true): array
     {
-        $connection = $this->getConnection();
-        $statements = [];
-
-        foreach ($this->getManagers($onlyUsed) as $manager) {
-            $statements[] = $manager->getDropTableSql($connection);
-        }
-
-        return $statements;
+        return $this->dropSqlStatementsOf($this->getManagers($onlyUsed));
     }
 
-    /**
-     * Creates all tables.
-     */
     public function initializeAll(bool $onlyUsed = true): void
     {
-        $connection = $this->getConnection();
-
-        foreach ($this->getManagers($onlyUsed) as $manager) {
-            if ($manager->isInitialized($connection)) {
-                continue;
+        foreach ($this->connections() as $connection) {
+            foreach ($this->getManagers($onlyUsed) as $manager) {
+                if (! $manager->isInitialized($connection)) {
+                    $manager->createTable($connection);
+                }
             }
-
-            $manager->createTable($connection);
         }
     }
 
-    /**
-     * Drops all tables.
-     */
     public function dropAll(bool $onlyUsed = true): void
     {
-        $connection = $this->getConnection();
+        foreach ($this->connections() as $connection) {
+            foreach ($this->getManagers($onlyUsed) as $manager) {
+                $manager->dropTable($connection);
+            }
+        }
+    }
 
-        foreach ($this->getManagers($onlyUsed) as $manager) {
+    public function initialize(string $featureName): void
+    {
+        $manager = $this->findManager($featureName);
+
+        foreach ($this->connections() as $connection) {
+            if (! $manager->isInitialized($connection)) {
+                $manager->createTable($connection);
+            }
+        }
+    }
+
+    public function drop(string $featureName): void
+    {
+        $manager = $this->findManager($featureName);
+
+        foreach ($this->connections() as $connection) {
             $manager->dropTable($connection);
         }
     }
 
     /**
-     * Initialize specific feature by name.
-     */
-    public function initialize(string $featureName): void
-    {
-        $manager = $this->findManager($featureName);
-        $connection = $this->getConnection();
-
-        if ($manager->isInitialized($connection)) {
-            return;
-        }
-
-        $manager->createTable($connection);
-    }
-
-    /**
-     * Drop specific feature by name.
-     */
-    public function drop(string $featureName): void
-    {
-        $manager = $this->findManager($featureName);
-        $connection = $this->getConnection();
-        $manager->dropTable($connection);
-    }
-
-    /**
-     * Get SQL statements for specific features.
-     *
      * @param string[] $featureNames
-     * @return string[] SQL statements to create tables for specified features
+     * @return string[]
      */
     public function getCreateSqlStatementsForFeatures(array $featureNames): array
     {
-        $connection = $this->getConnection();
-        $statements = [];
-
-        foreach ($featureNames as $featureName) {
-            $manager = $this->findManager($featureName);
-            $sql = $manager->getCreateTableSql($connection);
-            if (is_array($sql)) {
-                $statements = array_merge($statements, $sql);
-            } else {
-                $statements[] = $sql;
-            }
-        }
-
-        return $statements;
+        return $this->createSqlStatementsOf(array_map(fn (string $featureName) => $this->findManager($featureName), $featureNames));
     }
 
     /**
-     * Get SQL statements to drop specific features.
-     *
      * @param string[] $featureNames
-     * @return string[] SQL statements to drop tables for specified features
+     * @return string[]
      */
     public function getDropSqlStatementsForFeatures(array $featureNames): array
     {
-        $connection = $this->getConnection();
-        $statements = [];
-
-        foreach ($featureNames as $featureName) {
-            $manager = $this->findManager($featureName);
-            $statements[] = $manager->getDropTableSql($connection);
-        }
-
-        return $statements;
+        return $this->dropSqlStatementsOf(array_map(fn (string $featureName) => $this->findManager($featureName), $featureNames));
     }
 
     /**
-     * Returns initialization status for each table manager.
-     *
-     * @return array<string, bool> Map of feature name to initialization status
+     * @return array<string, bool>
      */
     public function getInitializationStatus(bool $onlyUsed = true): array
     {
-        $connection = $this->getConnection();
+        $connections = $this->connections();
         $status = [];
 
         foreach ($this->getManagers($onlyUsed) as $manager) {
-            $status[$manager->getFeatureName()] = $manager->isInitialized($connection);
+            $status[$manager->getFeatureName()] = true;
+            foreach ($connections as $connection) {
+                if (! $manager->isInitialized($connection)) {
+                    $status[$manager->getFeatureName()] = false;
+                    break;
+                }
+            }
         }
 
         return $status;
     }
 
     /**
-     * Returns usage status for each table manager.
-     *
-     * @return array<string, bool> Map of feature name to usage status
+     * @return array<string, bool>
      */
     public function getUsageStatus(): array
     {
@@ -210,11 +154,9 @@ class DatabaseSetupManager implements DefinedObject
     private function getManagers(bool $onlyUsed): array
     {
         if (! $onlyUsed) {
-            // Return all managers when onlyUsed is false
             return $this->tableManagers;
         }
 
-        // Return only used managers when onlyUsed is true (default)
         return array_filter(
             $this->tableManagers,
             fn (DbalTableManager $manager) => $manager->isUsed()
@@ -232,7 +174,86 @@ class DatabaseSetupManager implements DefinedObject
         throw new InvalidArgumentException("Table manager not found for feature: {$featureName}");
     }
 
-    private function getConnection(): Connection
+    /**
+     * @param DbalTableManager[] $managers
+     * @return string[]
+     */
+    private function createSqlStatementsOf(array $managers): array
+    {
+        return $this->sqlStatementsOnEveryConnection(function (Connection $connection) use ($managers): array {
+            $statements = [];
+            foreach ($managers as $manager) {
+                $sql = $manager->getCreateTableSql($connection);
+                $statements = array_merge($statements, is_array($sql) ? $sql : [$sql]);
+            }
+
+            return $statements;
+        });
+    }
+
+    /**
+     * @param DbalTableManager[] $managers
+     * @return string[]
+     */
+    private function dropSqlStatementsOf(array $managers): array
+    {
+        return $this->sqlStatementsOnEveryConnection(
+            fn (Connection $connection): array => array_values(array_map(fn (DbalTableManager $manager) => $manager->getDropTableSql($connection), $managers))
+        );
+    }
+
+    /**
+     * @param callable(Connection): string[] $statementsOn
+     * @return string[]
+     */
+    private function sqlStatementsOnEveryConnection(callable $statementsOn): array
+    {
+        if (! $this->isMultiTenant()) {
+            return $statementsOn($this->singleConnection());
+        }
+
+        $statements = [];
+        foreach ($this->connections() as $connectionReferenceName => $connection) {
+            $statements[] = "-- connection '{$connectionReferenceName}'";
+            $statements = array_merge($statements, $statementsOn($connection));
+        }
+
+        return $statements;
+    }
+
+    /**
+     * @return array<string, Connection>
+     */
+    private function connections(): array
+    {
+        if ($this->isMultiTenant()) {
+            return $this->multiTenantConnectionFactory()->databaseConnectionsOfEveryTenant();
+        }
+
+        return ['' => $this->singleConnection()];
+    }
+
+    private function isMultiTenant(): bool
+    {
+        return $this->unwrappedConnectionFactory() instanceof MultiTenantConnectionFactory;
+    }
+
+    private function multiTenantConnectionFactory(): MultiTenantConnectionFactory
+    {
+        $connectionFactory = $this->unwrappedConnectionFactory();
+        assert($connectionFactory instanceof MultiTenantConnectionFactory);
+
+        return $connectionFactory;
+    }
+
+    private function unwrappedConnectionFactory(): \Interop\Queue\ConnectionFactory
+    {
+        return $this->connectionFactory instanceof DbalReconnectableConnectionFactory
+            ? $this->connectionFactory->getWrappedConnectionFactory()
+            : $this->connectionFactory;
+    }
+
+    private function singleConnection(): Connection
     {
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();

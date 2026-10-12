@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\MultiTenant\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
@@ -212,7 +213,8 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     EventBus::class . '||' .
                     AsynchronousRunningEndpoint::class  . '||' .
                     PropagateHeaders::class  . '||' .
-                    MessageGateway::class
+                    MessageGateway::class . '||' .
+                    ConsoleCommand::class
                 )
             );
 

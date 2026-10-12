@@ -101,6 +101,19 @@ config sets `'licenceKey' => null` and reads no environment variable; to keep th
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
+### 2a. A console command run with a tenant header activates that tenant
+
+**Before:** a console command run with `--header tenant:<name>` resolved header-driven connections (a
+`#[MultiTenantConnection]` parameter, the DBAL connection factory) to that tenant, but never activated it:
+`#[OnTenantActivation]` and `#[OnTenantDeactivation]` hooks did not run, so Laravel's tenant database switching and
+anything else driven by those hooks stayed on the default connection. A Laravel projection reading `DB::connection()`
+was initialized by `ecotone:projection:init --header tenant:b` in the wrong tenant's database.
+
+**Now:** a `#[ConsoleCommand]` run with the tenant header runs between that tenant's activation and deactivation, as a
+command, query, event or asynchronous message already did. Without the header nothing is activated.
+
+**How to adapt:** nothing, unless an activation hook must not run for console commands.
+
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`
@@ -1379,8 +1392,8 @@ SQLite it also works inside one, because DDL is transactional there.
   point with `DbalConfiguration::withTransactionOnCommandBus(false)`, `withTransactionOnAsynchronousEndpoints(false)`
   or `withTransactionOnConsoleCommands(false)`. A projection that deletes the stream it emits to does it in
   `#[ProjectionDelete]`, not `#[ProjectionReset]`, and is deleted before it is rebuilt — through
-  `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since that console command runs inside a
-  transaction by default — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
+  `ecotone:projection:delete`, which like `ecotone:projection:init` and `ecotone:projection:backfill` runs outside the
+  console-command transaction — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
   before the rebuild emits into it again.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
@@ -1388,6 +1401,15 @@ SQLite it also works inside one, because DDL is transactional there.
   may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
   initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
   idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+- **Before (early 2.0):** `ecotone:projection:init` and `ecotone:projection:delete` ran inside the console-command
+  transaction, so a projection whose `#[ProjectionInitialization]` or `#[ProjectionDelete]` issues DDL failed on
+  MySQL/MariaDB with `There is no active transaction`; and `ecotone:projection:init` left a global projection's state
+  unrecorded, so its first event ran the initialization handler again, inside the command's transaction.
+  **Now:** both commands run outside the console-command transaction, as `ecotone:projection:backfill` already did,
+  and `ecotone:projection:init` records a global projection's state, so its first event does not initialize it again.
+  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands. A projection
+  that relies on automatic initialization on its first event still initializes inside that event's transaction: on
+  MySQL/MariaDB, run `ecotone:projection:init <name>` once at deploy time, or create its tables in your migrations.
 - **Before:** a synchronous `#[CommandHandler]` marked `#[WithoutDatabaseTransaction]` was only honoured when it ran
   through a `#[ConsoleCommand]` or an asynchronous endpoint. Dispatched through `CommandBus` (`send()` /
   `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a
@@ -1432,14 +1454,18 @@ connection's manager for backward compatibility.
   Run:
     bin/console ecotone:migration:database:setup --initialize --feature=event_stream --connection=secondary
   ```
-- **What is out of scope: multi-tenant connections.** A tenant's connection (`MultiTenantConfiguration` /
-  `HeaderBasedMultiTenantConnectionFactory`) is resolved per message from a tenant header at runtime — there is no
-  active header outside message processing, so the CLI (and the setup manager it builds) cannot open that connection
-  to create or inspect tables on it. Pointing a feature's `connectionReferenceName` at a multi-tenant reference is not
-  supported by `ecotone:migration:database:setup`; provision each underlying per-tenant database yourself (loop your
-  own tenant list and run the migration tool against each physical connection, or call
-  `DatabaseSetupManager::getCreateSqlStatementsForFeatures()` against a `ConnectionFactory` you construct for that
-  tenant) rather than expecting the CLI to enumerate tenants for you.
+- **Multi-tenant connections are covered tenant by tenant.** When a connection Ecotone knows about is a
+  multi-tenant one (`MultiTenantConfiguration`), every invocation runs against the database of each tenant in its
+  `tenantToConnectionMapping`, plus its default connection, each physical connection once. `--initialize` creates the
+  missing tables in every tenant database; `ecotone:migration:database:delete` drops them in every one; the status
+  table reports a feature `Initialized` only when every tenant database has its table; and `--sql` prints each
+  tenant database's statements under a `-- connection '<reference>'` line, since tenants may run different engines.
+  `--connection=` takes the multi-tenant reference, not a tenant's own. The tenant list is the configured mapping,
+  not header-driven discovery: a tenant added later is provisioned by running the command again. If one tenant
+  database is unreachable, the command stops with that connection's error; the tables already created stay, and
+  running it again finishes the rest, since it skips tables that exist. Early 2.0 refused here with `Lack of context
+  about tenant in Message Headers`.
+- **`DatabaseSetupManager` is `final`.** Nothing in Ecotone extended it; an application that did composes it instead.
 - This generalizes beyond event streams: any table manager whose feature is configured on a non-default connection —
   today that is deduplication, dead letter and the document store, alongside event streams — is now covered the same
   way. `message_queue` (DBAL-backed channels/publishers) and `projection_state` are still tied to the default
@@ -2684,20 +2710,19 @@ application reaches the dead letter through `DeadLetterGateway`, and through the
 constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL` and `REPLAY_ALL_CHANNEL`, whose values
 end in `replay` and `replayAll` (§15).
 
-### Forced trace flushing refuses a tracer provider that cannot flush
+### A tracer provider that cannot flush no longer breaks the first bus call
 
 **Before:** with the `tracing` package loaded, `TracerProviderInterface` bound to an API-level provider such as
-OpenTelemetry's `NoopTracerProvider` let the application boot, and the first command, query or distributed bus call died
-with `Call to undefined method OpenTelemetry\API\Trace\NoopTracerProvider::forceFlush()`, after its handler had run.
+OpenTelemetry's `NoopTracerProvider` let the application boot, and the first command, query or distributed bus call
+died with `Call to undefined method OpenTelemetry\API\Trace\NoopTracerProvider::forceFlush()`, after its handler
+had run.
 
 **Now:** the forced flush, which `TracingConfiguration` turns on by default for bus calls and asynchronous messages,
-refuses such a provider with a `ConfigurationException` when it is first resolved, before any handler runs: `Tracing
-forces a flush of collected spans after every bus call and every handled asynchronous message, but
-OpenTelemetry\API\Trace\TracerProviderInterface is bound to OpenTelemetry\API\Trace\NoopTracerProvider, which cannot flush: …`
+flushes only a provider that can — an SDK one. Any other provider handles messages normally and is not flushed.
 
-**How to adapt:** bind `OpenTelemetry\API\Trace\TracerProviderInterface` to an SDK tracer provider
-(`OpenTelemetry\SDK\Trace\TracerProvider`), or turn the forced flush off with
-`TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)`.
+**How to adapt:** nothing. An in-memory or noop provider, which is what a test set-up binds, now works with the
+forced flush left on. Bind an SDK tracer provider (`OpenTelemetry\SDK\Trace\TracerProvider`) when you want spans
+actually flushed.
 
 ## 15. Testing and developer-experience changes
 

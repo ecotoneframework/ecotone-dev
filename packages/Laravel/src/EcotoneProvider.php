@@ -136,6 +136,8 @@ class EcotoneProvider extends ServiceProvider
 
                     if ($parameter->isArray()) {
                         $commandName .= '=*';
+                    } elseif (! $parameter->isOption() && $parameter->hasDefaultValue() && $parameter->getDefaultValue() === null) {
+                        $commandName .= '?';
                     } elseif ($parameter->hasDefaultValue()) {
                         $commandName .= '=' . $parameter->getDefaultValue();
                     }

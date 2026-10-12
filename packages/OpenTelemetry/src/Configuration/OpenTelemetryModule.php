@@ -104,7 +104,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 EcotoneForcedTraceFlush::class,
                 new Definition(EcotoneForcedTraceFlush::class, [
                     new Reference(TracerProviderInterface::class),
-                ], 'create')
+                ])
             );
 
             $messagingConfiguration->registerAroundMethodInterceptor(

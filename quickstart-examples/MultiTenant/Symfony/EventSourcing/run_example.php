@@ -2,6 +2,7 @@
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Configuration\Kernel;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
@@ -15,6 +16,10 @@ $kernel = new Kernel('dev', true);
 $kernel->boot();
 $app = $kernel->getContainer();
 runMigrationForTenants($kernel);
+/** Initializes the projection up front in each tenant's database: on MySQL, its DDL inside the first command's transaction would end that transaction with an implicit commit */
+foreach (['tenant_a', 'tenant_b'] as $tenant) {
+    $app->get(ConfiguredMessagingSystem::class)->runConsoleCommand('ecotone:projection:init', ['name' => 'registered_products', 'header' => ["tenant:{$tenant}"]]);
+}
 
 /** @var CommandBus $commandBus */
 $commandBus = $app->get(CommandBus::class);

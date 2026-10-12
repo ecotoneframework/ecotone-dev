@@ -10,6 +10,10 @@ Four independent audits have measured the tree against these rules. What they fo
 actioned yet — with each item's disposition, and the four places an audit's own claim turned out to be wrong —
 is in [docs/conventions-outstanding.md](./conventions-outstanding.md).
 
+The DCB design records cited below — `2026-09-20-dcb-design.md`, `2026-09-28-dcb-readability-review.md` and
+the rest under `docs/superpowers/` — are parked on branch `dgafka/dcb-docs` and are not on this branch. The
+paths are correct there.
+
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
 12a, 13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.

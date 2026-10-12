@@ -243,7 +243,7 @@ for the same event. If the minutes bite, narrow `branches` to `['2.0', 'dgafka/e
 
 Everything above is what to run. This is what a design task, a task brief and a review pass owe each other. All of
 it comes from three independent friction reports over the DCB effort
-(`docs/superpowers/research/dcb-friction-{a,b,c}/report.md`), where each gap below was measured in commits somebody
+(`docs/superpowers/research/dcb-friction-{a,b,c}/report.md`, parked on branch `dgafka/dcb-docs`), where each gap below was measured in commits somebody
 had to write twice.
 
 ### A design justifies new storage against the read paths that already exist

@@ -14,6 +14,7 @@ $isEnterpriseLicensedFile = require __DIR__ . "/enterprise-licence-scope.php";
 $enterpriseNoticeLines = explode("\n", $enterpriseNotice);
 $enterpriseNoticeBody = implode("\n", array_slice($enterpriseNoticeLines, 2, -2)) . "\n";
 $enterpriseNoticeBodyLineCount = count($enterpriseNoticeLines) - 4;
+$enterpriseNoticeLastLine = $enterpriseNoticeLines[count($enterpriseNoticeLines) - 3];
 
 function addLicenceToFile(string $file, string $enterpriseNotice)
 {
@@ -27,11 +28,30 @@ function addLicenceToFile(string $file, string $enterpriseNotice)
     file_put_contents($file, implode('', $lines));
 }
 
-function completeEnterpriseNoticeInFile(string $file, string $enterpriseNotice, string $enterpriseNoticeBody, int $enterpriseNoticeBodyLineCount)
+function findSupersededNoticeEnd(array $lines, int $markerLine, string $enterpriseNoticeLastLine): ?int
+{
+    for ($index = $markerLine + 1; $index < count($lines) && trim($lines[$index]) !== '*/'; $index++) {
+        if (rtrim($lines[$index], "\r\n") === $enterpriseNoticeLastLine) {
+            return $index;
+        }
+    }
+
+    return null;
+}
+
+function completeEnterpriseNoticeInFile(string $file, string $enterpriseNotice, string $enterpriseNoticeBody, int $enterpriseNoticeBodyLineCount, string $enterpriseNoticeLastLine)
 {
     $lines = file($file);
     $markerLine = array_key_first(preg_grep('/^\s*\*\s*(@licence|licence)\s+Enterprise\s*$/', $lines));
     if ($markerLine === null || implode('', array_slice($lines, $markerLine + 1, $enterpriseNoticeBodyLineCount)) === $enterpriseNoticeBody) {
+        return;
+    }
+
+    $supersededNoticeEnd = findSupersededNoticeEnd($lines, $markerLine, $enterpriseNoticeLastLine);
+    if ($supersededNoticeEnd !== null) {
+        array_splice($lines, $markerLine + 1, $supersededNoticeEnd - $markerLine, [$enterpriseNoticeBody]);
+        file_put_contents($file, implode('', $lines));
+
         return;
     }
 
@@ -62,5 +82,5 @@ $enterpriseFiles = (new \Symfony\Component\Finder\Finder())
     ->filter($isEnterpriseLicensedFile);
 
 foreach ($enterpriseFiles as $file) {
-    completeEnterpriseNoticeInFile($file->getRealPath(), $enterpriseNotice, $enterpriseNoticeBody, $enterpriseNoticeBodyLineCount);
+    completeEnterpriseNoticeInFile($file->getRealPath(), $enterpriseNotice, $enterpriseNoticeBody, $enterpriseNoticeBodyLineCount, $enterpriseNoticeLastLine);
 }

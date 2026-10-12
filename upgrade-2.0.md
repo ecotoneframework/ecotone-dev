@@ -184,6 +184,13 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   with. `deleteProjection()` no longer cascades into deleting a projection's `EventStreamEmitter`-emitted events,
   and `initializeProjection()` after a delete only recreates empty state — it does not replay history (use
   `resetProjection()` for that).
+- **`FlowTestSupport::resetProjection()` replays, also for a projection that was `#[ProjectionV2]` in 1.x.**
+  **Before:** for a v2 projection, `resetProjection()` deleted the projection and initialised it again, and stopped
+  there: the projection was left empty until the next event or `triggerProjection()`. **Now:** it deletes, initialises
+  and replays every event the projection reads, so the projection's handlers run again for each of them before the call
+  returns. **How to adapt:** a test that reset a 1.x `#[ProjectionV2]` and asserted the read model was empty asserts
+  the rebuilt read model instead; to see an empty projection, call `deleteProjection()` and `initializeProjection()`.
+  A test that reset and then called `triggerProjection()` to rebuild can drop that second call.
 - `EventSourcingConfiguration`'s projection-table-name and projection-manager-reference configuration are
   removed; only event-store-meaningful configuration remains.
 

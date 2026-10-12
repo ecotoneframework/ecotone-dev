@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -31,6 +32,7 @@ class EcotoneProvider extends ServiceProvider
 {
     public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
     public const PRODUCTION_CACHE_KEY = 'ecotone.cache.name';
+    private const SHIPPED_CONFIGURATION_PATH = __DIR__ . '/../config/ecotone.php';
 
     /**
      * Register services.
@@ -40,8 +42,13 @@ class EcotoneProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/ecotone.php',
+            self::SHIPPED_CONFIGURATION_PATH,
             'ecotone'
+        );
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            array_keys(Config::get('ecotone', [])),
+            array_keys(require self::SHIPPED_CONFIGURATION_PATH),
+            'config/ecotone.php',
         );
 
         $environment            = App::environment();
@@ -52,7 +59,7 @@ class EcotoneProvider extends ServiceProvider
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
-        $modulePackages = Config::get('ecotone.modulePackages');
+        $enabledModulePackageNames = Config::get('ecotone.' . FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES);
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
@@ -61,8 +68,8 @@ class EcotoneProvider extends ServiceProvider
             ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
             ->withCacheDirectoryPath($cacheDirectory);
 
-        if ($modulePackages !== null) {
-            $applicationConfiguration = $applicationConfiguration->withEnabledModulePackageNames($modulePackages);
+        if ($enabledModulePackageNames !== null) {
+            $applicationConfiguration = $applicationConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
         }
 
         if (Config::get('ecotone.licenceKey') !== null) {

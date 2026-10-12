@@ -4,7 +4,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 return [
     'namespaces' => [],
-    'modulePackages' => [
+    'enabledModulePackageNames' => [
         ModulePackageList::LARAVEL_PACKAGE,
         ModulePackageList::DBAL_PACKAGE,
         ModulePackageList::EVENT_SOURCING_PACKAGE,

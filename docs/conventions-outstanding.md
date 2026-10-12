@@ -4,7 +4,7 @@ What four audits of `docs/coding-conventions.md` found and has **not** been acti
 disposition. Actioned findings are not repeated here: they are in the git history (`4e7b8d830` merged the mechanical
 set — rules 1, 2 partial, 6/6a, 10 partial, 14, 17).
 
-Sources, all committed:
+Sources, on branch `dgafka/dcb-docs` — `docs/superpowers/` is untracked on this branch:
 
 - `docs/superpowers/research/conventions-audit-a/report.md` — rules 2, 3, 5, 12, 17
 - `docs/superpowers/research/conventions-audit-b/report.md` — rules 1, 4, 8, 9, 16

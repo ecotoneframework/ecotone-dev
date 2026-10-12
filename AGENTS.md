@@ -331,8 +331,8 @@ In this repository:
 - [docs/dev-workflow.md](./docs/dev-workflow.md) - containers, test commands, database DSNs, tooling, CI
 - `upgrade-2.0.md` - every 1.x → 2.0 behaviour change, with Before / Now / How to adapt
 - `upgrade/namespace-map-2.0.csv` - the full old → new FQCN mapping for the 2.0 `Api` move
-- `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Tracked, but
-  `docs/superpowers/` is in `.gitignore`, so a new one needs `git add -f`
+- `docs/superpowers/specs/` - design decisions, the alternatives considered, and why. Untracked here:
+  `docs/superpowers/` is in `.gitignore`, and the records live on branch `dgafka/dcb-docs`
 - `.claude/skills/ecotone-*` - per-area guides for the user-facing API: `ecotone-testing` for test patterns,
   `ecotone-module-creator` for new modules and packages, and one per feature area
 

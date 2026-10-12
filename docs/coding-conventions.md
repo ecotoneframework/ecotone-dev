@@ -10,9 +10,9 @@ Four independent audits have measured the tree against these rules. What they fo
 actioned yet — with each item's disposition, and the four places an audit's own claim turned out to be wrong —
 is in [docs/conventions-outstanding.md](./conventions-outstanding.md).
 
-The DCB design records cited below — `2026-09-20-dcb-design.md`, `2026-09-28-dcb-readability-review.md` and
-the rest under `docs/superpowers/` — are parked on branch `dgafka/dcb-docs` and are not on this branch. The
-paths are correct there.
+Every `docs/superpowers/` path cited below — the design records, the audits and the research reports — lives on
+branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpowers/` is in `.gitignore`. The
+paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,

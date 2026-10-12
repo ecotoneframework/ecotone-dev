@@ -294,7 +294,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
             classesToResolve: [CouponIssuedForBackfillTest::class, TenantCouponIssuedForBackfillTest::class, EventsConverterForBackfillTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForBackfillTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']),
                     DbalConfiguration::createWithDefaults(),

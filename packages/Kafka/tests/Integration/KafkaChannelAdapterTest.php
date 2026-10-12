@@ -145,7 +145,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 'wrongKafkaDsn',
             ]), 'logger' => new EchoLogger()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(Uuid::v7()->toRfc4122()),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -169,7 +169,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 //                'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName = Uuid::v7()->toRfc4122()),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
@@ -191,7 +191,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -225,7 +225,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -263,7 +263,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -306,7 +306,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                             ->withDefaultErrorChannel('customErrorChannel')
-                            ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                            ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                             ->withExtensionObjects([
                                 KafkaPublisherConfiguration::createWithDefaults($topicName, $publisherReferenceName),
                                 TopicConfiguration::createWithReferenceName('testTopicFailure', $topicName),
@@ -341,7 +341,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 new JsonEncodingConverter(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName, MessagePublisher::class, KafkaBrokerConfiguration::class, MediaType::APPLICATION_JSON),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
@@ -380,7 +380,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -439,7 +439,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 new ExampleKafkaConsumer(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
@@ -474,7 +474,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 new ExampleKafkaConsumer(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
@@ -525,7 +525,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 $consumer,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('orders', $topicName),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -550,7 +550,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

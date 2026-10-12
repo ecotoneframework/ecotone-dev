@@ -27,7 +27,7 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
@@ -42,7 +42,7 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
@@ -64,7 +64,7 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
@@ -75,7 +75,7 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 

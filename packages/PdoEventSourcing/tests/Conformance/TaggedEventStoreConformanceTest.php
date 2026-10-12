@@ -437,7 +437,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     match ($implementation) {

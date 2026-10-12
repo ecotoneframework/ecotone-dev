@@ -33,7 +33,7 @@ final class RedisConnectionReferenceTest extends ConnectionTestCase
                 RedisConnectionReference::DEFAULT => $connection_factory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($queue_name),
                 ])

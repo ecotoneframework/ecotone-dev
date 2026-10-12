@@ -26,7 +26,7 @@ abstract class EcotoneIntegrationTestCase extends IntegrationTest
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\'],
-            modulePackages: TempestTestModulePackages::all(),
+            enabledModulePackageNames: TempestTestModulePackages::all(),
             test: true,
         );
     }

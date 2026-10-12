@@ -29,7 +29,7 @@ class HeaderConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()
@@ -78,7 +78,7 @@ class HeaderConversionTest extends TestCase
             classesToResolve: [Playground::class],
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()

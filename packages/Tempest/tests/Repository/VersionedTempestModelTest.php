@@ -121,7 +121,7 @@ final class VersionedTempestModelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$fixtureClass],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TEMPEST_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE]),
         );
     }
 }

@@ -166,8 +166,8 @@ final class KafkaMessageChannelTest extends TestCase
                     'wronghost:9092',
                 ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = StubLogger::create(),
             ],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -323,8 +323,8 @@ final class KafkaMessageChannelTest extends TestCase
                 ]), new KafkaAsyncCommandHandler(), new MeetingHistory(),
                 //'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -345,8 +345,8 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
                 //                'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -403,7 +403,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -469,7 +469,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -505,7 +505,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -596,7 +596,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -618,7 +618,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -639,7 +639,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,

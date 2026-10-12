@@ -103,7 +103,7 @@ class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCa
                 self::getConnectionFactory(),
             ],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

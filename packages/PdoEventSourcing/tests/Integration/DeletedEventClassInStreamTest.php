@@ -43,7 +43,7 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         )->sendCommandWithRouting('create', ['id' => 'aggregate-1']);

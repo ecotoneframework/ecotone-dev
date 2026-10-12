@@ -94,7 +94,7 @@ final class LoadBatchSizeBoundaryDbalTest extends EventSourcingMessagingTestCase
                 new BasketWithBatchedEventsConverter(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(self::LOAD_BATCH_SIZE),
                 ]),

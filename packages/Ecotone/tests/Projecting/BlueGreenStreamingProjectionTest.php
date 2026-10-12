@@ -73,7 +73,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
             [$v1::class, $v2::class, BlueGreenUserCreated::class],
             [$v1, $v2, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType: MediaType::createApplicationXPHP()),

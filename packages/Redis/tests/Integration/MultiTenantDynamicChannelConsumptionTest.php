@@ -59,7 +59,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends ConnectionTestCase
             [$handler::class],
             [$handler, RedisConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($tenantAChannel),
                     RedisBackedMessageChannelBuilder::create($tenantBChannel),

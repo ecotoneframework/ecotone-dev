@@ -23,7 +23,7 @@ class MessagingEntrypointBenchmark
             [BenchmarkHandler::class],
             [new BenchmarkHandler()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
         );
 
         $this->directEntrypoint = $this->messagingSystem->getServiceFromContainer(MessagingEntrypointService::class);

@@ -28,7 +28,7 @@ class EcotoneLiteTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
         );
@@ -93,7 +93,7 @@ class EcotoneLiteTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withEnvironment('test')
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             configurationVariables: [

@@ -18,7 +18,7 @@ class ContainerCacheLayoutTest extends TestCase
     public function test_it_resolves_annotation_finder_with_stable_config_hash_and_hash_sub_directory(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([]);
+            ->withEnabledModulePackageNames([]);
         $cacheDirectory = sys_get_temp_dir() . '/ecotone_cache_layout_test';
 
         $cacheLayout = ContainerCacheLayout::resolve(
@@ -87,7 +87,7 @@ class ContainerCacheLayoutTest extends TestCase
         $cacheLayout = ContainerCacheLayout::resolve(
             __DIR__ . '/../../',
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
             $cacheDirectory,
             shouldUseCache: true,
             useHashSubDirectory: false,
@@ -105,7 +105,7 @@ class ContainerCacheLayoutTest extends TestCase
         return ContainerCacheLayout::resolve(
             $rootCatalog ?? __DIR__ . '/../../',
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
             sys_get_temp_dir() . '/ecotone_cache_layout_test',
             shouldUseCache: true,
             classesToResolve: $classesToResolve,

@@ -26,7 +26,7 @@ final class AggregateCallingWithGatewayTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [Bucket::class, BucketGateway::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $bucketId = Uuid::uuid4();
@@ -52,7 +52,7 @@ final class AggregateCallingWithGatewayTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [Bucket::class, BucketGateway::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
         );
 
         $gateway = $ecotone->getGateway(BucketGateway::class);

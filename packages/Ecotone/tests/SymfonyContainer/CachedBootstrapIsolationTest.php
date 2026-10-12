@@ -69,7 +69,7 @@ final class CachedBootstrapIsolationTest extends TestCase
         EcotoneLite::bootstrap(
             [RegisterCustomerHandler::class],
             [new RegisterCustomerHandler()],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])->withCacheDirectoryPath($cacheDirectory),
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->withCacheDirectoryPath($cacheDirectory),
             useCachedVersion: true,
         )->getCommandBus()->sendWithRouting('customer.register');
 
@@ -77,7 +77,7 @@ final class CachedBootstrapIsolationTest extends TestCase
         EcotoneLite::bootstrap(
             [BlockCustomerHandler::class],
             [$blockCustomerHandler],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])->withCacheDirectoryPath($cacheDirectory),
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->withCacheDirectoryPath($cacheDirectory),
             useCachedVersion: true,
         )->getCommandBus()->sendWithRouting('customer.block');
 
@@ -90,7 +90,7 @@ final class CachedBootstrapIsolationTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone_cached_bootstrap_isolation'),
             useCachedVersion: true,
         );

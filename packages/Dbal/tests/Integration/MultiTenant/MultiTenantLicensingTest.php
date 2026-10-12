@@ -31,7 +31,7 @@ final class MultiTenantLicensingTest extends TestCase
             [],
             ['tenant_a_connection' => new FakeConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -63,7 +63,7 @@ final class MultiTenantLicensingTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
     }
 }

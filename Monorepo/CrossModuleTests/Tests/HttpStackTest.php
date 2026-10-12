@@ -24,7 +24,7 @@ final class HttpStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
 
-    public static function modulePackagesToLoad(): array
+    public static function enabledModulePackageNames(): array
     {
         return [
             ModulePackageList::TRACING_PACKAGE,

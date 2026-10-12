@@ -27,7 +27,7 @@ final class TenantAggregatePersistenceTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\TenantAggregate\\'],
-            modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
+            enabledModulePackageNames: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
             licenceKey: LicenceTesting::VALID_LICENCE,

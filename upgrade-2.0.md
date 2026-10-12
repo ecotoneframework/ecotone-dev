@@ -55,11 +55,27 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   skipped everything but the packages it listed, which is what `withModulePackages([ModulePackageList::DBAL_PACKAGE])`
   now says directly: pass the same list to `withModulePackages()` and drop `allPackagesExcept()`. Delete calls to
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
-- `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
-  Core and Asynchronous are always loaded. Example: `->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE])`.
-- Symfony `ecotone.yaml`, Laravel `config/ecotone.php` and Tempest config: the `skippedModulePackageNames` key is renamed to
-  `modulePackages` and now lists packages to load (Core and Asynchronous are implicit). Leaving the key out loads every
-  installed package; an explicit empty list (`modulePackages: []`) loads Core and Asynchronous only.
+- `withSkippedModulePackageNames([...])` is replaced by `withEnabledModulePackageNames([...])` listing the packages to
+  **load**; Core and Asynchronous are always loaded. Example:
+  `->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE])`. The getters
+  follow: `getSkippedModulesPackages()` is replaced by `getEnabledModulePackageNames()`, and `areSkippedPackagesDefined()`
+  by `areEnabledModulePackageNamesDefined()`. Early 2.0 builds called the method `withModulePackages()`.
+- Symfony `ecotone.yaml`, Laravel `config/ecotone.php` and Tempest `EcotoneConfig`: the `skippedModulePackageNames` key is
+  replaced by `enabledModulePackageNames`, which lists the packages to **load** — the meaning is inverted, so the 1.x list
+  cannot be moved over unchanged. Leaving the key out (or `null`, as Laravel's shipped `config/ecotone.php` now sets it)
+  loads every installed package; an explicit empty list (`enabledModulePackageNames: []`) loads Core and Asynchronous
+  only — without the framework's own package (`ModulePackageList::SYMFONY_PACKAGE`, `LARAVEL_PACKAGE`,
+  `TEMPEST_PACKAGE`), so list it alongside the others when the application relies on what it provides. Early 2.0
+  builds called the key `modulePackages`.
+- **An unrecognised framework configuration key is refused at bootstrap.** **Before:** Laravel read ten `ecotone.*`
+  keys and ignored any other, so a 1.x `config/ecotone.php` keeping `skippedModulePackageNames` silently loaded every
+  installed package. Symfony refused an unknown option with its generic `Unrecognized option "…" under "ecotone"`, and
+  Tempest with PHP's `Unknown named parameter`, neither naming the replacement. **Now:** all three throw a
+  `ConfigurationException` naming the unknown key and the keys Ecotone reads there; for `skippedModulePackageNames` and
+  `modulePackages` it names `enabledModulePackageNames` and says whether the list's meaning inverted:
+  `ConfigurationException: Ecotone does not recognise the \`skippedModulePackageNames\` key in config/ecotone.php. Since
+  Ecotone 2.0 it is \`enabledModulePackageNames\`, and its meaning is inverted: …` **How to adapt:** rename or remove
+  the key the message names; for `skippedModulePackageNames`, list the packages to load instead of the ones to skip.
 - A handler referencing an unregistered channel fails at bootstrap with
   `ConfigurationException: Registered asynchronous endpoint \`orderHandler\`, however channel configuration for \`orders\` was not
   provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('orders') as a ServiceConfiguration extension object
@@ -1289,8 +1305,9 @@ The removed configuration, one by one:
   failed on a missing event stream table whose instructions named `DatabaseSetupManager` and
   `ecotone:migration:database:setup` - both the DBAL module's, so neither existed. **Now:** the application refuses to
   start with a `ConfigurationException` that names the module to add. **How to adapt:** add
-  `ModulePackageList::DBAL_PACKAGE` (`'dbal'` in the `modulePackages` option of the Symfony bundle, `config/ecotone.php`
-  or `EcotoneConfig`), or register `EventSourcingConfiguration::createInMemory()` to keep the events in memory.
+  `ModulePackageList::DBAL_PACKAGE` (`'dbal'` in `enabledModulePackageNames` — the Symfony bundle option, the
+  `config/ecotone.php` key or the `EcotoneConfig` argument), or register `EventSourcingConfiguration::createInMemory()`
+  to keep the events in memory.
 - **New: `FlowTestSupport::setupDatabaseTables()`.** **Before:** 1.x had no such method: a flow test got its tables
   the way the application did, created on first use. (Pre-release 2.0 builds called it `initializeDatabase()`, and it
   caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup that failed
@@ -1455,7 +1472,7 @@ test needs nothing: its bootstrap sets the table up.
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | **1, unchanged** | — |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
-| Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
+| Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 **The two `withTestingSetup()` methods now disagree.** `ExecutionPollingMetadata`'s static `createWithTestingSetup()`
 and its instance `withTestingSetup()` both moved to 100 handled messages; `PollingMetadata::withTestingSetup()` — the
@@ -1509,7 +1526,8 @@ name, which a `#[BusinessMethod]` gateway, an `outputChannelName` or a direct ch
 (`serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`, `skippedModulePackageNames`, `loadAppNamespaces`, ...).
 
 **Now:** Framework config files keep only bootstrap keys that must be known before the container is built:
-`namespaces`, `cacheConfiguration`, `licenceKey`, `loadSrcNamespaces`, `failFast`, `test`. Every other option is set from a
+`namespaces`, `cacheConfiguration`, `licenceKey`, `loadSrcNamespaces`, `failFast`, `test`, and — under this plan still to
+be decided — `enabledModulePackageNames` (§1). Every other option is set from a
 `#[ServiceContext]` method returning `ServiceConfiguration`.
 
 **How to adapt:**
@@ -1826,7 +1844,7 @@ so they left the public classes:
 and changes between releases, so do not re-create these filters from the internal class: an application that
 forwarded metadata with framework keys stripped keeps the keys it set itself, by name —
 `array_intersect_key($metadata, array_flip(['tenantId', 'userId']))`. Code that listed every package to build a
-`withModulePackages()` argument names the packages it needs instead, as `ModulePackageList` constants.
+`withEnabledModulePackageNames()` argument names the packages it needs instead, as `ModulePackageList` constants.
 
 Only these nine moved here. `EcotoneLite` stayed behind at first: it hands the application `FlowTestSupport` and
 `ConfiguredMessagingSystem`, so moving it alone would have relocated the boundary without closing it. The three
@@ -2307,7 +2325,8 @@ lookup by the old id as a string no longer finds it. None of the other types is 
   input channel, or register the channel with `SimpleMessageChannelBuilder::createPublishSubscribeChannel('<name>')`
   so that each of them receives the message. A channel subscribed by hand at runtime keeps the same refusal on the
   second `subscribe()`.
-- `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
+- `ServiceConfiguration::withSkippedModulePackageNames()` → `withEnabledModulePackageNames()`, and the framework key
+  `skippedModulePackageNames` → `enabledModulePackageNames`, each listing packages to load rather than skip (see §1/§9).
 - **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
   check. Not done yet — the header still exists; nothing to change.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
@@ -2898,7 +2917,7 @@ normal section with "How to adapt" steps when it ships.
 2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
 3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
 4. Replace imports with the namespace map (§13). Fetch `ConfiguredMessagingSystem`, `MessagingTestSupport`, `ConsoleWriter` and `InMemoryConsoleWriter` by their new ids, and clear Ecotone's cache on deploy (§13e, §13f).
-5. Replace `withSkippedModulePackageNames` with `withModulePackages`; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
+5. Replace `withSkippedModulePackageNames` with `withEnabledModulePackageNames`, and the `skippedModulePackageNames` framework key with `enabledModulePackageNames`, inverting the list into the packages to load; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
 8. Move v1 projections to `#[Projection]` + `#[FromAggregateStream]`/`#[FromStream]`, give `#[ProjectionState]` parameters a default, and run `ecotone:projection:rebuild` for former v1 projections (§3).

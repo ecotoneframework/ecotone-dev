@@ -70,7 +70,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
                 ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),

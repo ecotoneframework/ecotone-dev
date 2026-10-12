@@ -129,11 +129,11 @@ final class HeaderConversionTest extends TestCase
     public static function differentDefaultSerializations(): iterable
     {
         yield [
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_X_PHP_SERIALIZED),
         ];
         yield [
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
         ];
     }

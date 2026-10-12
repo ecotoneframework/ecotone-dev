@@ -258,7 +258,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
 
-        $modules = $moduleConfigurationRetrievingService->findAllModuleConfigurations($serviceConfiguration->getSkippedModulesPackages());
+        $modules = $moduleConfigurationRetrievingService->findAllModuleConfigurations(array_diff(ModuleClassList::packageNames(), $serviceConfiguration->getEnabledModulePackageNames()));
 
         /** This will allow to delay all configuration when everything is already added to the MessagingConfiguration */
         $this->moduleConfigurationCompilerPass = new ModuleConfigurationCompilerPass($modules, $serviceExtensions, $serviceConfiguration, $this, $moduleReferenceSearchService);
@@ -273,7 +273,7 @@ final class MessagingSystemConfiguration implements Configuration
     public static function getModuleClassesFor(ServiceConfiguration $serviceConfiguration): array
     {
         $modulesClasses = [];
-        foreach (array_diff(ModuleClassList::packageNames(), $serviceConfiguration->getSkippedModulesPackages()) as $availablePackage) {
+        foreach (array_intersect(ModuleClassList::packageNames(), $serviceConfiguration->getEnabledModulePackageNames()) as $availablePackage) {
             $modulesClasses = array_merge($modulesClasses, ModuleClassList::forPackage($availablePackage));
         }
 
@@ -282,17 +282,12 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function addCorePackage(ServiceConfiguration $serviceConfiguration, bool $enableTestPackage): ServiceConfiguration
     {
-        $requiredModules = [ModulePackageList::CORE_PACKAGE];
-        $skippedPackages = $serviceConfiguration->getSkippedModulesPackages();
+        $enabledModulePackageNames = array_diff($serviceConfiguration->getEnabledModulePackageNames(), [ModulePackageList::TEST_PACKAGE]);
         if ($enableTestPackage) {
-            $requiredModules[] = ModulePackageList::TEST_PACKAGE;
-        } else {
-            $skippedPackages[] = ModulePackageList::TEST_PACKAGE;
+            $enabledModulePackageNames[] = ModulePackageList::TEST_PACKAGE;
         }
 
-        $availablePackages = ModuleClassList::packageNames();
-
-        return $serviceConfiguration->withModulePackages(array_diff($availablePackages, array_diff($skippedPackages, $requiredModules)));
+        return $serviceConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
     }
 
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -680,7 +675,7 @@ final class MessagingSystemConfiguration implements Configuration
         return self::prepare(
             __DIR__ .'/../../../',
             InMemoryConfigurationVariableService::createEmpty(),
-            $serviceConfiguration ?? ServiceConfiguration::createWithDefaults()->withModulePackages([]),
+            $serviceConfiguration ?? ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             $extensionObjects,
             true,
         );

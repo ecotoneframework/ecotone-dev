@@ -7,6 +7,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -32,10 +33,15 @@ class EcotoneExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            givenKeys: array_merge(...array_map(array_keys(...), $configs)),
+            recognisedKeys: $configuration->getRecognisedKeys(),
+            configurationLocation: 'the `ecotone` bundle configuration',
+        );
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);
 
-        $modulePackages = $config['modulePackages'] ?? null;
+        $enabledModulePackageNames = $config[FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES] ?? null;
 
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
@@ -44,8 +50,8 @@ class EcotoneExtension extends Extension
             ->withNamespaces($config['namespaces'])
         ;
 
-        if ($modulePackages !== null) {
-            $serviceConfiguration = $serviceConfiguration->withModulePackages($modulePackages);
+        if ($enabledModulePackageNames !== null) {
+            $serviceConfiguration = $serviceConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
         }
 
         if ($config['licenceKey'] !== null) {

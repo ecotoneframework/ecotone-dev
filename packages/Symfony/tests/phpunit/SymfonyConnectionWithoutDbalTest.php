@@ -32,7 +32,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SYMFONY_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE])
                 ->withExtensionObjects([SymfonyConnectionReference::createForConnection('reporting')]),
         );
     }
@@ -44,7 +44,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SYMFONY_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE])
                 ->withExtensionObjects([SymfonyConnectionReference::createForManagerRegistry('reporting')]),
         );
     }
@@ -66,7 +66,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
             [$configuration::class],
             [$configuration],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SYMFONY_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE]),
         );
     }
 
@@ -87,7 +87,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
             [$configuration::class],
             [$configuration],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SYMFONY_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE]),
         );
     }
 

@@ -86,7 +86,7 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([EventSourcingConfiguration::createInMemory()]),
         );
 
@@ -107,7 +107,7 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
             classesToResolve: array_map(static fn (object $class) => $class::class, $classes),
             containerOrAvailableServices: [...$classes, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
             runForProductionEventStore: true,
         );

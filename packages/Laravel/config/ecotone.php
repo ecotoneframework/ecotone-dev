@@ -93,16 +93,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Module Packages
+    | Enabled Module Package Names
     |--------------------------------------------------------------------------
     |
-    | A list of Ecotone module packages to load (e.g. ModulePackageList::DBAL_PACKAGE).
-    | Leave this key absent to load every installed module package.
-    | Uncomment and provide an explicit list to load only the packages you name;
-    | an empty list loads Core alone.
+    | The Ecotone module packages to load, as ModulePackageList constants
+    | (e.g. [ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::DBAL_PACKAGE]).
+    | null loads every installed module package. A list loads Core, which
+    | includes Asynchronous, and the packages you name; an empty list loads
+    | Core alone.
     |
     */
-    // 'modulePackages' => [],
+    'enabledModulePackageNames' => null,
 
     /*
     |--------------------------------------------------------------------------

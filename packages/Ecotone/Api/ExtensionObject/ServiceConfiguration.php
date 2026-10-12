@@ -29,10 +29,9 @@ class ServiceConfiguration
      */
     private array $namespaces = [];
     /**
-     * @var string[]
+     * @var string[]|null
      */
-    private array $skippedModulesPackages = [ModulePackageList::TEST_PACKAGE];
-    private bool $areSkippedPackagesDefined = false;
+    private ?array $enabledModulePackageNames = null;
     private ?string $defaultSerializationMediaType = null;
     private ?string $defaultErrorChannel = null;
     private ?int $defaultMemoryLimitInMegabytes = PollingMetadata::DEFAULT_MEMORY_LIMIT_MEGABYTES;
@@ -230,15 +229,12 @@ class ServiceConfiguration
     }
 
     /**
-     * @link ModulePackageList list of available packages
-     * @param string[] $packagesToLoad
+     * @param string[] $enabledModulePackageNames
      */
-    public function withModulePackages(array $packagesToLoad): self
+    public function withEnabledModulePackageNames(array $enabledModulePackageNames): self
     {
-        $availablePackages = ModuleClassList::packageNames();
-        $packagesToLoad[] = ModulePackageList::CORE_PACKAGE;
-        $this->skippedModulesPackages = array_values(array_diff($availablePackages, array_unique($packagesToLoad)));
-        $this->areSkippedPackagesDefined = true;
+        $enabledModulePackageNames[] = ModulePackageList::CORE_PACKAGE;
+        $this->enabledModulePackageNames = array_values(array_unique($enabledModulePackageNames));
 
         return $this;
     }
@@ -263,19 +259,20 @@ class ServiceConfiguration
     /**
      * @return string[]
      */
-    public function getSkippedModulesPackages(): array
+    public function getEnabledModulePackageNames(): array
     {
-        return $this->skippedModulesPackages;
+        return $this->enabledModulePackageNames
+            ?? array_values(array_diff(ModuleClassList::packageNames(), [ModulePackageList::TEST_PACKAGE]));
     }
 
-    public function areSkippedPackagesDefined(): bool
+    public function areEnabledModulePackageNamesDefined(): bool
     {
-        return $this->areSkippedPackagesDefined;
+        return $this->enabledModulePackageNames !== null;
     }
 
     public function isModulePackageEnabled(string $modulePackageName): bool
     {
-        return ! in_array($modulePackageName, $this->skippedModulesPackages);
+        return in_array($modulePackageName, $this->getEnabledModulePackageNames());
     }
 
     /**

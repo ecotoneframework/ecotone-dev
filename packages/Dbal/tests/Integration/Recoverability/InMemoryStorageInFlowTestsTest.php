@@ -30,11 +30,11 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
     {
         $first = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
         $second = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
         );
 
         $first->getGateway(DeadLetterGateway::class)->store($this->failedMessage('m-1'));
@@ -61,13 +61,13 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
         $first = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         )->setupDatabaseTables();
         $second = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
@@ -94,7 +94,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         )->setupDatabaseTables();
         $application = new class () {
@@ -104,7 +104,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../../',
         );
@@ -113,7 +113,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../../',
         );
@@ -146,7 +146,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects($dbalConfiguration === null ? [] : [$dbalConfiguration]),
         );
     }

@@ -59,7 +59,7 @@ final class MultiTenantDynamicChannelConsumptionTest extends TestCase
             [$handler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'channel_owner_creation_tenant_a',

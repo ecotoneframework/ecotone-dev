@@ -235,7 +235,7 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(false)
@@ -268,7 +268,7 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(false)

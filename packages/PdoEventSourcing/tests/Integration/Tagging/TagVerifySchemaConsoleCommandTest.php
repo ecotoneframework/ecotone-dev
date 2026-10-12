@@ -199,7 +199,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
             classesToResolve: [CouponIssuedForVerifySchemaTest::class, EventsConverterForVerifySchemaTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForVerifySchemaTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),

@@ -28,7 +28,7 @@ final class UniqueNamedEventsTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                 ])

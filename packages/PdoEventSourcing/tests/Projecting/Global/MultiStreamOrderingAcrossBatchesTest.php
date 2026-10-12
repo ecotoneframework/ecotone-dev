@@ -260,7 +260,7 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
             classesToResolve: [$projection::class, OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -275,7 +275,7 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
             classesToResolve: [OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $lateWriterConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

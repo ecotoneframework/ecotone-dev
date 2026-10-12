@@ -20,7 +20,7 @@ final class DbalConnectionRequirementWithConnectionTest extends EcotoneIntegrati
     {
         return new EcotoneConfig(
             namespaces: ['Monorepo\\CrossModuleTests\\Fixture\\Tempest\\Dbal\\'],
-            modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
+            enabledModulePackageNames: [ModulePackageList::TEMPEST_PACKAGE,
                 ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );

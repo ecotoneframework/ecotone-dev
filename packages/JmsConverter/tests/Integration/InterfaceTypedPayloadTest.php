@@ -130,7 +130,7 @@ final class InterfaceTypedPayloadTest extends TestCase
     private function serialisingAsyncChannel(): ServiceConfiguration
     {
         return ServiceConfiguration::createWithDefaults()
-            ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE])
+            ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
             ->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('async', conversionMediaType: MediaType::createApplicationJson()),
             ]);

@@ -216,7 +216,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
                 self::getConnection(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
                     \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
@@ -234,7 +234,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
                 self::getConnection(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
                     \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,

@@ -53,7 +53,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
                 new RetriedCommandHandler(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()

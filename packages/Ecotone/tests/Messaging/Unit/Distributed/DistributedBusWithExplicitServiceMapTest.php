@@ -674,7 +674,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects(array_merge(is_array($sharedQueueChannel) ? $sharedQueueChannel : [
                     $sharedQueueChannel ?? SimpleMessageChannelBuilder::createQueueChannel($serviceName),
                 ], $extensionObjects ?: []))
@@ -760,7 +760,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             [$publisher, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName($service0Name)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
                     $queueChannelService0,
@@ -778,7 +778,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             [$consumer1, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName($service1Name)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
                     $queueChannelService0,
@@ -796,7 +796,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             [$consumer2, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName($service2Name)
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
                     $queueChannelService0,

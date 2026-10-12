@@ -41,7 +41,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -72,7 +72,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -106,7 +106,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )

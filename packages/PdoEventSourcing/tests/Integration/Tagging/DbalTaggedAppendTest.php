@@ -180,7 +180,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),
@@ -202,7 +202,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
                     DbalConfiguration::createWithDefaults(),

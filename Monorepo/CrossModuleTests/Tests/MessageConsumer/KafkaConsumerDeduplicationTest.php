@@ -56,7 +56,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::KAFKA_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                 ])
@@ -125,7 +125,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::KAFKA_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                 ])
@@ -194,7 +194,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::KAFKA_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                 ])

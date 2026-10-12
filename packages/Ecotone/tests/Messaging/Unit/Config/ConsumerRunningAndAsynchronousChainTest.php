@@ -60,7 +60,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         EcotoneLite::bootstrap(
             [UnregisteredAsyncChannelHandler::class],
             [new UnregisteredAsyncChannelHandler()],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([]),
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 

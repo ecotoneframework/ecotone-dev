@@ -15,11 +15,11 @@ namespace Ecotone\Messaging\Config;
 interface ModuleRetrievingService
 {
     /**
-     * @param string[] $modulePackages
+     * @param string[] $skippedModulePackageNames
      *
      * @return Module[]
      */
-    public function findAllModuleConfigurations(array $modulePackages): array;
+    public function findAllModuleConfigurations(array $skippedModulePackageNames): array;
 
     /**
      * @return object[]

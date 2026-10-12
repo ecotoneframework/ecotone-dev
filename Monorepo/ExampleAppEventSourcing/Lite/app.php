@@ -18,7 +18,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'])
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withDefaultErrorChannel('errorChannel')
-            ->withModulePackages(\json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? []),
+            ->withEnabledModulePackageNames(\json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? []),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__,
     );

@@ -81,7 +81,7 @@ final class DecisionModelLoadTransactionOrderingDbalTest extends EventSourcingMe
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForOrderingTest(), new SubscribeHandlerForOrderingTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),

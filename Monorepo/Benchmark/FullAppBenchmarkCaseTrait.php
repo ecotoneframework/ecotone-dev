@@ -167,17 +167,17 @@ trait FullAppBenchmarkCaseTrait
     {
         putenv('APP_ENV=prod');
         putenv('APP_DEBUG=false');
-        putenv(sprintf('APP_MODULE_PACKAGES=%s', json_encode(static::modulePackagesToLoad(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_ENABLED_MODULE_PACKAGE_NAMES=%s', json_encode(static::enabledModulePackageNames(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
         putenv('APP_ENV=dev');
         putenv('APP_DEBUG=true');
-        putenv(sprintf('APP_MODULE_PACKAGES=%s', json_encode(static::modulePackagesToLoad(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_ENABLED_MODULE_PACKAGE_NAMES=%s', json_encode(static::enabledModulePackageNames(), JSON_THROW_ON_ERROR)));
     }
 
-    public static function modulePackagesToLoad(): array
+    public static function enabledModulePackageNames(): array
     {
         return [];
     }

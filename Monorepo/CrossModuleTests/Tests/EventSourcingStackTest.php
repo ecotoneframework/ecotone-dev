@@ -27,7 +27,7 @@ final class EventSourcingStackTest extends FullAppTestCase
 {
     use ExampleAppEventSourcingCaseTrait;
 
-    public static function modulePackagesToLoad(): array
+    public static function enabledModulePackageNames(): array
     {
         return [
             ModulePackageList::EVENT_SOURCING_PACKAGE,

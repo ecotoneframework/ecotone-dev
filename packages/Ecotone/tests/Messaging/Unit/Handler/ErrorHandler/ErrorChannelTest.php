@@ -38,7 +38,7 @@ final class ErrorChannelTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']))->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::RESEND, delayable: false)),
             pathToRootCatalog: __DIR__ . '/../../../../'
         );
@@ -79,7 +79,7 @@ final class ErrorChannelTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']))->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE, delayable: false)),
             pathToRootCatalog: __DIR__ . '/../../../../'
         );
@@ -117,7 +117,7 @@ final class ErrorChannelTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     ErrorHandlerConfiguration::create(
@@ -165,7 +165,7 @@ final class ErrorChannelTest extends TestCase
             [FailingScheduledExample::class],
             [new FailingScheduledExample()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withDefaultErrorChannel('customErrorChannel')
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -201,7 +201,7 @@ final class ErrorChannelTest extends TestCase
             [FailingScheduledExample::class],
             [new FailingScheduledExample()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withDefaultErrorChannel('retryErrorChannel')
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -227,7 +227,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, delayable: false),
@@ -258,7 +258,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, delayable: false),
@@ -296,7 +296,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withDefaultErrorChannel('globalDefaultErrorChannel')
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -329,7 +329,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::ASYNC_CHANNEL, delayable: false),
@@ -361,7 +361,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::ASYNC_CHANNEL, delayable: false),
@@ -394,7 +394,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withDefaultErrorChannel('globalDefaultErrorChannel')
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
@@ -444,7 +444,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('asyncMisplacedErrorChannel', delayable: false),
@@ -473,7 +473,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('asyncMisplacedDelayedRetry', delayable: false),
@@ -503,7 +503,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -517,7 +517,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL, delayable: false),
@@ -546,7 +546,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [new InboundChannelAdapterWithInstantRetryAndErrorChannel()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL, delayable: false),
@@ -563,7 +563,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL, delayable: false),
@@ -598,7 +598,7 @@ final class ErrorChannelTest extends TestCase
             [$handler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withDefaultErrorChannel('unhandledOrderFailures')
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', finalFailureStrategy: FinalFailureStrategy::STOP),

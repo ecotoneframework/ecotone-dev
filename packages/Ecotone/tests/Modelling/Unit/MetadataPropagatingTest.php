@@ -62,7 +62,7 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
-            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
@@ -127,7 +127,7 @@ final class MetadataPropagatingTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class],
-            configuration: (ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            configuration: (ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects(
                     [
                         CombinedMessageChannel::create(
@@ -157,7 +157,7 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
-            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])

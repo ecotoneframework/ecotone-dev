@@ -181,7 +181,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
             classesToResolve: [...$classesToResolve, CouponIssuedForInvariantTest::class, IssueCouponForInvariantTest::class, EventsConverterForInvariantTest::class],
             containerOrAvailableServices: [...$services, self::getConnectionFactory(), new EventsConverterForInvariantTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false),

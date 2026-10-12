@@ -162,7 +162,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [CalculatingServiceForAsynchronousScenario::class],
             [$calculatingService],
-            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('asyncOne'),
                     SimpleMessageChannelBuilder::createQueueChannel('asyncTwo'),
@@ -1746,7 +1746,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             [SomeTestCommandHandler::class],
             [$commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
@@ -1766,7 +1766,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             [SomeTestEventHandler::class],
             [$eventHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])

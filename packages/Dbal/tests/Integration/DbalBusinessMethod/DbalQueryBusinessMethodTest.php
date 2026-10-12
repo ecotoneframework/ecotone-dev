@@ -180,7 +180,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',

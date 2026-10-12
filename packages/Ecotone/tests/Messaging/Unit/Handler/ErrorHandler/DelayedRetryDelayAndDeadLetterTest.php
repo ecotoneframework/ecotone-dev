@@ -63,7 +63,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             [DeadLetterRoutingHandler::class],
             [new DeadLetterRoutingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(DeadLetterRoutingHandler::ASYNC_CHANNEL, delayable: false),
@@ -96,7 +96,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             [NoDeadLetterHandler::class],
             [new NoDeadLetterHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(NoDeadLetterHandler::ASYNC_CHANNEL, delayable: false),
@@ -120,7 +120,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             [GrowingDelayHandler::class],
             [new GrowingDelayHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel(GrowingDelayHandler::ASYNC_CHANNEL, delayable: false),

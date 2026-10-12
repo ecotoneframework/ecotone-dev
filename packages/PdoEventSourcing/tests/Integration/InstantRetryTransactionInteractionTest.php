@@ -38,7 +38,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
@@ -84,7 +84,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
@@ -143,7 +143,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([

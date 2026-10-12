@@ -172,7 +172,7 @@ final class AggregateSaveTagGuardDbalTest extends EventSourcingMessagingTestCase
             ],
             containerOrAvailableServices: [$connectionFactory, new EventsConverterForAggregateGuardTest(), new CompetingRedemptionForAggregateGuardTest(), new CouponGuardForAggregateGuardTest(), new CouponRedeemerForAggregateGuardTest()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),

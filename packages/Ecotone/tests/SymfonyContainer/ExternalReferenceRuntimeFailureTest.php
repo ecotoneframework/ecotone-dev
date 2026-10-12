@@ -126,7 +126,7 @@ final class ExternalReferenceRuntimeFailureTest extends TestCase
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: $container,
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]),
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

@@ -6,7 +6,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'modulePackages' => [
+        'enabledModulePackageNames' => [
             ModulePackageList::SYMFONY_PACKAGE,
             ModulePackageList::DBAL_PACKAGE,
             ModulePackageList::EVENT_SOURCING_PACKAGE,

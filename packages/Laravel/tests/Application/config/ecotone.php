@@ -6,7 +6,7 @@ return [
     'namespaces' => [
         'Test\Ecotone\Laravel\Fixture',
     ],
-    'modulePackages' => [
+    'enabledModulePackageNames' => [
         ModulePackageList::LARAVEL_PACKAGE,
         ModulePackageList::JMS_CONVERTER_PACKAGE,
     ],

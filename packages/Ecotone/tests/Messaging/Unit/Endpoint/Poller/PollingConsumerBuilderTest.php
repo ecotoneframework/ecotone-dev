@@ -289,7 +289,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         MessageHandlerBuilder $messageHandler,
         bool $stopOnFailure = false
     ): FlowTestSupport {
-        return ComponentTestBuilder::create(configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)))
+        return ComponentTestBuilder::create(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)))
             ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
             ->withPollingMetadata(
                 PollingMetadata::create($messageHandler->getEndpointId())
@@ -304,7 +304,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
     private function createPollingConsumerWithCustomConfiguration(array $channels, MessageHandlerBuilder $messageHandler, PollingMetadata  $pollingMetadata): FlowTestSupport
     {
-        $componentTest = ComponentTestBuilder::create(configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)))
+        $componentTest = ComponentTestBuilder::create(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)))
             ->withPollingMetadata($pollingMetadata);
         foreach ($channels as $channelName => $channel) {
             $componentTest = $componentTest->withChannel(SimpleMessageChannelBuilder::create($channelName, $channel));

@@ -87,7 +87,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('cycle'),
                 ])

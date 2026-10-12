@@ -79,7 +79,7 @@ final class CompiledContainerInitializerServiceTest extends TestCase
         $container = new GenericContainer();
         $container->config(new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Hardening\\Fixture\\InitializerService\\'],
-            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
         $container->addInitializer(GreetingServiceInitializer::class);
 

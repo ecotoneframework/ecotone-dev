@@ -87,7 +87,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -161,7 +161,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),

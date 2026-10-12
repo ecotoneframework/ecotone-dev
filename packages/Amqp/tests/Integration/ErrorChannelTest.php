@@ -29,7 +29,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\DeadLetter']),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -76,7 +76,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
                     PollingMetadata::create(ErrorConfigurationContext::INPUT_CHANNEL)
                         ->setErrorChannelName($amqpDeadLetter),
                 ])
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ]),
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -106,7 +106,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
                     PollingMetadata::create(ErrorConfigurationContext::INPUT_CHANNEL)
                         ->setErrorChannelName('amqp_dead_letter'),
                 ])
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ]),
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -117,7 +117,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new \Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\ErrorChannel']),
             pathToRootCatalog: __DIR__ . '/../../',

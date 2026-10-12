@@ -42,7 +42,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             [TestEventForInMemoryMode::class, TestEventForInMemoryModeConverter::class, $projection::class],
             [$projection, new TestEventForInMemoryModeConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(EventSourcingConfiguration::createInMemory())
         );

@@ -64,7 +64,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->setConfiguration('message.max.bytes', '4000000'),
@@ -84,7 +84,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000)

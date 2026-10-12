@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest;
 
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
+
 use function Tempest\env;
 
 /**
@@ -18,10 +20,16 @@ final class EcotoneConfig
         public bool $cacheConfiguration = false,
         public string $defaultSerializationMediaType = '',
         public string $defaultErrorChannel = '',
-        public ?array $modulePackages = null,
+        public ?array $enabledModulePackageNames = null,
         public bool $test = false,
         public string $licenceKey = '',
+        mixed ...$unrecognisedKeys,
     ) {
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            givenKeys: array_keys($unrecognisedKeys),
+            recognisedKeys: array_keys(get_object_vars($this)),
+            configurationLocation: 'EcotoneConfig',
+        );
         if ($this->serviceName === '') {
             $this->serviceName = (string) env('ECOTONE_SERVICE_NAME', '');
         }

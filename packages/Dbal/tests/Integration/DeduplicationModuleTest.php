@@ -174,7 +174,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
@@ -193,7 +193,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
@@ -251,7 +251,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
@@ -270,7 +270,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
@@ -313,7 +313,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Deduplication',
                 ])

@@ -26,8 +26,8 @@ final class DatabaseEventStoreDbalModuleGuard
             . '(ecotone:migration:database:setup and $ecotone->setupDatabaseTables() are the DBAL module\'s), '
             . 'so every append and every projection would fail on a missing table. '
             . 'Enable it by adding ModulePackageList::DBAL_PACKAGE to the module packages - '
-            . 'ServiceConfiguration::withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ...]), '
-            . "or 'dbal' in the modulePackages option of the Symfony bundle, config/ecotone.php in Laravel or EcotoneConfig in Tempest. "
+            . 'ServiceConfiguration::withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ...]), '
+            . "or 'dbal' in enabledModulePackageNames - the Symfony bundle option, the config/ecotone.php key in Laravel or the EcotoneConfig argument in Tempest. "
             . 'To keep the events in memory instead, register EventSourcingConfiguration::createInMemory().'
         );
     }

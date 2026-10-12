@@ -116,7 +116,7 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
     ],
     configuration: ServiceConfiguration::createWithDefaults()
         ->withEnvironment('prod')
-        ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
         ->withExtensionObjects([
             DbalConfiguration::createWithDefaults()->withDocumentStore(),
             DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),

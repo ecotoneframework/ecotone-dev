@@ -54,7 +54,7 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
                 $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('cycle'),
                 ])

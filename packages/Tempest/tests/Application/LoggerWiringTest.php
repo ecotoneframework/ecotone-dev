@@ -70,7 +70,7 @@ final class LoggerWiringTest extends IntegrationTest
 
         $kernel->container->config(new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\ExpressionLanguage\\'],
-            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         ));
 

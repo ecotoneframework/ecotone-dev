@@ -190,7 +190,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 // ModulePackageList::TEST_PACKAGE
 
 $config = ServiceConfiguration::createWithDefaults()
-    ->withModulePackages([
+    ->withEnabledModulePackageNames([
         ModulePackageList::DBAL_PACKAGE,
         ModulePackageList::EVENT_SOURCING_PACKAGE,
     ]);

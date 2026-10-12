@@ -32,7 +32,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TEMPEST_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE])
                 ->withExtensionObjects([TempestConnectionReference::create('tenant_a')]),
         );
     }
@@ -44,7 +44,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TEMPEST_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE])
                 ->withExtensionObjects([TempestConnectionReference::fromTagAndReferenceName('reporting')]),
         );
     }
@@ -66,7 +66,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
             [$configuration::class],
             [$configuration],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TEMPEST_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE]),
         );
     }
 

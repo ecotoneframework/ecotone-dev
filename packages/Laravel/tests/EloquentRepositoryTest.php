@@ -84,7 +84,7 @@ class EloquentRepositoryTest extends TestCase
             [$ticket::class, $repository::class],
             [$repository::class => $repository],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([])
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([new EloquentRepositoryBuilder()]),
         )->sendCommandWithRouting('ticket.close', metadata: ['aggregate.id' => 'ticket-1']);
 

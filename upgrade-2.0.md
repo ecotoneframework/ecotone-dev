@@ -50,10 +50,10 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   configured channel replaces the provided one.
 - `ModulePackageList::ASYNCHRONOUS_PACKAGE` and `ModulePackageList::allPackagesExcept()` are **deleted**, not only
   unnecessary: naming either fails with PHP's undefined-constant or undefined-method error. Remove
-  `ASYNCHRONOUS_PACKAGE` from every list, the load lists of `withModulePackages()` included — there is no package by
+  `ASYNCHRONOUS_PACKAGE` from every list, the load lists of `withEnabledModulePackageNames()` included — there is no package by
   that name to load. 1.x's `withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))`
-  skipped everything but the packages it listed, which is what `withModulePackages([ModulePackageList::DBAL_PACKAGE])`
-  now says directly: pass the same list to `withModulePackages()` and drop `allPackagesExcept()`. Delete calls to
+  skipped everything but the packages it listed, which is what `withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])`
+  now says directly: pass the same list to `withEnabledModulePackageNames()` and drop `allPackagesExcept()`. Delete calls to
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
 - `withSkippedModulePackageNames([...])` is replaced by `withEnabledModulePackageNames([...])` listing the packages to
   **load**; Core and Asynchronous are always loaded. Example:
@@ -1837,7 +1837,7 @@ so they left the public classes:
 | `MessageHeaders::unsetFrameworkKeys()`, `unsetTransportMessageKeys()` | gone — nothing called them |
 | `ModulePackageList::allPackages()` | internal, `Ecotone\Messaging\Config\ModuleClassList::packageNames()`, which now includes `TEST_PACKAGE` |
 | `ModulePackageList::getModuleClassesForPackage()` | internal, `ModuleClassList::forPackage()` |
-| `ModulePackageList::allPackagesExcept()` | gone — pass the packages it kept to `withModulePackages()` (§1) |
+| `ModulePackageList::allPackagesExcept()` | gone — pass the packages it kept to `withEnabledModulePackageNames()` (§1) |
 | `ModulePackageList::ASYNCHRONOUS_PACKAGE` | gone — asynchronous processing is part of Core and always loads (§1) |
 
 **How to adapt:** nothing, unless you called one of them. The set of keys Ecotone treats as its own is not a contract

@@ -2634,6 +2634,26 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
 
+### Renamed parameters and methods that have no entry of their own
+
+**Before:** each name in the left column worked in 1.x. **Now:** each is renamed with no alias, or changed as
+described. A call that uses an old name fails loudly — PHP's `Unknown named parameter $…` for a named argument,
+`Call to undefined method …` for a method — and none of the renames changes what the call does.
+
+| 1.x | 2.0 |
+|---|---|
+| `CommandHandler::getIdentifierMapping()`, `EventHandler::getIdentifierMapping()` (read by code that inspects the attribute instance, such as a custom module) | `getAggregateIdentifierMapping()` |
+| `class OrderStream extends Stream` — `#[Stream]` could be extended | `Ecotone\Api\EventSourcing\Stream` is `final`; a subclass fails to load with PHP's `Class … cannot extend final class Ecotone\Api\EventSourcing\Stream`. Write `#[Stream('orders')]` where the subclass was used |
+| `Duration::minutes(seconds: 5)` — the parameter was misnamed and always meant minutes | `Duration::minutes(minutes: 5)`; positional `Duration::minutes(5)` is unchanged |
+| `EventSourcedRepository::findBy($aggregateClassName, $identifiers, fromAggregateVersion: 3)` | `findBy(…, fromVersion: 3)`; an implementing class keeps working whatever it names the parameter |
+| `DbalDeadLetterBuilder::createList()`, `createShow()`, `createCount()`, `createDelete()`, `createDeleteAll()`, `createReply()`, `createReplyAll()` — each `($referenceName, $connectionReferenceName)` | `createList($referenceName)` and so on, with `createReplay()` / `createReplayAll()` for the last two (§15). The connection is no longer an argument: the builder addresses the dead letter registered under `$referenceName`, which carries its own connection. PHP ignores a surplus positional argument, so a 1.x positional call still runs and its connection argument is dropped; a named `connectionReferenceName:` fails |
+| `DbalDeadLetterBuilder::createStore($connectionReferenceName)` | `createStore($referenceName, $inputChannelName)`; a 1.x one-argument call fails with PHP's `Too few arguments` |
+
+**How to adapt:** rename the call. `DbalDeadLetterBuilder`'s factories are the dead letter module's own plumbing; an
+application reaches the dead letter through `DeadLetterGateway`, and through the builder only for its channel-name
+constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL` and `REPLAY_ALL_CHANNEL`, whose values
+end in `replay` and `replayAll` (§15).
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

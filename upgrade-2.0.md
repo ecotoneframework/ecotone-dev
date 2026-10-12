@@ -1130,7 +1130,7 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `CronExpression::factory()` | `new CronExpression()` |
-| `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
+| `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 | `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
@@ -1139,8 +1139,8 @@ Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` 
 
 ### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
 
-**Before:** `#[InternalHandler]` (introduced earlier in 2.0) and `#[ServiceActivator]` were two names for the same
-attribute — `InternalHandler extends ServiceActivator` and both worked identically.
+**Before:** `#[InternalHandler]` and `#[ServiceActivator]` were two names for the same attribute, both in 1.x —
+`InternalHandler extends ServiceActivator` and both worked identically.
 
 **Now:** `Ecotone\Messaging\Attribute\ServiceActivator` (`Ecotone\Api\ServiceActivator` in early 2.0 builds) no longer exists. `#[InternalHandler]` is the only attribute.
 
@@ -2608,12 +2608,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
   messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
   and skip another. **How to adapt:** nothing.
-- **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
-  and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
-  accepted: the failed message is sent back to its channel without a delivery delay, so a single
+- **Retries may use a zero back-off.** In 1.x `RetryTemplateBuilder::fixedBackOff(0)` and an exponential back-off
+  starting at `0` threw `Initial delay must be greater than 0`, and `#[DelayedRetry(initialDelayMs: 0)]` threw
+  `DelayedRetry initialDelayMs must be greater than 0` (the parameter is now `initialDelayInMilliseconds`, see below). A
+  zero delay is now accepted: the failed message is sent back to its channel without a delivery delay, so a single
   `run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))` walks it through every retry and
   into the dead letter. Negative delays still throw, naming the value
-  (`Retry initial delay must be 0 or greater, got -1 ms`).
+  (`Retry initial delay must be 0 or greater, got -1 ms`; on the attribute,
+  `DelayedRetry initialDelayInMilliseconds must be 0 or greater, got -1`).
   **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
 - **Retry exhaustion counts deliveries, not "retries".** With `maxRetryAttempts(3)` the handler is delivered 4 times
   (1 initial + 3 retries), but the log said `retried maximum number of \`4\` times` and the exception said

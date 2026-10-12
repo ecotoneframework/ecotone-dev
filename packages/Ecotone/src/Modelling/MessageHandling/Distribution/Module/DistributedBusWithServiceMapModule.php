@@ -70,7 +70,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                 throw LicensingException::create('Distributed Bus with Service Map is available only as part of Ecotone Enterprise. See https://docs.ecotone.tech/enterprise for details.');
             }
 
-            foreach ($distributedServiceMap->getCommandMapping() as $serviceName => $channelName) {
+            foreach ($distributedServiceMap->commandMapping as $serviceName => $channelName) {
                 if (! $this->isMessageChannelAvailable($messageChannels, $channelName)) {
                     throw ConfigurationException::create("Service Map has Service {$serviceName} mapped to channel {$channelName} but it is not available in message channels. Have you forgot to register it?");
                 }
@@ -138,7 +138,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
                         ]
                     )
-                    ->withEndpointAnnotations($distributedServiceMap->getDistributedBusAnnotations())
+                    ->withEndpointAnnotations($distributedServiceMap->distributedBusAnnotations)
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($distributedServiceMap->getReferenceName(), DistributedBus::class, 'convertAndSendCommand', $distributedChannelName)
@@ -153,7 +153,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
                         ]
                     )
-                    ->withEndpointAnnotations($distributedServiceMap->getDistributedBusAnnotations())
+                    ->withEndpointAnnotations($distributedServiceMap->distributedBusAnnotations)
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($distributedServiceMap->getReferenceName(), DistributedBus::class, 'publishEvent', $distributedChannelName)
@@ -168,7 +168,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
                         ]
                     )
-                    ->withEndpointAnnotations($distributedServiceMap->getDistributedBusAnnotations())
+                    ->withEndpointAnnotations($distributedServiceMap->distributedBusAnnotations)
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($distributedServiceMap->getReferenceName(), DistributedBus::class, 'convertAndPublishEvent', $distributedChannelName)
@@ -182,7 +182,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
                         ]
                     )
-                    ->withEndpointAnnotations($distributedServiceMap->getDistributedBusAnnotations())
+                    ->withEndpointAnnotations($distributedServiceMap->distributedBusAnnotations)
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($distributedServiceMap->getReferenceName(), DistributedBus::class, 'sendMessage', $distributedChannelName)
@@ -198,7 +198,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
                         ]
                     )
-                    ->withEndpointAnnotations($distributedServiceMap->getDistributedBusAnnotations())
+                    ->withEndpointAnnotations($distributedServiceMap->distributedBusAnnotations)
             );
     }
 

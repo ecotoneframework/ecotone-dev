@@ -31,10 +31,10 @@ final class DistributedServiceMap implements DefinedObject
      * @param array<object> $distributedBusAnnotations
      */
     public function __construct(
-        private string $referenceName,
-        private array $commandMapping = [],
-        private array $eventSubscriptions = [],
-        private array $distributedBusAnnotations = [],
+        private readonly string $referenceName,
+        public readonly array $commandMapping = [],
+        private readonly array $eventSubscriptions = [],
+        public readonly array $distributedBusAnnotations = [],
     ) {
         Assert::allObjects($this->distributedBusAnnotations, 'Annotations passed to DistributedServiceMap, must all be objects');
     }
@@ -46,10 +46,7 @@ final class DistributedServiceMap implements DefinedObject
 
     public function withCommandMapping(string $targetServiceName, string $channelName): self
     {
-        $self = clone $this;
-        $self->commandMapping[$targetServiceName] = $channelName;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'commandMapping' => array_replace($this->commandMapping, [$targetServiceName => $channelName])]);
     }
 
     /**
@@ -68,30 +65,18 @@ final class DistributedServiceMap implements DefinedObject
             );
         }
 
-        $self = clone $this;
-        $self->eventSubscriptions[$channelName] = [
-            'keys' => $subscriptionKeys,
-            'exclude' => $excludePublishingServices,
-            'include' => $includePublishingServices,
-        ];
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'eventSubscriptions' => array_replace($this->eventSubscriptions, [
+            $channelName => [
+                'keys' => $subscriptionKeys,
+                'exclude' => $excludePublishingServices,
+                'include' => $includePublishingServices,
+            ],
+        ])]);
     }
 
     public function withAsynchronousChannel(string $channelName): self
     {
-        $self = clone $this;
-        $self->distributedBusAnnotations[] = new AttributeDefinition(Asynchronous::class, [$channelName]);
-
-        return $self;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function getCommandMapping(): array
-    {
-        return $this->commandMapping;
+        return new self(...[...get_object_vars($this), 'distributedBusAnnotations' => [...$this->distributedBusAnnotations, new AttributeDefinition(Asynchronous::class, [$channelName])]]);
     }
 
     /**
@@ -138,14 +123,6 @@ final class DistributedServiceMap implements DefinedObject
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    /**
-     * @return object[]
-     */
-    public function getDistributedBusAnnotations(): array
-    {
-        return $this->distributedBusAnnotations;
     }
 
     public function getDefinition(): Definition

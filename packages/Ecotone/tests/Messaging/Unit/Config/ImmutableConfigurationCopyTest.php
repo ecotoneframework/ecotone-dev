@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Closure;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -60,15 +63,51 @@ final class ImmutableConfigurationCopyTest extends TestCase
         );
     }
 
-    private static function assertCopyChangesOnly(object $original, Closure $with, array $changedFields): void
+    public function test_distributed_service_map_copy_changes_only_the_named_mapping(): void
     {
-        $fieldsBefore = get_object_vars($original);
+        $original = DistributedServiceMap::initialize('billing')
+            ->withCommandMapping('orders', 'orders_channel')
+            ->withCommandMapping('42', 'numbered_channel')
+            ->withEventMapping('audit_channel', ['order.*'])
+            ->withAsynchronousChannel('async');
+        $observe = fn (DistributedServiceMap $map) => [
+            ...get_object_vars($map),
+            'referenceName' => $map->getReferenceName(),
+            'channelsForOrderPlaced' => $map->getAllSubscriptionChannels('shop', 'order.placed'),
+            'channelsForInvoiceIssued' => $map->getAllSubscriptionChannels('shop', 'invoice.issued'),
+        ];
+
+        self::assertSame(['commandMapping', 'distributedBusAnnotations'], array_keys(get_object_vars($original)));
+        self::assertCopyChangesOnly(
+            $original,
+            fn (DistributedServiceMap $map) => $map->withCommandMapping('payments', 'payments_channel'),
+            ['commandMapping' => ['orders' => 'orders_channel', '42' => 'numbered_channel', 'payments' => 'payments_channel']],
+            $observe,
+        );
+        self::assertCopyChangesOnly(
+            $original,
+            fn (DistributedServiceMap $map) => $map->withEventMapping('invoices_channel', ['invoice.*']),
+            ['channelsForInvoiceIssued' => ['invoices_channel']],
+            $observe,
+        );
+        self::assertCopyChangesOnly(
+            $original,
+            fn (DistributedServiceMap $map) => $map->withAsynchronousChannel('second_async'),
+            ['distributedBusAnnotations' => [new AttributeDefinition(Asynchronous::class, ['async']), new AttributeDefinition(Asynchronous::class, ['second_async'])]],
+            $observe,
+        );
+    }
+
+    private static function assertCopyChangesOnly(object $original, Closure $with, array $changedFields, ?Closure $observe = null): void
+    {
+        $observe ??= fn (object $object): array => get_object_vars($object);
+        $fieldsBefore = $observe($original);
 
         $copy = $with($original);
 
         self::assertNotSame($original, $copy);
         self::assertSame($original::class, $copy::class);
-        self::assertSame($fieldsBefore, get_object_vars($original));
-        self::assertEquals(array_replace($fieldsBefore, $changedFields), get_object_vars($copy));
+        self::assertEquals($fieldsBefore, $observe($original));
+        self::assertEquals(array_replace($fieldsBefore, $changedFields), $observe($copy));
     }
 }

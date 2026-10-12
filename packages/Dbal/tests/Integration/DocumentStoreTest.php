@@ -111,7 +111,7 @@ final class DocumentStoreTest extends DbalMessagingTestCase
             classesToResolve: [UnreadableDocumentForDocumentStore::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         )->getGateway(DocumentStore::class);
     }
 

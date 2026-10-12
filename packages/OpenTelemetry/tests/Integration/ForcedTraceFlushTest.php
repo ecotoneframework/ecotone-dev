@@ -37,7 +37,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
         );
 
         try {
@@ -69,7 +69,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults()
                         ->withForceFlushOnBusExecution(false)
@@ -97,7 +97,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
             [$handler::class],
             [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE]),
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);

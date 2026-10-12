@@ -42,7 +42,7 @@ final class TempestTenantDatabaseSwitcher
             return;
         }
 
-        $configTag = $activatedConnection->getConfigTag();
+        $configTag = $activatedConnection->configTag;
 
         if ($configTag === null) {
             return;

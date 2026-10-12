@@ -15,7 +15,7 @@ final class DatabaseSetupManagerRegistry
      * @param array<string, DatabaseSetupManager> $managersByConnectionReferenceName
      */
     public function __construct(
-        private array $managersByConnectionReferenceName,
+        public readonly array $managersByConnectionReferenceName,
     ) {
     }
 
@@ -43,13 +43,5 @@ final class DatabaseSetupManagerRegistry
     public function hasConnection(string $connectionReferenceName): bool
     {
         return isset($this->managersByConnectionReferenceName[$connectionReferenceName]);
-    }
-
-    /**
-     * @return array<string, DatabaseSetupManager>
-     */
-    public function getAllManagers(): array
-    {
-        return $this->managersByConnectionReferenceName;
     }
 }

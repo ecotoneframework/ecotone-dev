@@ -83,7 +83,7 @@ final class ConsoleWriterInjectionTest extends TestCase
         $this->assertSame([['columnHeaders' => ['Name'], 'rows' => [['Order']]]], $inMemoryWriter->getTables());
         $progressBar = $inMemoryWriter->getProgressBars()[0];
         $this->assertSame(2, $progressBar->getCurrentStep());
-        $this->assertSame(2, $progressBar->getMaxSteps());
+        $this->assertSame(2, $progressBar->maxSteps);
         $this->assertTrue($progressBar->isFinished());
     }
 

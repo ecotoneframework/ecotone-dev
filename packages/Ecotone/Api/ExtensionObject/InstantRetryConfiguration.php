@@ -11,7 +11,7 @@ namespace Ecotone\Api\ExtensionObject;
  */
 final class InstantRetryConfiguration
 {
-    private function __construct(private bool $isEnabledForCommandBus, private int $commandBusRetryTimes, private array $commandBuExceptions, private bool $isEnabledForAsynchronousEndpoints, private int $asynchronousRetryTimes, private array $asynchronousExceptions)
+    private function __construct(public readonly bool $isEnabledForCommandBus, public readonly int $commandBusRetryTimes, public readonly array $commandBuExceptions, public readonly bool $isEnabledForAsynchronousEndpoints, public readonly int $asynchronousRetryTimes, public readonly array $asynchronousExceptions)
     {
     }
 
@@ -28,35 +28,5 @@ final class InstantRetryConfiguration
     public function withAsynchronousEndpointsRetry(bool $isEnabled, int $retryTimes = 3, array $retryExceptions = []): self
     {
         return new self($this->isEnabledForCommandBus, $this->commandBusRetryTimes, $this->commandBuExceptions, $isEnabled, $retryTimes, $retryExceptions);
-    }
-
-    public function isEnabledForCommandBus(): bool
-    {
-        return $this->isEnabledForCommandBus;
-    }
-
-    public function getCommandBusRetryTimes(): int
-    {
-        return $this->commandBusRetryTimes;
-    }
-
-    public function getCommandBuExceptions(): array
-    {
-        return $this->commandBuExceptions;
-    }
-
-    public function isEnabledForAsynchronousEndpoints(): bool
-    {
-        return $this->isEnabledForAsynchronousEndpoints;
-    }
-
-    public function getAsynchronousRetryTimes(): int
-    {
-        return $this->asynchronousRetryTimes;
-    }
-
-    public function getAsynchronousExceptions(): array
-    {
-        return $this->asynchronousExceptions;
     }
 }

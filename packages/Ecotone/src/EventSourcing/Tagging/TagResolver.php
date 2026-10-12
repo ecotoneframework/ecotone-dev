@@ -81,7 +81,7 @@ final class TagResolver
     {
         $tags = [];
         foreach ($criteria->branches() as $branch) {
-            foreach ($branch->tags() as $tag) {
+            foreach ($branch->tags as $tag) {
                 $tags[TagKey::of($tag['name'], $tag['value'])] = $tag;
             }
         }
@@ -109,13 +109,13 @@ final class TagResolver
      */
     public function positionTagOf(EventCriteria $branch): ?array
     {
-        foreach ($branch->tags() as $tag) {
+        foreach ($branch->tags as $tag) {
             if (! $this->eventTagRegistry->isFilterOnly($tag['name'])) {
                 return $tag;
             }
         }
 
-        return $branch->tags()[0] ?? null;
+        return $branch->tags[0] ?? null;
     }
 
     /**
@@ -129,15 +129,15 @@ final class TagResolver
             $positionTag = $this->positionTagOf($branch);
             $positionTagKey = $positionTag === null ? null : TagKey::of($positionTag['name'], $positionTag['value']);
 
-            foreach ($branch->tags() as $tag) {
+            foreach ($branch->tags as $tag) {
                 $tagKey = TagKey::of($tag['name'], $tag['value']);
-                if ($tagKey !== $positionTagKey || $branch->tagSequenceLowerBound() === 0) {
+                if ($tagKey !== $positionTagKey || $branch->tagSequenceLowerBound === 0) {
                     $unsafe[$tagKey] = true;
                 }
             }
 
-            if ($positionTagKey !== null && $branch->tagSequenceLowerBound() > 0) {
-                $bounds[$positionTagKey] = min($bounds[$positionTagKey] ?? PHP_INT_MAX, $branch->tagSequenceLowerBound());
+            if ($positionTagKey !== null && $branch->tagSequenceLowerBound > 0) {
+                $bounds[$positionTagKey] = min($bounds[$positionTagKey] ?? PHP_INT_MAX, $branch->tagSequenceLowerBound);
             }
         }
 
@@ -150,16 +150,16 @@ final class TagResolver
      */
     public function eventsMatching(array $events, EventCriteria $criteria): array
     {
-        $positionTag = $criteria->tagSequenceLowerBound() > 0 ? $this->positionTagOf($criteria) : null;
+        $positionTag = $criteria->tagSequenceLowerBound > 0 ? $this->positionTagOf($criteria) : null;
         $positionTagKey = $positionTag === null ? null : TagKey::of($positionTag['name'], $positionTag['value']);
 
         $matching = [];
         foreach ($events as $event) {
-            if (! $criteria->matchesEventType($event->getEventName()) || ! $this->carriesAll($event, $criteria->tags())) {
+            if (! $criteria->matchesEventType($event->eventName) || ! $this->carriesAll($event, $criteria->tags)) {
                 continue;
             }
 
-            if ($positionTagKey !== null && (MatchedTagSequences::of($event, $positionTagKey) ?? 0) <= $criteria->tagSequenceLowerBound()) {
+            if ($positionTagKey !== null && (MatchedTagSequences::of($event, $positionTagKey) ?? 0) <= $criteria->tagSequenceLowerBound) {
                 continue;
             }
 

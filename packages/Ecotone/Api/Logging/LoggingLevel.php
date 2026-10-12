@@ -13,7 +13,7 @@ use Psr\Log\LogLevel;
 class LoggingLevel extends LogLevel
 {
     private ?string $level;
-    private bool $logFullMessage;
+    public readonly bool $logFullMessage;
 
     private function __construct(string $logLevel, bool $logFullMessage)
     {
@@ -48,11 +48,6 @@ class LoggingLevel extends LogLevel
     public function getLevel(): ?string
     {
         return $this->level;
-    }
-
-    public function isFullMessageLog(): bool
-    {
-        return $this->logFullMessage;
     }
 
     public function __toString()

@@ -33,10 +33,10 @@ final class EventCriteria
      * @param self[] $branches
      */
     private function __construct(
-        private readonly array $tags,
-        private readonly array $eventTypes = [],
+        public readonly array $tags,
+        public readonly array $eventTypes = [],
         private readonly array $branches = [],
-        private readonly int $tagSequenceLowerBound = 0,
+        public readonly int $tagSequenceLowerBound = 0,
     ) {
     }
 
@@ -91,11 +91,6 @@ final class EventCriteria
         return new self($this->tags, $this->eventTypes, [], $tagSequence);
     }
 
-    public function tagSequenceLowerBound(): int
-    {
-        return $this->tagSequenceLowerBound;
-    }
-
     public function or(self $other): self
     {
         return new self([], [], [...$this->branches(), ...$other->branches()]);
@@ -107,22 +102,6 @@ final class EventCriteria
     public function branches(): array
     {
         return $this->branches !== [] ? $this->branches : [$this];
-    }
-
-    /**
-     * @return array<array{name: string, value: string}>
-     */
-    public function tags(): array
-    {
-        return $this->tags;
-    }
-
-    /**
-     * @return class-string[]
-     */
-    public function eventTypes(): array
-    {
-        return $this->eventTypes;
     }
 
     public function matchesEventType(string $eventType): bool

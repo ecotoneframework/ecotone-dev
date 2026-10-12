@@ -38,7 +38,7 @@ final class MatchedTagSequences
 
     public static function of(Event $event, string $tagKey): ?int
     {
-        $sequences = $event->getMetadata()[self::HEADER_NAME] ?? [];
+        $sequences = $event->metadata[self::HEADER_NAME] ?? [];
 
         return $sequences[$tagKey] ?? null;
     }

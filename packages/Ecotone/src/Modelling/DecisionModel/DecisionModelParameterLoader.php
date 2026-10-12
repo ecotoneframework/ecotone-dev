@@ -75,7 +75,7 @@ final class DecisionModelParameterLoader
     {
         return implode('&', array_map(
             static fn (array $tag): string => $tag['name'] . '|' . $tag['value'],
-            $criteria->tags(),
+            $criteria->tags,
         ));
     }
 

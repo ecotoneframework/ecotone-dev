@@ -240,7 +240,7 @@ final class MessagingSystemConfiguration implements Configuration
                     $extensionObjects[] = $combinedMessageChannel->getEmbeddedSourceChannelBuilder();
                 }
             } else {
-                $this->plainCombinedChannelUsages[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->getCombinedChannels();
+                $this->plainCombinedChannelUsages[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->combinedChannels;
             }
         }
 

@@ -184,7 +184,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
     private function eventIdOf(Event $recordedEvent): ?string
     {
-        $eventId = $recordedEvent->getMetadata()[MessageHeaders::MESSAGE_ID] ?? null;
+        $eventId = $recordedEvent->metadata[MessageHeaders::MESSAGE_ID] ?? null;
 
         return $eventId === null ? null : (string) $eventId;
     }
@@ -194,7 +194,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
      */
     private function aggregateVersionOf(Event $recordedEvent): ?array
     {
-        $metadata = $recordedEvent->getMetadata();
+        $metadata = $recordedEvent->metadata;
         $aggregateType = $metadata[MessageHeaders::EVENT_AGGREGATE_TYPE] ?? null;
         $aggregateId = $metadata[MessageHeaders::EVENT_AGGREGATE_ID] ?? null;
         $aggregateVersion = $metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? null;
@@ -225,7 +225,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
         $maxVersion = 0;
         foreach ($this->streams[$streamName]['events'] as $event) {
-            $metadata = $event->getMetadata();
+            $metadata = $event->metadata;
             $eventAggregateId = $metadata[MessageHeaders::EVENT_AGGREGATE_ID] ?? null;
             if (! is_scalar($eventAggregateId) || (string) $eventAggregateId !== $aggregateId) {
                 continue;
@@ -312,7 +312,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
             $event = $events[$key];
 
-            if ($this->matchesMetadata($metadataMatcher, $event->getMetadata())
+            if ($this->matchesMetadata($metadataMatcher, $event->metadata)
                 && $this->matchesEventProperty($metadataMatcher, $event)
             ) {
                 ++$found;
@@ -366,7 +366,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
             $position = $key + 1;
 
             if ($position >= $fromNumber
-                && $this->matchesMetadata($metadataMatcher, $event->getMetadata())
+                && $this->matchesMetadata($metadataMatcher, $event->metadata)
                 && $this->matchesEventProperty($metadataMatcher, $event)
             ) {
                 ++$found;
@@ -425,11 +425,11 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
 
     private function getEventPropertyValue(Event $event, string $field): mixed
     {
-        $metadata = $event->getMetadata();
+        $metadata = $event->metadata;
 
         return match ($field) {
             'uuid', 'message_id', 'messageId' => $metadata[MessageHeaders::MESSAGE_ID] ?? null,
-            'event_name', 'message_name', 'messageName' => $event->getEventName(),
+            'event_name', 'message_name', 'messageName' => $event->eventName,
             'created_at', 'createdAt', 'timestamp' => $metadata[MessageHeaders::TIMESTAMP] ?? null,
             default => throw new InvalidArgumentException("Unexpected field '{$field}' given"),
         };

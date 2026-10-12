@@ -71,12 +71,12 @@ final class OutboxForwardingMessageChannel extends CombinedMessageChannel implem
 
     public function getSourceChannelName(): string
     {
-        return $this->getCombinedChannels()[0];
+        return $this->combinedChannels[0];
     }
 
     public function getTargetChannelName(): string
     {
-        return $this->getCombinedChannels()[1];
+        return $this->combinedChannels[1];
     }
 
     public function getEmbeddedSourceChannelBuilder(): ?MessageChannelBuilder

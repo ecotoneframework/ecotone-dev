@@ -47,7 +47,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
     public function project(Event $event, mixed $userState = null, bool $isRebuilding = false): mixed
     {
         if (! empty($this->eventNames)) {
-            $eventName = $event->getEventName();
+            $eventName = $event->eventName;
             $matched = false;
 
             foreach ($this->eventNames as $pattern) {
@@ -63,7 +63,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         }
 
         $payload = $event->getPayload();
-        $metadata = $event->getMetadata();
+        $metadata = $event->metadata;
 
         if (! isset($metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE])) {
             $metadata[\Ecotone\Api\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';

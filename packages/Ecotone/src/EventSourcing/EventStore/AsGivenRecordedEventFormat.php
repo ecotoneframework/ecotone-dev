@@ -42,9 +42,9 @@ final class AsGivenRecordedEventFormat implements RecordedEventFormat
         }
 
         return Event::createWithType(
-            $recordedEvent->getEventName(),
+            $recordedEvent->eventName,
             $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP()),
-            $recordedEvent->getMetadata(),
+            $recordedEvent->metadata,
         );
     }
 }

@@ -149,7 +149,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
 
         self::assertCount(1, $events);
-        self::assertSame(1, $events[0]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION]);
+        self::assertSame(1, $events[0]->metadata[MessageHeaders::EVENT_AGGREGATE_VERSION]);
     }
 
     public function test_the_decision_model_append_condition_never_reaches_persisted_metadata_or_published_headers(): void
@@ -161,7 +161,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
 
         $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
         self::assertCount(1, $events);
-        self::assertArrayNotHasKey(DecisionModelLoadedState::HEADER_NAME, $events[0]->getMetadata());
+        self::assertArrayNotHasKey(DecisionModelLoadedState::HEADER_NAME, $events[0]->metadata);
 
         /** @var PublishedEventHeadersCollectorForDbalCouponTest $collector */
         $collector = $ecotone->getServiceFromContainer(PublishedEventHeadersCollectorForDbalCouponTest::class);

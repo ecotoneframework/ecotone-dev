@@ -29,10 +29,10 @@ final class KafkaPublisherConfiguration implements DefinedObject
      * @param array<string, string> $configuration
      */
     public function __construct(
-        private string $defaultTopicName,
+        public readonly string $defaultTopicName,
         private string $referenceName,
         private array  $configuration,
-        private string $brokerConfigurationReference,
+        public readonly string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private ?string $outputDefaultConversionMediaType = null,
         private bool $batchPublishing = false,
@@ -144,11 +144,6 @@ final class KafkaPublisherConfiguration implements DefinedObject
         return $this->outputDefaultConversionMediaType;
     }
 
-    public function getBrokerConfigurationReference(): string
-    {
-        return $this->brokerConfigurationReference;
-    }
-
     public function getAsKafkaConfig(): Conf
     {
         $configuration = $this->configuration;
@@ -162,11 +157,6 @@ final class KafkaPublisherConfiguration implements DefinedObject
         }
 
         return $conf;
-    }
-
-    public function getDefaultTopicName(): string
-    {
-        return $this->defaultTopicName;
     }
 
     public function getReferenceName(): string

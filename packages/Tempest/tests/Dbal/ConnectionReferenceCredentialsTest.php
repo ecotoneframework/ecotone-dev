@@ -17,7 +17,7 @@ final class ConnectionReferenceCredentialsTest extends TestCase
     {
         $reference = TempestConnectionReference::create('tenant_a');
 
-        $this->assertSame('tenant_a', $reference->getConfigTag());
+        $this->assertSame('tenant_a', $reference->configTag);
         $this->assertSame('tenant_a', $reference->getReferenceName());
     }
 
@@ -25,7 +25,7 @@ final class ConnectionReferenceCredentialsTest extends TestCase
     {
         $reference = TempestConnectionReference::create('tenant_a', 'custom_ref');
 
-        $this->assertSame('tenant_a', $reference->getConfigTag());
+        $this->assertSame('tenant_a', $reference->configTag);
         $this->assertSame('custom_ref', $reference->getReferenceName());
     }
 
@@ -51,7 +51,7 @@ final class ConnectionReferenceCredentialsTest extends TestCase
             ...$definition->getArguments()
         );
 
-        $this->assertSame('tenant_a', $reconstructed->getConfigTag());
+        $this->assertSame('tenant_a', $reconstructed->configTag);
         $this->assertSame('tenant_a', $reconstructed->getReferenceName());
     }
 }

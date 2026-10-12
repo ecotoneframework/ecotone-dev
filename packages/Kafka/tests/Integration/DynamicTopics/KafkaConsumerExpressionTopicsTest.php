@@ -152,7 +152,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
 
     private function publishToTopic(string $topic, string $payload): void
     {
-        $brokerList = ConnectionTestCase::getConnection()->getBootstrapServers()[0];
+        $brokerList = ConnectionTestCase::getConnection()->bootstrapServers[0];
 
         $conf = new Conf();
         $conf->set('metadata.broker.list', $brokerList);

@@ -40,14 +40,14 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
         foreach ($symfonyConnections as $connection) {
             SymfonyConnectionDbalGuard::assertDbalInstalledFor(
                 $connection->isManagerRegistryBasedConnection()
-                    ? "SymfonyConnectionReference::createForManagerRegistry('{$connection->getConnectionName()}')"
-                    : "SymfonyConnectionReference::createForConnection('{$connection->getConnectionName()}')"
+                    ? "SymfonyConnectionReference::createForManagerRegistry('{$connection->connectionName}')"
+                    : "SymfonyConnectionReference::createForConnection('{$connection->connectionName}')"
             );
         }
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         foreach ($multiTenantConfigurations as $multiTenantConfiguration) {
-            foreach ($multiTenantConfiguration->getTenantToConnectionMapping() as $connectionReference) {
+            foreach ($multiTenantConfiguration->tenantToConnectionMapping as $connectionReference) {
                 if ($connectionReference instanceof SymfonyConnectionReference) {
                     $symfonyConnections[] = $connectionReference;
                     $laravelRelatedMultiTenantConfigurations[$multiTenantConfiguration->getReferenceName()] = $multiTenantConfiguration;
@@ -64,7 +64,7 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                         ConnectionFactory::class,
                         [
                             Reference::to($connection->getManagerRegistryReference()),
-                            $connection->getConnectionName(),
+                            $connection->connectionName,
                         ],
                         [
                             DbalConnection::class,
@@ -79,7 +79,7 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                     new Definition(
                         ConnectionFactory::class,
                         [
-                            $connection->getConnectionName(),
+                            $connection->connectionName,
                         ],
                         [
                             'doctrine',

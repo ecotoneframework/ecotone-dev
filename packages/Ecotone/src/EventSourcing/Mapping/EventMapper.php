@@ -46,7 +46,7 @@ final class EventMapper
 
     public function mapEventToName(object $event): string
     {
-        $type = $event instanceof Event ? $event->getEventName() : $event::class;
+        $type = $event instanceof Event ? $event->eventName : $event::class;
         if (array_key_exists($type, $this->eventToNameMapping)) {
             return $this->eventToNameMapping[$type];
         }

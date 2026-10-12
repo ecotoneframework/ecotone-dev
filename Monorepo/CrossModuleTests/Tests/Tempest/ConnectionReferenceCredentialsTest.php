@@ -18,7 +18,7 @@ final class ConnectionReferenceCredentialsTest extends TestCase
     {
         $reference = TempestConnectionReference::defaultConnection();
 
-        $this->assertNull($reference->getConfigTag());
+        $this->assertNull($reference->configTag);
         $this->assertSame(DbalConnectionFactory::class, $reference->getReferenceName());
     }
 }

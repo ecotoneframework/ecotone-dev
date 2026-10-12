@@ -20,9 +20,9 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
     private function __construct(
         private string $referenceName,
         private ?string $managerRegistryReference,
-        private ?string $connectionName,
+        ?string $connectionName,
     ) {
-        parent::__construct($referenceName, $this->connectionName);
+        parent::__construct($referenceName, $connectionName);
     }
 
     public static function createForManagerRegistry(

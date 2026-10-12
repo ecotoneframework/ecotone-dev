@@ -55,7 +55,7 @@ final class FlowTestSupport
         private EventBus $eventBus,
         private QueryBus $queryBus,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
-        private MessagingTestSupport $testSupportGateway,
+        public readonly MessagingTestSupport $testSupportGateway,
         private MessagingEntrypointService $messagingEntrypoint,
         private EcotoneClockInterface $clock,
         private ConfiguredMessagingSystem $configuredMessagingSystem
@@ -106,7 +106,6 @@ final class FlowTestSupport
 
         return $this;
     }
-
 
     /**
      * @return mixed[]
@@ -521,11 +520,6 @@ final class FlowTestSupport
     public function getQueryBus(): QueryBus
     {
         return $this->queryBus;
-    }
-
-    public function getMessagingTestSupport(): MessagingTestSupport
-    {
-        return $this->testSupportGateway;
     }
 
     public function getDistributedBus(string $referenceName = DistributedBus::class): DistributedBus

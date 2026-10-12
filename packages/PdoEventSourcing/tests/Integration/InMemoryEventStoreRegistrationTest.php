@@ -56,7 +56,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
 
         $this->assertCount(1, $events);
         $this->assertEquals($event, $events[0]->getPayload());
-        $this->assertEquals('test_value', $events[0]->getMetadata()['test_key']);
+        $this->assertEquals('test_value', $events[0]->metadata['test_key']);
 
         // Verify that the InMemoryEventStore is registered and working
         // The adapter should delegate to Ecotone's InMemoryEventStore

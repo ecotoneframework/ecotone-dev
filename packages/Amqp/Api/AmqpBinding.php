@@ -12,10 +12,7 @@ use Interop\Amqp\Impl\AmqpBind as EnqueueBinding;
  */
 class AmqpBinding
 {
-    /**
-     * @var EnqueueBinding
-     */
-    private $enqueueBinding;
+    public readonly EnqueueBinding $enqueueBinding;
     /**
      * @var string
      */
@@ -55,11 +52,6 @@ class AmqpBinding
     public function isRelatedToExchangeName(string $amqpExchangeName): bool
     {
         return $this->exchangeName == $amqpExchangeName;
-    }
-
-    public function toEnqueueBinding(): EnqueueBinding
-    {
-        return $this->enqueueBinding;
     }
 
     public static function createWith(AmqpExchange $amqpExchange, AmqpQueue $amqpQueue, ?string $routingKey): self

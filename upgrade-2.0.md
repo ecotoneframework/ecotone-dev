@@ -2714,10 +2714,32 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\Attribute\Scheduled` | `getRequestChannelName()` | `$requestChannelName` |
 | `Ecotone\Api\Attribute\TargetIdentifier` | `getIdentifierName()` | `$identifierName` |
 | `Ecotone\Api\Attribute\Version` | `isAutoIncreased()` | `$autoIncrease` |
+| `Ecotone\Api\EventSourcing\Event` — what `EventStore::load()` returns | `getEventName()`, `getMetadata()` | `$eventName`, `$metadata` |
+| `Ecotone\Api\EventSourcing\EventCriteria` | `tags()`, `eventTypes()`, `tagSequenceLowerBound()` | `$tags`, `$eventTypes`, `$tagSequenceLowerBound` |
+| `Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration` | `filterOnlyTagNames()`, `snapshottedModelClasses()`, `classesWithoutCounterTag()` | `$filterOnlyTagNames`, `$snapshottedModelClasses`, `$classesWithoutCounterTag` |
+| `Ecotone\Api\Lite\Test\FlowTestSupport` | `getMessagingTestSupport()` | `$testSupportGateway` |
+| `Ecotone\Api\Console\InMemoryConsoleProgressBar` | `getMaxSteps()` | `$maxSteps` |
+| `Ecotone\Api\Messaging\ErrorContext` | `getFailedTimestamp()`, `getStackTrace()`, `getFile()`, `getLine()` | `$failedTimestamp`, `$stackTrace`, `$file`, `$line` |
+| `Ecotone\Api\Logging\LoggingLevel` | `isFullMessageLog()` | `$logFullMessage` |
+| `Ecotone\Api\ExtensionObject\MediaType` | `getSubtype()`, `getParameters()` | `$subtype`, `$parameters` |
+| `Ecotone\Api\ExtensionObject\ConnectionReference` and every connection reference extending it | `getConnectionName()` | `$connectionName` |
+| `Ecotone\Api\ExtensionObject\CombinedMessageChannel` | `getCombinedChannels()` | `$combinedChannels` |
+| `Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration` | `getDeadLetterQueueChannel()`, `getDelayedRetryTemplate()` | `$deadLetterChannel`, `$delayedRetryTemplate` |
+| `Ecotone\Api\ExtensionObject\InstantRetryConfiguration` | `isEnabledForCommandBus()`, `getCommandBusRetryTimes()`, `getCommandBuExceptions()`, `isEnabledForAsynchronousEndpoints()`, `getAsynchronousRetryTimes()`, `getAsynchronousExceptions()` | `$isEnabledForCommandBus`, `$commandBusRetryTimes`, `$commandBuExceptions`, `$isEnabledForAsynchronousEndpoints`, `$asynchronousRetryTimes`, `$asynchronousExceptions` |
+| `Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder` | `isAutoAcked()` | `$isAutoAcked` |
+| `Ecotone\Api\Amqp\AmqpBinding` | `toEnqueueBinding()` | `$enqueueBinding` |
+| `Ecotone\Api\Amqp\AmqpStreamChannelBuilder` | `getMessageGroupId()` | `$messageGroupId` |
+| `Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry` | `getAllManagers()` | `$managersByConnectionReferenceName` |
+| `Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration` | `getTenantHeaderName()`, `getTenantToConnectionMapping()`, `getDefaultConnectionName()` | `$tenantHeaderName`, `$tenantToConnectionMapping`, `$defaultConnectionName` |
+| `Ecotone\Api\Kafka\KafkaBrokerConfiguration` | `getBootstrapServers()`, `isSetupForTesting()` | `$bootstrapServers`, `$setupForTesting` |
+| `Ecotone\Api\Kafka\KafkaConsumer` | `getGroupId()`, `getCommitIntervalInMessages()` | `$groupId`, `$commitIntervalInMessages` |
+| `Ecotone\Api\Kafka\KafkaPublisherConfiguration` | `getBrokerConfigurationReference()`, `getDefaultTopicName()` | `$brokerConfigurationReference`, `$defaultTopicName` |
+| `Ecotone\Api\Laravel\LaravelConnectionReference` | `getLaravelConnectionName()` | `$laravelConnectionName` |
+| `Ecotone\Api\EventSourcing\EventSourcingConfiguration` | `getEventStoreReferenceName()` | `$eventStoreReferenceName` |
+| `Ecotone\Api\Tempest\TempestConnectionReference` | `getConfigTag()` | `$configTag` |
 
 **How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
-attribute instance, or a test. Replace each call with the property in the right column. Constructing the attribute
-or configuration is unchanged.
+attribute instance, or a test. Replace each call with the property in the right column. Constructing these objects is unchanged.
 
 ### Forced trace flushing refuses a tracer provider that cannot flush
 

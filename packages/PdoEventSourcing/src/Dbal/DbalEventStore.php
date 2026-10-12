@@ -518,7 +518,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
     public function assertProjectionInvariant(string $streamName, string $eventName, object|array $eventToConvert): void
     {
-        $metadata = $eventToConvert instanceof Event ? $eventToConvert->getMetadata() : [];
+        $metadata = $eventToConvert instanceof Event ? $eventToConvert->metadata : [];
         if (array_key_exists(MessageHeaders::EVENT_AGGREGATE_ID, $metadata)) {
             return;
         }
@@ -538,7 +538,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
     public function convertToRow(object|array $eventToConvert): array
     {
-        $metadata = $eventToConvert instanceof Event ? $eventToConvert->getMetadata() : [];
+        $metadata = $eventToConvert instanceof Event ? $eventToConvert->metadata : [];
         $serialized = $this->eventSerializer->serialize($eventToConvert);
 
         $eventId = array_key_exists(MessageHeaders::MESSAGE_ID, $metadata)
@@ -550,7 +550,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
 
         return [
             $eventId,
-            $serialized->getEventName(),
+            $serialized->eventName,
             json_encode($serialized->getPayload(), JSON_THROW_ON_ERROR),
             json_encode((object) $metadata, JSON_THROW_ON_ERROR),
             $createdAt->format('Y-m-d\TH:i:s.u'),

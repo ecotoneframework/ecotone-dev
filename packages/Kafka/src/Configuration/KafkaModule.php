@@ -151,7 +151,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             $kafkaBrokerConfigurations[$consumerConfiguration->getBrokerConfigurationReference()] = Reference::to($consumerConfiguration->getBrokerConfigurationReference());
         }
         foreach ($publisherConfigurations as $publisherConfiguration) {
-            $kafkaBrokerConfigurations[$publisherConfiguration->getBrokerConfigurationReference()] = Reference::to($publisherConfiguration->getBrokerConfigurationReference());
+            $kafkaBrokerConfigurations[$publisherConfiguration->brokerConfigurationReference] = Reference::to($publisherConfiguration->brokerConfigurationReference);
         }
         if ($kafkaConsumers !== [] && ! array_key_exists(KafkaBrokerConfiguration::class, $kafkaBrokerConfigurations)) {
             $kafkaBrokerConfigurations[KafkaBrokerConfiguration::class] = Reference::to(KafkaBrokerConfiguration::class);
@@ -167,7 +167,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
                     ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
-                    ->withCommitInterval($kafkaConsumer->getCommitIntervalInMessages())
+                    ->withCommitInterval($kafkaConsumer->commitIntervalInMessages)
                     ->withEndpointAnnotations($kafkaConsumerAnnotatedMethod->getAllAnnotationDefinitions())
             );
         }

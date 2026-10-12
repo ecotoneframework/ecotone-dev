@@ -21,9 +21,9 @@ final class DynamicConsistencyBoundaryConfiguration
      * @param class-string[] $classesWithoutCounterTag
      */
     private function __construct(
-        private readonly array $filterOnlyTagNames,
-        private readonly array $snapshottedModelClasses = [],
-        private readonly array $classesWithoutCounterTag = [],
+        public readonly array $filterOnlyTagNames,
+        public readonly array $snapshottedModelClasses = [],
+        public readonly array $classesWithoutCounterTag = [],
     ) {
     }
 
@@ -69,29 +69,5 @@ final class DynamicConsistencyBoundaryConfiguration
         }
 
         return new self($this->filterOnlyTagNames, $snapshottedModelClasses, $this->classesWithoutCounterTag);
-    }
-
-    /**
-     * @return string[]
-     */
-    public function filterOnlyTagNames(): array
-    {
-        return $this->filterOnlyTagNames;
-    }
-
-    /**
-     * @return array<class-string, array{thresholdTrigger: int, documentStore: string}>
-     */
-    public function snapshottedModelClasses(): array
-    {
-        return $this->snapshottedModelClasses;
-    }
-
-    /**
-     * @return class-string[]
-     */
-    public function classesWithoutCounterTag(): array
-    {
-        return $this->classesWithoutCounterTag;
     }
 }

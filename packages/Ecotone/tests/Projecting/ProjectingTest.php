@@ -128,7 +128,7 @@ class ProjectingTest extends TestCase
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
-                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_filter($this->events, fn (Event $event) => $event->metadata[$this->partitionHeader] === $partitionKey);
                     $events = array_values($events);
                 } else {
                     $events = $this->events;
@@ -189,7 +189,7 @@ class ProjectingTest extends TestCase
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
-                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_filter($this->events, fn (Event $event) => $event->metadata[$this->partitionHeader] === $partitionKey);
                     $events = array_values($events);
                 } else {
                     $events = $this->events;
@@ -844,7 +844,7 @@ class ProjectingTest extends TestCase
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
-                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_filter($this->events, fn (Event $event) => $event->metadata[$this->partitionHeader] === $partitionKey);
                     $events = array_values($events);
                 } else {
                     $events = $this->events;

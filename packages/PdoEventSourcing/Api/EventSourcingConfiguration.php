@@ -17,7 +17,7 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 
     private int $loadBatchSize = self::LOAD_BATCH_SIZE;
     private string $defaultEventStreamTableName = self::DEFAULT_EVENT_STREAM_TABLE_NAME;
-    private string $eventStoreReferenceName;
+    public readonly string $eventStoreReferenceName;
     private string $connectionReferenceName;
     private bool $isInMemory = false;
 
@@ -74,11 +74,6 @@ final class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function getDefaultEventStreamTableName(): string
     {
         return $this->defaultEventStreamTableName;
-    }
-
-    public function getEventStoreReferenceName(): string
-    {
-        return $this->eventStoreReferenceName;
     }
 
     public function getConnectionReferenceName(): string

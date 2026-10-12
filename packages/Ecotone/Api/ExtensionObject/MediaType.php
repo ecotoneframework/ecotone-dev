@@ -37,11 +37,11 @@ final class MediaType implements DefinedObject
     private static array $parsedMediaTypes = [];
 
     private string $type;
-    private string $subtype;
+    public readonly string $subtype;
     /**
      * @var string[]
      */
-    private array $parameters = [];
+    public readonly array $parameters;
 
     /**
      * @param string[] $parameters
@@ -162,11 +162,6 @@ final class MediaType implements DefinedObject
         return $this->type;
     }
 
-    public function getSubtype(): string
-    {
-        return $this->subtype;
-    }
-
     public function isWildcardType(): bool
     {
         return $this->type === '*';
@@ -175,14 +170,6 @@ final class MediaType implements DefinedObject
     public function isWildcardSubtype(): bool
     {
         return $this->subtype === '*';
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getParameters(): array
-    {
-        return $this->parameters;
     }
 
     public function hasParameter(string $name): bool

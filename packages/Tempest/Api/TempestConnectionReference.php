@@ -19,7 +19,7 @@ final class TempestConnectionReference extends ConnectionReference implements De
 {
     private function __construct(
         string $referenceName,
-        private readonly ?string $configTag = null,
+        public readonly ?string $configTag = null,
     ) {
         parent::__construct($referenceName, $referenceName);
     }
@@ -34,11 +34,6 @@ final class TempestConnectionReference extends ConnectionReference implements De
         TempestConnectionDbalGuard::assertDbalInstalledFor('TempestConnectionReference::defaultConnection()');
 
         return new self(DbalConnectionReference::DEFAULT, null);
-    }
-
-    public function getConfigTag(): ?string
-    {
-        return $this->configTag;
     }
 
     public function getDefinition(): Definition

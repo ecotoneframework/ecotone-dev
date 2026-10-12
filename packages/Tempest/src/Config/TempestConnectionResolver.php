@@ -27,7 +27,7 @@ final class TempestConnectionResolver
 {
     public static function resolve(TempestConnectionReference $reference): ConnectionFactory
     {
-        $configTag = $reference->getConfigTag();
+        $configTag = $reference->configTag;
 
         if ($configTag === null) {
             return self::resolveFromTempestConnection();

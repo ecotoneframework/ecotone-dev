@@ -67,9 +67,9 @@ final class EventCriteriaTest extends TestCase
         self::assertSame([$criteria], $criteria->branches());
         self::assertSame(
             [['name' => 'course', 'value' => 'course-1'], ['name' => 'student', 'value' => 'student-1']],
-            $criteria->tags(),
+            $criteria->tags,
         );
-        self::assertSame([self::class], $criteria->eventTypes());
+        self::assertSame([self::class], $criteria->eventTypes);
     }
 
     public function test_narrowing_an_or_combination_by_another_tag_is_rejected_instead_of_dropping_its_branches(): void

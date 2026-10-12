@@ -16,7 +16,7 @@ use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private string $channelName;
-    private string $messageGroupId;
+    public readonly string $messageGroupId;
 
     private function __construct(
         string $channelName,
@@ -79,11 +79,6 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     public function getMessageChannelName(): string
     {
         return $this->channelName;
-    }
-
-    public function getMessageGroupId(): string
-    {
-        return $this->messageGroupId;
     }
 
     public function isPollable(): bool

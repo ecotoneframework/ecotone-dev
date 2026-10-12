@@ -164,8 +164,8 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
 
             $errorHandler = ServiceActivatorBuilder::createWithDefinition(
                 new Definition(DelayedRetryErrorHandler::class, [
-                    $extensionObject->getDelayedRetryTemplate(),
-                    (bool)$extensionObject->getDeadLetterQueueChannel(),
+                    $extensionObject->delayedRetryTemplate,
+                    (bool)$extensionObject->deadLetterChannel,
                     Reference::to(LoggingGateway::class),
                 ]),
                 'handle',
@@ -175,10 +175,10 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
                 ->withMethodParameterConverters([
                     ReferenceBuilder::create('logger', LoggingGateway::class),
                 ]);
-            if ($extensionObject->getDeadLetterQueueChannel()) {
-                $errorHandler = $errorHandler->withOutputMessageChannel($extensionObject->getDeadLetterQueueChannel());
+            if ($extensionObject->deadLetterChannel) {
+                $errorHandler = $errorHandler->withOutputMessageChannel($extensionObject->deadLetterChannel);
                 $messagingConfiguration
-                    ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
+                    ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->deadLetterChannel));
             }
 
             $messagingConfiguration

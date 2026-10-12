@@ -61,7 +61,7 @@ final class InMemoryTagIndex
         $matched = new MatchedEvents();
 
         foreach ($criteria->branches() as $branch) {
-            $tags = $branch->tags();
+            $tags = $branch->tags;
             if ($tags === []) {
                 continue;
             }
@@ -73,12 +73,12 @@ final class InMemoryTagIndex
                 $sequencesByTagKey = $this->sequencesOf($referenceKey, $tags);
                 $sequence = $sequencesByTagKey[$positionTagKey] ?? null;
 
-                if ($sequence === null || ($branch->tagSequenceLowerBound() > 0 && $sequence <= $branch->tagSequenceLowerBound())) {
+                if ($sequence === null || ($branch->tagSequenceLowerBound > 0 && $sequence <= $branch->tagSequenceLowerBound)) {
                     continue;
                 }
 
                 $event = $eventStore->eventAt($reference['stream'], $reference['eventNo']);
-                if ($event !== null && $branch->matchesEventType($event->getEventName())) {
+                if ($event !== null && $branch->matchesEventType($event->eventName)) {
                     $matched->consider($reference['stream'], $reference['eventNo'], $sequence, $event, $sequencesByTagKey);
                 }
             }

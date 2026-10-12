@@ -87,7 +87,7 @@ final class DecisionModelDefinition
     {
         $criterion = EventCriteria::any();
         foreach ($this->tagNames as $tagName) {
-            $criterion = $criterion->tags() === []
+            $criterion = $criterion->tags === []
                 ? EventCriteria::tag($tagName, $tagValuesByName[$tagName])
                 : $criterion->andTag($tagName, $tagValuesByName[$tagName]);
         }

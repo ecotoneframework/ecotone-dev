@@ -12,7 +12,7 @@ final class InMemoryConsoleProgressBar implements ConsoleProgressBar
     private int $currentStep = 0;
     private bool $isFinished = false;
 
-    public function __construct(private int $maxSteps)
+    public function __construct(public readonly int $maxSteps)
     {
     }
 
@@ -24,11 +24,6 @@ final class InMemoryConsoleProgressBar implements ConsoleProgressBar
     public function finish(): void
     {
         $this->isFinished = true;
-    }
-
-    public function getMaxSteps(): int
-    {
-        return $this->maxSteps;
     }
 
     public function getCurrentStep(): int

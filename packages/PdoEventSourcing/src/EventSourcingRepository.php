@@ -42,7 +42,7 @@ class EventSourcingRepository implements EventSourcedRepository
         }
 
         return EventStream::createWith(
-            $streamEvents[array_key_last($streamEvents)]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION],
+            $streamEvents[array_key_last($streamEvents)]->metadata[MessageHeaders::EVENT_AGGREGATE_VERSION],
             $streamEvents
         );
     }

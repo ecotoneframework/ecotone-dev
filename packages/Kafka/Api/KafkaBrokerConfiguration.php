@@ -12,10 +12,12 @@ namespace Ecotone\Api\Kafka;
 final class KafkaBrokerConfiguration
 {
     public function __construct(
-        private array $bootstrapServers,
-        private ?bool $setupForTesting = null
+        public readonly array $bootstrapServers,
+        /**
+         * When true, Kafka is set up for testing and uses, for example, a single partition for topics. When null, Ecotone discovers whether it runs in test mode
+         */
+        public readonly ?bool $setupForTesting = null
     ) {
-
     }
 
     /**
@@ -25,18 +27,5 @@ final class KafkaBrokerConfiguration
     public static function createWithDefaults(array $bootstrapServers = ['localhost:9092'], ?bool $setupForTesting = null): self
     {
         return new self($bootstrapServers, $setupForTesting);
-    }
-
-    public function getBootstrapServers(): array
-    {
-        return $this->bootstrapServers;
-    }
-
-    /**
-     * @return bool|null When true, it means that Kafka is setup for testing and will use for example single partition for topics. When null Ecotone will discover whatever it's test mode or not
-     */
-    public function isSetupForTesting(): ?bool
-    {
-        return $this->setupForTesting;
     }
 }

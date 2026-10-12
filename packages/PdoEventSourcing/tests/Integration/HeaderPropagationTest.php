@@ -44,7 +44,7 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->metadata;
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
@@ -77,7 +77,7 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->metadata;
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);

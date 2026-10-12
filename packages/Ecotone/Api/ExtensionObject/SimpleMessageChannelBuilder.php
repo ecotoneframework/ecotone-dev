@@ -35,7 +35,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private ?MediaType                    $conversionMediaType,
         private HeaderMapper                  $headerMapper,
         private FinalFailureStrategy          $finalFailureStrategy,
-        private bool                          $isAutoAcked,
+        public readonly bool $isAutoAcked,
         private bool                          $isStreamingChannel = false,
         private ?InMemoryMessageChannelHolder $inMemoryMessageChannelHolder = null,
         private ?string                       $messageGroupId = null,
@@ -111,11 +111,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->finalFailureStrategy;
-    }
-
-    public function isAutoAcked(): bool
-    {
-        return $this->isAutoAcked;
     }
 
     public function withDefaultConversionMediaType(string $mediaType): self

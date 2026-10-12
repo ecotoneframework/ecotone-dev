@@ -66,7 +66,7 @@ final class DynamicConsistencyBoundary
      */
     public function filterOnlyTagNames(): array
     {
-        return $this->configuration->filterOnlyTagNames();
+        return $this->configuration->filterOnlyTagNames;
     }
 
     /**
@@ -74,7 +74,7 @@ final class DynamicConsistencyBoundary
      */
     public function snapshottedModelClasses(): array
     {
-        return $this->configuration->snapshottedModelClasses();
+        return $this->configuration->snapshottedModelClasses;
     }
 
     /**
@@ -82,7 +82,7 @@ final class DynamicConsistencyBoundary
      */
     public function classesWithoutCounterTag(): array
     {
-        return $this->configuration->classesWithoutCounterTag();
+        return $this->configuration->classesWithoutCounterTag;
     }
 
     public function registerServicesForInMemoryStore(Configuration $messagingConfiguration): void

@@ -21,7 +21,11 @@ final class FrameworkConfigurationKeys
     {
         foreach ($givenKeys as $givenKey) {
             if (! in_array((string) $givenKey, $recognisedKeys, true)) {
-                throw ConfigurationException::create(self::refusalFor((string) $givenKey, $recognisedKeys, $configurationLocation));
+                throw ConfigurationException::create(self::refusalFor(
+                    unrecognisedKey: (string) $givenKey,
+                    recognisedKeys: $recognisedKeys,
+                    configurationLocation: $configurationLocation,
+                ));
             }
         }
     }

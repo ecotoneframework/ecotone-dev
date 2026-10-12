@@ -34,9 +34,9 @@ class EcotoneExtension extends Extension
     {
         $configuration = new Configuration();
         FrameworkConfigurationKeys::refuseUnrecognisedKeys(
-            array_merge(...array_map(array_keys(...), $configs)),
-            $configuration->getRecognisedKeys(),
-            'the `ecotone` bundle configuration',
+            givenKeys: array_merge(...array_map(array_keys(...), $configs)),
+            recognisedKeys: $configuration->getRecognisedKeys(),
+            configurationLocation: 'the `ecotone` bundle configuration',
         );
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);

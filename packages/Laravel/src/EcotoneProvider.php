@@ -46,9 +46,9 @@ class EcotoneProvider extends ServiceProvider
             'ecotone'
         );
         FrameworkConfigurationKeys::refuseUnrecognisedKeys(
-            array_keys(Config::get('ecotone', [])),
-            array_keys(require self::SHIPPED_CONFIGURATION_PATH),
-            'config/ecotone.php',
+            givenKeys: array_keys(Config::get('ecotone', [])),
+            recognisedKeys: array_keys(require self::SHIPPED_CONFIGURATION_PATH),
+            configurationLocation: 'config/ecotone.php',
         );
 
         $environment            = App::environment();

@@ -25,7 +25,11 @@ final class EcotoneConfig
         public string $licenceKey = '',
         mixed ...$unrecognisedKeys,
     ) {
-        FrameworkConfigurationKeys::refuseUnrecognisedKeys(array_keys($unrecognisedKeys), array_keys(get_object_vars($this)), 'EcotoneConfig');
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            givenKeys: array_keys($unrecognisedKeys),
+            recognisedKeys: array_keys(get_object_vars($this)),
+            configurationLocation: 'EcotoneConfig',
+        );
         if ($this->serviceName === '') {
             $this->serviceName = (string) env('ECOTONE_SERVICE_NAME', '');
         }

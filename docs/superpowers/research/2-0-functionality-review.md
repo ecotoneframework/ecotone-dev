@@ -566,7 +566,7 @@ exists at HEAD, except `#[ServiceActivator]` (§7a) and `#[ProjectionV2]` (§3).
 
 ## Addendum, wave 20 — found by running every quickstart example
 
-Wave 20 made the quickstart examples run on 2.0 and ran each one; these three surfaced there. Numbering continues from
+Wave 20 made the quickstart examples run on 2.0 and ran each one; these four surfaced there. Numbering continues from
 R31 and the totals above are wave 16's.
 
 ### R32 — a document-stored aggregate or saga using `WithEvents` cannot be loaded back
@@ -584,6 +584,12 @@ R31 and the totals above are wave 16's.
 - **Classification D.** The default change is documented (§9); its consequence for `WithEvents`, which 2.0 itself
   ships, is not: grep `recordedEvents`, `WithEvents` in `upgrade-2.0.md` finds the trait only as a rename. **Covered
   now:** no test loads a `WithEvents` aggregate back from the DBAL document store. **Confidence:** certain.
+- **Fixed in wave 20 (`48536d33c`).** The property is left uninitialized whenever no events are pending, and JMS skips
+  an uninitialized typed property when serializing, so the key is never stored. Neither a non-null `[]` nor a `@var`
+  docblock satisfied JMS under the docblock resolver Ecotone enables. Proved by
+  `StateStoredRepositoryConformanceTest`'s `test_an_aggregate_recording_events_is_loaded_back_after_it_was_saved` and
+  `test_a_saga_recording_events_is_loaded_back_after_it_was_saved`, on in-memory, in-memory document store and DBAL
+  document store.
 
 ### R33 — `EventSourcingConfiguration::createInMemory()` gives a projection no state storage outside flow tests
 
@@ -631,6 +637,19 @@ R31 and the totals above are wave 16's.
   (`enqueue`), `MultiTenant/General/HookIntoTenantSwitch` (`ecotone_document_store`).
 - **Classification D.** **Covered now:** no test runs the setup command against a multi-tenant connection.
   **Confidence:** certain.
+
+### R35 — a document the store cannot read back is refused naming no document
+
+- **What is wrong:** `DbalDocumentStore::convertFromJSONDocument()` names `$select['document_id']`
+  (`packages/Dbal/src/DocumentStore/DbalDocumentStore.php:351` on `a7f292745`), but the shared select fetched only
+  `document` and `document_type` (`:329`). Every read failure raised a PHP warning, `Undefined array key
+  "document_id"`, and the message `Document with id  can not be converted from JSON to PHP object` named no document,
+  no collection and no way out, against rule 1.
+- **Classification: other, not a 2.0 loss.** It was the same on 1.x (`main:packages/Dbal/src/DocumentStore/DbalDocumentStore.php:281`, `:303`).
+  Found while tracing R32, whose only visible symptom it was.
+- **Fixed in wave 20 (`7df7b9e9b`).** The select fetches id and collection, and the message names them, the stored
+  type and the converter's reason, then points to rewriting or deleting the document. Asserted on `getDocument()` and
+  `getAllDocuments()` by `DocumentStoreTest`. **Confidence:** certain.
 
 ---
 

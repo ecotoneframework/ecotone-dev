@@ -89,8 +89,10 @@ messages yourself.
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`
 with `fromStreams`/`fromCategories`/`fromAll`, `ProjectionManager`, `ProjectionRunningConfiguration`, the
-`ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`, `resetProjection()`,
-`stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2 (`Ecotone\Api\ProjectionV2`).
+`ecotone:es:*` console commands), and the new v2 (`Ecotone\Projecting\Attribute\ProjectionV2`). The
+`FlowTestSupport` projection helpers — `initializeProjection()`, `resetProjection()`, `stopProjection()`,
+`deleteProjection()`, `triggerProjection()` — served both: each drove a v2 projection when one had the name, and the v1
+`ProjectionManager` otherwise.
 
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projecting\Projection`). v1's
 Prooph-based projection runtime, its lifecycle configuration classes and its `ecotone:es:*` console commands are
@@ -996,7 +998,8 @@ parameter to one of those Enqueue class names.
 
 **Now:** Every transport has an Ecotone-owned connection factory (internalised from the matching `php-enqueue/*`
 package, MIT-licensed, with a `code comes from https://github.com/php-enqueue/...` attribution comment) plus an
-Ecotone-owned `<Package>ConnectionReference` in that package's `Api/` namespace, mirroring `DbalConnectionReference`.
+Ecotone-owned `<Package>ConnectionReference` in that package's `Api/` namespace — `DbalConnectionReference`,
+`AmqpConnectionReference`, `SqsConnectionReference` and `RedisConnectionReference`, all four new in 2.0.
 The reference name a user ever needs to type is one of these Ecotone classes; every default parameter across the
 framework now points at `<Package>ConnectionReference::DEFAULT` instead of an Enqueue class name. Internally, the
 factories still implement `Interop\Queue\ConnectionFactory` (`Interop\Amqp\AmqpConnectionFactory` for AMQP) — that
@@ -1013,8 +1016,11 @@ seam is unchanged and is what lets the underlying transport be replaced later wi
 `DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
 `defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
 each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
-`TempestConnectionReference`, which already resolved to `DbalConnectionReference::DEFAULT` and are unaffected by this
-change.
+`TempestConnectionReference`. The four transport references are new in 2.0; the three framework ones existed in 1.x.
+There they resolved to `Enqueue\Dbal\DbalConnectionFactory::class`; they now resolve to
+`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Dbal\Connection\DbalConnectionFactory'`. Code that builds
+them with `defaultConnection()` or the constructor follows on its own; a lookup of the old string id does not (see
+below).
 
 **How to adapt:**
 - Replace the `use Enqueue\...\...ConnectionFactory;` import with the matching `Ecotone\...\Connection\...ConnectionFactory`

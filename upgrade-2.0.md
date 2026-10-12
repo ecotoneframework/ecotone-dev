@@ -140,6 +140,11 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
     }
     ```
     A partitioned projection takes the partition key as the method's argument.
+    `#[ProjectionStateGateway]`'s second parameter was spelled `projectioManagerReference` in 1.x, and its getter
+    `getProjectioManagerReference()`. Both are corrected, to `projectionManagerReference` and
+    `getProjectionManagerReference()`, without an alias, so a 1.x attribute that passes the old spelling by name
+    fails with PHP's `Unknown named parameter $projectioManagerReference`. The 1.x value named the v1
+    `ProjectionManager`, which is gone; drop the argument.
   - **lifecycle** — the console commands: `ecotone:projection:init <name>` (or `--all`), `ecotone:projection:backfill
     <name>`, `ecotone:projection:rebuild <name>` and `ecotone:projection:delete <name>`, in place of v1's `init`,
     `reset`/`rebuild` and `delete` operations.

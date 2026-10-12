@@ -1240,30 +1240,39 @@ transaction, so it no longer holds row locks while your handler runs.
 
 The removed configuration, one by one:
 
-- **`AutoCreateLevel` is removed**, with `DbalConfiguration::withAutoCreateLevel()` and `getAutoCreateLevel()`.
-  **Before:** `AutoCreateLevel::CreateOnly` let PostgreSQL and SQLite create a missing table on first use, inside the
-  message's transaction; MySQL and MariaDB refused whatever level was set, and `None` was the default outside test
-  bootstraps. **Now:** there is no level — runtime creation is gone on every engine, so there is nothing left to
-  choose. **How to adapt:** delete `->withAutoCreateLevel(...)` and the `use Ecotone\Api\Dbal\AutoCreateLevel;` line, and
-  run `ecotone:migration:database:setup --initialize` in your deploy (see below). In a flow test nothing replaces
-  it: the bootstrap sets the tables up.
 - **`DbalConfiguration::withAutomaticTableInitialization()` is removed**, with
-  `isAutomaticTableInitializationEnabled()`. **Before:** a deprecated alias — `true` meant `AutoCreateLevel::CreateOnly`,
-  `false` meant `None`. **Now:** gone with the level it aliased. **How to adapt:** delete the call. A test that passed
+  `isAutomaticTableInitializationEnabled()`. **Before:** the switch for creating tables on first use, on by default:
+  with no call, the dead letter, deduplication, document store, DBAL channel and event store tables were each created
+  by the first message that needed them, on every engine. `withAutomaticTableInitialization(false)` turned that off,
+  leaving the tables to `ecotone:migration:database:setup --initialize`. **Now:** runtime creation is gone on every
+  engine, so there is nothing left to switch — every application is in the position `false` put it in. **How to
+  adapt:** delete the call, and run `ecotone:migration:database:setup --initialize` in your deploy (see below) — an
+  application that relied on the default `true` has to add this step, or its first message fails on a missing table.
+  In a flow test nothing replaces it: the bootstrap sets the tables up. A test that passed
   `false` to watch a missing table be refused passes
   `testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)` to
   `bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` instead, and calls `$ecotone->setupDatabaseTables()`
   when it wants the tables.
-- **`EventSourcingConfiguration::withInitializeEventStoreOnStart()` is removed**, with `isInitializedOnStart()` and the
-  `INITIALIZE_ON_STARTUP` constant. **Before:** already deprecated in favour of `withAutomaticTableInitialization()`, and
-  only ever AND-ed with it to decide whether the event store created its stream table on first append. **Now:** gone
-  with what it modified. **How to adapt:** delete the call; stream tables come from the setup command like every
-  other table.
+- **`AutoCreateLevel` and `DbalConfiguration::withAutoCreateLevel()` never shipped.** They existed only in pre-release
+  2.0 builds, between `withAutomaticTableInitialization()` and its removal; 1.x never had them. **How to adapt:** only
+  code written against a pre-release build has anything to do: delete `->withAutoCreateLevel(...)` and the
+  `use Ecotone\Api\Dbal\AutoCreateLevel;` line.
+- **`EventSourcingConfiguration::withInitializeEventStoreOnStart()` is removed**, with `isInitializedOnStart()`, and
+  `LazyProophEventStore::INITIALIZE_ON_STARTUP`, its default, went with the Prooph store (§4). **Before:** on by default; `false` stopped the
+  event store creating its tables on first append even while `withAutomaticTableInitialization()` was on — the two
+  were AND-ed. It was not deprecated. **Now:** gone with what it modified. **How to adapt:** delete the call; stream
+  tables come from the setup command like every other table.
 - **`DbalConfiguration::withDocumentStore()` loses its `initializeDatabaseTable` parameter**, and
   `isInitializeDbalDocumentStore()` is removed. **Before:** `false` stopped the document store creating its table on
-  first use even with auto-create on. **Now:** it never creates it. **How to adapt:** drop the argument; it was the
-  fourth positional one, so a positional call passing `enableDocumentStoreStateStoredRepository` and later arguments
-  moves them one place left — or switch to named arguments.
+  first use even with `withAutomaticTableInitialization()` on. **Now:** it never creates it. **How to adapt:** drop the
+  argument; it was the fourth positional one, so a positional call passing the arguments after it moves them one place
+  left — or switch to named arguments.
+- **`withDocumentStore()`'s `enableDocumentStoreStandardRepository` parameter is renamed
+  `enableDocumentStoreStateStoredRepository`**, and `isEnableDocumentStoreStandardRepository()` is renamed
+  `isEnableDocumentStoreStateStoredRepository()`, following `StandardRepository` → `StateStoredRepository` (§7). No
+  alias is kept. **Before:** `withDocumentStore(enableDocumentStoreStandardRepository: true)`. **Now:** that call fails
+  with PHP's `Unknown named parameter $enableDocumentStoreStandardRepository`. **How to adapt:**
+  `withDocumentStore(enableDocumentStoreStateStoredRepository: true)`; the behaviour is unchanged.
 - **A database event store without the DBAL module is refused at bootstrap.** **Before:** enabling
   `ModulePackageList::EVENT_SOURCING_PACKAGE` without `ModulePackageList::DBAL_PACKAGE` booted, and the first append
   failed on a missing event stream table whose instructions named `DatabaseSetupManager` and
@@ -1271,13 +1280,16 @@ The removed configuration, one by one:
   start with a `ConfigurationException` that names the module to add. **How to adapt:** add
   `ModulePackageList::DBAL_PACKAGE` (`'dbal'` in the `modulePackages` option of the Symfony bundle, `config/ecotone.php`
   or `EcotoneConfig`), or register `EventSourcingConfiguration::createInMemory()` to keep the events in memory.
-- **`FlowTestSupport::initializeDatabase()` is renamed `setupDatabaseTables()`**, and it no longer swallows failures.
-  **Before:** it caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup
-  that failed half-way, carried on and failed later on a confusing missing-table error. **Now:** it creates every
+- **New: `FlowTestSupport::setupDatabaseTables()`.** **Before:** 1.x had no such method: a flow test got its tables
+  the way the application did, created on first use. (Pre-release 2.0 builds called it `initializeDatabase()`, and it
+  caught every `InvalidArgumentException` and returned, so a test without the DBAL module, or a setup that failed
+  half-way, carried on and failed later on a confusing missing-table error.) **Now:** it creates every
   table the test uses, on every connection that holds one, and refuses with what to do instead: with no module that
   keeps tables, it says to enable `ModulePackageList::DBAL_PACKAGE` or remove the call; with a used feature on a
   connection the test does not register, it names the feature and the connection reference to register, or the
-  in-memory option for that feature. **How to adapt:** rename the call. Most calls can go: the bootstrap now makes it.
+  in-memory option for that feature. **How to adapt:** from 1.x, nothing — the bootstrap makes the call itself, so a
+  test needs it only after opting out with `withDatabaseTablesSetUpOnBootstrap(false)`. Code written against a
+  pre-release build renames `initializeDatabase()` to `setupDatabaseTables()`, and most such calls can go.
 
 **How to adapt an application:**
 

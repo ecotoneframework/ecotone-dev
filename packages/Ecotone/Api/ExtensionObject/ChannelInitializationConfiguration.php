@@ -12,7 +12,7 @@ namespace Ecotone\Api\ExtensionObject;
 final class ChannelInitializationConfiguration
 {
     private function __construct(
-        private bool $automaticChannelInitialization = true
+        public readonly bool $automaticChannelInitialization = true
     ) {
     }
 
@@ -23,13 +23,6 @@ final class ChannelInitializationConfiguration
 
     public function withAutomaticChannelInitialization(bool $enabled): self
     {
-        $self = clone $this;
-        $self->automaticChannelInitialization = $enabled;
-        return $self;
-    }
-
-    public function isAutomaticChannelInitializationEnabled(): bool
-    {
-        return $this->automaticChannelInitialization;
+        return new self(...[...get_object_vars($this), 'automaticChannelInitialization' => $enabled]);
     }
 }

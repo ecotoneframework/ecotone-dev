@@ -2737,6 +2737,7 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\Laravel\LaravelConnectionReference` | `getLaravelConnectionName()` | `$laravelConnectionName` |
 | `Ecotone\Api\EventSourcing\EventSourcingConfiguration` | `getEventStoreReferenceName()` | `$eventStoreReferenceName` |
 | `Ecotone\Api\Tempest\TempestConnectionReference` | `getConfigTag()` | `$configTag` |
+| `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | `isAutomaticChannelInitializationEnabled()` | `$automaticChannelInitialization` |
 
 **How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
 attribute instance, or a test. Replace each call with the property in the right column. Constructing these objects is unchanged.

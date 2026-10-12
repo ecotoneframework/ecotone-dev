@@ -80,6 +80,19 @@ config sets `'licenceKey' => null` and reads no environment variable; to keep th
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
+### 2a. A console command run with a tenant header activates that tenant
+
+**Before:** a console command run with `--header tenant:<name>` resolved header-driven connections (a
+`#[MultiTenantConnection]` parameter, the DBAL connection factory) to that tenant, but never activated it:
+`#[OnTenantActivation]` and `#[OnTenantDeactivation]` hooks did not run, so Laravel's tenant database switching and
+anything else driven by those hooks stayed on the default connection. A Laravel projection reading `DB::connection()`
+was initialized by `ecotone:projection:init --header tenant:b` in the wrong tenant's database.
+
+**Now:** a `#[ConsoleCommand]` run with the tenant header runs between that tenant's activation and deactivation, as a
+command, query, event or asynchronous message already did. Without the header nothing is activated.
+
+**How to adapt:** nothing, unless an activation hook must not run for console commands.
+
 ## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`

@@ -23,7 +23,7 @@ $messagingSystem = EcotoneLite::bootstrap(
     /** Multi-tenancy is an Ecotone Enterprise feature, see README.md for how to get a key */
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
-runMigrationForTenants();
+runMigrationForTenants($messagingSystem);
 
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();

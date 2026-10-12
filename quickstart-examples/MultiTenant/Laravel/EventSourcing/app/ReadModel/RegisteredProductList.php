@@ -7,10 +7,6 @@ namespace App\MultiTenant\ReadModel;
 use App\MultiTenant\Application\Event\ProductWasRegistered;
 use App\MultiTenant\Application\Event\ProductWasUnregistered;
 use App\MultiTenant\Application\Product;
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
-use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\ProjectionDelete;
@@ -31,30 +27,21 @@ final readonly class RegisteredProductList
     #[ProjectionInitialization]
     public function initialize(): void
     {
-        $schemaManager = DB::connection()->getDoctrineConnection()->createSchemaManager();
-
-        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
+        if (Schema::hasTable(self::TABLE_NAME)) {
             return;
         }
 
-        $schemaManager->createTable(
-            new Table(self::TABLE_NAME, [
-                new Column('product_id', Type::getType(Types::GUID)),
-                new Column('name', Type::getType(Types::STRING)),
-                new Column('registered_at', Type::getType(Types::DATETIME_IMMUTABLE))
-            ])
-        );
+        Schema::create(self::TABLE_NAME, function (Blueprint $table) {
+            $table->uuid('product_id');
+            $table->string('name');
+            $table->dateTime('registered_at');
+        });
     }
 
     #[ProjectionDelete]
     public function remove(): void
     {
-        $schemaManager = DB::connection()->getDoctrineConnection()->createSchemaManager();
-        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
-            return;
-        }
-
-        $schemaManager->dropTable(self::TABLE_NAME);
+        Schema::dropIfExists(self::TABLE_NAME);
     }
 
     /**
@@ -63,10 +50,7 @@ final readonly class RegisteredProductList
     #[QueryHandler('product.getAllRegistered')]
     public function getRegisteredProducts(): array
     {
-        return DB::connection()->getDoctrineConnection()->fetchFirstColumn(
-            sprintf(<<<SQL
-    SELECT name FROM %s ORDER BY name ASC
-SQL, self::TABLE_NAME));
+        return DB::table(self::TABLE_NAME)->orderBy('name')->pluck('name')->all();
     }
 
     #[EventHandler]
@@ -75,8 +59,7 @@ SQL, self::TABLE_NAME));
         #[Header('timestamp')] int $occurredAt // Accessing Event Metadata
     ): void
     {
-        DB::connection()->getDoctrineConnection()->insert(
-            self::TABLE_NAME,
+        DB::table(self::TABLE_NAME)->insert(
             [
                 'product_id' => $event->productId->toString(),
                 'name' => $event->name,
@@ -88,11 +71,6 @@ SQL, self::TABLE_NAME));
     #[EventHandler]
     public function whenProductWasUnregistered(ProductWasUnregistered $event): void
     {
-        DB::connection()->getDoctrineConnection()->delete(
-            self::TABLE_NAME,
-            [
-                'product_id' => $event->productId->toString()
-            ]
-        );
+        DB::table(self::TABLE_NAME)->where('product_id', $event->productId->toString())->delete();
     }
 }

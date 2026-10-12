@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Connection as LaravelConnection;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 
 function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelConnection $tenantBConnection): void
@@ -25,6 +26,9 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
 
     migrate($tenantAConnection->getPdo());
     migrate($tenantBConnection->getPdo());
+
+    /** Creates Ecotone's own tables in the database of every tenant */
+    Artisan::call('ecotone:migration:database:setup', ['--initialize' => true]);
 }
 
 function migrate(PDO $pdo): void

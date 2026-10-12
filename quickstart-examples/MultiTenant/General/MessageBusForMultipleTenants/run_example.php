@@ -9,7 +9,7 @@ require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 
 $messagingSystem = bootstrapEcotone(__DIR__, [new PersonService()]);
-runMigrationForTenants();
+runMigrationForTenants($messagingSystem);
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();
 

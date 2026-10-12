@@ -41,8 +41,4 @@ ecotone:
     defaultErrorChannel: "errorChannel"
     defaultSerializationMediaType: "application/json"
     loadSrcNamespaces: false
-<<<<<<< HEAD
-    enabledModulePackageNames: ["amqp","jmsConverter","tracing"]
-=======
-    modulePackages: ["amqp","jmsConverter"]
->>>>>>> dgafka/licence-env-wave20
+    enabledModulePackageNames: ["amqp","jmsConverter"]

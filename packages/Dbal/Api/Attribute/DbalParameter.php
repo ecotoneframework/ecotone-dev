@@ -22,8 +22,8 @@ final class DbalParameter implements DefinedObject, WithExpression
         private ?string $name = null,
         private int|ArrayParameterType|ParameterType|null $type = null,
         private string|Closure|null $expression = null,
-        private ?string $convertToMediaType = null,
-        private bool $ignored = false
+        public readonly ?string $convertToMediaType = null,
+        public readonly bool $ignored = false
     ) {
     }
 
@@ -45,16 +45,6 @@ final class DbalParameter implements DefinedObject, WithExpression
     public function getExpression(): string|Closure|null
     {
         return $this->expression;
-    }
-
-    public function getConvertToMediaType(): ?string
-    {
-        return $this->convertToMediaType;
-    }
-
-    public function isIgnored(): bool
-    {
-        return $this->ignored;
     }
 
     public function getDefinition(): Definition

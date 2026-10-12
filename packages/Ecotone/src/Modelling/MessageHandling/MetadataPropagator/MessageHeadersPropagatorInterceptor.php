@@ -35,7 +35,7 @@ class MessageHeadersPropagatorInterceptor
 
     public function storeHeaders(MethodInvocation|Closure $methodInvocation, Message $message, ?PropagateHeaders $propagateHeaders = null)
     {
-        if ($propagateHeaders !== null && ! $propagateHeaders->doPropagation()) {
+        if ($propagateHeaders !== null && ! $propagateHeaders->doPropagation) {
             $userlandHeaders = [];
         } else {
             $userlandHeaders = FrameworkHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());

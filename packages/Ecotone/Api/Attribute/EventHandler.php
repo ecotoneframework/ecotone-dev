@@ -12,7 +12,7 @@ use InvalidArgumentException;
  */
 class EventHandler extends IdentifiedAnnotation
 {
-    public string $listenTo;
+    public readonly string $listenTo;
     public bool $dropMessageOnNotFound;
     public string $outputChannelName;
     public array $requiredInterceptorNames;
@@ -33,11 +33,6 @@ class EventHandler extends IdentifiedAnnotation
         if ($identifierMetadataMapping && $identifierMapping) {
             throw new InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
         }
-    }
-
-    public function getListenTo(): string
-    {
-        return $this->listenTo;
     }
 
     public function isDropMessageOnNotFound(): bool

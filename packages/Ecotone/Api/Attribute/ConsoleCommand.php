@@ -12,7 +12,7 @@ use Ecotone\Messaging\Support\Assert;
 class ConsoleCommand
 {
     private string $name;
-    private string $description;
+    public readonly string $description;
 
     public function __construct(string $consoleCommandName, string $description = '')
     {
@@ -24,10 +24,5 @@ class ConsoleCommand
     public function getName(): string
     {
         return $this->name;
-    }
-
-    public function getDescription(): string
-    {
-        return $this->description;
     }
 }

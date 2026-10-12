@@ -63,7 +63,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
             $className    = $annotationRegistration->getClassName();
             $methodName               = $annotationRegistration->getMethodName();
 
-            [$messageHandlerBuilder, $oneTimeCommandConfiguration] = self::prepareConsoleCommand($interfaceToCallRegistry, $annotationRegistration, $className, $methodName, $commandName, $annotation->getDescription());
+            [$messageHandlerBuilder, $oneTimeCommandConfiguration] = self::prepareConsoleCommand($interfaceToCallRegistry, $annotationRegistration, $className, $methodName, $commandName, $annotation->description);
 
             $messageHandlerBuilders[] = $messageHandlerBuilder;
             $oneTimeConfigurations[]     = $oneTimeCommandConfiguration;

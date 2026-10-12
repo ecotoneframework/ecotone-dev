@@ -455,10 +455,10 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
 
                     /** @var RelatedAggregate $relatedAggregate */
                     $relatedAggregate = $interface->getSingleMethodAnnotationOf(Type::attribute(RelatedAggregate::class));
-                    Assert::isTrue(in_array($relatedAggregate->getClassName(), $this->aggregateClasses), sprintf('Repository for aggregate %s:%s is registered for unknown Aggregate: %s. Have you forgot to add Class or register specific Namespaces?', $repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $relatedAggregate->getClassName()));
-                    $requestChannel = self::getRegisterAggregateSaveRepositoryInputChannel($relatedAggregate->getClassName());
+                    Assert::isTrue(in_array($relatedAggregate->className, $this->aggregateClasses), sprintf('Repository for aggregate %s:%s is registered for unknown Aggregate: %s. Have you forgot to add Class or register specific Namespaces?', $repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $relatedAggregate->className));
+                    $requestChannel = self::getRegisterAggregateSaveRepositoryInputChannel($relatedAggregate->className);
 
-                    $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::object($relatedAggregate->getClassName()));
+                    $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::object($relatedAggregate->className));
 
                     $gatewayParameterConverters = [
                         GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER),
@@ -676,7 +676,7 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         );
 
         $actionInputChannelName = match(true) {
-            $actionAnnotation instanceof EventHandler => $actionAnnotation->getListenTo(),
+            $actionAnnotation instanceof EventHandler => $actionAnnotation->listenTo,
             $actionAnnotation instanceof CommandHandler => $actionAnnotation->getInputChannelName(),
             default => throw ConfigurationException::create('Action handler should be either CommandHandler or EventHandler, but got ' . $actionAnnotation::class),
         };

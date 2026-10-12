@@ -13,16 +13,11 @@ use Ecotone\Messaging\Attribute\EndpointAnnotation;
  */
 class Router extends EndpointAnnotation
 {
-    private bool $isResolutionRequired;
+    public readonly bool $isResolutionRequired;
 
     public function __construct(string $inputChannelName, string $endpointId = '', bool $isResolutionRequired = true)
     {
         parent::__construct($inputChannelName, $endpointId);
         $this->isResolutionRequired = $isResolutionRequired;
-    }
-
-    public function isResolutionRequired(): bool
-    {
-        return $this->isResolutionRequired;
     }
 }

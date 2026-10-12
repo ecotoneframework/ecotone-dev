@@ -36,7 +36,7 @@ class ScheduledModule extends ConsumerRegisterConfiguration
         $annotation = $annotationRegistration->getAnnotationForMethod();
 
         return InboundChannelAdapterBuilder::create(
-            $annotation->getRequestChannelName(),
+            $annotation->requestChannelName,
             AnnotatedDefinitionReference::getReferenceFor($annotationRegistration),
             $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName())
         )

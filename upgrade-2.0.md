@@ -2684,6 +2684,41 @@ application reaches the dead letter through `DeadLetterGateway`, and through the
 constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL` and `REPLAY_ALL_CHANNEL`, whose values
 end in `replay` and `replayAll` (§15).
 
+### Getters that only returned a property are `public readonly` properties
+
+**Before:** these `Api` classes exposed a value through a method whose body was only `return $this->property;`.
+**Now:** the method is removed and the property it returned is `public readonly`, under the name it already had —
+read `$attribute->property` instead of calling the method. Writing to it fails with PHP's
+`Cannot modify readonly property`; that includes `EventHandler::$listenTo` and `TargetIdentifier::$identifierName`,
+which were already public and writable. A call to a removed method fails with PHP's `Call to undefined method`.
+
+| Class | 1.x | 2.0 |
+|---|---|---|
+| `Ecotone\Api\Dbal\Attribute\DbalParameter` | `getConvertToMediaType()`, `isIgnored()` | `$convertToMediaType`, `$ignored` |
+| `Ecotone\Api\Dbal\Attribute\DbalQuery` | `getFetchMode()` | `$fetchMode` |
+| `Ecotone\Api\Attribute\AddHeader` and its subclasses `Delayed`, `TimeToLive`, `Priority`, `ContentType` | `getHeaderValue()` | `$headerValue` |
+| `Ecotone\Api\Attribute\Asynchronous` | `getAsynchronousExecution()` | `$asynchronousExecution` |
+| `Ecotone\Api\Attribute\ConsoleCommand` | `getDescription()` | `$description` |
+| `Ecotone\Api\Attribute\Deduplicated` | `getDeduplicationHeaderName()`, `getTrackingName()` | `$deduplicationHeaderName`, `$trackingName` |
+| `Ecotone\Api\Attribute\Distributed` | `getDistributionReference()` | `$distributionReference` |
+| `Ecotone\Api\Attribute\Environment` | `getNames()` | `$names` |
+| `Ecotone\Api\Attribute\EventHandler` | `getListenTo()` | `$listenTo` |
+| `Ecotone\Api\Attribute\EventSourcingAggregate`, `EventSourcingSaga` | `hasInternalEventRecorder()` | `$withInternalEventRecorder` |
+| `Ecotone\Api\Attribute\IdentifierMethod` | `getIdentifierPropertyName()` | `$identifierPropertyName` |
+| `Ecotone\Api\Attribute\InternalHandler` and its subclasses `OnConsumerStop`, `OnTenantActivation`, `OnTenantDeactivation` | `isChangingHeaders()`, `isRequiresReply()` | `$changingHeaders`, `$requiresReply` |
+| `Ecotone\Api\Attribute\MessageGateway`, `BusinessMethod` | `getRequestChannel()`, `getReplyTimeoutInMilliseconds()` | `$requestChannel`, `$replyTimeoutInMilliseconds` |
+| `Ecotone\Api\Attribute\PropagateHeaders` | `doPropagation()` | `$doPropagation` |
+| `Ecotone\Api\Attribute\RelatedAggregate` | `getClassName()` | `$className` |
+| `Ecotone\Api\Attribute\Revision` | `getRevision()` | `$revision` |
+| `Ecotone\Api\Attribute\Router` | `isResolutionRequired()` | `$isResolutionRequired` |
+| `Ecotone\Api\Attribute\Scheduled` | `getRequestChannelName()` | `$requestChannelName` |
+| `Ecotone\Api\Attribute\TargetIdentifier` | `getIdentifierName()` | `$identifierName` |
+| `Ecotone\Api\Attribute\Version` | `isAutoIncreased()` | `$autoIncrease` |
+
+**How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
+attribute instance, or a test. Replace each call with the property in the right column. Constructing the attribute
+or configuration is unchanged.
+
 ### Forced trace flushing refuses a tracer provider that cannot flush
 
 **Before:** with the `tracing` package loaded, `TracerProviderInterface` bound to an API-level provider such as

@@ -126,8 +126,8 @@ final class AggregateDefinitionResolver
 
                 /** @var IdentifierMethod $attribute */
                 $attribute = $methodToCheck->getSingleMethodAnnotationOf($aggregateIdentifierGetMethodAttribute);
-                $aggregateIdentifiers[$attribute->getIdentifierPropertyName()] = null;
-                $aggregateIdentifierGetMethods[$attribute->getIdentifierPropertyName()] = $method;
+                $aggregateIdentifiers[$attribute->identifierPropertyName] = null;
+                $aggregateIdentifierGetMethods[$attribute->identifierPropertyName] = $method;
             }
         }
 
@@ -151,7 +151,7 @@ final class AggregateDefinitionResolver
                 $aggregateVersionPropertyName = $property->getName();
                 /** @var Version $annotation */
                 $annotation = $property->getAnnotation($versionAnnotation);
-                $isAggregateVersionAutomaticallyIncreased = $annotation->isAutoIncreased();
+                $isAggregateVersionAutomaticallyIncreased = $annotation->autoIncrease;
             }
         }
 

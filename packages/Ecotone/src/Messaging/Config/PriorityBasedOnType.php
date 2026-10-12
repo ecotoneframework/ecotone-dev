@@ -55,7 +55,7 @@ final class PriorityBasedOnType
         };
 
         return $objectToCheck->hasAnnotation(Priority::class)
-            ? new self($objectToCheck->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue(), $type)
+            ? new self($objectToCheck->getAnnotationsByImportanceOrder(Priority::class)[0]->headerValue, $type)
             : new self(Priority::DEFAULT_PRIORITY, $type);
     }
 

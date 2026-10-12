@@ -69,7 +69,7 @@ final class ErrorHandlerModule extends NoExternalConfigurationModule implements 
 
             $delayedRetry = null;
             $hasErrorChannel = false;
-            foreach ($asyncAnnotation->getAsynchronousExecution() as $endpointAnnotation) {
+            foreach ($asyncAnnotation->asynchronousExecution as $endpointAnnotation) {
                 if ($endpointAnnotation instanceof DelayedRetry) {
                     $delayedRetry = $endpointAnnotation;
                 } elseif ($endpointAnnotation instanceof ErrorChannel) {

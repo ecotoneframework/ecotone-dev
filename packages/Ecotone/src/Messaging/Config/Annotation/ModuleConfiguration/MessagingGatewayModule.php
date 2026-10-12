@@ -72,11 +72,11 @@ final class MessagingGatewayModule extends NoExternalConfigurationModule impleme
                 }
             }
 
-            $gatewayProxyBuilder = GatewayProxyBuilder::create($referenceName, $annotationRegistration->getClassName(), $annotationRegistration->getMethodName(), $annotation->getRequestChannel())
+            $gatewayProxyBuilder = GatewayProxyBuilder::create($referenceName, $annotationRegistration->getClassName(), $annotationRegistration->getMethodName(), $annotation->requestChannel)
                 ->withErrorChannel($annotation->getErrorChannel())
                 ->withParameterConverters($parameterConverters)
                 ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
-                ->withReplyMillisecondTimeout($annotation->getReplyTimeoutInMilliseconds());
+                ->withReplyMillisecondTimeout($annotation->replyTimeoutInMilliseconds);
 
             if ($annotation->getReplyContentType()) {
                 $gatewayProxyBuilder = $gatewayProxyBuilder->withReplyContentType($annotation->getReplyContentType());

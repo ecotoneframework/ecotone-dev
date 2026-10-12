@@ -33,7 +33,7 @@ class RouterModule extends MessageHandlerRegisterConfiguration
         )
             ->withEndpointId($annotation->getEndpointId())
             ->withInputChannelName($annotation->getInputChannelName())
-            ->setResolutionRequired($annotation->isResolutionRequired());
+            ->setResolutionRequired($annotation->isResolutionRequired);
     }
 
     /**

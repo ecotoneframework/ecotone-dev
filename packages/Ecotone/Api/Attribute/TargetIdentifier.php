@@ -10,15 +10,10 @@ use Attribute;
  */
 class TargetIdentifier
 {
-    public string $identifierName = '';
+    public readonly string $identifierName;
 
     public function __construct(string $identifierName = '')
     {
         $this->identifierName = $identifierName;
-    }
-
-    public function getIdentifierName(): string
-    {
-        return $this->identifierName;
     }
 }

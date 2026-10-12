@@ -30,7 +30,7 @@ final class DbalParameterConfig
         return new self(
             $dbalParameter->getName(),
             $dbalParameter->getType(),
-            $dbalParameter->getConvertToMediaType(),
+            $dbalParameter->convertToMediaType,
             $expressionExecutor,
         );
     }

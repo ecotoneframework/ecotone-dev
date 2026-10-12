@@ -59,7 +59,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             /** @var ContentType $contentTypeAttribute */
             $contentTypeAttribute = $contentType->getAttribute();
             if ($contentTypeAttribute->shouldReplaceExistingHeader() || ! $isContentTypeHeaderExists) {
-                $metadata[MessageHeaders::CONTENT_TYPE] = $contentTypeAttribute->getHeaderValue();
+                $metadata[MessageHeaders::CONTENT_TYPE] = $contentTypeAttribute->headerValue;
             } else {
                 $metadata[MessageHeaders::CONTENT_TYPE] = $message->getHeaders()->get(MessageHeaders::CONTENT_TYPE);
             }
@@ -131,7 +131,7 @@ class EndpointHeadersInterceptor implements DefinedObject
         /** @var AddHeader $attribute */
         $attribute = $executor->getAttribute();
 
-        return $attribute->getHeaderValue();
+        return $attribute->headerValue;
     }
 
     private function parseDateTimeStringWithRequiredOffset(string $dateTimeString): DateTimeImmutable

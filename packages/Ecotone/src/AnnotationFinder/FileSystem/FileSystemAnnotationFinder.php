@@ -88,7 +88,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
             /** @var Environment $environment */
             $environment = $this->getAnnotationForClass($classNameWithEnvironment, Environment::class);
 
-            if (! in_array($environmentName, $environment->getNames())) {
+            if (! in_array($environmentName, $environment->names)) {
                 $key = array_search($classNameWithEnvironment, $this->registeredClasses);
                 if ($key !== false) {
                     unset($this->registeredClasses[$key]);
@@ -105,13 +105,13 @@ class FileSystemAnnotationFinder implements AnnotationFinder
                     break;
                 }
             }
-            $isClassBanned = $classEnvironment !== null && ! in_array($environmentName, $classEnvironment->getNames());
+            $isClassBanned = $classEnvironment !== null && ! in_array($environmentName, $classEnvironment->names);
 
             foreach ((new ReflectionClass($className))->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
                 $methodEnvironments = $reflectionMethod->getAttributes(Environment::class, ReflectionAttribute::IS_INSTANCEOF);
 
                 if ($methodEnvironments !== []) {
-                    if (! in_array($environmentName, $methodEnvironments[0]->newInstance()->getNames())) {
+                    if (! in_array($environmentName, $methodEnvironments[0]->newInstance()->names)) {
                         $this->bannedEnvironmentClassMethods[$className][$reflectionMethod->getName()] = true;
                     }
                 } elseif ($isClassBanned) {

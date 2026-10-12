@@ -18,19 +18,9 @@ class InternalHandler extends InputOutputEndpointAnnotation
         string $outputChannelName = '',
         string $endpointId = '',
         array $requiredInterceptorNames = [],
-        private bool $changingHeaders = false,
-        private bool $requiresReply = false,
+        public readonly bool $changingHeaders = false,
+        public readonly bool $requiresReply = false,
     ) {
         parent::__construct($inputChannelName, $endpointId, $outputChannelName, $requiredInterceptorNames);
-    }
-
-    public function isChangingHeaders(): bool
-    {
-        return $this->changingHeaders;
-    }
-
-    public function isRequiresReply(): bool
-    {
-        return $this->requiresReply;
     }
 }

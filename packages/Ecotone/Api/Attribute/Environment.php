@@ -13,15 +13,10 @@ class Environment
     /**
      * @var string[]
      */
-    private array $names = [];
+    public readonly array $names;
 
     public function __construct(array $environments)
     {
         $this->names = $environments;
-    }
-
-    public function getNames(): array
-    {
-        return $this->names;
     }
 }

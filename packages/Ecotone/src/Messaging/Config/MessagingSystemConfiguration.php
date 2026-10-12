@@ -465,7 +465,7 @@ final class MessagingSystemConfiguration implements Configuration
                             }
                         }
                     }
-                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getAsynchronousExecution() : [];
+                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->asynchronousExecution : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
                         throw LicensingException::create(Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::asynchronousExecutionRequiresEnterprise($targetEndpointId));
                     }

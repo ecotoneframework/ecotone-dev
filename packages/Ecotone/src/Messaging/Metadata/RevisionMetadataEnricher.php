@@ -24,7 +24,7 @@ final class RevisionMetadataEnricher
         if (! empty($revisionAttributes)) {
             /** @var Revision $revision */
             $revision = $revisionAttributes[0]->newInstance();
-            $metadata[MessageHeaders::REVISION] = $revision->getRevision();
+            $metadata[MessageHeaders::REVISION] = $revision->revision;
         }
 
 

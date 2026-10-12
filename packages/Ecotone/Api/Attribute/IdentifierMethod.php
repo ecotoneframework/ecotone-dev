@@ -11,16 +11,11 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class IdentifierMethod
 {
-    private string $identifierPropertyName;
+    public readonly string $identifierPropertyName;
 
     public function __construct(string $identifierPropertyName)
     {
         Assert::notNullAndEmpty($identifierPropertyName, 'Property name must be defined for ' . self::class);
         $this->identifierPropertyName = $identifierPropertyName;
-    }
-
-    public function getIdentifierPropertyName(): string
-    {
-        return $this->identifierPropertyName;
     }
 }

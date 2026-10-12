@@ -105,7 +105,7 @@ final class DbalBusinessMethodModule implements AnnotationModule
                 [
                     GatewayHeaderValueBuilder::create(
                         DbalBusinessMethodHandler::HEADER_FETCH_MODE,
-                        $attribute->getFetchMode()
+                        $attribute->fetchMode
                     ),
                     GatewayHeaderValueBuilder::create(
                         DbalBusinessMethodHandler::IS_INTERFACE_NULLABLE,

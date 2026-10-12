@@ -99,7 +99,7 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
                 /** @var IdentifierMethod $attribute */
                 $attribute = $methodToCheck->getSingleMethodAnnotationOf($aggregateIdentifierMethod);
 
-                if ($attribute->getIdentifierPropertyName() === $propertyName) {
+                if ($attribute->identifierPropertyName === $propertyName) {
                     return true;
                 }
             }
@@ -133,7 +133,7 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
             if ($methodToCheck->hasMethodAnnotation($aggregateIdentifierMethod)) {
                 /** @var IdentifierMethod $attribute */
                 $attribute = $methodToCheck->getSingleMethodAnnotationOf($aggregateIdentifierMethod);
-                $baseMessageIdentifiersMapping[$attribute->getIdentifierPropertyName()] = null;
+                $baseMessageIdentifiersMapping[$attribute->identifierPropertyName] = null;
             }
         }
 

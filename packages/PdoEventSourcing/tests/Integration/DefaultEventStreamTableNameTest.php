@@ -62,6 +62,16 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
         self::assertCount(1, $this->bootstrap($this->ledgerEventsConfiguration(), [])->getGateway(EventStore::class)->load('ecotone_event_stream'));
     }
 
+    public function test_with_events_seeds_the_configured_default_event_stream_table(): void
+    {
+        $this->bootstrap($this->defaultConfiguration(), [])->withEvents([new LedgerOpenedForDefaultTableTest('ledger-in-the-default-table')]);
+
+        $this->bootstrap($this->ledgerEventsConfiguration(), [])->withEvents([new LedgerOpenedForDefaultTableTest('ledger-1')]);
+
+        $seeded = $this->bootstrap($this->ledgerEventsConfiguration(), [])->getGateway(EventStore::class)->load('ecotone_event_stream');
+        self::assertEquals([new LedgerOpenedForDefaultTableTest('ledger-1')], array_map(static fn ($event) => $event->getPayload(), $seeded));
+    }
+
     public function test_a_projection_of_the_default_stream_reads_the_configured_table(): void
     {
         $this->bootstrap($this->defaultConfiguration(), [$this->ledger()])->sendCommand(new OpenLedgerForDefaultTableTest('ledger-in-the-default-table'));

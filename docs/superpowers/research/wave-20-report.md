@@ -235,3 +235,40 @@ Also run:
 - `DatabaseSetupManager` is not `final` (rule 17) and carries a descriptive docblock (rule 6). Noted, not fixed.
 - `EventProjecting/PartitionedProjection` still falls back to `LicenceTesting` inside the monorepo; that predates
   this wave.
+
+## Follow-up — U4 reworked and every quickstart running, at the maintainer's request
+
+The maintainer asked for two things after the wave: the forced trace flush to work in every setup instead of refusing
+an API-level provider, and every quickstart to run on the current tree. Both done.
+
+| Commit | What |
+|---|---|
+| `a4ab295ed` fix(tracing) | the forced flush skips a provider that cannot flush instead of refusing it; the refusal's upgrade note removed |
+| `5fed4fd59` fix(dbal) R34 | the setup command creates, drops and reports Ecotone's tables in every tenant database |
+| `980b6141e` fix(projecting) R36 | `ecotone:projection:init`/`:delete` run outside the console transaction; init records a global projection's state |
+| `5979461b9` fix(laravel) R37 | a null-default console argument is `{name?}` in Artisan, not an argument named `name=` |
+| `972b33f0d` fix(dbal) R38 | a console command run with a tenant header activates that tenant |
+| `8f3a40c18` fix(quickstart) | tenant helpers run the setup command; both multi-tenant EventSourcing examples init their projection per tenant |
+
+**U4:** `EcotoneForcedTraceFlush` flushes only an `OpenTelemetry\SDK\Trace\TracerProviderInterface` and passes through
+for any other provider. `ForcedTraceFlushTest` proves a `NoopTracerProvider` handles a command and an asynchronous
+message with the forced flush on, both red on the previous commit. 1.x crashed on the same binding, so no upgrade note.
+
+**Quickstarts:** run as CI runs them, with Postgres primary and MySQL secondary and then the reverse. All 45
+`tests:ci` entries exit 0 in both orders; the three Tempest examples run in both orders. Running the MySQL-primary
+order, which the wave did not, is what surfaced R36: five projection examples failed there.
+
+**How R36–R38 were found:** R34's fix let the multi-tenant EventSourcing examples reach their first command, which failed
+on the MySQL tenant (R36's first half). Initializing the projection up front with `ecotone:projection:init` then hit
+R36's second half (init recorded no state, so the first event initialized again), R37 (Artisan rejected `name`) and
+R38 (the console tenant header never switched Laravel's connection). Each has a test red before its fix.
+
+**Open:** R33; R36's remainder (automatic initialization on MySQL still fails with the driver's error, and flow tests
+without an explicit `DbalConfiguration` open no console transaction), on the ledger; the `DatabaseSetupManager`
+constructor's rule-12a leak.
+
+**Verification on the final tree:** all 15 root suites green, among them Core `Tests: 1672`, Dbal `Tests: 493`,
+Event Sourcing `Tests: 637`, Laravel `Tests: 49`, Symfony `OK (56 tests)`, OpenTelemetry `OK (39 tests)`. phpstan
+root, Ecotone, Dbal and Laravel `[OK] No errors`; php-cs-fixer dry run clean on every changed file; suite parity and
+`check-licence` exit 0. Symfony examples were run from a cleared `var/cache`: a stale compiled container kept the old
+transaction pointcut and failed the first rerun.

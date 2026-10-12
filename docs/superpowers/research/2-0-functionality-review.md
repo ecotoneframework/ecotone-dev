@@ -566,7 +566,7 @@ exists at HEAD, except `#[ServiceActivator]` (§7a) and `#[ProjectionV2]` (§3).
 
 ## Addendum, wave 20 — found by running every quickstart example
 
-Wave 20 made the quickstart examples run on 2.0 and ran each one; these four surfaced there. Numbering continues from
+Wave 20 made the quickstart examples run on 2.0 and ran each one; R32–R35 surfaced there, and R36–R38 after R34 was fixed. Numbering continues from
 R31 and the totals above are wave 16's.
 
 ### R32 — a document-stored aggregate or saga using `WithEvents` cannot be loaded back
@@ -637,6 +637,15 @@ R31 and the totals above are wave 16's.
   (`enqueue`), `MultiTenant/General/HookIntoTenantSwitch` (`ecotone_document_store`).
 - **Classification D.** **Covered now:** no test runs the setup command against a multi-tenant connection.
   **Confidence:** certain.
+- **Fixed after wave 20, at the maintainer's request (`5fed4fd59`).** `DatabaseSetupManager` runs every operation on
+  each tenant database of the configured `tenantToConnectionMapping` plus the default connection, each physical
+  connection once, so `ecotone:migration:database:setup --initialize`, `--sql`, the status table and
+  `ecotone:migration:database:delete` all reach the tenant databases, and the missing-table message now names a command
+  that works. The three design questions were settled as: the configured mapping (no discovery); `--sql` labels each
+  tenant database's statements with `-- connection '<reference>'`; an unreachable tenant stops the command, and a rerun
+  finishes the rest because existing tables are skipped. `DbalDatabaseTablesSetUp` reuses it. Proved by
+  `DatabaseSetupMultiTenantTest` (four cases, all red before). The rule-12a constructor leak remains, recorded on the
+  ledger row on the `Api` inward surface; `DatabaseSetupManager` is now `final` without descriptive docblocks.
 
 ### R35 — a document the store cannot read back is refused naming no document
 
@@ -652,6 +661,56 @@ R31 and the totals above are wave 16's.
   `getAllDocuments()` by `DocumentStoreTest`. **Confidence:** certain.
 
 ---
+
+### R36 — Ecotone's own projection console commands fail on MySQL when a projection issues DDL
+
+- **What broke:** 1.x swallowed the commit failure MySQL's implicit commit causes after DDL inside a transaction
+  (`main:packages/Dbal/src/DbalTransaction/ImplicitCommit.php`, called from `DbalTransactionInterceptor`'s commit). 2.0
+  removed that (`upgrade-2.0.md` §8), but `ecotone:projection:init` and `ecotone:projection:delete` still ran inside the
+  console-command transaction (only `backfill` was excluded, `DbalTransactionModule.php`). So any projection whose
+  `#[ProjectionInitialization]` creates or whose `#[ProjectionDelete]` drops its table, the shape every projection
+  quickstart has, failed on MySQL with the driver's `There is no active transaction`, naming nothing. Second half:
+  `ProjectingManager::init()` recorded no state for a global projection, so its first event ran the initialization
+  handler again (`ensurePartitionInitialized()`), inside the command's transaction, and failed the same way.
+- **Seen in:** with MySQL as the primary database, `EventProjecting/PartitionedProjection`,
+  `Laravel/Projection/DatabaseReadModel`, `Laravel/Projection/EloquentReadModel`, `Symfony/Projection/DatabaseReadModel`,
+  `Symfony/Projection/EntityReadModel`; and `MultiTenant/{Laravel,Symfony}/EventSourcing` on their MySQL tenant once R34
+  let them reach the first command.
+- **Why no test saw it:** a flow test without an explicit `DbalConfiguration` extension object opened no transaction
+  around a console command (a transaction-state probe inside `#[ProjectionDelete]` read `false`); with
+  `DbalConfiguration::createWithDefaults()` passed, it opens one, as production does. Not investigated further:
+  flow tests may run without the console transaction that production applies, a divergence worth its own row.
+- **Classification D.** **Fixed after wave 20 (`980b6141e`):** init and delete join backfill outside the console
+  transaction, and init records a global projection's partition. `ProjectionLifecycleConsoleCommandTest`, red on
+  MySQL before, green on MySQL and Postgres. **Still open:** a projection relying on automatic initialization on its
+  first event still runs its DDL inside that event's transaction; on MySQL it must be initialized at deploy time (the
+  two multi-tenant examples now run `ecotone:projection:init` per tenant), and the driver error there still names no
+  way out, against rule 1.
+
+### R37 — Laravel registers a console argument that defaults to `null` under the name `name=`
+
+- **What broke:** `EcotoneProvider` wrote every defaulted argument as `{<name>=<default>}`; with a `null` default that
+  is `{name=}`, which Laravel's signature parser reads as a required argument literally named `name=` (synopsis
+  `<name=>`). `php artisan ecotone:projection:init orders` bound the value to `name=`, so the command saw no `name`;
+  `Artisan::call('ecotone:projection:init', ['name' => …])` failed with `The "name" argument does not exist`.
+  Every Ecotone console command with an optional argument was affected; `ecotone:projection:init` is the visible one.
+- **Seen in:** `MultiTenant/Laravel/EventSourcing`, once it ran `ecotone:projection:init` per tenant (R36).
+- **Classification: other** (an integration defect, not traced to 1.x). **Fixed (`5979461b9`):** a non-option
+  argument defaulting to `null` is `{name?}`. `ArtisanOptionalArgumentTest`, red before with that message. Symfony maps
+  the same parameter to `InputArgument::OPTIONAL` and was never affected.
+
+### R38 — a console command run with a tenant header never activated the tenant
+
+- **What broke:** `MultiTenantConnectionFactoryModule` registers the tenant propagation interceptor on `CommandBus`,
+  `QueryBus`, `EventBus`, asynchronous endpoints, `#[PropagateHeaders]` and gateways, not `#[ConsoleCommand]`. A
+  console command run with `--header tenant:b` resolved header-driven connections to tenant `b`, but no
+  `#[OnTenantActivation]`/`#[OnTenantDeactivation]` hook ran, so Laravel's tenant database switching stayed on the
+  default connection.
+- **Seen in:** `MultiTenant/Laravel/EventSourcing`: `ecotone:projection:init --header tenant:tenant_b` created the
+  read model in tenant A's database, and the first event for tenant B found no table.
+- **Classification: other.** **Covered before:** no test exercised the activation hooks on any path. **Fixed
+  (`972b33f0d`):** `#[ConsoleCommand]` joins the pointcut. `TenantActivationTest`, the console case red before, the
+  command-bus case green before and after. `upgrade-2.0.md` §2a.
 
 ## Sub-review notes not raised as findings
 

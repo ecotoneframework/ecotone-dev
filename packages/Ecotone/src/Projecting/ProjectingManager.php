@@ -34,6 +34,7 @@ class ProjectingManager
         private ?string                        $backfillAsyncChannelName = null,
         private int                            $rebuildPartitionBatchSize = self::DEFAULT_REBUILD_PARTITION_BATCH_SIZE,
         private ?string                        $rebuildAsyncChannelName = null,
+        private bool                           $partitioned = false,
     ) {
         if ($eventLoadingBatchSize < 1) {
             throw new InvalidArgumentException('Event loading batch size must be at least 1');
@@ -153,6 +154,10 @@ class ProjectingManager
         $this->getProjectionStateStorage()->init($this->projectionName);
 
         $this->projectorExecutor->init();
+
+        if (! $this->partitioned) {
+            $this->getProjectionStateStorage()->initPartition($this->projectionName);
+        }
     }
 
     public function delete(): void

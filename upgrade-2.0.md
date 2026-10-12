@@ -1301,8 +1301,8 @@ SQLite it also works inside one, because DDL is transactional there.
   point with `DbalConfiguration::withTransactionOnCommandBus(false)`, `withTransactionOnAsynchronousEndpoints(false)`
   or `withTransactionOnConsoleCommands(false)`. A projection that deletes the stream it emits to does it in
   `#[ProjectionDelete]`, not `#[ProjectionReset]`, and is deleted before it is rebuilt — through
-  `ecotone:projection:delete` with `withTransactionOnConsoleCommands(false)`, since that console command runs inside a
-  transaction by default — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
+  `ecotone:projection:delete`, which like `ecotone:projection:init` and `ecotone:projection:backfill` runs outside the
+  console-command transaction — and `ecotone:migration:database:setup --initialize` recreates the dropped stream table
   before the rebuild emits into it again.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
@@ -1310,6 +1310,15 @@ SQLite it also works inside one, because DDL is transactional there.
   may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
   initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
   idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+- **Before (early 2.0):** `ecotone:projection:init` and `ecotone:projection:delete` ran inside the console-command
+  transaction, so a projection whose `#[ProjectionInitialization]` or `#[ProjectionDelete]` issues DDL failed on
+  MySQL/MariaDB with `There is no active transaction`; and `ecotone:projection:init` left a global projection's state
+  unrecorded, so its first event ran the initialization handler again, inside the command's transaction.
+  **Now:** both commands run outside the console-command transaction, as `ecotone:projection:backfill` already did,
+  and `ecotone:projection:init` records a global projection's state, so its first event does not initialize it again.
+  **How to adapt:** drop `withTransactionOnConsoleCommands(false)` if you set it only for these commands. A projection
+  that relies on automatic initialization on its first event still initializes inside that event's transaction: on
+  MySQL/MariaDB, run `ecotone:projection:init <name>` once at deploy time, or create its tables in your migrations.
 - **Before:** a synchronous `#[CommandHandler]` marked `#[WithoutDatabaseTransaction]` was only honoured when it ran
   through a `#[ConsoleCommand]` or an asynchronous endpoint. Dispatched through `CommandBus` (`send()` /
   `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a

@@ -1354,14 +1354,18 @@ connection's manager for backward compatibility.
   Run:
     bin/console ecotone:migration:database:setup --initialize --feature=event_stream --connection=secondary
   ```
-- **What is out of scope: multi-tenant connections.** A tenant's connection (`MultiTenantConfiguration` /
-  `HeaderBasedMultiTenantConnectionFactory`) is resolved per message from a tenant header at runtime — there is no
-  active header outside message processing, so the CLI (and the setup manager it builds) cannot open that connection
-  to create or inspect tables on it. Pointing a feature's `connectionReferenceName` at a multi-tenant reference is not
-  supported by `ecotone:migration:database:setup`; provision each underlying per-tenant database yourself (loop your
-  own tenant list and run the migration tool against each physical connection, or call
-  `DatabaseSetupManager::getCreateSqlStatementsForFeatures()` against a `ConnectionFactory` you construct for that
-  tenant) rather than expecting the CLI to enumerate tenants for you.
+- **Multi-tenant connections are covered tenant by tenant.** When a connection Ecotone knows about is a
+  multi-tenant one (`MultiTenantConfiguration`), every invocation runs against the database of each tenant in its
+  `tenantToConnectionMapping`, plus its default connection, each physical connection once. `--initialize` creates the
+  missing tables in every tenant database; `ecotone:migration:database:delete` drops them in every one; the status
+  table reports a feature `Initialized` only when every tenant database has its table; and `--sql` prints each
+  tenant database's statements under a `-- connection '<reference>'` line, since tenants may run different engines.
+  `--connection=` takes the multi-tenant reference, not a tenant's own. The tenant list is the configured mapping,
+  not header-driven discovery: a tenant added later is provisioned by running the command again. If one tenant
+  database is unreachable, the command stops with that connection's error; the tables already created stay, and
+  running it again finishes the rest, since it skips tables that exist. Early 2.0 refused here with `Lack of context
+  about tenant in Message Headers`.
+- **`DatabaseSetupManager` is `final`.** Nothing in Ecotone extended it; an application that did composes it instead.
 - This generalizes beyond event streams: any table manager whose feature is configured on a non-default connection —
   today that is deduplication, dead letter and the document store, alongside event streams — is now covered the same
   way. `message_queue` (DBAL-backed channels/publishers) and `projection_state` are still tied to the default

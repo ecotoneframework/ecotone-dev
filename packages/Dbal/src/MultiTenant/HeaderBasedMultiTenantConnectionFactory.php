@@ -205,9 +205,14 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
         $connections = [];
         foreach ($connectionReferences as $connectionReference) {
-            $context = $this->container->get($this->getConnectionReference($connectionReference))->createContext();
+            $connectionReferenceName = $this->getConnectionReference($connectionReference);
+            if (isset($connections[$connectionReferenceName])) {
+                continue;
+            }
+
+            $context = $this->container->get($connectionReferenceName)->createContext();
             if ($context instanceof DbalContext) {
-                $connections[] = $context->getDbalConnection();
+                $connections[$connectionReferenceName] = $context->getDbalConnection();
             }
         }
 

@@ -9,26 +9,19 @@ use Ecotone\Api\Attribute\AggregateEvents;
  */
 trait WithEvents
 {
-    private ?array $recordedEvents = null;
+    private array $recordedEvents;
 
     public function recordThat(object $event): void
     {
-        if (! $this->recordedEvents) {
-            $this->recordedEvents = [];
-        }
-
+        $this->recordedEvents ??= [];
         $this->recordedEvents[] = $event;
     }
 
     #[AggregateEvents]
     public function popRecordedEvents(): array
     {
-        if (! $this->recordedEvents) {
-            return [];
-        }
-
-        $recordedEvents = $this->recordedEvents;
-        $this->recordedEvents = null;
+        $recordedEvents = $this->recordedEvents ?? [];
+        unset($this->recordedEvents);
 
         return $recordedEvents;
     }

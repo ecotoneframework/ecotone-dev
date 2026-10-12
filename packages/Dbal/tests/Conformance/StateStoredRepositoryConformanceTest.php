@@ -11,9 +11,11 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\TargetIdentifier;
 use Ecotone\Api\Attribute\TargetVersion;
 use Ecotone\Api\Attribute\Version;
@@ -22,6 +24,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
+use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -166,6 +169,32 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
         });
     }
 
+    #[DataProvider('implementations')]
+    public function test_an_aggregate_recording_events_is_loaded_back_after_it_was_saved(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.open', metadata: ['journalId' => 'j-1']);
+
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.write', metadata: ['journalId' => 'j-1', 'entry' => 'first']);
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.write', metadata: ['journalId' => 'j-1', 'entry' => 'second']);
+
+            self::assertSame(['first', 'second'], $ecotone->sendQueryWithRouting('repositoryConformance.journal.entries', metadata: ['aggregate.id' => 'j-1']));
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_saga_recording_events_is_loaded_back_after_it_was_saved(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (FlowTestSupport $ecotone): void {
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.open', metadata: ['journalId' => 'j-1']);
+
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.write', metadata: ['journalId' => 'j-1', 'entry' => 'first']);
+            $ecotone->sendCommandWithRouting('repositoryConformance.journal.write', metadata: ['journalId' => 'j-1', 'entry' => 'second']);
+
+            self::assertSame(2, $ecotone->sendQueryWithRouting('repositoryConformance.journey.entriesSeen', metadata: ['aggregate.id' => 'j-1']));
+        });
+    }
+
     private function conformanceCase(string $implementation, Closure $case): void
     {
         $target = $this->targetOf($implementation);
@@ -222,7 +251,7 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
 
     private function bootstrap(string $implementation): FlowTestSupport
     {
-        $classesToResolve = [TicketForRepositoryConformance::class, OpenTicketForRepositoryConformance::class, RenameTicketForRepositoryConformance::class, NoteForRepositoryConformance::class];
+        $classesToResolve = [TicketForRepositoryConformance::class, OpenTicketForRepositoryConformance::class, RenameTicketForRepositoryConformance::class, NoteForRepositoryConformance::class, JournalForRepositoryConformance::class, JourneyForRepositoryConformance::class];
 
         if ($implementation === 'in-memory') {
             return $this->bootstrapFlowTesting(
@@ -350,5 +379,89 @@ final readonly class RenameTicketForRepositoryConformance
         #[TargetVersion] public int $version,
         public string $title,
     ) {
+    }
+}
+
+#[Aggregate]
+final class JournalForRepositoryConformance
+{
+    use WithEvents;
+
+    /**
+     * @param string[] $entries
+     */
+    private function __construct(
+        #[Identifier] private string $journalId,
+        private array $entries,
+    ) {
+    }
+
+    #[CommandHandler(routingKey: 'repositoryConformance.journal.open', identifierMetadataMapping: ['journalId' => 'journalId'])]
+    public static function open(#[Header('journalId')] string $journalId): self
+    {
+        $journal = new self($journalId, []);
+        $journal->recordThat(new JournalOpenedForRepositoryConformance($journalId));
+
+        return $journal;
+    }
+
+    #[CommandHandler(routingKey: 'repositoryConformance.journal.write', identifierMetadataMapping: ['journalId' => 'journalId'])]
+    public function write(#[Header('entry')] string $entry): void
+    {
+        $this->entries[] = $entry;
+        $this->recordThat(new JournalEntryWrittenForRepositoryConformance($this->journalId, $entry));
+    }
+
+    /**
+     * @return string[]
+     */
+    #[QueryHandler('repositoryConformance.journal.entries')]
+    public function entries(): array
+    {
+        return $this->entries;
+    }
+}
+
+#[Saga]
+final class JourneyForRepositoryConformance
+{
+    use WithEvents;
+
+    private function __construct(
+        #[Identifier] private string $journalId,
+        private int $entriesSeen,
+    ) {
+    }
+
+    #[EventHandler]
+    public static function start(JournalOpenedForRepositoryConformance $event): self
+    {
+        return new self($event->journalId, 0);
+    }
+
+    #[EventHandler]
+    public function whenEntryWritten(JournalEntryWrittenForRepositoryConformance $event): void
+    {
+        $this->entriesSeen++;
+    }
+
+    #[QueryHandler('repositoryConformance.journey.entriesSeen')]
+    public function entriesSeen(): int
+    {
+        return $this->entriesSeen;
+    }
+}
+
+final readonly class JournalOpenedForRepositoryConformance
+{
+    public function __construct(public string $journalId)
+    {
+    }
+}
+
+final readonly class JournalEntryWrittenForRepositoryConformance
+{
+    public function __construct(public string $journalId, public string $entry)
+    {
     }
 }

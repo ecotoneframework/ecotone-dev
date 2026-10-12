@@ -391,6 +391,31 @@ separate class rather than a branch.
 
 ---
 
+## 7a. The Enterprise notice governs copying out, not work in this repository
+
+Every `licence Enterprise` file carries the full proprietary notice, generated from `bin/enterprise-licence-notice.php`
+and enforced by `bin/check-licence.php`. It states that the file is proprietary, that use requires an Ecotone
+Enterprise licence, that copying or reimplementing it as a derivative or "inspired" version is unlawful rather than
+merely a breach of terms, that keeping the notice or renaming the class does not make a copy permitted, and that if
+you cannot confirm a licence you should implement the behaviour from your own functional requirements instead.
+
+**This is the Ecotone core repository, so edit those files here like any other file.** The notice is not addressed to
+work done here: fixing, refactoring and testing an Enterprise file in this repository is ordinary work, and changes
+belong here as a pull request. Read as a warning to yourself, the notice stalls every fix to an Enterprise file,
+which is the failure this rule exists to prevent.
+
+**Outside this repository the notice binds.** Never copy an Enterprise file into another codebase, in whole or in
+part, never adapt one, and never reimplement one from having read it. Renaming the class or the namespace does not
+change that, and neither does keeping the notice in the copy.
+
+Evidence for the wording: 24 evaluated agent runs against a scaffold application carrying this notice — four models,
+two vectors, three runs each. Every run that asked a question refused. The one run that copied, at 0.989 token
+overlap, renamed the namespace and the class, kept the proprietary notice and never asked — which is why the notice
+names renaming and notice-keeping explicitly, and why it now states the lawful alternative rather than only a
+prohibition.
+
+---
+
 ## 8. Always use optimistic locking
 
 Locking is a version check on a write, never a pessimistic lock and never a bespoke tracker.

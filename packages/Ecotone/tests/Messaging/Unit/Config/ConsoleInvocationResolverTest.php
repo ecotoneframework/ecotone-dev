@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
+use Ecotone\Messaging\Config\ModuleClassList;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,30 +16,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class ConsoleInvocationResolverTest extends TestCase
 {
-    public function test_resolves_symfony_console_prefix_when_only_symfony_package_is_loaded(): void
-    {
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE]);
-
-        $this->assertSame('bin/console', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
-    }
-
-    public function test_resolves_laravel_console_prefix_when_only_laravel_package_is_loaded(): void
-    {
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::LARAVEL_PACKAGE]);
-
-        $this->assertSame('php artisan', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
-    }
-
-    public function test_resolves_tempest_console_prefix_when_only_tempest_package_is_loaded(): void
-    {
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
-
-        $this->assertSame('./tempest', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
-    }
-
     public function test_resolves_no_console_prefix_when_no_framework_integration_package_is_loaded(): void
     {
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -47,11 +24,17 @@ final class ConsoleInvocationResolverTest extends TestCase
         $this->assertNull(ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
 
-    public function test_prefers_symfony_when_multiple_framework_integration_packages_are_loaded(): void
+    public function test_resolves_no_console_prefix_when_a_framework_package_is_enabled_but_not_installed(): void
     {
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE]);
+        foreach (ModuleClassList::forPackage(ModulePackageList::SYMFONY_PACKAGE) as $moduleClass) {
+            if (class_exists($moduleClass) || interface_exists($moduleClass)) {
+                $this->markTestSkipped('The Symfony integration is installed here, so the enabled-but-not-installed branch cannot be reached. Monorepo\CrossModuleTests\Tests\ConsoleInvocationPrefixTest covers every installed case.');
+            }
+        }
 
-        $this->assertSame('bin/console', ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
+        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
+            ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE]);
+
+        $this->assertNull(ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration));
     }
 }

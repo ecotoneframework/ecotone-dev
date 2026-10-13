@@ -33,15 +33,18 @@ class EcotoneExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
+        $givenKeys = array_merge(...array_map(array_keys(...), $configs));
         FrameworkConfigurationKeys::refuseUnrecognisedKeys(
-            givenKeys: array_merge(...array_map(array_keys(...), $configs)),
+            givenKeys: $givenKeys,
             recognisedKeys: $configuration->getRecognisedKeys(),
             configurationLocation: 'the `ecotone` bundle configuration',
         );
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);
 
-        $enabledModulePackageNames = $config[FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES] ?? null;
+        $enabledModulePackageNames = in_array(FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES, $givenKeys, true)
+            ? $config[FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES]
+            : null;
 
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))

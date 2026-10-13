@@ -81,7 +81,6 @@ class Configuration implements ConfigurationInterface
                     ->end()
 
                     ->arrayNode(FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES)
-                        ->defaultNull()
                         ->scalarPrototype()
                     ->end()
                 ->end()

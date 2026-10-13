@@ -16,9 +16,14 @@ use Symfony\Component\Config\Definition\Processor;
  */
 final class EcotoneConfigurationEnabledModulePackageNamesTest extends TestCase
 {
-    public function test_absent_enabled_module_package_names_key_is_null(): void
+    public function test_an_absent_key_leaves_an_empty_list_in_the_tree_because_a_null_default_breaks_symfony_6_4(): void
     {
-        $this->assertNull($this->process([])['enabledModulePackageNames']);
+        $this->assertSame([], $this->process([])['enabledModulePackageNames']);
+    }
+
+    public function test_the_tree_builds_on_every_supported_symfony_config_version(): void
+    {
+        $this->assertContains('enabledModulePackageNames', array_keys((new Configuration())->getConfigTreeBuilder()->buildTree()->getChildren()));
     }
 
     public function test_empty_enabled_module_package_names_list_stays_an_empty_list(): void

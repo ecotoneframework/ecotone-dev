@@ -14,6 +14,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Dbal\RequiresMySqlConnection;
 
 /**
  * licence Apache-2.0
@@ -21,6 +22,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class MySqlTransactionRollbackTest extends TestCase
 {
+    use RequiresMySqlConnection;
+
     public const ORDERS_TABLE = 'implicit_commit_removal_orders';
 
     protected function setUp(): void
@@ -102,8 +105,6 @@ final class MySqlTransactionRollbackTest extends TestCase
 
     private function createConnectionFactory(): DbalConnectionFactory
     {
-        return new DbalConnectionFactory(
-            getenv('DATABASE_MYSQL') ?: 'mysql://ecotone:secret@localhost:3306/ecotone?serverVersion=8.0'
-        );
+        return new DbalConnectionFactory($this->mySqlDsn());
     }
 }

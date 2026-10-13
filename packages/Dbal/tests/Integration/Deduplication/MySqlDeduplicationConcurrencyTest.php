@@ -17,6 +17,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Dbal\RequiresMySqlConnection;
 
 /**
  * licence Apache-2.0
@@ -24,6 +25,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class MySqlDeduplicationConcurrencyTest extends TestCase
 {
+    use RequiresMySqlConnection;
+
     protected function setUp(): void
     {
         $connection = $this->createConnectionFactory()->createContext()->getDbalConnection();
@@ -92,8 +95,6 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
 
     private function createConnectionFactory(): DbalConnectionFactory
     {
-        return new DbalConnectionFactory(
-            getenv('DATABASE_MYSQL') ?: 'mysql://ecotone:secret@localhost:3306/ecotone?serverVersion=8.0'
-        );
+        return new DbalConnectionFactory($this->mySqlDsn());
     }
 }

@@ -47,7 +47,7 @@ final class AmqpMessagePublisherModule implements AnnotationModule
 
         /** @var AmqpMessagePublisherConfiguration $amqpPublisher */
         foreach (ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $extensionObjects) as $amqpPublisher) {
-            $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->getDefaultSerializationMediaType();
+            $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->defaultSerializationMediaType;
 
             $messagingConfiguration = $messagingConfiguration
                 ->registerGatewayBuilder(

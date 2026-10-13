@@ -43,7 +43,7 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
 
         /** @var SqsMessagePublisherConfiguration $messagePublisher */
         foreach (ExtensionObjectResolver::resolve(SqsMessagePublisherConfiguration::class, $extensionObjects) as $messagePublisher) {
-            $mediaType = $messagePublisher->getOutputDefaultConversionMediaType() ?: $serviceConfiguration->getDefaultSerializationMediaType();
+            $mediaType = $messagePublisher->getOutputDefaultConversionMediaType() ?: $serviceConfiguration->defaultSerializationMediaType;
 
             $messagingConfiguration
                 ->registerGatewayBuilder(

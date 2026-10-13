@@ -132,7 +132,7 @@ final class EcotoneLite
 
     private static function withDatabaseTablesSetUp(ConfiguredMessagingSystemWithTestSupport $messagingSystem, ServiceConfiguration $configuration): FlowTestSupport
     {
-        foreach ($configuration->getExtensionObjects() as $extensionObject) {
+        foreach ($configuration->extensionObjects as $extensionObject) {
             if ($extensionObject instanceof TestConfiguration && $extensionObject->databaseTablesSetUpOnBootstrap) {
                 $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpTablesOfProvidedConnections();
             }
@@ -175,7 +175,7 @@ final class EcotoneLite
         $cacheLayout = ContainerCacheLayout::resolve(
             $pathToRootCatalog,
             $serviceConfiguration,
-            $serviceConfiguration->getCacheDirectoryPath(),
+            $serviceConfiguration->cacheDirectoryPath,
             self::shouldUseAutomaticCache($useCachedVersion, $pathToRootCatalog),
             configurationVariables: $configurationVariables,
             classesToResolve: $classesToResolve,

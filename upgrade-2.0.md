@@ -2744,9 +2744,27 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | `keys()` | `$keys` |
 | `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()`, `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnCommandHandlerNotFound`, `$failOnQueryHandlerNotFound`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
 | `Ecotone\Api\ExtensionObject\ExecutionPollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getStopOnError()`, `getFinishWhenNoMessages()`, `getExecutionAmountLimit()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$stopOnError`, `$finishWhenNoMessages`, `$executionAmountLimit` |
+| `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `getServiceName()`, `getEnvironment()`, `getNamespaces()`, `getCacheDirectoryPath()`, `getLoadedCatalog()`, `failFast()`, `isFailingFast()`, `getLicenceKey()`, `getConnectionRetryTemplate()`, `getExtensionObjects()`, `getDefaultMemoryLimitInMegabytes()`, `getDefaultErrorChannel()`, `getDefaultSerializationMediaType()`, `getPollableEndpointAnnotations()` | `$serviceName`, `$environment`, `$namespaces`, `$cacheDirectoryPath`, `$loadCatalog`, `$failFast` (both methods), `$licenceKey`, `$connectionRetryTemplate`, `$extensionObjects`, `$defaultMemoryLimitInMegabytes`, `$defaultErrorChannel`, `$defaultSerializationMediaType`, `$pollableEndpointAnnotations` |
 
 **How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
 attribute instance, or a test. Replace each call with the property in the right column. Constructing these objects is unchanged.
+
+### Four `ServiceConfiguration` methods return a copy instead of changing the instance
+
+**Before:** `ServiceConfiguration` mixed two kinds of `with*()`. Nine returned a changed copy and left the instance
+alone; four — `withConnectionRetryTemplate()`, `withLicenceKey()`, `withEnabledModulePackageNames()` and
+`withConsumerMemoryLimit()` — changed the instance they were called on and returned it. So a call written as a
+statement, `$configuration->withLicenceKey('...');`, kept its change for those four and silently lost it for the
+other nine.
+
+**Now:** all thirteen return a changed copy, and the instance they are called on is never changed — its properties
+are `readonly`. A statement-form call to one of the four above still runs, but its value is silently lost: the
+licence key, the enabled module packages, the consumer memory limit or the connection retry template you set never
+reaches the configuration Ecotone uses.
+
+**How to adapt:** assign the result, as the other `with*()` methods always required — chain the calls, or
+`$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
+or passed to `EcotoneLite` as a chained expression is unaffected.
 
 ### Forced trace flushing refuses a tracer provider that cannot flush
 

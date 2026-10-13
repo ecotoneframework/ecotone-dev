@@ -130,7 +130,7 @@ final class BasicMessagingModule extends NoExternalConfigurationModule implement
                 Reference::to(LoggingGateway::class),
                 new Definition(OutboundMessageConverter::class, [
                     DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
-                    MediaType::parseMediaType($serviceConfiguration->getDefaultSerializationMediaType()),
+                    MediaType::parseMediaType($serviceConfiguration->defaultSerializationMediaType),
                 ]),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 Reference::to(MessageHeadersPropagatorInterceptor::class),

@@ -103,7 +103,7 @@ final class DistributedHandlerModule implements AnnotationModule
             new Definition(DistributedMessageHandler::class, [
                 $this->eventBusDistributedRoutes->compile(),
                 $this->commandBusDistributedRoutes->compile(),
-                $serviceConfiguration->getServiceName(),
+                $serviceConfiguration->serviceName,
             ])
         );
         $messagingConfiguration->registerMessageHandler(

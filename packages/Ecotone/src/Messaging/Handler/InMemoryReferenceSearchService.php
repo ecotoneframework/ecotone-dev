@@ -42,7 +42,7 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
         }
         if (! array_key_exists(ServiceCacheConfiguration::REFERENCE_NAME, $objectsToResolve) && ! self::hasInOriginalReferenceService(ServiceCacheConfiguration::REFERENCE_NAME, $referenceSearchService)) {
             $objectsToResolve[ServiceCacheConfiguration::REFERENCE_NAME] = new ServiceCacheConfiguration(
-                $serviceConfiguration->getCacheDirectoryPath(),
+                $serviceConfiguration->cacheDirectoryPath,
                 false
             );
         }

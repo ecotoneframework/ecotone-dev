@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Endpoint\Poller;
 
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
@@ -70,6 +71,31 @@ final class PollingConsumerAckAndRetryTest extends TestCase
         }
 
         $this->assertFalse($handler->wasCalled);
+    }
+
+    public function test_a_consumer_without_its_own_connection_retry_recovers_from_failed_receives_with_the_default_one(): void
+    {
+        $handler = new class () {
+            public int $calledTimes = 0;
+
+            #[InternalHandler('defaultConnectionRetry.channel', endpointId: 'defaultConnectionRetry.endpoint')]
+            public function handle(string $payload): void
+            {
+                $this->calledTimes++;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+                SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive('defaultConnectionRetry.channel', 3)),
+            ]),
+        );
+
+        $ecotone->sendDirectToChannel('defaultConnectionRetry.channel', 'somePayload');
+        $ecotone->run('defaultConnectionRetry.endpoint', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000, stopOnError: false));
+
+        $this->assertSame(1, $handler->calledTimes);
     }
 }
 

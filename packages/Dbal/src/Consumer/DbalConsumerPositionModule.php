@@ -35,7 +35,7 @@ final class DbalConsumerPositionModule extends NoExternalConfigurationModule imp
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
             DbalConfiguration::class,
             $extensionObjects,
-            DbalConfiguration::createDefaultFor($extensionObjects)
+            DbalConfiguration::createWithDefaults()
         );
 
         if ($dbalConfiguration->consumerPositionTrackingEnabled) {

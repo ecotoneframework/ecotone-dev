@@ -763,6 +763,11 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    public function getExternalContainer(): ?ContainerInterface
+    {
+        return $this->externalContainer;
+    }
+
     /**
      * @param PollingMetadata $pollingMetadata
      *

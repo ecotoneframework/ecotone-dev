@@ -58,7 +58,7 @@ final class DeduplicationModule implements AnnotationModule
     {
         $this->verifyEnterpriseFeatures($messagingConfiguration);
 
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $isDeduplicatedEnabled = $dbalConfiguration->deduplicatedEnabled;
@@ -146,7 +146,7 @@ final class DeduplicationModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
         return [
             new DbalTableManagerReference(DeduplicationTableManager::class, $dbalConfiguration->getDeduplicationConnectionReference()),

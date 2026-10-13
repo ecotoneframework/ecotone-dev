@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -15,6 +16,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -79,6 +81,22 @@ final class FlowTestingStorageFromProvidedConnectionTest extends DbalMessagingTe
 
         self::assertSame(1, $deadLetter->count());
         self::assertSame(0, $this->flowTest([], withConnection: false)->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_a_dbal_channel_in_a_flow_test_without_its_connection_is_refused_naming_both_ways_out(): void
+    {
+        try {
+            $this->bootstrapFlowTesting(
+                configuration: ServiceConfiguration::createWithDefaults()
+                    ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+                    ->withExtensionObjects([DbalBackedMessageChannelBuilder::create('orders')]),
+            );
+            self::fail('A DBAL channel without its connection was accepted');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString('Message Channel `orders` is a DbalBackedMessageChannelBuilder', $exception->getMessage());
+            self::assertStringContainsString("EcotoneLite::bootstrapFlowTesting(containerOrAvailableServices: ['" . DbalConnectionFactory::class . "' => new DbalConnectionFactory(\$dsn)])", $exception->getMessage());
+            self::assertStringContainsString("SimpleMessageChannelBuilder::createQueueChannel('orders')", $exception->getMessage());
+        }
     }
 
     private function flowTest(array $services, bool $withConnection): FlowTestSupport

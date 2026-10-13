@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
@@ -38,6 +40,40 @@ final class FlowTestingEventStoreFromProvidedConnectionTest extends EventSourcin
 
         self::assertCount(1, $eventStore->load(self::STREAM));
         self::assertFalse($this->flowTest(withConnection: false)->getGateway(EventStore::class)->hasStream(self::STREAM));
+    }
+
+    public function test_an_event_store_configured_on_a_connection_a_flow_test_was_not_given_is_refused_naming_both_ways_out(): void
+    {
+        try {
+            $this->bootstrapFlowTesting(
+                configuration: ServiceConfiguration::createWithDefaults()
+                    ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                    ->withExtensionObjects([EventSourcingConfiguration::create('reporting_connection')]),
+            );
+            self::fail('An event store without its connection was accepted');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString('The event store is configured on connection `reporting_connection`', $exception->getMessage());
+            self::assertStringContainsString("EcotoneLite::bootstrapFlowTesting(containerOrAvailableServices: ['reporting_connection' => new DbalConnectionFactory(\$dsn)])", $exception->getMessage());
+            self::assertStringContainsString('leave the EventSourcingConfiguration out of this flow test', $exception->getMessage());
+        }
+    }
+
+    public function test_an_event_store_on_a_connection_the_flow_test_was_given_stores_its_events_there(): void
+    {
+        $configuration = ServiceConfiguration::createWithDefaults()
+            ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+            ->withExtensionObjects([EventSourcingConfiguration::create('reporting_connection')]);
+        $stream = new #[Stream(FlowTestingEventStoreFromProvidedConnectionTest::STREAM, connectionReferenceName: 'reporting_connection')] class () {
+        };
+        $flowTest = fn () => $this->bootstrapFlowTesting(
+            classesToResolve: [$stream::class],
+            containerOrAvailableServices: ['reporting_connection' => self::getConnectionFactory()],
+            configuration: $configuration,
+        );
+
+        $flowTest()->getGateway(EventStore::class)->appendTo(self::STREAM, [Event::createWithType('order.placed', ['orderId' => 'o-1'])]);
+
+        self::assertCount(1, $flowTest()->getGateway(EventStore::class)->load(self::STREAM));
     }
 
     private function flowTest(bool $withConnection): FlowTestSupport

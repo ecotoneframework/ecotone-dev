@@ -11,7 +11,7 @@ use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
  */
 class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
-    private function __construct(string $channelName, string $connectionReferenceName)
+    private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(
             DbalInboundChannelAdapterBuilder::createWith(

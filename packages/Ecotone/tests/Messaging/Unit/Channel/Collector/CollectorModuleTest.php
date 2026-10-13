@@ -169,7 +169,7 @@ final class CollectorModuleTest extends TestCase
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),
-                PollingMetadata::create('bets')->withTestingSetup(stopOnError: false)->withErrorChannelName('customErrorChannel'),
+                PollingMetadata::create('bets')->withTestingSetup(handledMessageLimit: 1, stopOnError: false)->withErrorChannelName('customErrorChannel'),
             ]
         );
 

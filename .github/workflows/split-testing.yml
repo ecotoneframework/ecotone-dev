@@ -134,8 +134,7 @@ jobs:
           echo "Kafka failed to start within 60 seconds"
           exit 1
 
-      - name: Remove grpc dependent packages (ext-grpc not available on PHP 8.5)
-        if: matrix.php-version == '8.5'
+      - name: Remove grpc dependent packages (no runner installs ext-grpc)
         run: cd packages/OpenTelemetry && composer remove --dev --no-update open-telemetry/transport-grpc
 
       - name: Run tests
@@ -227,9 +226,12 @@ jobs:
                 overall_exit_code=1
               fi
 
-              # Run SQLite pass (skip for PdoEventSourcing and DataProtection - SQLite event store not supported;
-              # skip Tempest - its multi-tenant tests need two distinct Postgres/MySQL engines)
-              if [[ ! "$dir" =~ (PdoEventSourcing|DataProtection|Tempest) ]]; then
+              # Run SQLite pass. Only Tempest is skipped: its multi-tenant tests derive a connection
+              # from Tempest's own Postgres config and ignore DATABASE_DSN, so they need a server engine.
+              # PdoEventSourcing and DataProtection used to be skipped here as "SQLite event store not
+              # supported". That is stale - SQLite is a supported event store engine in 2.0
+              # (upgrade-2.0.md) and both suites pass against it.
+              if [[ ! "$dir" =~ (Tempest) ]]; then
                 local sqlite_db="/tmp/ecotone_${slug}_test.db"
                 local sqlite_db_secondary="/tmp/ecotone_${slug}_test_b.db"
                 # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path

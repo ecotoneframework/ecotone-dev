@@ -127,8 +127,7 @@ jobs:
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
 
-    - name: Remove grpc dependent packages (ext-grpc not available on PHP 8.5)
-      if: matrix.php-versions == '8.5'
+    - name: Remove grpc dependent packages (no runner installs ext-grpc)
       run: composer remove --dev --no-update open-telemetry/transport-grpc
 
     - name: Install dependencies

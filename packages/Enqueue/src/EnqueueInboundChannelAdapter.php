@@ -56,8 +56,8 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
                 $context->createQueue($this->queueName)
             );
 
-            $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
-                ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+            $timeoutInMilliseconds = $pollingMetadata->executionTimeLimitInMilliseconds > 0
+                ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
                 : $this->receiveTimeoutInMilliseconds;
             /** @var EnqueueMessage|null $message */
             $message = $consumer->receive($timeoutInMilliseconds);

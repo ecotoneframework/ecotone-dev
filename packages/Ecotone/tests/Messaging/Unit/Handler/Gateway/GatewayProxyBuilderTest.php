@@ -116,10 +116,10 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             }
             public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
             {
-                if ($pollingMetadata->getFixedRateInMilliseconds() === 1) {
+                if ($pollingMetadata->fixedRateInMilliseconds === 1) {
                     return $this->replyMessage;
                 }
-                throw InvalidArgumentException::create("Timeout should be 1, but got {$pollingMetadata->getFixedRateInMilliseconds()}");
+                throw InvalidArgumentException::create("Timeout should be 1, but got {$pollingMetadata->fixedRateInMilliseconds}");
             }
         };
 

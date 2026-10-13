@@ -14,6 +14,7 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -209,6 +210,77 @@ final class ImmutableConfigurationCopyTest extends TestCase
         self::assertCopyChangesOnly($original, fn (ServiceConfiguration $configuration) => $configuration->withExtensionObjects([$otherExtensionObject]), ['extensionObjects' => [$otherExtensionObject]], $observe);
         self::assertCopyChangesOnly($original, fn (ServiceConfiguration $configuration) => $configuration->addExtensionObject($otherExtensionObject), ['extensionObjects' => [$extensionObject, $otherExtensionObject]], $observe);
         self::assertCopyChangesOnly($original, fn (ServiceConfiguration $configuration) => $configuration->withLicenceKey('other_licence'), ['licenceKey' => 'other_licence'], $observe);
+    }
+
+    public function test_polling_metadata_copy_changes_only_the_named_fields(): void
+    {
+        $retryTemplate = RetryTemplateBuilder::fixedBackOff(10);
+        $otherRetryTemplate = RetryTemplateBuilder::fixedBackOff(20);
+        $original = PollingMetadata::create('orders')
+            ->setCron('* * * * *')
+            ->setErrorChannelName('errors')
+            ->setEnabledErrorChannel(false)
+            ->setFixedRateInMilliseconds(10)
+            ->setInitialDelayInMilliseconds(20)
+            ->setHandledMessageLimit(30)
+            ->setMemoryLimitInMegaBytes(40)
+            ->setExecutionAmountLimit(50)
+            ->setMaxMessagePerPoll(60)
+            ->setExecutionTimeLimitInMilliseconds(70)
+            ->setConnectionRetryTemplate($retryTemplate)
+            ->setSignalInterceptors(false)
+            ->setTriggerReferenceName('trigger')
+            ->setTaskExecutorName('executor')
+            ->setStopOnError(false)
+            ->setFixedRateExpression('1000')
+            ->setCronExpression("'* * * * *'")
+            ->setPolledChannelName('orders_channel');
+        $observe = fn (PollingMetadata $metadata) => [
+            ...get_object_vars($metadata),
+            'endpointId' => $metadata->getEndpointId(),
+            'errorChannelName' => $metadata->getErrorChannelName(),
+        ];
+
+        self::assertEqualsCanonicalizing(
+            ['withSignalInterceptors', 'cron', 'isErrorChannelEnabled', 'fixedRateInMilliseconds', 'initialDelayInMilliseconds', 'handledMessageLimit', 'memoryLimitInMegabytes', 'executionAmountLimit', 'maxMessagePerPoll', 'executionTimeLimitInMilliseconds', 'connectionRetryTemplate', 'triggerReferenceName', 'taskExecutorName', 'stopOnError', 'finishWhenNoMessages', 'fixedRateExpression', 'cronExpression', 'polledChannelName'],
+            array_keys(get_object_vars($original)),
+        );
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setCron('0 * * * *'), ['cron' => '0 * * * *'], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setErrorChannelName('dead_letters'), ['errorChannelName' => 'dead_letters'], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setEnabledErrorChannel(true), ['isErrorChannelEnabled' => true], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setFixedRateInMilliseconds(11), ['fixedRateInMilliseconds' => 11], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setInitialDelayInMilliseconds(21), ['initialDelayInMilliseconds' => 21], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setHandledMessageLimit(31), ['handledMessageLimit' => 31], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setMemoryLimitInMegaBytes(41), ['memoryLimitInMegabytes' => 41], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setExecutionAmountLimit(51), ['executionAmountLimit' => 51], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setMaxMessagePerPoll(61), ['maxMessagePerPoll' => 61], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setExecutionTimeLimitInMilliseconds(71), ['executionTimeLimitInMilliseconds' => 71], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setConnectionRetryTemplate($otherRetryTemplate), ['connectionRetryTemplate' => $otherRetryTemplate], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setSignalInterceptors(true), ['withSignalInterceptors' => true], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setTriggerReferenceName('other_trigger'), ['triggerReferenceName' => 'other_trigger'], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setTaskExecutorName('other_executor'), ['taskExecutorName' => 'other_executor'], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setStopOnError(true), ['stopOnError' => true, 'errorChannelName' => ''], $observe);
+        self::assertCopyChangesOnly(
+            $original,
+            fn (PollingMetadata $metadata) => $metadata->setFinishWhenNoMessages(true),
+            ['finishWhenNoMessages' => true, 'handledMessageLimit' => 0, 'executionAmountLimit' => 0, 'executionTimeLimitInMilliseconds' => 0],
+            $observe,
+        );
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setFixedRateExpression('2000'), ['fixedRateExpression' => '2000'], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setCronExpression(null), ['cronExpression' => null], $observe);
+        self::assertCopyChangesOnly($original, fn (PollingMetadata $metadata) => $metadata->setPolledChannelName('payments_channel'), ['polledChannelName' => 'payments_channel'], $observe);
+        self::assertCopyChangesOnly(
+            $original,
+            fn (PollingMetadata $metadata) => $metadata->withTestingSetup(handledMessageLimit: 5, executionTimeLimitInMilliseconds: 15, stopOnError: false),
+            ['handledMessageLimit' => 5, 'executionTimeLimitInMilliseconds' => 15],
+            $observe,
+        );
+        self::assertCopyChangesOnly(
+            $original,
+            fn (PollingMetadata $metadata) => $metadata->applyExecutionPollingMetadata(ExecutionPollingMetadata::createWithDefaults()->withCron('5 * * * *')),
+            ['cron' => '5 * * * *'],
+            $observe,
+        );
     }
 
     private static function assertCopyChangesOnly(object $original, Closure $with, array $changedFields, ?Closure $observe = null): void

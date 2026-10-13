@@ -50,7 +50,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         $endpointId = $pollingMetadata->getEndpointId();
-        $channelName = $pollingMetadata->getPolledChannelName() ?? $this->channelName;
+        $channelName = $pollingMetadata->polledChannelName ?? $this->channelName;
         $consumer = $this->kafkaAdmin->getConsumer($endpointId, $channelName);
 
         if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->consumer !== $consumer) {
@@ -62,8 +62,8 @@ final class KafkaInboundChannelAdapter implements MessagePoller
             );
         }
 
-        $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
-            ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+        $timeoutInMilliseconds = $pollingMetadata->executionTimeLimitInMilliseconds > 0
+            ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
             : $this->receiveTimeoutInMilliseconds;
         if ($timeoutInMilliseconds <= self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING) {
             $timeoutInMilliseconds = self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING;

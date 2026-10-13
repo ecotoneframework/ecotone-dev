@@ -121,15 +121,15 @@ class MessagingContainerBuilder
             $pollingMetadata = PollingMetadata::create($endpointId);
         }
 
-        if ($this->applicationConfiguration->defaultErrorChannel && $pollingMetadata->isErrorChannelEnabled() && ! $pollingMetadata->getErrorChannelName()) {
+        if ($this->applicationConfiguration->defaultErrorChannel && $pollingMetadata->isErrorChannelEnabled && ! $pollingMetadata->getErrorChannelName()) {
             $pollingMetadata = $pollingMetadata
                 ->setErrorChannelName($this->applicationConfiguration->defaultErrorChannel);
         }
-        if ($this->applicationConfiguration->defaultMemoryLimitInMegabytes && ! $pollingMetadata->getMemoryLimitInMegabytes()) {
+        if ($this->applicationConfiguration->defaultMemoryLimitInMegabytes && ! $pollingMetadata->memoryLimitInMegabytes) {
             $pollingMetadata = $pollingMetadata
                 ->setMemoryLimitInMegaBytes($this->applicationConfiguration->defaultMemoryLimitInMegabytes);
         }
-        if ($this->applicationConfiguration->connectionRetryTemplate && ! $pollingMetadata->getConnectionRetryTemplate()) {
+        if ($this->applicationConfiguration->connectionRetryTemplate && ! $pollingMetadata->connectionRetryTemplate) {
             $pollingMetadata = $pollingMetadata
                 ->setConnectionRetryTemplate($this->applicationConfiguration->connectionRetryTemplate);
         }

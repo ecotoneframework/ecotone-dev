@@ -74,7 +74,7 @@ class InterceptedConsumerRunner implements EndpointRunner
         // Evaluate cron expression if provided
         if ($pollingMetadata->hasCronExpression()) {
             $cronValue = $this->expressionEvaluationService->evaluate(
-                $pollingMetadata->getCronExpression(),
+                $pollingMetadata->cronExpression,
                 []
             );
             return CronTrigger::createWith((string) $cronValue);
@@ -83,16 +83,16 @@ class InterceptedConsumerRunner implements EndpointRunner
         // Evaluate fixed rate expression if provided
         if ($pollingMetadata->hasFixedRateExpression()) {
             $fixedRateValue = $this->expressionEvaluationService->evaluate(
-                $pollingMetadata->getFixedRateExpression(),
+                $pollingMetadata->fixedRateExpression,
                 []
             );
 
-            return PeriodicTrigger::create((int) $fixedRateValue, $pollingMetadata->getInitialDelayInMilliseconds());
+            return PeriodicTrigger::create((int) $fixedRateValue, $pollingMetadata->initialDelayInMilliseconds);
         }
 
         // Fall back to static values
-        return $pollingMetadata->getCron()
-            ? CronTrigger::createWith($pollingMetadata->getCron())
-            : PeriodicTrigger::create($pollingMetadata->getFixedRateInMilliseconds(), $pollingMetadata->getInitialDelayInMilliseconds());
+        return $pollingMetadata->cron
+            ? CronTrigger::createWith($pollingMetadata->cron)
+            : PeriodicTrigger::create($pollingMetadata->fixedRateInMilliseconds, $pollingMetadata->initialDelayInMilliseconds);
     }
 }

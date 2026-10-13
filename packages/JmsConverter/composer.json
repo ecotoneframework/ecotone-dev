@@ -56,7 +56,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "ecotone/pdo-event-sourcing": "~1.328.2"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

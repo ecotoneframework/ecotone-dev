@@ -2790,6 +2790,25 @@ reaches the configuration Ecotone uses.
 `$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
 or passed to `EcotoneLite` as a chained expression is unaffected.
 
+### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
+
+**Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,
+`withAutoDeletion()`, `withExclusivity()`, `withDeadLetterExchangeTarget()` and
+`withDeadLetterForDefaultExchange()` — although each one **changes the instance** and returns
+`$this`. The name said a copy; the method mutated. Ecotone's own delay strategy relied on that:
+`$queue->withArgument('x-message-ttl', $delay);` as a bare statement.
+
+**Now:** each is `set*()`, under the same behaviour — it still mutates and still returns `$this`,
+so chained calls are unchanged. `AmqpQueue::createWith('orders')->setDurability(true)` reads as
+what it does.
+
+**How to adapt:** rename the call. A call to the old name fails with PHP's `Call to undefined
+method`, so nothing changes silently. This is the opposite trade from
+`PollingMetadata` above, where the methods returned a copy and the `set*()` name lied in the
+other direction; both now say what they do. Note these two classes were deliberately **not** made
+immutable: converting them would have made a statement-form call a silent no-op, with no error
+PHP can raise before 8.5's `#[\NoDiscard]`.
+
 ### `PollingMetadata`'s `set*()` methods are `with*()`
 
 **Before:** `PollingMetadata` named its nineteen copy methods `set*()` — `setCron()`, `setHandledMessageLimit()`,

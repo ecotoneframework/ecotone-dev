@@ -33,14 +33,14 @@ class AmqpExchange
         return $this->enqueueExchange->getType() === EnqueueExchange::TYPE_HEADERS;
     }
 
-    public function withDurability(bool $isDurable): self
+    public function setDurability(bool $isDurable): self
     {
         $this->withDurability = $isDurable;
 
         return $this;
     }
 
-    public function withAutoDeletion(): self
+    public function setAutoDeletion(): self
     {
         $this->enqueueExchange->addFlag(EnqueueExchange::FLAG_AUTODELETE);
 
@@ -50,7 +50,7 @@ class AmqpExchange
     /**
      * @param $value
      */
-    public function withArgument(string $name, $value): self
+    public function setArgument(string $name, $value): self
     {
         $this->enqueueExchange->setArgument($name, $value);
 

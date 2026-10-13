@@ -44,8 +44,8 @@ class HeadersExchangeDelayStrategy implements DelayStrategy
         $exchange = AmqpExchange::createHeadersExchange('ecotone_delay');
 
         $queue = AmqpQueue::createWith('ecotone_' . $delay . '_delay');
-        $queue->withArgument('x-message-ttl', $delay);
-        $queue->withArgument('x-dead-letter-exchange', $afterDelayDestination);
+        $queue->setArgument('x-message-ttl', $delay);
+        $queue->setArgument('x-dead-letter-exchange', $afterDelayDestination);
 
         $binding = AmqpBinding::createHeadersBinding($exchange, $queue, ['ecotone_delay' => $delay]);
 

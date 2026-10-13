@@ -1404,9 +1404,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName)
-                        ->withArgument('x-max-age', '7D')
-                        ->withArgument('x-max-length-bytes', 1073741824)
-                        ->withArgument('x-stream-max-segment-size-bytes', 52428800),
+                        ->setArgument('x-max-age', '7D')
+                        ->setArgument('x-max-length-bytes', 1073741824)
+                        ->setArgument('x-stream-max-segment-size-bytes', 52428800),
                     AmqpStreamChannelBuilder::create(
                         channelName: $channelName,
                         startPosition: 'first',
@@ -1456,9 +1456,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName)
-                        ->withArgument('x-max-age', '14D')
-                        ->withArgument('x-max-length-bytes', 2147483648)
-                        ->withArgument('x-stream-max-segment-size-bytes', 104857600),
+                        ->setArgument('x-max-age', '14D')
+                        ->setArgument('x-max-length-bytes', 2147483648)
+                        ->setArgument('x-stream-max-segment-size-bytes', 104857600),
                     AmqpStreamChannelBuilder::create(
                         channelName: $channelName,
                         startPosition: 'first',

@@ -658,7 +658,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                     AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
                     AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
                     AmqpQueue::createWith($queueName)
-                        ->withDeadLetterForDefaultExchange($deadLetterQueue),
+                        ->setDeadLetterForDefaultExchange($deadLetterQueue),
                     $deadLetterQueue,
                     AmqpMessagePublisherConfiguration::create()
                         ->withDefaultRoutingKey($queueName),

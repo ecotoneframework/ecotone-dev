@@ -62,7 +62,7 @@ class AmqpQueue
         return $amqpQueue;
     }
 
-    public function withDeadLetterExchangeTarget(AmqpExchange $amqpExchange, ?string $routingKey = null): self
+    public function setDeadLetterExchangeTarget(AmqpExchange $amqpExchange, ?string $routingKey = null): self
     {
         $this->withDeadLetterExchange = $amqpExchange->getExchangeName();
         $this->withDeadLetterRoutingKey = $routingKey;
@@ -70,7 +70,7 @@ class AmqpQueue
         return $this;
     }
 
-    public function withDeadLetterForDefaultExchange(AmqpQueue $amqpQueue): self
+    public function setDeadLetterForDefaultExchange(AmqpQueue $amqpQueue): self
     {
         $this->withDeadLetterExchange = '';
         $this->withDeadLetterRoutingKey = $amqpQueue->getQueueName();
@@ -78,7 +78,7 @@ class AmqpQueue
         return $this;
     }
 
-    public function withDurability(bool $isDurable): self
+    public function setDurability(bool $isDurable): self
     {
         Assert::isFalse($this->isStream, "Can't change durability for stream queue. It's always true.");
         $this->withDurability = $isDurable;
@@ -86,7 +86,7 @@ class AmqpQueue
         return $this;
     }
 
-    public function withExclusivity(): self
+    public function setExclusivity(): self
     {
         Assert::isFalse($this->isStream, "Can't change exclusivity for stream queue. It's always false.");
         $this->enqueueQueue->addFlag(EnqueueQueue::FLAG_EXCLUSIVE);
@@ -94,7 +94,7 @@ class AmqpQueue
         return $this;
     }
 
-    public function withAutoDeletion(): self
+    public function setAutoDeletion(): self
     {
         Assert::isFalse($this->isStream, "Can't change auto delete for stream queue. It's always false.");
         $this->enqueueQueue->addFlag(EnqueueQueue::FLAG_AUTODELETE);
@@ -105,7 +105,7 @@ class AmqpQueue
     /**
      * @param $value
      */
-    public function withArgument(string $name, $value): self
+    public function setArgument(string $name, $value): self
     {
         $this->enqueueQueue->setArgument($name, $value);
 

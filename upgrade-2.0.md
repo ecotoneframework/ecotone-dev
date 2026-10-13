@@ -2790,6 +2790,22 @@ reaches the configuration Ecotone uses.
 `$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
 or passed to `EcotoneLite` as a chained expression is unaffected.
 
+### `ServiceConfiguration`, `DbalConfiguration` and `DataProtectionConfiguration` are `final`
+
+**Before:** the three classes were open to extension, and a subclass could add state beside the configuration's own
+or override a `with*()` method.
+
+**Now:** all three are `final`, and their constructors are `private` behind the named factories
+(`ServiceConfiguration::createWithDefaults()`, `DbalConfiguration::createWithDefaults()`,
+`DbalConfiguration::createForTesting()`, `DbalConfiguration::createDefaultFor()` and
+`DataProtectionConfiguration::create()`). Extending one is a fatal error
+at compile time. Their `with*()` methods return `new self(...)` rather than `new static(...)`, so a copy is always
+the class itself.
+
+**How to adapt:** nothing, unless you extended one. A subclass that only added configuration calls becomes a
+`#[ServiceContext]` method returning the chained configuration. A subclass that added state of its own becomes a
+separate extension object, registered beside the configuration rather than inside it.
+
 ### `AmqpQueue` and `AmqpExchange` name their mutators `set*()`
 
 **Before:** both classes named nine mutators `with*()` — `withArgument()`, `withDurability()`,

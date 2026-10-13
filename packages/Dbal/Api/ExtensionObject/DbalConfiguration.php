@@ -10,7 +10,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 /**
  * licence Apache-2.0
  */
-class DbalConfiguration
+final class DbalConfiguration
 {
     public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = true;
     public const DEFAULT_TRANSACTION_ON_COMMAND_BUS = true;
@@ -19,7 +19,7 @@ class DbalConfiguration
     public const DEFAULT_DEDUPLICATION_ENABLED = true;
     public const DEFAULT_DEAD_LETTER_ENABLED = true;
 
-    final private function __construct(
+    private function __construct(
         public readonly bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS,
         public readonly array $disableTransactionsOnAsynchronousEndpointNames = [],
         public readonly bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS,
@@ -113,52 +113,52 @@ class DbalConfiguration
 
     public function withTransactionOnAsynchronousEndpoints(bool $isTransactionEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'transactionOnAsynchronousEndpoints' => $isTransactionEnabled]);
+        return new self(...[...get_object_vars($this), 'transactionOnAsynchronousEndpoints' => $isTransactionEnabled]);
     }
 
     public function withoutTransactionOnAsynchronousEndpoints(array $names): self
     {
-        return new static(...[...get_object_vars($this), 'disableTransactionsOnAsynchronousEndpointNames' => $names]);
+        return new self(...[...get_object_vars($this), 'disableTransactionsOnAsynchronousEndpointNames' => $names]);
     }
 
     public function withTransactionOnCommandBus(bool $isTransactionEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'transactionOnCommandBus' => $isTransactionEnabled]);
+        return new self(...[...get_object_vars($this), 'transactionOnCommandBus' => $isTransactionEnabled]);
     }
 
     public function withDoctrineORMRepositories(bool $isORMEnabled, ?array $relatedClasses = null, string $connectionReferenceName = DbalConnectionReference::DEFAULT): self
     {
-        return new static(...[...get_object_vars($this), 'enableDoctrineORMRepositories' => $isORMEnabled, 'doctrineORMRepositoryConnectionReference' => $connectionReferenceName, 'doctrineORMClasses' => $relatedClasses]);
+        return new self(...[...get_object_vars($this), 'enableDoctrineORMRepositories' => $isORMEnabled, 'doctrineORMRepositoryConnectionReference' => $connectionReferenceName, 'doctrineORMClasses' => $relatedClasses]);
     }
 
     public function withTransactionOnConsoleCommands(bool $isTransactionEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'transactionOnConsoleCommands' => $isTransactionEnabled]);
+        return new self(...[...get_object_vars($this), 'transactionOnConsoleCommands' => $isTransactionEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'clearObjectManagerOnAsynchronousEndpoints' => $isEnabled]);
+        return new self(...[...get_object_vars($this), 'clearObjectManagerOnAsynchronousEndpoints' => $isEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnCommandBus(bool $isEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnCommandBus' => $isEnabled]);
+        return new self(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnCommandBus' => $isEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnProjectionBatch(bool $isEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnProjectionBatch' => $isEnabled]);
+        return new self(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnProjectionBatch' => $isEnabled]);
     }
 
     public function withFlushWhenPersisting(bool $isEnabled): self
     {
-        return new static(...[...get_object_vars($this), 'flushDuringPersisting' => $isEnabled]);
+        return new self(...[...get_object_vars($this), 'flushDuringPersisting' => $isEnabled]);
     }
 
     public function withDefaultConnectionReferenceNames(array $connectionReferenceNames = [DbalConnectionReference::DEFAULT]): self
     {
-        return new static(...[...get_object_vars($this), 'defaultConnectionReferenceNames' => $connectionReferenceNames]);
+        return new self(...[...get_object_vars($this), 'defaultConnectionReferenceNames' => $connectionReferenceNames]);
     }
 
     /**
@@ -166,23 +166,23 @@ class DbalConfiguration
      */
     public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000, bool $inMemory = false): self
     {
-        return new static(...[...get_object_vars($this), 'deduplicatedEnabled' => $isDeduplicatedEnabled, 'deduplicationInMemory' => $inMemory, 'deduplicationConnectionReference' => $connectionReference, 'minimumTimeToRemoveMessageInMilliseconds' => $expirationTime, 'deduplicationRemovalBatchSize' => $removalBatchSize]);
+        return new self(...[...get_object_vars($this), 'deduplicatedEnabled' => $isDeduplicatedEnabled, 'deduplicationInMemory' => $inMemory, 'deduplicationConnectionReference' => $connectionReference, 'minimumTimeToRemoveMessageInMilliseconds' => $expirationTime, 'deduplicationRemovalBatchSize' => $removalBatchSize]);
     }
 
     public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT, bool $inMemory = false): self
     {
-        return new static(...[...get_object_vars($this), 'deadLetterEnabled' => $isDeadLetterEnabled, 'deadLetterInMemory' => $inMemory, 'deadLetterConnectionReference' => $connectionReference]);
+        return new self(...[...get_object_vars($this), 'deadLetterEnabled' => $isDeadLetterEnabled, 'deadLetterInMemory' => $inMemory, 'deadLetterConnectionReference' => $connectionReference]);
     }
 
     public function withConsumerPositionTracking(
         bool $enabled = true,
         string $connectionReference = DbalConnectionReference::DEFAULT
     ): self {
-        return new static(...[...get_object_vars($this), 'consumerPositionTrackingEnabled' => $enabled, 'consumerPositionTrackingConnectionReference' => $connectionReference]);
+        return new self(...[...get_object_vars($this), 'consumerPositionTrackingEnabled' => $enabled, 'consumerPositionTrackingConnectionReference' => $connectionReference]);
     }
 
     public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
-        return new static(...[...get_object_vars($this), 'enableDbalDocumentStore' => $isDocumentStoreEnabled, 'inMemoryDocumentStore' => $inMemoryDocumentStore, 'dbalDocumentStoreReference' => $reference, 'documentStoreConnectionReference' => $connectionReference, 'enableDocumentStoreStateStoredRepository' => $enableDocumentStoreStateStoredRepository, 'documentStoreRelatedAggregates' => $documentStoreRelatedAggregates]);
+        return new self(...[...get_object_vars($this), 'enableDbalDocumentStore' => $isDocumentStoreEnabled, 'inMemoryDocumentStore' => $inMemoryDocumentStore, 'dbalDocumentStoreReference' => $reference, 'documentStoreConnectionReference' => $connectionReference, 'enableDocumentStoreStateStoredRepository' => $enableDocumentStoreStateStoredRepository, 'documentStoreRelatedAggregates' => $documentStoreRelatedAggregates]);
     }
 }

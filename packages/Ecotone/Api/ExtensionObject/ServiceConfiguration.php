@@ -12,7 +12,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Apache-2.0
  */
-class ServiceConfiguration
+final class ServiceConfiguration
 {
     public const DEFAULT_SERVICE_NAME = 'ecotoneService';
     public const DEFAULT_ENVIRONMENT              = 'dev';
@@ -25,7 +25,7 @@ class ServiceConfiguration
      * @param object[] $extensionObjects
      * @param object[] $pollableEndpointAnnotations
      */
-    final private function __construct(
+    private function __construct(
         public readonly string $cacheDirectoryPath,
         public readonly string $serviceName = self::DEFAULT_SERVICE_NAME,
         public readonly bool $failFast = self::DEFAULT_FAIL_FAST,
@@ -90,7 +90,7 @@ class ServiceConfiguration
 
     public function withFailFast(bool $failFast): self
     {
-        return new static(...[...get_object_vars($this), 'failFast' => $failFast]);
+        return new self(...[...get_object_vars($this), 'failFast' => $failFast]);
     }
 
     public function withServiceName(string $serviceName): self
@@ -99,17 +99,17 @@ class ServiceConfiguration
             throw ConfigurationException::create("Service name can only be used with lower case letter, numbers and underline, given: `{$serviceName}`");
         }
 
-        return new static(...[...get_object_vars($this), 'serviceName' => $serviceName]);
+        return new self(...[...get_object_vars($this), 'serviceName' => $serviceName]);
     }
 
     public function withEnvironment(string $environment): self
     {
-        return new static(...[...get_object_vars($this), 'environment' => $environment]);
+        return new self(...[...get_object_vars($this), 'environment' => $environment]);
     }
 
     public function withLoadCatalog(string $catalog): self
     {
-        return new static(...[...get_object_vars($this), 'loadCatalog' => $catalog]);
+        return new self(...[...get_object_vars($this), 'loadCatalog' => $catalog]);
     }
 
     public function withExtensionObjects(array $extensionObjects): self
@@ -118,17 +118,17 @@ class ServiceConfiguration
             Assert::isObject($extensionObject, 'Extension object must be an object, given: ' . gettype($extensionObject));
         }
 
-        return new static(...[...get_object_vars($this), 'extensionObjects' => $extensionObjects]);
+        return new self(...[...get_object_vars($this), 'extensionObjects' => $extensionObjects]);
     }
 
     public function addExtensionObject(object $extensionObject): self
     {
-        return new static(...[...get_object_vars($this), 'extensionObjects' => [...$this->extensionObjects, $extensionObject]]);
+        return new self(...[...get_object_vars($this), 'extensionObjects' => [...$this->extensionObjects, $extensionObject]]);
     }
 
     public function doNotLoadCatalog(): self
     {
-        return new static(...[...get_object_vars($this), 'loadCatalog' => null]);
+        return new self(...[...get_object_vars($this), 'loadCatalog' => null]);
     }
 
     public function isLoadingCatalogEnabled(): bool
@@ -141,27 +141,27 @@ class ServiceConfiguration
      */
     public function withNamespaces(array $namespaces): self
     {
-        return new static(...[...get_object_vars($this), 'namespaces' => $namespaces]);
+        return new self(...[...get_object_vars($this), 'namespaces' => $namespaces]);
     }
 
     public function withDefaultSerializationMediaType(string|MediaType $defaultSerializationMediaType): self
     {
-        return new static(...[...get_object_vars($this), 'defaultSerializationMediaType' => is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString()]);
+        return new self(...[...get_object_vars($this), 'defaultSerializationMediaType' => is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString()]);
     }
 
     public function withDefaultErrorChannel(string $errorChannelName): self
     {
-        return new static(...[...get_object_vars($this), 'defaultErrorChannel' => $errorChannelName]);
+        return new self(...[...get_object_vars($this), 'defaultErrorChannel' => $errorChannelName]);
     }
 
     public function withConnectionRetryTemplate(RetryTemplateBuilder $channelPollRetryTemplate): self
     {
-        return new static(...[...get_object_vars($this), 'connectionRetryTemplate' => $channelPollRetryTemplate]);
+        return new self(...[...get_object_vars($this), 'connectionRetryTemplate' => $channelPollRetryTemplate]);
     }
 
     public function withLicenceKey(string $licenceKey): self
     {
-        return new static(...[...get_object_vars($this), 'licenceKey' => $licenceKey]);
+        return new self(...[...get_object_vars($this), 'licenceKey' => $licenceKey]);
     }
 
     public function isRunningForEnterprise(): bool
@@ -174,12 +174,12 @@ class ServiceConfiguration
      */
     public function withEnabledModulePackageNames(array $enabledModulePackageNames): self
     {
-        return new static(...[...get_object_vars($this), 'enabledModulePackageNames' => array_values(array_unique([...$enabledModulePackageNames, ModulePackageList::CORE_PACKAGE]))]);
+        return new self(...[...get_object_vars($this), 'enabledModulePackageNames' => array_values(array_unique([...$enabledModulePackageNames, ModulePackageList::CORE_PACKAGE]))]);
     }
 
     public function withConsumerMemoryLimit(int $memoryLimitInMegabytes): self
     {
-        return new static(...[...get_object_vars($this), 'defaultMemoryLimitInMegabytes' => $memoryLimitInMegabytes]);
+        return new self(...[...get_object_vars($this), 'defaultMemoryLimitInMegabytes' => $memoryLimitInMegabytes]);
     }
 
     /**
@@ -217,7 +217,7 @@ class ServiceConfiguration
 
     public function withCacheDirectoryPath(string $cacheDirectoryPath): self
     {
-        return new static(...[...get_object_vars($this), 'cacheDirectoryPath' => rtrim($cacheDirectoryPath, '/')]);
+        return new self(...[...get_object_vars($this), 'cacheDirectoryPath' => rtrim($cacheDirectoryPath, '/')]);
     }
 
     public function isProductionConfiguration(): bool

@@ -10,12 +10,12 @@ namespace Ecotone\Api\DataProtection;
 
 use Ecotone\Messaging\Support\Assert;
 
-class DataProtectionConfiguration
+final class DataProtectionConfiguration
 {
     /**
      * @param array<string, Key> $keys
      */
-    final private function __construct(public readonly array $keys, public readonly string $defaultKey)
+    private function __construct(public readonly array $keys, public readonly string $defaultKey)
     {
     }
 
@@ -28,7 +28,7 @@ class DataProtectionConfiguration
     {
         Assert::keyNotExists($this->keys, $name, sprintf('Encryption key name `%s` already exists', $name));
 
-        return new static(...[...get_object_vars($this), 'keys' => array_replace($this->keys, [$name => $key]), 'defaultKey' => $asDefault ? $name : $this->defaultKey]);
+        return new self(...[...get_object_vars($this), 'keys' => array_replace($this->keys, [$name => $key]), 'defaultKey' => $asDefault ? $name : $this->defaultKey]);
     }
 
     public function keyName(?string $name): string

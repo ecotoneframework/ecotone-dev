@@ -293,8 +293,8 @@ still the clearest statement of where a deleted explanation is supposed to land.
 So when you delete an explanation, put it in one of these: a better class or method name, the text of the
 exception the situation raises, `upgrade-2.0.md`, or a design spec under `docs/superpowers/specs/`.
 
-Legacy prose docblocks remain in older files. Leave them where you are not otherwise touching the file; do not add
-new ones.
+Legacy prose docblocks remain in older files under `src/`. Leave them where you are not otherwise touching the file;
+do not add new ones. `Api/` is not grandfathered — see 6b.
 
 ### 6a. One word per concept, through the whole path
 
@@ -306,6 +306,51 @@ The cost is spelled out in `docs/superpowers/specs/2026-09-28-dcb-readability-re
 
 When you introduce a term, grep for the concept first and reuse the word already in use. When you rename, rename
 the whole path in one commit. `c3b1cfa8e` and `40eacaa22` are renames of this kind.
+
+### 6b. `Api/` is the context an agent loads, so it is swept, not grandfathered
+
+An agent that writes Ecotone code loads `Api/` — 218 files. Before wave 22 they were 14,049 lines, 3,059 of them
+(21.8%) docblock, and `Api/Attribute/EventTag.php` carried an 18-line Enterprise notice over a 7-line class whose two
+properties were already `public readonly`. Every line there is read on every load, so `Api/` follows four rules
+`src/` does not have to:
+
+- **No prose docblock, and no `@param`/`@return`/`@var` that restates the declared type.** Array shapes, generics,
+  `@template`, `@link https://docs.ecotone.tech/...` and `@internal` stay, and so does an annotation that narrows the
+  declared type (`@return T` on an `object` return). Prose the documentation already covers becomes an `@link` to
+  that page. A fact neither a name, an exception nor the documentation carries stays, and says so — the xdebug note on
+  `executionTimeLimitInMilliseconds`, the header mapper's pattern format, `Duration::toFloat()` being seconds. Wave 22
+  removed 1,619 docblock lines this way (3,059 to 1,440).
+- **The Enterprise marker is `licence Enterprise` plus one sentence**, `Use requires an Ecotone Enterprise licence (see
+  LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).` `src/` keeps the full notice of rule 7a. The `Api/` file
+  is the one loaded into context, and an 18-line notice over a 7-line class is 2.5x the code it guards; the full
+  terms are one hop away in `LICENSE-ENTERPRISE`, which ships in every package, so the pointer survives the split.
+  `bin/check-licence.php` enforces both forms — a `packages/<Package>/Api/` file with the full notice is refused as
+  firmly as one with none — and `bin/add-enterprise-licence.php` rewrites either form into the other. 42 files,
+  -546 lines.
+- **A getter whose body is only `return $this->property;` is the property, made `public readonly`.** Under the name
+  the property already has: `getDescription()` becomes `->description`, `isAutoIncreased()` becomes
+  `->autoIncrease`. Property names are not renamed to suit this rule. Three kinds of getter stay methods: one an
+  interface declares (PHP 8.2 interfaces cannot declare properties), one that is part of a duck-typed contract with
+  a class outside `Api` (`EventHandler::getOutputChannelName()` is read through a union with
+  `InputOutputEndpointAnnotation`), and one whose name other classes declare too unless every call site can be
+  rewritten by type. Rewrite call sites by type — phpstan's undefined-method report, run over `tests/` and the
+  directories the root config leaves out as well — never by a name sweep.
+- **Immutability is kept with readonly promoted properties and a copy that rebuilds the instance.** A `readonly`
+  property cannot be assigned on a clone, on 8.2 or 8.5, and asymmetric visibility needs 8.4. So every property is
+  promoted in the constructor — private where it was private — and every `with*()` returns
+  `new self(...[...get_object_vars($this), 'field' => $value])`; on a class that is not `final`, `new static(...)`
+  with a `final private function __construct`, which keeps a subclass the way `clone` did and is what lets phpstan
+  accept `new static`. A property left out of the constructor fails loudly, as PHP's `Unknown named parameter`. **The
+  limit of the pattern:** `get_object_vars()` inside the class does not return a parent's private properties, so it
+  cannot be used on a class that extends one or uses a trait with state — it would drop that state silently. Merge a
+  keyed array with `array_replace()`, not a spread, which renumbers a numeric key. Each class proves its copies in a
+  round-trip test: every field populated, each `with*()` changing exactly its own fields and leaving the original
+  untouched (`ImmutableConfigurationCopyTest`, `DbalConfigurationCopyTest`, `DataProtectionConfigurationCopyTest`).
+
+A `with*()` that mutates and returns `$this` is not this pattern and is not converted by it: making it immutable
+silently loses every statement-form call, and PHP 8.2 cannot make that loud. `AmqpQueue` and `AmqpExchange` are such
+classes and keep their contract until a rename says what they do (rule 4). `ServiceConfiguration` mixed both kinds and
+was converted, with every statement-form caller made to assign.
 
 ---
 
@@ -393,8 +438,9 @@ separate class rather than a branch.
 
 ## 7a. The Enterprise notice governs copying out, not work in this repository
 
-Every `licence Enterprise` file carries the full proprietary notice, generated from `bin/enterprise-licence-notice.php`
-and enforced by `bin/check-licence.php`. It states that the file is proprietary, that use requires an Ecotone
+Every `licence Enterprise` file under `src/` carries the full proprietary notice, generated from
+`bin/enterprise-licence-notice.php` and enforced by `bin/check-licence.php`; a file under a package's `Api/` carries
+the one-sentence form of rule 6b instead. The full notice states that the file is proprietary, that use requires an Ecotone
 Enterprise licence, that copying or reimplementing it as a derivative or "inspired" version is unlawful rather than
 merely a breach of terms, that keeping the notice or renaming the class does not make a copy permitted, and that if
 you cannot confirm a licence you should implement the behaviour from your own functional requirements instead.

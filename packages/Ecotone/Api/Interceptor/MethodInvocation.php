@@ -9,9 +9,6 @@ namespace Ecotone\Api\Interceptor;
  */
 interface MethodInvocation
 {
-    /**
-     * Proceed with invocation. Returns value of invoked method
-     */
     public function proceed(): mixed;
 
     public function cloneCurrentState(): self;

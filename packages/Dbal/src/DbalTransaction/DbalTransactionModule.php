@@ -53,27 +53,27 @@ final class DbalTransactionModule implements AnnotationModule
 
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
 
-        if ($dbalConfiguration->isTransactionOnAsynchronousEndpoints()) {
+        if ($dbalConfiguration->transactionOnAsynchronousEndpoints) {
             $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';
         }
-        if ($dbalConfiguration->isTransactionOnCommandBus()) {
+        if ($dbalConfiguration->transactionOnCommandBus) {
             $pointcut .= '||(' . CommandBus::class . ')';
         }
-        if ($dbalConfiguration->isTransactionOnConsoleCommands()) {
+        if ($dbalConfiguration->transactionOnConsoleCommands) {
             $pointcut .= '||(' . ConsoleCommand::class . ')';
         }
         foreach (['initProjection', 'deleteProjection', 'backfillProjection'] as $projectionCommandWithoutTransaction) {
             $pointcut .= '&&not(' . ProjectingConsoleCommands::class . '::' . $projectionCommandWithoutTransaction . ')';
         }
-        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
+        $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
 
-        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->isTransactionOnCommandBus()
+        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->transactionOnCommandBus
             ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
             : [[], []];
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
-            $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
+            $dbalConfiguration->disableTransactionsOnAsynchronousEndpointNames,
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),

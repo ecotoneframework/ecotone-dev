@@ -16,7 +16,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 final class LaravelConnectionReference extends ConnectionReference implements DefinedObject
 {
     private function __construct(
-        private string $laravelConnectionName,
+        public readonly string $laravelConnectionName,
         string $referenceName,
     ) {
         parent::__construct($referenceName, $this->laravelConnectionName);
@@ -32,11 +32,6 @@ final class LaravelConnectionReference extends ConnectionReference implements De
         LaravelConnectionDbalGuard::assertDbalInstalledFor("LaravelConnectionReference::defaultConnection('{$connectionName}')");
 
         return new self($connectionName, DbalConnectionReference::DEFAULT);
-    }
-
-    public function getLaravelConnectionName(): string
-    {
-        return $this->laravelConnectionName;
     }
 
     public function getDefinition(): Definition

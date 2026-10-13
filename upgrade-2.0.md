@@ -2711,6 +2711,124 @@ constants and `getChannelName()`, which are unchanged — except `REPLAY_CHANNEL
 end in `replay` and `replayAll` (§15).
 
 ### A tracer provider that cannot flush no longer breaks the first bus call
+### Getters that only returned a property are `public readonly` properties
+
+**Before:** these `Api` classes exposed a value through a method whose body was only `return $this->property;`.
+**Now:** the method is removed and the property it returned is `public readonly`, under the name it already had —
+read `$attribute->property` instead of calling the method. Writing to it fails with PHP's
+`Cannot modify readonly property`; that includes `EventHandler::$listenTo` and `TargetIdentifier::$identifierName`,
+which were already public and writable. A call to a removed method fails with PHP's `Call to undefined method`.
+
+| Class | 1.x | 2.0 |
+|---|---|---|
+| `Ecotone\Api\Dbal\Attribute\DbalParameter` | `getConvertToMediaType()`, `isIgnored()` | `$convertToMediaType`, `$ignored` |
+| `Ecotone\Api\Dbal\Attribute\DbalQuery` | `getFetchMode()` | `$fetchMode` |
+| `Ecotone\Api\Attribute\AddHeader` and its subclasses `Delayed`, `TimeToLive`, `Priority`, `ContentType` | `getHeaderValue()` | `$headerValue` |
+| `Ecotone\Api\Attribute\Asynchronous` | `getAsynchronousExecution()` | `$asynchronousExecution` |
+| `Ecotone\Api\Attribute\ConsoleCommand` | `getDescription()` | `$description` |
+| `Ecotone\Api\Attribute\Deduplicated` | `getDeduplicationHeaderName()`, `getTrackingName()` | `$deduplicationHeaderName`, `$trackingName` |
+| `Ecotone\Api\Attribute\Distributed` | `getDistributionReference()` | `$distributionReference` |
+| `Ecotone\Api\Attribute\Environment` | `getNames()` | `$names` |
+| `Ecotone\Api\Attribute\EventHandler` | `getListenTo()` | `$listenTo` |
+| `Ecotone\Api\Attribute\EventSourcingAggregate`, `EventSourcingSaga` | `hasInternalEventRecorder()` | `$withInternalEventRecorder` |
+| `Ecotone\Api\Attribute\IdentifierMethod` | `getIdentifierPropertyName()` | `$identifierPropertyName` |
+| `Ecotone\Api\Attribute\InternalHandler` and its subclasses `OnConsumerStop`, `OnTenantActivation`, `OnTenantDeactivation` | `isChangingHeaders()`, `isRequiresReply()` | `$changingHeaders`, `$requiresReply` |
+| `Ecotone\Api\Attribute\MessageGateway`, `BusinessMethod` | `getRequestChannel()`, `getReplyTimeoutInMilliseconds()` | `$requestChannel`, `$replyTimeoutInMilliseconds` |
+| `Ecotone\Api\Attribute\PropagateHeaders` | `doPropagation()` | `$doPropagation` |
+| `Ecotone\Api\Attribute\RelatedAggregate` | `getClassName()` | `$className` |
+| `Ecotone\Api\Attribute\Revision` | `getRevision()` | `$revision` |
+| `Ecotone\Api\Attribute\Router` | `isResolutionRequired()` | `$isResolutionRequired` |
+| `Ecotone\Api\Attribute\Scheduled` | `getRequestChannelName()` | `$requestChannelName` |
+| `Ecotone\Api\Attribute\TargetIdentifier` | `getIdentifierName()` | `$identifierName` |
+| `Ecotone\Api\Attribute\Version` | `isAutoIncreased()` | `$autoIncrease` |
+| `Ecotone\Api\EventSourcing\Event` — what `EventStore::load()` returns | `getEventName()`, `getMetadata()` | `$eventName`, `$metadata` |
+| `Ecotone\Api\EventSourcing\EventCriteria` | `tags()`, `eventTypes()`, `tagSequenceLowerBound()` | `$tags`, `$eventTypes`, `$tagSequenceLowerBound` |
+| `Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration` | `filterOnlyTagNames()`, `snapshottedModelClasses()`, `classesWithoutCounterTag()` | `$filterOnlyTagNames`, `$snapshottedModelClasses`, `$classesWithoutCounterTag` |
+| `Ecotone\Api\Lite\Test\FlowTestSupport` | `getMessagingTestSupport()` | `$testSupportGateway` |
+| `Ecotone\Api\Console\InMemoryConsoleProgressBar` | `getMaxSteps()` | `$maxSteps` |
+| `Ecotone\Api\Messaging\ErrorContext` | `getFailedTimestamp()`, `getStackTrace()`, `getFile()`, `getLine()` | `$failedTimestamp`, `$stackTrace`, `$file`, `$line` |
+| `Ecotone\Api\Logging\LoggingLevel` | `isFullMessageLog()` | `$logFullMessage` |
+| `Ecotone\Api\ExtensionObject\MediaType` | `getSubtype()`, `getParameters()` | `$subtype`, `$parameters` |
+| `Ecotone\Api\ExtensionObject\ConnectionReference` and every connection reference extending it | `getConnectionName()` | `$connectionName` |
+| `Ecotone\Api\ExtensionObject\CombinedMessageChannel` | `getCombinedChannels()` | `$combinedChannels` |
+| `Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration` | `getDeadLetterQueueChannel()`, `getDelayedRetryTemplate()` | `$deadLetterChannel`, `$delayedRetryTemplate` |
+| `Ecotone\Api\ExtensionObject\InstantRetryConfiguration` | `isEnabledForCommandBus()`, `getCommandBusRetryTimes()`, `getCommandBuExceptions()`, `isEnabledForAsynchronousEndpoints()`, `getAsynchronousRetryTimes()`, `getAsynchronousExceptions()` | `$isEnabledForCommandBus`, `$commandBusRetryTimes`, `$commandBuExceptions`, `$isEnabledForAsynchronousEndpoints`, `$asynchronousRetryTimes`, `$asynchronousExceptions` |
+| `Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder` | `isAutoAcked()` | `$isAutoAcked` |
+| `Ecotone\Api\Amqp\AmqpBinding` | `toEnqueueBinding()` | `$enqueueBinding` |
+| `Ecotone\Api\Amqp\AmqpStreamChannelBuilder` | `getMessageGroupId()` | `$messageGroupId` |
+| `Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry` | `getAllManagers()` | `$managersByConnectionReferenceName` |
+| `Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration` | `getTenantHeaderName()`, `getTenantToConnectionMapping()`, `getDefaultConnectionName()` | `$tenantHeaderName`, `$tenantToConnectionMapping`, `$defaultConnectionName` |
+| `Ecotone\Api\Kafka\KafkaBrokerConfiguration` | `getBootstrapServers()`, `isSetupForTesting()` | `$bootstrapServers`, `$setupForTesting` |
+| `Ecotone\Api\Kafka\KafkaConsumer` | `getGroupId()`, `getCommitIntervalInMessages()` | `$groupId`, `$commitIntervalInMessages` |
+| `Ecotone\Api\Kafka\KafkaPublisherConfiguration` | `getBrokerConfigurationReference()`, `getDefaultTopicName()` | `$brokerConfigurationReference`, `$defaultTopicName` |
+| `Ecotone\Api\Laravel\LaravelConnectionReference` | `getLaravelConnectionName()` | `$laravelConnectionName` |
+| `Ecotone\Api\EventSourcing\EventSourcingConfiguration` | `getEventStoreReferenceName()` | `$eventStoreReferenceName` |
+| `Ecotone\Api\Tempest\TempestConnectionReference` | `getConfigTag()` | `$configTag` |
+| `Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration` | `isAutomaticChannelInitializationEnabled()` | `$automaticChannelInitialization` |
+| `Ecotone\Api\EventSourcing\MetadataMatcher` | `data()` | `$data` |
+| `Ecotone\Api\Messaging\BatchMessage` | `getEntries()` | `$entries` |
+| `Ecotone\Api\ExtensionObject\DistributedServiceMap` | `getCommandMapping()`, `getDistributedBusAnnotations()` | `$commandMapping`, `$distributedBusAnnotations` |
+| `Ecotone\Api\DataProtection\DataProtectionConfiguration` | `keys()` | `$keys` |
+| `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()`, `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnCommandHandlerNotFound`, `$failOnQueryHandlerNotFound`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
+| `Ecotone\Api\ExtensionObject\ExecutionPollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getStopOnError()`, `getFinishWhenNoMessages()`, `getExecutionAmountLimit()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$stopOnError`, `$finishWhenNoMessages`, `$executionAmountLimit` |
+| `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `getServiceName()`, `getEnvironment()`, `getNamespaces()`, `getCacheDirectoryPath()`, `getLoadedCatalog()`, `failFast()`, `isFailingFast()`, `getLicenceKey()`, `getConnectionRetryTemplate()`, `getExtensionObjects()`, `getDefaultMemoryLimitInMegabytes()`, `getDefaultErrorChannel()`, `getDefaultSerializationMediaType()`, `getPollableEndpointAnnotations()` | `$serviceName`, `$environment`, `$namespaces`, `$cacheDirectoryPath`, `$loadCatalog`, `$failFast` (both methods), `$licenceKey`, `$connectionRetryTemplate`, `$extensionObjects`, `$defaultMemoryLimitInMegabytes`, `$defaultErrorChannel`, `$defaultSerializationMediaType`, `$pollableEndpointAnnotations` |
+| `Ecotone\Api\ExtensionObject\PollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getExecutionAmountLimit()`, `getConnectionRetryTemplate()`, `isErrorChannelEnabled()`, `isStoppedOnError()`, `isWithSignalInterceptors()`, `getMaxMessagePerPoll()`, `getTriggerReferenceName()`, `getTaskExecutorName()`, `getFixedRateInMilliseconds()`, `getInitialDelayInMilliseconds()`, `finishWhenNoMessages()`, `getFixedRateExpression()`, `getCronExpression()`, `getPolledChannelName()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$executionAmountLimit`, `$connectionRetryTemplate`, `$isErrorChannelEnabled`, `$stopOnError`, `$withSignalInterceptors`, `$maxMessagePerPoll`, `$triggerReferenceName`, `$taskExecutorName`, `$fixedRateInMilliseconds`, `$initialDelayInMilliseconds`, `$finishWhenNoMessages`, `$fixedRateExpression`, `$cronExpression`, `$polledChannelName` |
+| `Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration` | `isDoctrineORMRepositoriesEnabled()`, `getDoctrineORMRepositoryConnectionReference()`, `getDoctrineORMClasses()`, `isDeduplicatedEnabled()`, `minimumTimeToRemoveMessageFromDeduplication()`, `deduplicationRemovalBatchSize()`, `isDeduplicationInMemory()`, `isDeadLetterEnabled()`, `isDeadLetterInMemory()`, `isTransactionOnAsynchronousEndpoints()`, `isTransactionOnCommandBus()`, `isTransactionOnConsoleCommands()`, `getDefaultConnectionReferenceNames()`, `isClearObjectManagerOnAsynchronousEndpoints()`, `isClearAndFlushObjectManagerOnCommandBus()`, `isClearAndFlushObjectManagerOnProjectionBatch()`, `isFlushingDuringPersisting()`, `isEnableDbalDocumentStore()`, `getDbalDocumentStoreReference()`, `getDocumentStoreConnectionReference()`, `isInMemoryDocumentStore()`, `isEnableDocumentStoreStateStoredRepository()`, `getDocumentStoreRelatedAggregates()`, `getDisabledTransactionsOnAsynchronousEndpointNames()`, `isConsumerPositionTrackingEnabled()`, `getConsumerPositionTrackingConnectionReference()` | `$enableDoctrineORMRepositories`, `$doctrineORMRepositoryConnectionReference`, `$doctrineORMClasses`, `$deduplicatedEnabled`, `$minimumTimeToRemoveMessageInMilliseconds`, `$deduplicationRemovalBatchSize`, `$deduplicationInMemory`, `$deadLetterEnabled`, `$deadLetterInMemory`, `$transactionOnAsynchronousEndpoints`, `$transactionOnCommandBus`, `$transactionOnConsoleCommands`, `$defaultConnectionReferenceNames`, `$clearObjectManagerOnAsynchronousEndpoints`, `$clearAndFlushObjectManagerOnCommandBus`, `$clearAndFlushObjectManagerOnProjectionBatch`, `$flushDuringPersisting`, `$enableDbalDocumentStore`, `$dbalDocumentStoreReference`, `$documentStoreConnectionReference`, `$inMemoryDocumentStore`, `$enableDocumentStoreStateStoredRepository`, `$documentStoreRelatedAggregates`, `$disableTransactionsOnAsynchronousEndpointNames`, `$consumerPositionTrackingEnabled`, `$consumerPositionTrackingConnectionReference` |
+
+**How to adapt:** only code that reads these objects is affected — a custom module, an interceptor that inspects the
+attribute instance, or a test. Replace each call with the property in the right column. Constructing these objects is unchanged.
+
+### Four `ServiceConfiguration` methods return a copy instead of changing the instance
+
+**Before:** `ServiceConfiguration` mixed two kinds of `with*()`. Nine returned a changed copy and left the instance
+alone; four — `withConnectionRetryTemplate()`, `withLicenceKey()`, `withEnabledModulePackageNames()` and
+`withConsumerMemoryLimit()` — changed the instance they were called on and returned it. So a call written as a
+statement, `$configuration->withLicenceKey('...');`, kept its change for those four and silently lost it for the
+other nine.
+
+**Now:** all thirteen return a changed copy, and the instance they are called on is never changed — its properties
+are `readonly`. A statement-form call to one of the four above still runs, but its value is silently lost: the
+licence key, the enabled module packages, the consumer memory limit or the connection retry template you set never
+reaches the configuration Ecotone uses.
+
+**How to adapt:** assign the result, as the other `with*()` methods always required — chain the calls, or
+`$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
+or passed to `EcotoneLite` as a chained expression is unaffected.
+
+### `PollingMetadata`'s `set*()` methods are `with*()`
+
+**Before:** `PollingMetadata` named its nineteen copy methods `set*()` — `setCron()`, `setHandledMessageLimit()`,
+`setStopOnError()` and the rest — although each returned a changed copy and left the instance alone. A name that
+reads as a mutator invites `$metadata->setStopOnError(false);` as a statement, which silently lost the change.
+**Now:** each is named `with*()`, as every other copy method in the `Api` is, and the `set*()` names are gone with
+no alias; calling one fails with PHP's `Call to undefined method`. What each method does is unchanged.
+
+| 1.x | 2.0 |
+|---|---|
+| `setStopOnError()` | `withStopOnError()` |
+| `setCron()` | `withCron()` |
+| `setErrorChannelName()` | `withErrorChannelName()` |
+| `setMaxMessagePerPoll()` | `withMaxMessagePerPoll()` |
+| `setTriggerReferenceName()` | `withTriggerReferenceName()` |
+| `setTaskExecutorName()` | `withTaskExecutorName()` |
+| `setEnabledErrorChannel()` | `withEnabledErrorChannel()` |
+| `setFixedRateInMilliseconds()` | `withFixedRateInMilliseconds()` |
+| `setInitialDelayInMilliseconds()` | `withInitialDelayInMilliseconds()` |
+| `setConnectionRetryTemplate()` | `withConnectionRetryTemplate()` |
+| `setExecutionTimeLimitInMilliseconds()` | `withExecutionTimeLimitInMilliseconds()` |
+| `setHandledMessageLimit()` | `withHandledMessageLimit()` |
+| `setMemoryLimitInMegaBytes()` | `withMemoryLimitInMegaBytes()` |
+| `setSignalInterceptors()` | `withSignalInterceptors()` |
+| `setExecutionAmountLimit()` | `withExecutionAmountLimit()` |
+| `setFinishWhenNoMessages()` | `withFinishWhenNoMessages()` |
+| `setPolledChannelName()` | `withPolledChannelName()` |
+| `setFixedRateExpression()` | `withFixedRateExpression()` |
+| `setCronExpression()` | `withCronExpression()` |
+
+**How to adapt:** rename the call. A `set*()` call written as a statement was already losing its change in 1.x; assign
+the `with*()` result instead.
+
+### Forced trace flushing refuses a tracer provider that cannot flush
 
 **Before:** with the `tracing` package loaded, `TracerProviderInterface` bound to an API-level provider such as
 OpenTelemetry's `NoopTracerProvider` let the application boot, and the first command, query or distributed bus call

@@ -36,7 +36,7 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
     {
         $laravelConnections = ExtensionObjectResolver::resolve(LaravelConnectionReference::class, $extensionObjects);
         foreach ($laravelConnections as $connection) {
-            LaravelConnectionDbalGuard::assertDbalInstalledFor("LaravelConnectionReference::create('{$connection->getLaravelConnectionName()}')");
+            LaravelConnectionDbalGuard::assertDbalInstalledFor("LaravelConnectionReference::create('{$connection->laravelConnectionName}')");
         }
 
         if (! class_exists(HeaderBasedMultiTenantConnectionFactory::class)) {
@@ -47,7 +47,7 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         foreach ($multiTenantConfigurations as $multiTenantConfiguration) {
-            foreach ($multiTenantConfiguration->getTenantToConnectionMapping() as $connectionReference) {
+            foreach ($multiTenantConfiguration->tenantToConnectionMapping as $connectionReference) {
                 if ($connectionReference instanceof LaravelConnectionReference) {
                     $laravelConnections[] = $connectionReference;
                     $laravelRelatedMultiTenantConfigurations[$multiTenantConfiguration->getReferenceName()] = $multiTenantConfiguration;

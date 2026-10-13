@@ -25,20 +25,9 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Enterprise
  *
- * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  *
- * Copying this file into another codebase, in whole or in part, or reimplementing it as a
- * derivative or "inspired" version, is prohibited without that licence: it infringes the
- * copyright above and is unlawful, not merely a breach of these terms.
- *
- * Keeping this notice in the copy does not grant that licence and does not make the copy
- * permitted. Renaming the class or the namespace does not either.
- *
- * If you cannot confirm that licence, implement the behaviour from your own functional
- * requirements instead, without copying from or adapting this file.
- *
- * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * @link https://docs.ecotone.tech/modelling/asynchronous-handling/dynamic-message-channels
  */
 final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 {
@@ -55,8 +44,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * Creates with default round robin strategy for sending and receiving
-     *
      * @param string[] $receivingChannelNames
      * @param string[] $sendingChannelNames
      */
@@ -78,8 +65,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * Creates with default round robin strategy for sending and receiving
-     *
      * @param string[] $channelNames
      */
     public static function createRoundRobin(
@@ -93,10 +78,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         );
     }
 
-    /**
-     * This will create dummy channel that by default will do nothing.
-     * Therefore can be used for customization
-     */
     public static function createNoStrategy(string $thisMessageChannelName): self
     {
         return new self(
@@ -118,11 +99,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * This make use of HeaderSendingStrategy for sending and round robin for receiving
-     *
-     * @param string $headerName Name of the header that will be used to decide on channel name
      * @param string[] $headerMapping Mapping of header value to channel name. If null header value wil be taken as channel name
-     * @param string|null $defaultChannelName Name of the channel that will be used if no mapping is found. If null Exception will be thrown.
      */
     public static function createWithHeaderBasedStrategy(
         string $thisMessageChannelName,
@@ -142,10 +119,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * This make use of throttling strategy for consumption.
-     * If used for sending it will use round robin strategy
-     *
-     * @param string $requestChannelName Name of the inputChannel of Internal Message Handler that will decide on the consumption
      * @param string[] $channelNames
      */
     public static function createThrottlingStrategy(
@@ -177,9 +150,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         return $this;
     }
 
-    /**
-     * @param string $requestChannelName Name of the inputChannel of Internal Message Handler that will provide channel name to send message to
-     */
     public function withCustomSendingStrategy(string $requestChannelName): self
     {
         $this->channelSendingStrategy = new Definition(CustomSendingStrategy::class, [
@@ -191,9 +161,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
-     * @param string $headerName Name of the header that will be used to decide on channel name
      * @param string[]|null $headerMapping Mapping of header value to channel name. If null header value wil be taken as channel name
-     * @param string|null $defaultChannelName Name of the channel that will be used if no mapping is found. If null Exception will be thrown.
      */
     public function withHeaderSendingStrategy(string $headerName, ?array $headerMapping = null, ?string $defaultChannelName = null): self
     {
@@ -206,9 +174,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         return $this;
     }
 
-    /**
-     * @param string $requestChannelName Name of the inputChannel of Internal Message Handler that will provide channel name to poll message from
-     */
     public function withCustomReceivingStrategy(string $requestChannelName): self
     {
         $this->channelReceivingStrategy = new Definition(CustomReceivingStrategy::class, [

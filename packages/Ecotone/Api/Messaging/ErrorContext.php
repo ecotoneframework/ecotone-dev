@@ -27,10 +27,10 @@ class ErrorContext
 
     private string $exceptionClass;
     private string $messageId;
-    private int $failedTimestamp;
-    private string $stackTrace;
-    private string $file;
-    private string $line;
+    public readonly int $failedTimestamp;
+    public readonly string $stackTrace;
+    public readonly string $file;
+    public readonly string $line;
     private string $code;
     private string $message;
 
@@ -65,29 +65,9 @@ class ErrorContext
         return $this->messageId;
     }
 
-    public function getFailedTimestamp(): int
-    {
-        return $this->failedTimestamp;
-    }
-
     public function getExceptionClass(): string
     {
         return $this->exceptionClass;
-    }
-
-    public function getStackTrace(): string
-    {
-        return $this->stackTrace;
-    }
-
-    public function getFile(): string
-    {
-        return $this->file;
-    }
-
-    public function getLine(): string
-    {
-        return $this->line;
     }
 
     public function getCode(): string

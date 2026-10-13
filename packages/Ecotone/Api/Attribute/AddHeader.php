@@ -14,7 +14,7 @@ use Ecotone\Messaging\Support\Assert;
 class AddHeader implements WithExpression
 {
     private string $headerName;
-    private mixed $headerValue;
+    public readonly mixed $headerValue;
 
     public function __construct(string $name, mixed $value = null, private string|Closure|null $expression = null)
     {
@@ -32,11 +32,6 @@ class AddHeader implements WithExpression
     public function getHeaderName(): string
     {
         return $this->headerName;
-    }
-
-    public function getHeaderValue(): mixed
-    {
-        return $this->headerValue;
     }
 
     public function isExpression(): bool

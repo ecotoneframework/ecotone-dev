@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\Assert;
  */
 class Scheduled extends ChannelAdapter
 {
-    private string $requestChannelName;
+    public readonly string $requestChannelName;
     private array $requiredInterceptorNames;
 
     public function __construct(string $requestChannelName = NullableMessageChannel::CHANNEL_NAME, string $endpointId = '', array $requiredInterceptorNames = [])
@@ -25,11 +25,6 @@ class Scheduled extends ChannelAdapter
 
         $this->requestChannelName = $requestChannelName;
         $this->requiredInterceptorNames = $requiredInterceptorNames;
-    }
-
-    public function getRequestChannelName(): string
-    {
-        return $this->requestChannelName;
     }
 
     public function getRequiredInterceptorNames(): array

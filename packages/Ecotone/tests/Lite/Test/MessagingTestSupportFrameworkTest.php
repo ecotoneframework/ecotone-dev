@@ -198,17 +198,17 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
 
-        $ecotoneTestSupport->getMessagingTestSupport()->discardRecordedMessages();
+        $ecotoneTestSupport->testSupportGateway->discardRecordedMessages();
         $this->assertCount(
             0,
-            $ecotoneTestSupport->getMessagingTestSupport()->popRecordedMessagesFrom('orders')
+            $ecotoneTestSupport->testSupportGateway->popRecordedMessagesFrom('orders')
         );
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(
             ['orderId' => 'someId'],
-            $ecotoneTestSupport->getMessagingTestSupport()->popRecordedMessagesFrom('orders')[0]->getPayload()
+            $ecotoneTestSupport->testSupportGateway->popRecordedMessagesFrom('orders')[0]->getPayload()
         );
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
@@ -232,7 +232,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
 
         $this->assertEquals([new OrderWasPlaced($orderId)], $testSupportGateway->popRecordedEvents());
         $this->assertEmpty($testSupportGateway->popRecordedEvents());
@@ -254,7 +254,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
 
         $this->assertEquals(new OrderWasPlaced($orderId), $testSupportGateway->popRecordedEventMessages()[0]->getPayload());
         $this->assertEmpty($testSupportGateway->popRecordedEventMessages());
@@ -276,7 +276,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
         $testSupportGateway->discardRecordedMessages();
 
         $this->assertEmpty($testSupportGateway->popRecordedEventMessages());
@@ -296,7 +296,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->getQueryBus()->sendWithRouting('basket.getItem', new stdClass());
 
-        $this->assertEquals(new stdClass(), $ecotoneTestSupport->getMessagingTestSupport()->popRecordedQueryMessages()[0]->getPayload());
+        $this->assertEquals(new stdClass(), $ecotoneTestSupport->testSupportGateway->popRecordedQueryMessages()[0]->getPayload());
     }
 
     public function test_collecting_sent_commands()
@@ -310,7 +310,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
 
         $this->assertEquals([[], []], $testSupportGateway->popRecordedCommands());
         $this->assertEmpty($testSupportGateway->popRecordedCommands());
@@ -327,7 +327,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
 
         $this->assertEquals([], $testSupportGateway->popRecordedCommandMessages()[0]->getPayload());
         $this->assertEmpty($testSupportGateway->popRecordedCommandMessages());
@@ -348,7 +348,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $command = new PlaceOrder('someId');
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('basket.addItem', $command);
 
-        $this->assertEquals([$command], $ecotoneTestSupport->getMessagingTestSupport()->popRecordedCommands());
+        $this->assertEquals([$command], $ecotoneTestSupport->testSupportGateway->popRecordedCommands());
     }
 
     public function test_failing_command_bus_in_test_mode_when_no_routing_command_found()
@@ -382,7 +382,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->getQueryBus()->sendWithRouting('basket.getItem', new stdClass());
 
-        $this->assertEquals([new stdClass()], $ecotoneTestSupport->getMessagingTestSupport()->popRecordedQueries());
+        $this->assertEquals([new stdClass()], $ecotoneTestSupport->testSupportGateway->popRecordedQueries());
     }
 
     public function test_failing_query_bus_in_test_mode_when_no_routing_command_found()
@@ -423,7 +423,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport->getQueryBus()->send(GetShippingAddressQuery::create(1))
         );
 
-        $this->assertEquals([new Notification()], $ecotoneTestSupport->getMessagingTestSupport()->popRecordedEvents());
+        $this->assertEquals([new Notification()], $ecotoneTestSupport->testSupportGateway->popRecordedEvents());
     }
 
     public function test_add_gateways_to_container()
@@ -445,7 +445,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
+        $testSupportGateway = $ecotoneTestSupport->testSupportGateway;
 
         $this->assertEquals([new OrderWasPlaced($orderId)], $testSupportGateway->popRecordedEvents());
         $this->assertEmpty($testSupportGateway->popRecordedEvents());

@@ -30,8 +30,8 @@ final class ErrorConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create('orderService')
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(1)
-            ->setErrorChannelName(self::ERROR_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(1)
+            ->withErrorChannelName(self::ERROR_CHANNEL);
     }
 }

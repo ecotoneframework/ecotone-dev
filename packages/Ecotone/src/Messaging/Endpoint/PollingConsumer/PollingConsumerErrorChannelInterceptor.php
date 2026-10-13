@@ -42,7 +42,7 @@ class PollingConsumerErrorChannelInterceptor
             /** @var PollingMetadata $pollingMetadata */
             $pollingMetadata = $requestMessage->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
 
-            if ($pollingMetadata->isStoppedOnError()) {
+            if ($pollingMetadata->stopOnError) {
                 return false;
             }
 

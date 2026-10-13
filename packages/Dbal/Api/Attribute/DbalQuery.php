@@ -16,21 +16,15 @@ class DbalQuery
 {
     public function __construct(
         private string  $sql,
-        private int     $fetchMode = FetchMode::ASSOCIATIVE,
+        public readonly int $fetchMode = FetchMode::ASSOCIATIVE,
         private ?string $replyContentType = null,
         private string  $connectionReferenceName = DbalConnectionReference::DEFAULT
     ) {
-
     }
 
     public function getSql(): string
     {
         return $this->sql;
-    }
-
-    public function getFetchMode(): int
-    {
-        return $this->fetchMode;
     }
 
     public function getReplyContentType(): ?string

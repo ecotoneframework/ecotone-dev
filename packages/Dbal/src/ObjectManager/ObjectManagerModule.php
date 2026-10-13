@@ -46,18 +46,18 @@ final class ObjectManagerModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
 
         $pointcut = [];
-        if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
+        if ($dbalConfiguration->clearObjectManagerOnAsynchronousEndpoints) {
             $pointcut[] = AsynchronousRunningEndpoint::class;
         }
-        if ($dbalConfiguration->isClearAndFlushObjectManagerOnCommandBus()) {
+        if ($dbalConfiguration->clearAndFlushObjectManagerOnCommandBus) {
             $pointcut[] = CommandBus::class;
         }
-        if ($dbalConfiguration->isClearAndFlushObjectManagerOnProjectionBatch()) {
+        if ($dbalConfiguration->clearAndFlushObjectManagerOnProjectionBatch) {
             $pointcut[] = ProjectionFlush::class;
         }
 
         if ($pointcut !== []) {
-            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
+            $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
             $connectionFactoriesReferences = [];
             foreach ($connectionFactories as $connectionFactory) {
                 $connectionFactoriesReferences[$connectionFactory] = new Reference($connectionFactory);
@@ -87,7 +87,7 @@ final class ObjectManagerModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
         $repositories = [];
 
-        if ($dbalConfiguration->isDoctrineORMRepositoriesEnabled()) {
+        if ($dbalConfiguration->enableDoctrineORMRepositories) {
             $repositories[] = new DoctrineORMRepositoryBuilder($dbalConfiguration);
         }
 

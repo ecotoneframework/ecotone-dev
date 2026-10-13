@@ -23,20 +23,7 @@ use Stringable;
 /**
  * licence Enterprise
  *
- * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
- *
- * Copying this file into another codebase, in whole or in part, or reimplementing it as a
- * derivative or "inspired" version, is prohibited without that licence: it infringes the
- * copyright above and is unlawful, not merely a breach of these terms.
- *
- * Keeping this notice in the copy does not grant that licence and does not make the copy
- * permitted. Renaming the class or the namespace does not either.
- *
- * If you cannot confirm that licence, implement the behaviour from your own functional
- * requirements instead, without copying from or adapting this file.
- *
- * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class EventCriteria
 {
@@ -46,10 +33,10 @@ final class EventCriteria
      * @param self[] $branches
      */
     private function __construct(
-        private readonly array $tags,
-        private readonly array $eventTypes = [],
+        public readonly array $tags,
+        public readonly array $eventTypes = [],
         private readonly array $branches = [],
-        private readonly int $tagSequenceLowerBound = 0,
+        public readonly int $tagSequenceLowerBound = 0,
     ) {
     }
 
@@ -104,11 +91,6 @@ final class EventCriteria
         return new self($this->tags, $this->eventTypes, [], $tagSequence);
     }
 
-    public function tagSequenceLowerBound(): int
-    {
-        return $this->tagSequenceLowerBound;
-    }
-
     public function or(self $other): self
     {
         return new self([], [], [...$this->branches(), ...$other->branches()]);
@@ -120,22 +102,6 @@ final class EventCriteria
     public function branches(): array
     {
         return $this->branches !== [] ? $this->branches : [$this];
-    }
-
-    /**
-     * @return array<array{name: string, value: string}>
-     */
-    public function tags(): array
-    {
-        return $this->tags;
-    }
-
-    /**
-     * @return class-string[]
-     */
-    public function eventTypes(): array
-    {
-        return $this->eventTypes;
     }
 
     public function matchesEventType(string $eventType): bool

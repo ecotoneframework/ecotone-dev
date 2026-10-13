@@ -24,11 +24,6 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\NullableMessageChannel;
 
 /**
- * Class SimpleMessageChannelBuilder
- * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
@@ -40,7 +35,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private ?MediaType                    $conversionMediaType,
         private HeaderMapper                  $headerMapper,
         private FinalFailureStrategy          $finalFailureStrategy,
-        private bool                          $isAutoAcked,
+        public readonly bool $isAutoAcked,
         private bool                          $isStreamingChannel = false,
         private ?InMemoryMessageChannelHolder $inMemoryMessageChannelHolder = null,
         private ?string                       $messageGroupId = null,
@@ -98,9 +93,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $instance;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function isPollable(): bool
     {
         return $this->isPollable;
@@ -121,11 +113,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->finalFailureStrategy;
     }
 
-    public function isAutoAcked(): bool
-    {
-        return $this->isAutoAcked;
-    }
-
     public function withDefaultConversionMediaType(string $mediaType): self
     {
         $this->conversionMediaType = MediaType::parseMediaType($mediaType);
@@ -133,9 +120,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getMessageChannelName(): string
     {
         return $this->messageChannelName;

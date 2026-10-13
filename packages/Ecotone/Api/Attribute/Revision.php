@@ -12,15 +12,10 @@ use Attribute;
  */
 class Revision
 {
-    private int $revision;
+    public readonly int $revision;
 
     public function __construct(int $revision)
     {
         $this->revision = $revision;
-    }
-
-    public function getRevision(): int
-    {
-        return $this->revision;
     }
 }

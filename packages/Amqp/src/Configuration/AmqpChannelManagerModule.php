@@ -46,7 +46,7 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
             ChannelInitializationConfiguration::createWithDefaults()
         );
 
-        $shouldAutoInitialize = $channelInitConfig->isAutomaticChannelInitializationEnabled();
+        $shouldAutoInitialize = $channelInitConfig->automaticChannelInitialization;
 
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {

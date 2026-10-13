@@ -18,17 +18,8 @@ use function sprintf;
  */
 final class MetadataMatcher implements DefinedObject
 {
-    private array $data = [];
-
-    public function getDefinition(): Definition
+    public function __construct(public readonly array $data = [])
     {
-        return new Definition(self::class, [$this->data], 'create');
-    }
-
-    public static function create(array $data): self
-    {
-        $matcher = new self();
-        $matcher->data = $data;
         foreach ($data as $item) {
             if (! ($item['fieldType'] instanceof FieldType)) {
                 throw InvalidArgumentException::create('Field type must be an instance of FieldType');
@@ -37,15 +28,18 @@ final class MetadataMatcher implements DefinedObject
                 throw InvalidArgumentException::create('Operator must be an instance of Operator');
             }
 
-            $matcher->validateValue($item['operator'], $item['value']);
+            $this->validateValue($item['operator'], $item['value']);
         }
-
-        return $matcher;
     }
 
-    public function data(): array
+    public function getDefinition(): Definition
     {
-        return $this->data;
+        return new Definition(self::class, [$this->data], 'create');
+    }
+
+    public static function create(array $data): self
+    {
+        return new self($data);
     }
 
     public function withMetadataMatch(
@@ -54,22 +48,15 @@ final class MetadataMatcher implements DefinedObject
         $value,
         ?FieldType $fieldType = null
     ): self {
-        $this->validateValue($operator, $value);
-
         if (null === $fieldType) {
             $fieldType = FieldType::METADATA;
         }
 
-        $self = clone $this;
-        $self->data[] = ['field' => $field, 'operator' => $operator, 'value' => $value, 'fieldType' => $fieldType];
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'data' => [...$this->data, ['field' => $field, 'operator' => $operator, 'value' => $value, 'fieldType' => $fieldType]]]);
     }
 
     /**
-     * @param Operator $operator
      * @param mixed $value
-     * @throws InvalidArgumentException
      */
     private function validateValue(Operator $operator, $value): void
     {

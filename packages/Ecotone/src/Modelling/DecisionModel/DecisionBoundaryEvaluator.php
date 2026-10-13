@@ -98,7 +98,7 @@ final class DecisionBoundaryEvaluator
         $tagNames = [];
         $aggregateClassesWithoutCounterTag = [];
         foreach ($criteria->branches() as $branch) {
-            foreach ($branch->tags() as $tag) {
+            foreach ($branch->tags as $tag) {
                 $aggregateClassWithoutCounterTag = $this->aggregateCounterTags->aggregateClassWithoutCounterTagFor($tag['name']);
                 if ($aggregateClassWithoutCounterTag !== null) {
                     $aggregateClassesWithoutCounterTag[$aggregateClassWithoutCounterTag] = true;

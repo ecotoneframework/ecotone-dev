@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class Deduplicated implements WithExpression
 {
-    public function __construct(private string $deduplicationHeaderName = '', private string|Closure|null $expression = null, private ?string $trackingName = null)
+    public function __construct(public readonly string $deduplicationHeaderName = '', private string|Closure|null $expression = null, public readonly ?string $trackingName = null)
     {
         Assert::isTrue(
             ($this->deduplicationHeaderName === '' && $this->expression !== null)
@@ -23,11 +23,6 @@ final class Deduplicated implements WithExpression
             || ($this->deduplicationHeaderName === '' && $this->expression === null),
             'Either deduplicationHeaderName or expression should be provided for Deduplicated attribute, not both'
         );
-    }
-
-    public function getDeduplicationHeaderName(): string
-    {
-        return $this->deduplicationHeaderName;
     }
 
     public function getExpression(): string|Closure|null
@@ -38,10 +33,5 @@ final class Deduplicated implements WithExpression
     public function hasExpression(): bool
     {
         return $this->expression !== null;
-    }
-
-    public function getTrackingName(): ?string
-    {
-        return $this->trackingName;
     }
 }

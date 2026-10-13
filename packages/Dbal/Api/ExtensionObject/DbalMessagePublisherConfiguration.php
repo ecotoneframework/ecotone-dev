@@ -49,26 +49,16 @@ class DbalMessagePublisherConfiguration
         return new self($connectionReference, $queueName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }
 
-    /**
-     * @return string
-     */
     public function getQueueName(): string
     {
         return $this->queueName;
     }
 
-    /**
-     * @return string
-     */
     public function getConnectionReference(): string
     {
         return $this->connectionReference;
     }
 
-    /**
-     * @param bool $autoDeclareQueueOnSend
-     * @return DbalMessagePublisherConfiguration
-     */
     public function withAutoDeclareQueueOnSend(bool $autoDeclareQueueOnSend): DbalMessagePublisherConfiguration
     {
         $this->autoDeclareQueueOnSend = $autoDeclareQueueOnSend;
@@ -79,8 +69,6 @@ class DbalMessagePublisherConfiguration
     /**
      * @param string $headerMapper comma separated list of headers to be mapped.
      *                             (e.g. "\*" or "thing1*, thing2" or "*thing1")
-     *
-     * @return DbalMessagePublisherConfiguration
      */
     public function withHeaderMapper(string $headerMapper): DbalMessagePublisherConfiguration
     {
@@ -89,41 +77,28 @@ class DbalMessagePublisherConfiguration
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isAutoDeclareQueueOnSend(): bool
     {
         return $this->autoDeclareQueueOnSend;
     }
 
-    /**
-     * @return string
-     */
     public function getHeaderMapper(): string
     {
         return $this->headerMapper;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOutputDefaultConversionMediaType(): ?string
     {
         return $this->outputDefaultConversionMediaType;
     }
 
-    /**
-     * @return string
-     */
     public function getReferenceName(): string
     {
         return $this->referenceName;
     }
 
     /**
-     * Coalesces published Messages into a single multi row insert.
-     * Non blocking confirmation is not offered here, as the insert blocks until the database confirms it.
+     * @link https://docs.ecotone.tech/modelling/microservices-php/message-publisher#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(): self
     {

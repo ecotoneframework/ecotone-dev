@@ -10,9 +10,9 @@ use Ecotone\Messaging\Support\Assert;
 class Event
 {
     protected function __construct(
-        private string $eventName,
+        public readonly string $eventName,
         private array|object $payload,
-        private array $metadata
+        public readonly array $metadata
     ) {
         Assert::notNull($payload, 'Event can not be null for ' . $eventName);
     }
@@ -27,19 +27,9 @@ class Event
         return new self($eventType, $event, $metadata);
     }
 
-    public function getEventName(): string
-    {
-        return $this->eventName;
-    }
-
     public function getPayload(): array|object
     {
         return $this->payload;
-    }
-
-    public function getMetadata(): array
-    {
-        return $this->metadata;
     }
 
     public function withMetadata(array $metadata): self

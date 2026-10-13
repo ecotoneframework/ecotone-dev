@@ -13,13 +13,12 @@ final class MultiTenantConfiguration
 {
     /**
      * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
-     * @param string $referenceName - Name of the reference on which connection factory will be registered in Dependency Container
      */
     private function __construct(
-        private string  $tenantHeaderName,
-        private array   $tenantToConnectionMapping,
+        public readonly string $tenantHeaderName,
+        public readonly array $tenantToConnectionMapping,
         private string  $referenceName,
-        private string|ConnectionReference|null $defaultConnectionName = null,
+        public readonly string|ConnectionReference|null $defaultConnectionName = null,
     ) {
     }
 
@@ -42,23 +41,5 @@ final class MultiTenantConfiguration
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    public function getTenantHeaderName(): string
-    {
-        return $this->tenantHeaderName;
-    }
-
-    /**
-     * @return array<string, string|ConnectionReference>
-     */
-    public function getTenantToConnectionMapping(): array
-    {
-        return $this->tenantToConnectionMapping;
-    }
-
-    public function getDefaultConnectionName(): string|ConnectionReference|null
-    {
-        return $this->defaultConnectionName;
     }
 }

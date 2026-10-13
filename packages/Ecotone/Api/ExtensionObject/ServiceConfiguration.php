@@ -19,48 +19,37 @@ class ServiceConfiguration
     public const DEFAULT_FAIL_FAST                = true;
     public const DEFAULT_SERIALIZATION_MEDIA_TYPE = MediaType::APPLICATION_X_PHP_SERIALIZED;
 
-    private string $serviceName = self::DEFAULT_SERVICE_NAME;
-    private bool $failFast = self::DEFAULT_FAIL_FAST;
-    private string $cacheDirectoryPath;
-    private string $environment = self::DEFAULT_ENVIRONMENT;
-    private ?string $loadCatalog = '';
     /**
-     * @var string[]
+     * @param string[] $namespaces
+     * @param string[]|null $enabledModulePackageNames
+     * @param object[] $extensionObjects
+     * @param object[] $pollableEndpointAnnotations
      */
-    private array $namespaces = [];
-    /**
-     * @var string[]|null
-     */
-    private ?array $enabledModulePackageNames = null;
-    private ?string $defaultSerializationMediaType = null;
-    private ?string $defaultErrorChannel = null;
-    private ?int $defaultMemoryLimitInMegabytes = PollingMetadata::DEFAULT_MEMORY_LIMIT_MEGABYTES;
-    private ?RetryTemplateBuilder $connectionRetryTemplate = null;
-    /** @var object[] */
-    private array $extensionObjects = [];
-
-    /**
-     * @var object[]
-     */
-    private array $pollableEndpointAnnotations = [];
-
-    private ?string $licenceKey = null;
-
-    private function __construct()
-    {
-        $this->cacheDirectoryPath = ServiceCacheConfiguration::defaultCachePath();
+    final private function __construct(
+        public readonly string $cacheDirectoryPath,
+        public readonly string $serviceName = self::DEFAULT_SERVICE_NAME,
+        public readonly bool $failFast = self::DEFAULT_FAIL_FAST,
+        public readonly string $environment = self::DEFAULT_ENVIRONMENT,
+        public readonly ?string $loadCatalog = '',
+        public readonly array $namespaces = [],
+        private readonly ?array $enabledModulePackageNames = null,
+        public readonly ?string $defaultSerializationMediaType = null,
+        public readonly ?string $defaultErrorChannel = null,
+        public readonly ?int $defaultMemoryLimitInMegabytes = PollingMetadata::DEFAULT_MEMORY_LIMIT_MEGABYTES,
+        public readonly ?RetryTemplateBuilder $connectionRetryTemplate = null,
+        public readonly array $extensionObjects = [],
+        public readonly array $pollableEndpointAnnotations = [],
+        public readonly ?string $licenceKey = null,
+    ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return (new self());
+        return new self(ServiceCacheConfiguration::defaultCachePath());
     }
-
 
     /**
      * @param self[] $applicationConfigurations
-     *
-     * @return ServiceConfiguration
      */
     public function mergeWith(array $applicationConfigurations): self
     {
@@ -99,16 +88,9 @@ class ServiceConfiguration
         return $self;
     }
 
-
-    /**
-     * @param bool $failFast
-     */
     public function withFailFast(bool $failFast): self
     {
-        $clone           = clone $this;
-        $clone->failFast = $failFast;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'failFast' => $failFast]);
     }
 
     public function withServiceName(string $serviceName): self
@@ -117,32 +99,17 @@ class ServiceConfiguration
             throw ConfigurationException::create("Service name can only be used with lower case letter, numbers and underline, given: `{$serviceName}`");
         }
 
-        $clone           = clone $this;
-        $clone->serviceName = $serviceName;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'serviceName' => $serviceName]);
     }
 
-    /**
-     * @param string $environment
-     */
     public function withEnvironment(string $environment): self
     {
-        $clone              = clone $this;
-        $clone->environment = $environment;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'environment' => $environment]);
     }
 
-    /**
-     * @param string $catalog
-     */
     public function withLoadCatalog(string $catalog): self
     {
-        $clone              = clone $this;
-        $clone->loadCatalog = $catalog;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'loadCatalog' => $catalog]);
     }
 
     public function withExtensionObjects(array $extensionObjects): self
@@ -150,26 +117,18 @@ class ServiceConfiguration
         foreach ($extensionObjects as $extensionObject) {
             Assert::isObject($extensionObject, 'Extension object must be an object, given: ' . gettype($extensionObject));
         }
-        $clone              = clone $this;
-        $clone->extensionObjects = $extensionObjects;
 
-        return $clone;
+        return new static(...[...get_object_vars($this), 'extensionObjects' => $extensionObjects]);
     }
 
     public function addExtensionObject(object $extensionObject): self
     {
-        $clone              = clone $this;
-        $clone->extensionObjects[] = $extensionObject;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'extensionObjects' => [...$this->extensionObjects, $extensionObject]]);
     }
 
     public function doNotLoadCatalog(): self
     {
-        $clone              = clone $this;
-        $clone->loadCatalog = null;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'loadCatalog' => null]);
     }
 
     public function isLoadingCatalogEnabled(): bool
@@ -182,45 +141,27 @@ class ServiceConfiguration
      */
     public function withNamespaces(array $namespaces): self
     {
-        $clone             = clone $this;
-        $clone->namespaces = $namespaces;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'namespaces' => $namespaces]);
     }
 
     public function withDefaultSerializationMediaType(string|MediaType $defaultSerializationMediaType): self
     {
-        $clone                                = clone $this;
-        $clone->defaultSerializationMediaType = is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString();
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'defaultSerializationMediaType' => is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString()]);
     }
 
     public function withDefaultErrorChannel(string $errorChannelName): self
     {
-        $clone                      = clone $this;
-        $clone->defaultErrorChannel = $errorChannelName;
-
-        return $clone;
+        return new static(...[...get_object_vars($this), 'defaultErrorChannel' => $errorChannelName]);
     }
 
     public function withConnectionRetryTemplate(RetryTemplateBuilder $channelPollRetryTemplate): self
     {
-        $this->connectionRetryTemplate = $channelPollRetryTemplate;
-
-        return $this;
+        return new static(...[...get_object_vars($this), 'connectionRetryTemplate' => $channelPollRetryTemplate]);
     }
 
     public function withLicenceKey(string $licenceKey): self
     {
-        $this->licenceKey = $licenceKey;
-
-        return $this;
-    }
-
-    public function getLicenceKey(): ?string
-    {
-        return $this->licenceKey;
+        return new static(...[...get_object_vars($this), 'licenceKey' => $licenceKey]);
     }
 
     public function isRunningForEnterprise(): bool
@@ -233,27 +174,12 @@ class ServiceConfiguration
      */
     public function withEnabledModulePackageNames(array $enabledModulePackageNames): self
     {
-        $enabledModulePackageNames[] = ModulePackageList::CORE_PACKAGE;
-        $this->enabledModulePackageNames = array_values(array_unique($enabledModulePackageNames));
-
-        return $this;
-    }
-
-    public function getConnectionRetryTemplate(): ?RetryTemplateBuilder
-    {
-        return $this->connectionRetryTemplate;
-    }
-
-    public function getServiceName(): string
-    {
-        return $this->serviceName;
+        return new static(...[...get_object_vars($this), 'enabledModulePackageNames' => array_values(array_unique([...$enabledModulePackageNames, ModulePackageList::CORE_PACKAGE]))]);
     }
 
     public function withConsumerMemoryLimit(int $memoryLimitInMegabytes): self
     {
-        $this->defaultMemoryLimitInMegabytes = $memoryLimitInMegabytes;
-
-        return $this;
+        return new static(...[...get_object_vars($this), 'defaultMemoryLimitInMegabytes' => $memoryLimitInMegabytes]);
     }
 
     /**
@@ -276,14 +202,6 @@ class ServiceConfiguration
     }
 
     /**
-     * @return object[]
-     */
-    public function getExtensionObjects(): array
-    {
-        return $this->extensionObjects;
-    }
-
-    /**
      * @param string<class-string> $className
      */
     public function hasExtensionObject(string $className): bool
@@ -297,84 +215,13 @@ class ServiceConfiguration
         return false;
     }
 
-    public function getDefaultMemoryLimitInMegabytes(): ?int
-    {
-        return $this->defaultMemoryLimitInMegabytes;
-    }
-
-    /**
-     * @return object[]
-     */
-    public function getPollableEndpointAnnotations(): array
-    {
-        return $this->pollableEndpointAnnotations;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getDefaultErrorChannel(): ?string
-    {
-        return $this->defaultErrorChannel;
-    }
-
-    public function getDefaultSerializationMediaType(): ?string
-    {
-        return $this->defaultSerializationMediaType;
-    }
-
-    /**
-     * @return bool
-     */
-    public function failFast(): bool
-    {
-        return $this->failFast;
-    }
-
-    public function getCacheDirectoryPath(): string
-    {
-        return $this->cacheDirectoryPath;
-    }
-
     public function withCacheDirectoryPath(string $cacheDirectoryPath): self
     {
-        $clone                     = clone $this;
-        $clone->cacheDirectoryPath = rtrim($cacheDirectoryPath, '/');
-
-        return $clone;
-    }
-
-    /**
-     * @return string
-     */
-    public function getEnvironment(): string
-    {
-        return $this->environment;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isFailingFast(): bool
-    {
-        return $this->failFast;
-    }
-
-    public function getLoadedCatalog(): ?string
-    {
-        return $this->loadCatalog;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getNamespaces(): array
-    {
-        return $this->namespaces;
+        return new static(...[...get_object_vars($this), 'cacheDirectoryPath' => rtrim($cacheDirectoryPath, '/')]);
     }
 
     public function isProductionConfiguration(): bool
     {
-        return in_array($this->getEnvironment(), ['prod', 'production']);
+        return in_array($this->environment, ['prod', 'production']);
     }
 }

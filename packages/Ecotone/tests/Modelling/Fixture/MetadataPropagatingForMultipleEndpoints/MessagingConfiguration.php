@@ -17,8 +17,8 @@ class MessagingConfiguration
         return [
             SimpleMessageChannelBuilder::createQueueChannel('notifications'),
             PollingMetadata::create('notifications')
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1),
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(1),
         ];
     }
 }

@@ -18,15 +18,12 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class DbalParameter implements DefinedObject, WithExpression
 {
-    /**
-     * @param int|ArrayParameterType|ParameterType|null $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants
-     */
     public function __construct(
         private ?string $name = null,
         private int|ArrayParameterType|ParameterType|null $type = null,
         private string|Closure|null $expression = null,
-        private ?string $convertToMediaType = null,
-        private bool $ignored = false
+        public readonly ?string $convertToMediaType = null,
+        public readonly bool $ignored = false
     ) {
     }
 
@@ -48,16 +45,6 @@ final class DbalParameter implements DefinedObject, WithExpression
     public function getExpression(): string|Closure|null
     {
         return $this->expression;
-    }
-
-    public function getConvertToMediaType(): ?string
-    {
-        return $this->convertToMediaType;
-    }
-
-    public function isIgnored(): bool
-    {
-        return $this->ignored;
     }
 
     public function getDefinition(): Definition

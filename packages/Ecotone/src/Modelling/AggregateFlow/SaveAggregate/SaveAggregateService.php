@@ -76,7 +76,7 @@ final class SaveAggregateService implements MessageProcessor
     private function publishEvents(array $events): void
     {
         foreach ($events as $event) {
-            $this->eventBus->publish($event->getPayload(), $event->getMetadata());
+            $this->eventBus->publish($event->getPayload(), $event->metadata);
         }
     }
 }

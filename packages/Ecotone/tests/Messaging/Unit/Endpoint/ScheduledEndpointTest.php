@@ -60,9 +60,9 @@ final class ScheduledEndpointTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL),
                 PollingMetadata::create(ReturningScheduledService::ENDPOINT_ID)
-                    ->setFixedRateInMilliseconds(1)
-                    ->setInitialDelayInMilliseconds(0)
-                    ->setExecutionTimeLimitInMilliseconds(100),
+                    ->withFixedRateInMilliseconds(1)
+                    ->withInitialDelayInMilliseconds(0)
+                    ->withExecutionTimeLimitInMilliseconds(100),
             ]),
         );
 
@@ -143,7 +143,7 @@ final class ScheduledEndpointTest extends TestCase
             [$service, ClockInterface::class => $clock],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('countedTicks'),
-                PollingMetadata::create('countingScheduler')->setFixedRateInMilliseconds($fixedRateInMilliseconds),
+                PollingMetadata::create('countingScheduler')->withFixedRateInMilliseconds($fixedRateInMilliseconds),
             ]),
         );
 

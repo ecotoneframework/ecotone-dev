@@ -12,9 +12,6 @@ use InvalidArgumentException;
  */
 class CommandHandler extends InputOutputEndpointAnnotation
 {
-    /**
-     * If @Aggregate was not found, message can be dropped instead of throwing exception
-     */
     public bool $dropMessageOnNotFound = false;
     public array $identifierMetadataMapping = [];
     public array $identifierMapping = [];

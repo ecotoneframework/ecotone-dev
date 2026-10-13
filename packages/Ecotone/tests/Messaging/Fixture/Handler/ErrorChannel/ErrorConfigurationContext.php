@@ -32,10 +32,10 @@ class ErrorConfigurationContext
     {
         return [
             PollingMetadata::create(self::INPUT_CHANNEL)
-                ->setExecutionTimeLimitInMilliseconds(3000)
-                ->setHandledMessageLimit(1)
-                ->setErrorChannelName(self::ERROR_CHANNEL)
-                ->setStopOnError(false),
+                ->withExecutionTimeLimitInMilliseconds(3000)
+                ->withHandledMessageLimit(1)
+                ->withErrorChannelName(self::ERROR_CHANNEL)
+                ->withStopOnError(false),
         ];
     }
 }

@@ -100,7 +100,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         $deliveryIds = [];
         try {
             $producedMessages = 0;
-            foreach ($batchMessage->getEntries() as $entry) {
+            foreach ($batchMessage->entries as $entry) {
                 $entryMessage = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();

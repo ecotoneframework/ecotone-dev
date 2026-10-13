@@ -92,7 +92,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         $immediateMessages = [];
         $delayedEntries = [];
         $delayedMessages = [];
-        foreach ($batchMessage->getEntries() as $entry) {
+        foreach ($batchMessage->entries as $entry) {
             $originalMessage = $this->convertBatchEntryToMessage($entry);
             $outboundMessage = $this->prepareOutboundMessage($originalMessage);
             $headers = $outboundMessage->getHeaders();

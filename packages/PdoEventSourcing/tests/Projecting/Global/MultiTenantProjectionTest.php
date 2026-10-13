@@ -167,8 +167,8 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                     ),
                     SimpleMessageChannelBuilder::createQueueChannel('async_projection_channel'),
                     PollingMetadata::create('async_projection_channel')
-                        ->setExecutionAmountLimit(3)
-                        ->setExecutionTimeLimitInMilliseconds(5000),
+                        ->withExecutionAmountLimit(3)
+                        ->withExecutionTimeLimitInMilliseconds(5000),
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

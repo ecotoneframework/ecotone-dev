@@ -50,7 +50,7 @@ final class InMemoryStreamingChannelTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
-                    PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
+                    PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
                 ])
         );
 
@@ -112,8 +112,8 @@ final class InMemoryStreamingChannelTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
-                    PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
-                    PollingMetadata::create('consumer2')->setHandledMessageLimit(1),
+                    PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
+                    PollingMetadata::create('consumer2')->withHandledMessageLimit(1),
                 ])
         );
 

@@ -38,11 +38,11 @@ final class DbalConsumerPositionModule extends NoExternalConfigurationModule imp
             DbalConfiguration::createDefaultFor($extensionObjects)
         );
 
-        if ($dbalConfiguration->isConsumerPositionTrackingEnabled()) {
+        if ($dbalConfiguration->consumerPositionTrackingEnabled) {
             $messagingConfiguration->registerServiceDefinition(
                 ConsumerPositionTracker::class,
                 new Definition(DbalConsumerPositionTracker::class, [
-                    new Reference($dbalConfiguration->getDbalDocumentStoreReference()),
+                    new Reference($dbalConfiguration->dbalDocumentStoreReference),
                 ])
             );
         }

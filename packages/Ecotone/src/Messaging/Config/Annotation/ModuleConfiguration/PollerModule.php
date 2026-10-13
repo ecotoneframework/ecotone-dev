@@ -46,15 +46,15 @@ final class PollerModule extends NoExternalConfigurationModule implements Annota
             $channelAdapters = $pollerAnnotation->getMethodAnnotationsWithType(ChannelAdapter::class);
             foreach ($channelAdapters as $channelAdapter) {
                 $pollingMetadata = PollingMetadata::create($channelAdapter->getEndpointId())
-                    ->setCron($poller->getCron())
-                    ->setInitialDelayInMilliseconds($poller->getInitialDelayInMilliseconds())
-                    ->setFixedRateInMilliseconds($poller->getFixedRateInMilliseconds())
-                    ->setErrorChannelName($poller->getErrorChannelName())
-                    ->setMemoryLimitInMegaBytes($poller->getMemoryLimitInMegabytes())
-                    ->setHandledMessageLimit($poller->getHandledMessageLimit())
-                    ->setExecutionTimeLimitInMilliseconds($poller->getExecutionTimeLimitInMilliseconds())
-                    ->setFixedRateExpression($poller->getFixedRateExpression())
-                    ->setCronExpression($poller->getCronExpression());
+                    ->withCron($poller->getCron())
+                    ->withInitialDelayInMilliseconds($poller->getInitialDelayInMilliseconds())
+                    ->withFixedRateInMilliseconds($poller->getFixedRateInMilliseconds())
+                    ->withErrorChannelName($poller->getErrorChannelName())
+                    ->withMemoryLimitInMegaBytes($poller->getMemoryLimitInMegabytes())
+                    ->withHandledMessageLimit($poller->getHandledMessageLimit())
+                    ->withExecutionTimeLimitInMilliseconds($poller->getExecutionTimeLimitInMilliseconds())
+                    ->withFixedRateExpression($poller->getFixedRateExpression())
+                    ->withCronExpression($poller->getCronExpression());
 
                 $multiplePollingMetadata[] = $pollingMetadata;
             }

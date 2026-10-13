@@ -61,7 +61,7 @@ final class DeduplicationModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
-        $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
+        $isDeduplicatedEnabled = $dbalConfiguration->deduplicatedEnabled;
         $hasDeduplicatedHandlers = ! empty($this->annotationFinder->findAnnotatedMethods(Deduplicated::class));
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
 
@@ -76,7 +76,7 @@ final class DeduplicationModule implements AnnotationModule
             DeduplicationTableManager::class,
             new Definition(DeduplicationTableManager::class, [
                 DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE,
-                ($isDeduplicatedEnabled || $hasDeduplicatedHandlers) && ! $dbalConfiguration->isDeduplicationInMemory(),
+                ($isDeduplicatedEnabled || $hasDeduplicatedHandlers) && ! $dbalConfiguration->deduplicationInMemory,
                 $consoleInvocationPrefix,
                 $connectionFactory,
             ])
@@ -84,11 +84,11 @@ final class DeduplicationModule implements AnnotationModule
 
         $messagingConfiguration->registerServiceDefinition(
             HandledMessages::class,
-            $dbalConfiguration->isDeduplicationInMemory()
+            $dbalConfiguration->deduplicationInMemory
                 ? new Definition(InMemoryHandledMessages::class)
                 : new Definition(DbalHandledMessages::class, [
                     new Reference($connectionFactory),
-                    $dbalConfiguration->deduplicationRemovalBatchSize(),
+                    $dbalConfiguration->deduplicationRemovalBatchSize,
                     new Reference(DeduplicationTableManager::class),
                 ])
         );
@@ -100,7 +100,7 @@ final class DeduplicationModule implements AnnotationModule
                 [
                     new Reference(HandledMessages::class),
                     new Reference(EcotoneClockInterface::class),
-                    $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication(),
+                    $dbalConfiguration->minimumTimeToRemoveMessageInMilliseconds,
                     new Reference(LoggingGateway::class),
                 ]
             )

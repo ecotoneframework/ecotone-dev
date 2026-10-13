@@ -81,14 +81,14 @@ TimeSpan::withMinutes(5)
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 PollingMetadata::create('endpointId')
-    ->setHandledMessageLimit(100)              // Stop after N messages
-    ->setExecutionTimeLimitInMilliseconds(60000) // Stop after N ms
-    ->setMemoryLimitInMegaBytes(256)           // Stop at memory limit
-    ->setFixedRateInMilliseconds(200)          // Poll interval
-    ->setStopOnError(false)                    // Continue on error
-    ->setFinishWhenNoMessages(false)           // Wait for messages
-    ->setErrorChannelName('custom_error')      // Custom error channel
-    ->setCron('*/5 * * * *');                  // Cron schedule
+    ->withHandledMessageLimit(100)              // Stop after N messages
+    ->withExecutionTimeLimitInMilliseconds(60000) // Stop after N ms
+    ->withMemoryLimitInMegaBytes(256)           // Stop at memory limit
+    ->withFixedRateInMilliseconds(200)          // Poll interval
+    ->withStopOnError(false)                    // Continue on error
+    ->withFinishWhenNoMessages(false)           // Wait for messages
+    ->withErrorChannelName('custom_error')      // Custom error channel
+    ->withCron('*/5 * * * *');                  // Cron schedule
 ```
 
 ## DynamicMessageChannelBuilder Factory Methods

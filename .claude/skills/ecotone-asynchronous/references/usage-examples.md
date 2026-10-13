@@ -50,8 +50,8 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 public function ordersPolling(): PollingMetadata
 {
     return PollingMetadata::create('orders')
-        ->setHandledMessageLimit(50)
-        ->setStopOnError(true);
+        ->withHandledMessageLimit(50)
+        ->withStopOnError(true);
 }
 ```
 

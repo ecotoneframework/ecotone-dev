@@ -11,13 +11,7 @@ use Attribute;
 final class PropagateHeaders
 {
     public function __construct(
-        private bool $doPropagation = true
+        public readonly bool $doPropagation = true
     ) {
-
-    }
-
-    public function doPropagation(): bool
-    {
-        return $this->doPropagation;
     }
 }

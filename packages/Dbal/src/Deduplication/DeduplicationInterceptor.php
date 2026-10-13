@@ -96,8 +96,8 @@ final class DeduplicationInterceptor
             return (string) $deduplicated->execute($message);
         }
 
-        if ($deduplicatedAttribute->getDeduplicationHeaderName() !== '') {
-            return $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName());
+        if ($deduplicatedAttribute->deduplicationHeaderName !== '') {
+            return $message->getHeaders()->get($deduplicatedAttribute->deduplicationHeaderName);
         }
 
         return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
@@ -108,8 +108,8 @@ final class DeduplicationInterceptor
         /** @var Deduplicated|null $deduplicatedAttribute */
         $deduplicatedAttribute = $deduplicated?->getAttribute();
         // If trackingName is provided, use it for deduplication isolation
-        if ($deduplicatedAttribute?->getTrackingName() !== null) {
-            return $deduplicatedAttribute->getTrackingName();
+        if ($deduplicatedAttribute?->trackingName !== null) {
+            return $deduplicatedAttribute->trackingName;
         }
 
         // If global deduplication consumer_endpoint_id will be used

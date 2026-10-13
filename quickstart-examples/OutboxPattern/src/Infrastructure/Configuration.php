@@ -32,11 +32,11 @@ class Configuration
     {
         return [
             PollingMetadata::create(self::DATABASE_CHANNEL)
-                    ->setHandledMessageLimit(2)
-                    ->setExecutionTimeLimitInMilliseconds(1000),
+                    ->withHandledMessageLimit(2)
+                    ->withExecutionTimeLimitInMilliseconds(1000),
             PollingMetadata::create(self::EXTERNAL_BROKER_CHANNEL)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(1000)
         ];
     }
 

@@ -91,7 +91,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         $dataProtectionConfiguration = ExtensionObjectResolver::resolveUnique(DataProtectionConfiguration::class, $extensionObjects, new stdClass());
         $channelProtectionConfigurations = ExtensionObjectResolver::resolve(ChannelProtectionConfiguration::class, $extensionObjects);
 
-        foreach ($dataProtectionConfiguration->keys() as $encryptionKeyName => $key) {
+        foreach ($dataProtectionConfiguration->keys as $encryptionKeyName => $key) {
             $messagingConfiguration->registerServiceDefinition(
                 id: sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionKeyName),
                 definition: new Definition(

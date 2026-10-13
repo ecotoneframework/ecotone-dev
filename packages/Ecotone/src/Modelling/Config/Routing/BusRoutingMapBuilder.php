@@ -39,7 +39,7 @@ class BusRoutingMapBuilder extends BusRoutingMap
         $annotationForMethod = $registration->getAnnotationForMethod();
 
         if ($annotationForMethod instanceof EventHandler) {
-            $routingKey = $annotationForMethod->getListenTo();
+            $routingKey = $annotationForMethod->listenTo;
         } else {
             $routingKey = $annotationForMethod->getInputChannelName();
         }

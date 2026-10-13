@@ -68,7 +68,7 @@ class MediaTypeTest extends TestCase
     {
         $mediaType = MediaType::parseMediaType('application/json;charset=utf-8');
 
-        $this->assertEquals($mediaType->getParameters(), ['charset' => 'utf-8']);
+        $this->assertEquals($mediaType->parameters, ['charset' => 'utf-8']);
         $this->assertTrue($mediaType->hasParameter('charset'));
         $this->assertEquals($mediaType->getParameter('charset'), 'utf-8');
     }

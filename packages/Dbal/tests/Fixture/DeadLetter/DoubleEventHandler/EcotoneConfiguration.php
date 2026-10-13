@@ -16,9 +16,9 @@ final class EcotoneConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create('async')
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(1)
-            ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(1)
+            ->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
     }
 
     #[ServiceContext]

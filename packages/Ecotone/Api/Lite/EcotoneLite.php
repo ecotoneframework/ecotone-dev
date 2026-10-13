@@ -38,8 +38,6 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @param bool $allowGatewaysToBeRegisteredInContainer when enabled will add to the container Command/Query/Event and other gateways. Your container must have 'set' method however
-     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrap(
         array                    $classesToResolve = [],
@@ -65,13 +63,9 @@ final class EcotoneLite
     }
 
     /**
-     * Provides default configuration for testing flows
-     * Skips all module package names and registers repositories for aggregates
-     *
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrapFlowTesting(
         array                    $classesToResolve = [],
@@ -98,13 +92,9 @@ final class EcotoneLite
     }
 
     /**
-     * Provides default configuration for testing flows with In Memory Event Store.
-     * Enables eventSourcing, dbal, jmsConverter packages and provides default repositories.
-     *
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrapFlowTestingWithEventStore(
         array                    $classesToResolve = [],
@@ -142,8 +132,8 @@ final class EcotoneLite
 
     private static function withDatabaseTablesSetUp(ConfiguredMessagingSystemWithTestSupport $messagingSystem, ServiceConfiguration $configuration): FlowTestSupport
     {
-        foreach ($configuration->getExtensionObjects() as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration && $extensionObject->isSettingUpDatabaseTablesOnBootstrap()) {
+        foreach ($configuration->extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof TestConfiguration && $extensionObject->databaseTablesSetUpOnBootstrap) {
                 $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpTablesOfProvidedConnections();
             }
         }
@@ -185,7 +175,7 @@ final class EcotoneLite
         $cacheLayout = ContainerCacheLayout::resolve(
             $pathToRootCatalog,
             $serviceConfiguration,
-            $serviceConfiguration->getCacheDirectoryPath(),
+            $serviceConfiguration->cacheDirectoryPath,
             self::shouldUseAutomaticCache($useCachedVersion, $pathToRootCatalog),
             configurationVariables: $configurationVariables,
             classesToResolve: $classesToResolve,

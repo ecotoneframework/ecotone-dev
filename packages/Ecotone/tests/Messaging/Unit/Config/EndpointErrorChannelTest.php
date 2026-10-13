@@ -50,7 +50,7 @@ final class EndpointErrorChannelTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
-                    PollingMetadata::create(ThrowingHandler::ENDPOINT_ID)->setEnabledErrorChannel(false),
+                    PollingMetadata::create(ThrowingHandler::ENDPOINT_ID)->withEnabledErrorChannel(false),
                 ]),
         );
 

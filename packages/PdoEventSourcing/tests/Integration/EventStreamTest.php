@@ -69,7 +69,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $this->assertCount(1, $events);
         $this->assertEquals($event, $events[0]->getPayload());
         foreach ($metadata as $key => $value) {
-            $this->assertEquals($value, $events[0]->getMetadata()[$key]);
+            $this->assertEquals($value, $events[0]->metadata[$key]);
         }
     }
 

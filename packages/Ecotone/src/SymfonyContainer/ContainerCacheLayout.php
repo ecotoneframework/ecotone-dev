@@ -43,9 +43,9 @@ final class ContainerCacheLayout
         $realRootCatalog = realpath($rootCatalog) ?: $rootCatalog;
         $annotationFinder = AnnotationFinderFactory::createForAttributes(
             $realRootCatalog,
-            $serviceConfiguration->getNamespaces(),
-            $serviceConfiguration->getEnvironment(),
-            $serviceConfiguration->getLoadedCatalog() ?? '',
+            $serviceConfiguration->namespaces,
+            $serviceConfiguration->environment,
+            $serviceConfiguration->loadCatalog ?? '',
             MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
             $classesToResolve,
             $enableTesting,

@@ -130,7 +130,7 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
         $errorContext = $deadLetter->list(1, 0)[0];
 
         self::assertSame('m-1', $errorContext->getMessageId());
-        self::assertSame(1_700_000_000, $errorContext->getFailedTimestamp());
+        self::assertSame(1_700_000_000, $errorContext->failedTimestamp);
         self::assertSame('failed order coffee', $errorContext->getMessage());
     }
 

@@ -68,7 +68,7 @@ final class AmqpModule implements AnnotationModule
         $messageGroupIdToChannelMap = [];
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpStreamChannelBuilder) {
-                $messageGroupId = $extensionObject->getMessageGroupId();
+                $messageGroupId = $extensionObject->messageGroupId;
                 $channelName = $extensionObject->getMessageChannelName();
 
                 if (isset($messageGroupIdToChannelMap[$messageGroupId])) {

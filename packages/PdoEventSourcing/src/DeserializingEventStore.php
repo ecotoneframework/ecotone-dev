@@ -46,9 +46,9 @@ final class DeserializingEventStore implements EventStore
         $events = [];
         foreach ($this->eventStore->load($streamName, $fromNumber, $count, $metadataMatcher, $deserialize) as $event) {
             $events[] = $this->eventSerializer->deserialize(
-                $event->getEventName(),
+                $event->eventName,
                 $event->getPayload(),
-                $event->getMetadata(),
+                $event->metadata,
                 $deserialize
             );
         }
@@ -71,9 +71,9 @@ final class DeserializingEventStore implements EventStore
         $events = [];
         foreach ($this->eventStore->loadAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, $count, $eventNames, $deserialize) as $event) {
             $events[] = $this->eventSerializer->deserialize(
-                $event->getEventName(),
+                $event->eventName,
                 $event->getPayload(),
-                $event->getMetadata(),
+                $event->metadata,
                 $deserialize
             );
         }
@@ -88,9 +88,9 @@ final class DeserializingEventStore implements EventStore
         $events = [];
         foreach ($loadedEvents->events as $event) {
             $events[] = $this->eventSerializer->deserialize(
-                $event->getEventName(),
+                $event->eventName,
                 $event->getPayload(),
-                $event->getMetadata(),
+                $event->metadata,
                 true
             );
         }

@@ -48,7 +48,7 @@ final class EventSourcingHandlerExecutor
             if ($event instanceof Event) {
                 $eventPayload = $event->getPayload();
                 Assert::isObject($eventPayload, 'Event returned by repository should be deserialized objects. Got: ' . Type::createFromVariable($eventPayload)->toString());
-                $metadata  = $event->getMetadata();
+                $metadata  = $event->metadata;
             } else {
                 Assert::isObject($event, 'Event returned by repository should be deserialized objects. Got: ' . Type::createFromVariable($event)->toString());
                 $eventPayload = $event;

@@ -86,8 +86,8 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
                 [new TicketOpenedForEventStoreConformance('t-1', 'Printer jam'), new TicketClosedForEventStoreConformance('t-1')],
                 $this->payloadsOf($events),
             );
-            self::assertSame(['web', 'phone'], [$events[0]->getMetadata()['source'], $events[1]->getMetadata()['source']]);
-            self::assertSame([TicketOpenedForEventStoreConformance::class, TicketClosedForEventStoreConformance::class], [$events[0]->getEventName(), $events[1]->getEventName()]);
+            self::assertSame(['web', 'phone'], [$events[0]->metadata['source'], $events[1]->metadata['source']]);
+            self::assertSame([TicketOpenedForEventStoreConformance::class, TicketClosedForEventStoreConformance::class], [$events[0]->eventName, $events[1]->eventName]);
         });
     }
 
@@ -330,7 +330,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             $events = $eventStore->load(self::STREAM, deserialize: false);
 
             self::assertEquals(['ticketId' => 't-1', 'title' => 'One'], $events[0]->getPayload());
-            self::assertSame(TicketOpenedForEventStoreConformance::class, $events[0]->getEventName());
+            self::assertSame(TicketOpenedForEventStoreConformance::class, $events[0]->eventName);
         });
     }
 

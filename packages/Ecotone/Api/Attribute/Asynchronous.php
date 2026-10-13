@@ -17,7 +17,7 @@ class Asynchronous implements DefinedObject
 {
     private string|array $channelName;
     /** @var AsynchronousEndpointAttribute[] */
-    private array $asynchronousExecution;
+    public readonly array $asynchronousExecution;
 
     /**
      * @param AsynchronousEndpointAttribute[] $asynchronousExecution Attributes scoped to the asynchronous execution context — applied when the polling consumer processes the Message, not at the synchronous bus call.
@@ -33,14 +33,6 @@ class Asynchronous implements DefinedObject
     public function getChannelName(): array
     {
         return is_string($this->channelName) ? [$this->channelName] : $this->channelName;
-    }
-
-    /**
-     * @return AsynchronousEndpointAttribute[]
-     */
-    public function getAsynchronousExecution(): array
-    {
-        return $this->asynchronousExecution;
     }
 
     public function getDefinition(): Definition

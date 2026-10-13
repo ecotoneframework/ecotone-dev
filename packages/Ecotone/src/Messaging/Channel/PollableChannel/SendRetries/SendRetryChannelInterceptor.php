@@ -101,7 +101,7 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
             static fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])
                 ->setMultipleHeaders($entry['headers'])
                 ->build(),
-            $payload->getEntries(),
+            $payload->entries,
         );
     }
 

@@ -42,7 +42,7 @@ final class MessageChannelConfiguration
             ),
             // No retries push directly
             PollingMetadata::create('delivery')
-                ->setErrorChannelName('custom_dead_letter'),
+                ->withErrorChannelName('custom_dead_letter'),
         ];
     }
 }

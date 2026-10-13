@@ -72,7 +72,7 @@ final class DbalPublisherModule implements AnnotationModule
             }
 
             $registeredReferences[] = $dbalPublisher->getReferenceName();
-            $mediaType              = $dbalPublisher->getOutputDefaultConversionMediaType() ? $dbalPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->getDefaultSerializationMediaType();
+            $mediaType              = $dbalPublisher->getOutputDefaultConversionMediaType() ? $dbalPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->defaultSerializationMediaType;
 
             $messagingConfiguration = $messagingConfiguration
                 ->registerGatewayBuilder(

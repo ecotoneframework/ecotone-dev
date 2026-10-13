@@ -16,7 +16,7 @@ final class ProductsConfiguration
     public function setMaximumOneRunForProjections(): PollingMetadata
     {
         return PollingMetadata::create(Products::PROJECTION_NAME)
-            ->setExecutionAmountLimit(3)
-            ->setExecutionTimeLimitInMilliseconds(300);
+            ->withExecutionAmountLimit(3)
+            ->withExecutionTimeLimitInMilliseconds(300);
     }
 }

@@ -35,8 +35,7 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
     }
 
     /**
-     * Coalesces published Messages into a single scripted round trip.
-     * Non blocking confirmation is not offered here, as the round trip blocks until Redis confirms it.
+     * @link https://docs.ecotone.tech/modules/redis-support#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(): self
     {

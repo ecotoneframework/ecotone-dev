@@ -214,7 +214,7 @@ final class AsynchronousModule implements AnnotationModule
         $combinedMessageChannels = [];
         /** @var CombinedMessageChannel $combinedMessageChannel */
         foreach (ExtensionObjectResolver::resolve(CombinedMessageChannel::class, $extensionObjects) as $combinedMessageChannel) {
-            $combinedMessageChannels[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->getCombinedChannels();
+            $combinedMessageChannels[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->combinedChannels;
         }
 
         $endpointChannels = [];
@@ -243,8 +243,8 @@ final class AsynchronousModule implements AnnotationModule
                     if ($this->isInMemoryPollableChannel($polingChannelBuilders, $asyncEndpointChannel)) {
                         $messagingConfiguration->registerPollingMetadata(
                             PollingMetadata::create($asyncEndpointChannel)
-                                ->setStopOnError(true)
-                                ->setFinishWhenNoMessages(true)
+                                ->withStopOnError(true)
+                                ->withFinishWhenNoMessages(true)
                         );
 
                         continue;

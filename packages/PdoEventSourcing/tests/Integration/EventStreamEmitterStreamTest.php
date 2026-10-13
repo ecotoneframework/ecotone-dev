@@ -60,7 +60,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [TicketWasRegistered::class, TicketListUpdated::class],
-            array_map(fn ($event) => $event->getEventName(), $events)
+            array_map(fn ($event) => $event->eventName, $events)
         );
         self::assertFalse(self::tableExists($this->getConnection(), 'emitted_notifications'));
     }
@@ -106,7 +106,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 fn ($event) => $event->getPayload(),
                 array_values(array_filter(
                     $ecotone->getGateway(EventStore::class)->load(StreamTableRegistry::DEFAULT_STREAM),
-                    fn ($event) => $event->getEventName() === TicketListUpdated::class
+                    fn ($event) => $event->eventName === TicketListUpdated::class
                 ))
             )
         );
@@ -128,7 +128,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertSame(
             [TicketWasRegistered::class, TicketListUpdated::class],
-            array_map(fn ($event) => $event->getEventName(), $eventStore->load(StreamTableRegistry::DEFAULT_STREAM))
+            array_map(fn ($event) => $event->eventName, $eventStore->load(StreamTableRegistry::DEFAULT_STREAM))
         );
         self::assertSame([], $eventStore->load('emitted_notifications'));
     }

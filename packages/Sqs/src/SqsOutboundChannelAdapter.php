@@ -70,7 +70,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $payload = $message->getPayload();
         $messagesToPublish = $payload instanceof BatchMessage
-            ? array_map(fn (array $entry): Message => $this->convertBatchEntryToMessage($entry), $payload->getEntries())
+            ? array_map(fn (array $entry): Message => $this->convertBatchEntryToMessage($entry), $payload->entries)
             : [$message];
 
         if ($messagesToPublish === []) {

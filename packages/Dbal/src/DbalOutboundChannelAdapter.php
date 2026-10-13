@@ -67,7 +67,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     protected function handleBatch(BatchMessage $batchMessage, Context $context): void
     {
         $messagesToSend = [];
-        foreach ($batchMessage->getEntries() as $entry) {
+        foreach ($batchMessage->entries as $entry) {
             $outboundMessage = $this->prepareOutboundMessageFromBatchEntry($entry);
             $headers = $outboundMessage->getHeaders();
             $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();

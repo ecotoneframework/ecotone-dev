@@ -9,19 +9,13 @@ namespace Ecotone\Api\ExtensionObject;
  */
 abstract class ConnectionReference
 {
-    public function __construct(private string $referenceName, private ?string $connectionName)
+    public function __construct(private string $referenceName, public readonly ?string $connectionName)
     {
-
     }
 
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    public function getConnectionName(): ?string
-    {
-        return $this->connectionName;
     }
 
     public function __toString(): string

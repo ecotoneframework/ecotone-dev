@@ -77,7 +77,7 @@ final class DbalTaggedEventReader
         $matched = new MatchedEvents();
 
         foreach ($criteria->branches() as $branch) {
-            if ($branch->tags() === []) {
+            if ($branch->tags === []) {
                 continue;
             }
 
@@ -88,11 +88,11 @@ final class DbalTaggedEventReader
                 $event = $eventsByStream[$flag['stream']][$flag['eventNo']] ?? null;
                 $sequence = $flag['sequences'][$positionTagKey] ?? null;
 
-                if ($event === null || $sequence === null || ($branch->tagSequenceLowerBound() > 0 && $sequence <= $branch->tagSequenceLowerBound())) {
+                if ($event === null || $sequence === null || ($branch->tagSequenceLowerBound > 0 && $sequence <= $branch->tagSequenceLowerBound)) {
                     continue;
                 }
 
-                if (! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
+                if (! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->eventName)) {
                     continue;
                 }
 
@@ -124,7 +124,7 @@ final class DbalTaggedEventReader
      */
     private function flagCarriesAllTags(array $flag, EventCriteria $branch): bool
     {
-        foreach ($branch->tags() as $tag) {
+        foreach ($branch->tags as $tag) {
             if (! ($flag['has'][TagKey::of($tag['name'], $tag['value'])] ?? false)) {
                 return false;
             }

@@ -121,21 +121,21 @@ class MessagingContainerBuilder
             $pollingMetadata = PollingMetadata::create($endpointId);
         }
 
-        if ($this->applicationConfiguration->getDefaultErrorChannel() && $pollingMetadata->isErrorChannelEnabled() && ! $pollingMetadata->getErrorChannelName()) {
+        if ($this->applicationConfiguration->defaultErrorChannel && $pollingMetadata->isErrorChannelEnabled && ! $pollingMetadata->getErrorChannelName()) {
             $pollingMetadata = $pollingMetadata
-                ->setErrorChannelName($this->applicationConfiguration->getDefaultErrorChannel());
+                ->withErrorChannelName($this->applicationConfiguration->defaultErrorChannel);
         }
-        if ($this->applicationConfiguration->getDefaultMemoryLimitInMegabytes() && ! $pollingMetadata->getMemoryLimitInMegabytes()) {
+        if ($this->applicationConfiguration->defaultMemoryLimitInMegabytes && ! $pollingMetadata->memoryLimitInMegabytes) {
             $pollingMetadata = $pollingMetadata
-                ->setMemoryLimitInMegaBytes($this->applicationConfiguration->getDefaultMemoryLimitInMegabytes());
+                ->withMemoryLimitInMegaBytes($this->applicationConfiguration->defaultMemoryLimitInMegabytes);
         }
-        if ($this->applicationConfiguration->getConnectionRetryTemplate() && ! $pollingMetadata->getConnectionRetryTemplate()) {
+        if ($this->applicationConfiguration->connectionRetryTemplate && ! $pollingMetadata->connectionRetryTemplate) {
             $pollingMetadata = $pollingMetadata
-                ->setConnectionRetryTemplate($this->applicationConfiguration->getConnectionRetryTemplate());
+                ->withConnectionRetryTemplate($this->applicationConfiguration->connectionRetryTemplate);
         }
 
         if ($withContinuousPolling) {
-            $pollingMetadata = $pollingMetadata->setFixedRateInMilliseconds(1);
+            $pollingMetadata = $pollingMetadata->withFixedRateInMilliseconds(1);
         }
 
         return $pollingMetadata;

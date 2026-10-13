@@ -18,7 +18,7 @@ final class LaravelConnectionResolver
 {
     public static function resolveLaravelConnection(LaravelConnectionReference $connectionReference): ConnectionFactory
     {
-        $connection = DB::connection($connectionReference->getLaravelConnectionName());
+        $connection = DB::connection($connectionReference->laravelConnectionName);
         if (method_exists($connection, 'getDoctrineConnection')) {
             $doctrineConnection = $connection->getDoctrineConnection();
         } else {

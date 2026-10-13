@@ -43,7 +43,7 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
 
         /** @var RedisMessagePublisherConfiguration $messagePublisher */
         foreach (ExtensionObjectResolver::resolve(RedisMessagePublisherConfiguration::class, $extensionObjects) as $messagePublisher) {
-            $mediaType = $messagePublisher->getOutputDefaultConversionMediaType() ?: $serviceConfiguration->getDefaultSerializationMediaType();
+            $mediaType = $messagePublisher->getOutputDefaultConversionMediaType() ?: $serviceConfiguration->defaultSerializationMediaType;
 
             $messagingConfiguration
                 ->registerGatewayBuilder(

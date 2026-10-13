@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 
 /**
@@ -13,8 +12,8 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 class ErrorHandlerConfiguration
 {
     private string $errorChannelName;
-    private RetryTemplate $delayedRetryTemplate;
-    private ?string $deadLetterChannel;
+    public readonly RetryTemplate $delayedRetryTemplate;
+    public readonly ?string $deadLetterChannel;
 
     private function __construct(string $errorChannelName, RetryTemplate $delayedRetryTemplate, ?string $deadLetterChannel)
     {
@@ -43,21 +42,8 @@ class ErrorHandlerConfiguration
         );
     }
 
-    /**
-     * @return string
-     */
     public function getErrorChannelName(): string
     {
         return $this->errorChannelName;
-    }
-
-    public function getDeadLetterQueueChannel(): ?string
-    {
-        return $this->deadLetterChannel;
-    }
-
-    public function getDelayedRetryTemplate(): RetryTemplate
-    {
-        return $this->delayedRetryTemplate;
     }
 }

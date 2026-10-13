@@ -47,8 +47,8 @@ final class EcotoneConfiguration
     public function notificationPollingMetadata(): PollingMetadata
     {
         return PollingMetadata::create('notifications')
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(10)
-            ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(10)
+            ->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
     }
 }

@@ -33,7 +33,7 @@ final class HighThroughputTestChannel implements PollableChannel, BatchSupportin
         $payload = $message->getPayload();
 
         if ($payload instanceof BatchMessage) {
-            foreach ($payload->getEntries() as $entry) {
+            foreach ($payload->entries as $entry) {
                 $this->queue[] = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();

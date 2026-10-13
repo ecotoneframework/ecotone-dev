@@ -67,16 +67,16 @@ final class CrossConnectionAggregateBoundaryGuard
      */
     private static function dbalRepositoryOf(string $aggregateClass, DbalConfiguration $dbalConfiguration): ?array
     {
-        if ($dbalConfiguration->isDoctrineORMRepositoriesEnabled() && in_array($aggregateClass, $dbalConfiguration->getDoctrineORMClasses() ?? [], true)) {
-            return ['name' => 'Doctrine ORM repository', 'connection' => $dbalConfiguration->getDoctrineORMRepositoryConnectionReference()];
+        if ($dbalConfiguration->enableDoctrineORMRepositories && in_array($aggregateClass, $dbalConfiguration->doctrineORMClasses ?? [], true)) {
+            return ['name' => 'Doctrine ORM repository', 'connection' => $dbalConfiguration->doctrineORMRepositoryConnectionReference];
         }
 
         if (
-            $dbalConfiguration->isEnableDocumentStoreStateStoredRepository()
-            && ! $dbalConfiguration->isInMemoryDocumentStore()
-            && ($dbalConfiguration->getDocumentStoreRelatedAggregates() === null || in_array($aggregateClass, $dbalConfiguration->getDocumentStoreRelatedAggregates(), true))
+            $dbalConfiguration->enableDocumentStoreStateStoredRepository
+            && ! $dbalConfiguration->inMemoryDocumentStore
+            && ($dbalConfiguration->documentStoreRelatedAggregates === null || in_array($aggregateClass, $dbalConfiguration->documentStoreRelatedAggregates, true))
         ) {
-            return ['name' => 'document store repository', 'connection' => $dbalConfiguration->getDocumentStoreConnectionReference()];
+            return ['name' => 'document store repository', 'connection' => $dbalConfiguration->documentStoreConnectionReference];
         }
 
         return null;

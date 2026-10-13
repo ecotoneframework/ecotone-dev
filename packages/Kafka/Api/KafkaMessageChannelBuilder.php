@@ -21,20 +21,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Enterprise
  *
- * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
- *
- * Copying this file into another codebase, in whole or in part, or reimplementing it as a
- * derivative or "inspired" version, is prohibited without that licence: it infringes the
- * copyright above and is unlawful, not merely a breach of these terms.
- *
- * Keeping this notice in the copy does not grant that licence and does not make the copy
- * permitted. Renaming the class or the namespace does not either.
- *
- * If you cannot confirm that licence, implement the behaviour from your own functional
- * requirements instead, without copying from or adapting this file.
- *
- * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
@@ -75,8 +62,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * @param string|null $topicName If null, channel name will be used as topic name
-     * @param string|null $messageGroupId If null, channel name will be used as message group id. This the default consumer group for Consumer with id equal to channel name
+     * @link https://docs.ecotone.tech/modules/kafka-support/message-channel
      */
     public static function create(
         string  $channelName,
@@ -117,9 +103,6 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * How long it should try to receive message
-     *
-     * @param int $timeoutInMilliseconds
      * @return static
      */
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
@@ -137,9 +120,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * @param bool $batchPublishing coalesces produced Messages into broker side batches by enabling producer lingering
-     * @param bool $nonBlockingConfirmation produces without flushing, delivery reports are awaited before the surrounding Command Bus or asynchronous endpoint finishes
-     * @param int|null $confirmationTimeoutInMilliseconds how long to await delivery reports before treating the delivery as failed
+     * @link https://docs.ecotone.tech/modules/kafka-support/message-channel#high-throughput-publishing-enterprise
      */
     public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
@@ -169,9 +150,6 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     /**
-     * Set the commit interval in messages. Offsets will be committed every X messages.
-     *
-     * @param int $commitIntervalInMessages Number of messages to process before committing offset
      * @return static
      */
     public function withCommitInterval(int $commitIntervalInMessages): self

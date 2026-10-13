@@ -13,9 +13,9 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
  */
 class MessageGateway
 {
-    private string $requestChannel;
+    public readonly string $requestChannel;
     private string $errorChannel;
-    private int $replyTimeoutInMilliseconds;
+    public readonly int $replyTimeoutInMilliseconds;
     private array $requiredInterceptorNames;
     private ?string $replyContentType;
 
@@ -28,19 +28,9 @@ class MessageGateway
         $this->replyContentType           = $replyContentType;
     }
 
-    public function getRequestChannel(): string
-    {
-        return $this->requestChannel;
-    }
-
     public function getErrorChannel(): string
     {
         return $this->errorChannel;
-    }
-
-    public function getReplyTimeoutInMilliseconds(): int
-    {
-        return $this->replyTimeoutInMilliseconds;
     }
 
     public function getRequiredInterceptorNames(): array

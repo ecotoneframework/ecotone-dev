@@ -53,7 +53,7 @@ class HeadersExchangeDelayStrategy implements DelayStrategy
         $context->declareTopic($enqueueExchange);
 
         $context->declareQueue($queue->toEnqueueQueue());
-        $context->bind($binding->toEnqueueBinding());
+        $context->bind($binding->enqueueBinding);
 
         $context->createProducer()->send($enqueueExchange, $delayMessage);
     }

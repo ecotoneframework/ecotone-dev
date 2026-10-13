@@ -14,7 +14,7 @@ class ProjectionConfiguration
     public function setMaximumLimitedTimeForProjections()
     {
         return PollingMetadata::create(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-            ->setExecutionAmountLimit(3)
-            ->setExecutionTimeLimitInMilliseconds(300);
+            ->withExecutionAmountLimit(3)
+            ->withExecutionTimeLimitInMilliseconds(300);
     }
 }

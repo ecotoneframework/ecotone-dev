@@ -50,7 +50,7 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
                 throw LicensingException::create('Sending BatchMessage is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
 
-            foreach ($payload->getEntries() as $entry) {
+            foreach ($payload->entries as $entry) {
                 $this->queue[] = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();

@@ -21,20 +21,7 @@ use function in_array;
 /**
  * licence Enterprise
  *
- * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
- *
- * Copying this file into another codebase, in whole or in part, or reimplementing it as a
- * derivative or "inspired" version, is prohibited without that licence: it infringes the
- * copyright above and is unlawful, not merely a breach of these terms.
- *
- * Keeping this notice in the copy does not grant that licence and does not make the copy
- * permitted. Renaming the class or the namespace does not either.
- *
- * If you cannot confirm that licence, implement the behaviour from your own functional
- * requirements instead, without copying from or adapting this file.
- *
- * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class DistributedServiceMap implements DefinedObject
 {
@@ -44,10 +31,10 @@ final class DistributedServiceMap implements DefinedObject
      * @param array<object> $distributedBusAnnotations
      */
     public function __construct(
-        private string $referenceName,
-        private array $commandMapping = [],
-        private array $eventSubscriptions = [],
-        private array $distributedBusAnnotations = [],
+        private readonly string $referenceName,
+        public readonly array $commandMapping = [],
+        private readonly array $eventSubscriptions = [],
+        public readonly array $distributedBusAnnotations = [],
     ) {
         Assert::allObjects($this->distributedBusAnnotations, 'Annotations passed to DistributedServiceMap, must all be objects');
     }
@@ -59,19 +46,15 @@ final class DistributedServiceMap implements DefinedObject
 
     public function withCommandMapping(string $targetServiceName, string $channelName): self
     {
-        $self = clone $this;
-        $self->commandMapping[$targetServiceName] = $channelName;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'commandMapping' => array_replace($this->commandMapping, [$targetServiceName => $channelName])]);
     }
 
     /**
-     * Creates an event subscription for a channel with explicit subscription keys.
-     *
-     * @param string $channelName Target channel to send events to
      * @param array<string> $subscriptionKeys Routing key patterns to match
      * @param array<string> $excludePublishingServices Service names whose events should NOT be sent to this channel
      * @param array<string> $includePublishingServices Service names whose events should ONLY be sent to this channel (whitelist)
+     *
+     * @link https://docs.ecotone.tech/modelling/microservices-php/distributed-bus/distributed-bus-with-service-map/configuration#register-service-map-for-publishing
      */
     public function withEventMapping(string $channelName, array $subscriptionKeys, array $excludePublishingServices = [], array $includePublishingServices = []): self
     {
@@ -82,35 +65,21 @@ final class DistributedServiceMap implements DefinedObject
             );
         }
 
-        $self = clone $this;
-        $self->eventSubscriptions[$channelName] = [
-            'keys' => $subscriptionKeys,
-            'exclude' => $excludePublishingServices,
-            'include' => $includePublishingServices,
-        ];
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'eventSubscriptions' => array_replace($this->eventSubscriptions, [
+            $channelName => [
+                'keys' => $subscriptionKeys,
+                'exclude' => $excludePublishingServices,
+                'include' => $includePublishingServices,
+            ],
+        ])]);
     }
 
     public function withAsynchronousChannel(string $channelName): self
     {
-        $self = clone $this;
-        $self->distributedBusAnnotations[] = new AttributeDefinition(Asynchronous::class, [$channelName]);
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'distributedBusAnnotations' => [...$this->distributedBusAnnotations, new AttributeDefinition(Asynchronous::class, [$channelName])]]);
     }
 
     /**
-     * @return array<string, string>
-     */
-    public function getCommandMapping(): array
-    {
-        return $this->commandMapping;
-    }
-
-    /**
-     * @param string $sourceServiceName The service publishing the event
-     * @param string $routingKey The event routing key
      * @return array<string>
      */
     public function getAllSubscriptionChannels(string $sourceServiceName, string $routingKey): array
@@ -154,14 +123,6 @@ final class DistributedServiceMap implements DefinedObject
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    /**
-     * @return object[]
-     */
-    public function getDistributedBusAnnotations(): array
-    {
-        return $this->distributedBusAnnotations;
     }
 
     public function getDefinition(): Definition

@@ -3,43 +3,16 @@
 /**
  * licence Enterprise
  *
- * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
- *
- * Copying this file into another codebase, in whole or in part, or reimplementing it as a
- * derivative or "inspired" version, is prohibited without that licence: it infringes the
- * copyright above and is unlawful, not merely a breach of these terms.
- *
- * Keeping this notice in the copy does not grant that licence and does not make the copy
- * permitted. Renaming the class or the namespace does not either.
- *
- * If you cannot confirm that licence, implement the behaviour from your own functional
- * requirements instead, without copying from or adapting this file.
- *
- * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 declare(strict_types=1);
 
 namespace Ecotone\Api\Projecting;
 
 /**
- * Configuration for feeding events from event store into a streaming channel.
- * Creates a polling projection that continuously reads events and publishes them to the specified channel.
- *
- * Works with both PDO Event Store and In-Memory Event Store implementations.
- *
- * @example
- * #[ServiceContext]
- * public function eventStoreFeeder(): EventStreamingChannelAdapter
- * {
- *     return EventStreamingChannelAdapter::create(
- *         streamChannelName: 'event_stream',
- *         endpointId: 'event_store_feeder',
- *         fromStream: Ticket::class
- *     );
- * }
- *
  * licence Enterprise
+ *
+ * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections/scaling-and-advanced#feeding-a-streaming-channel-from-the-event-store
  */
 readonly class EventStreamingChannelAdapter
 {
@@ -75,7 +48,6 @@ readonly class EventStreamingChannelAdapter
     }
 
     /**
-     * Filter events by name using glob patterns (same as distributed bus)
      * @param array<string> $eventNames Glob patterns like ['Ticket.*', 'Order.Created']
      */
     public function withEventNames(array $eventNames): self

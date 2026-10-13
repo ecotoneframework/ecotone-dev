@@ -96,7 +96,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
             {
                 $payload = $message->getPayload();
                 $this->sentBatchPayloads[] = $payload instanceof BatchMessage
-                    ? array_map(fn (array $entry): mixed => $entry['payload'], $payload->getEntries())
+                    ? array_map(fn (array $entry): mixed => $entry['payload'], $payload->entries)
                     : [$payload];
             }
 

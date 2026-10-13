@@ -91,7 +91,7 @@ final class DecisionModelAppendInterceptor
         }
 
         foreach ($events as $event) {
-            $this->eventBus->publish($event->getPayload(), $event->getMetadata());
+            $this->eventBus->publish($event->getPayload(), $event->metadata);
         }
 
         return $result;

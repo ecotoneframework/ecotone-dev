@@ -82,7 +82,7 @@ class AcknowledgeConfirmationInterceptor
 
             return;
         } catch (Throwable $exception) {
-            if ($acknowledgementCallback->getFailureStrategy() === FinalFailureStrategy::STOP || $pollingMetadata->isStoppedOnError()) {
+            if ($acknowledgementCallback->getFailureStrategy() === FinalFailureStrategy::STOP || $pollingMetadata->stopOnError) {
                 $acknowledgementCallback->release();
 
                 $logger->critical(

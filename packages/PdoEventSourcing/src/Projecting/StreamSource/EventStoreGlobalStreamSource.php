@@ -185,7 +185,7 @@ class EventStoreGlobalStreamSource implements StreamSource
                         $offsets[$streamTable] = 0;
                         continue;
                     }
-                    if ($candidate === null || $this->matchesAnyFilter($tableFilters, $candidate->getEventName(), $candidate->getMetadata())) {
+                    if ($candidate === null || $this->matchesAnyFilter($tableFilters, $candidate->eventName, $candidate->metadata)) {
                         break;
                     }
 

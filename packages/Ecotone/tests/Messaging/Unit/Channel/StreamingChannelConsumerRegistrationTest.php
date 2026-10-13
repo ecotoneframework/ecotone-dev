@@ -66,7 +66,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
-                    PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
+                    PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
                 ])
         );
 
@@ -118,8 +118,8 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
-                    PollingMetadata::create('consumer_group_1')->setHandledMessageLimit(1),
-                    PollingMetadata::create('consumer_group_2')->setHandledMessageLimit(1),
+                    PollingMetadata::create('consumer_group_1')->withHandledMessageLimit(1),
+                    PollingMetadata::create('consumer_group_2')->withHandledMessageLimit(1),
                 ])
         );
 
@@ -170,8 +170,8 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
-                    PollingMetadata::create('consumer_group_1')->setHandledMessageLimit(1),
-                    PollingMetadata::create('consumer_group_2')->setHandledMessageLimit(1),
+                    PollingMetadata::create('consumer_group_1')->withHandledMessageLimit(1),
+                    PollingMetadata::create('consumer_group_2')->withHandledMessageLimit(1),
                 ])
         );
 

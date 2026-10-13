@@ -29,7 +29,7 @@ final class EventSerializer
     {
         if ($event instanceof Event) {
             $payload = $event->getPayload();
-            $metadata = $event->getMetadata();
+            $metadata = $event->metadata;
         } else {
             $payload = $event;
             $metadata = [];

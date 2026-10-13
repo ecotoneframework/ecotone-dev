@@ -164,9 +164,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
                     SimpleMessageChannelBuilder::createQueueChannel($errorChannelName),
                     PollingMetadata::create('async')
-                        ->setStopOnError(false)
-                        ->setExecutionAmountLimit(1)
-                        ->setErrorChannelName($errorChannelName),
+                        ->withStopOnError(false)
+                        ->withExecutionAmountLimit(1)
+                        ->withErrorChannelName($errorChannelName),
                 ])
         );
 
@@ -190,9 +190,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
                     PollingMetadata::create('async')
-                        ->setStopOnError(false)
-                        ->setExecutionAmountLimit(1)
-                        ->setErrorChannelName('errorHandler'),
+                        ->withStopOnError(false)
+                        ->withExecutionAmountLimit(1)
+                        ->withErrorChannelName('errorHandler'),
                 ])
         );
 
@@ -220,9 +220,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
                     SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnSend($errorChannelName)),
                     PollingMetadata::create('async')
-                        ->setStopOnError(false)
-                        ->setExecutionAmountLimit(1)
-                        ->setErrorChannelName($errorChannelName),
+                        ->withStopOnError(false)
+                        ->withExecutionAmountLimit(1)
+                        ->withErrorChannelName($errorChannelName),
                 ])
         );
 

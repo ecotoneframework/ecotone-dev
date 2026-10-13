@@ -108,25 +108,25 @@ class InterceptedConsumer implements ConsumerLifecycle
     public static function createInterceptorsForPollingMetadata(PollingMetadata $pollingMetadata, LoggerInterface $logger, EcotoneClockInterface $clock, PcntlTerminationListener $pcntlTerminationListener): array
     {
         $interceptors = [];
-        if ($pollingMetadata->getHandledMessageLimit() > 0) {
-            $interceptors[] = new LimitConsumedMessagesInterceptor($pollingMetadata->getHandledMessageLimit());
+        if ($pollingMetadata->handledMessageLimit > 0) {
+            $interceptors[] = new LimitConsumedMessagesInterceptor($pollingMetadata->handledMessageLimit);
         }
-        if ($pollingMetadata->getMemoryLimitInMegabytes() !== 0) {
-            $interceptors[] = new LimitMemoryUsageInterceptor($pollingMetadata->getMemoryLimitInMegabytes());
+        if ($pollingMetadata->memoryLimitInMegabytes !== 0) {
+            $interceptors[] = new LimitMemoryUsageInterceptor($pollingMetadata->memoryLimitInMegabytes);
         }
-        if ($pollingMetadata->isWithSignalInterceptors()) {
+        if ($pollingMetadata->withSignalInterceptors) {
             $interceptors[] = new SignalInterceptor($pcntlTerminationListener);
         }
-        if ($pollingMetadata->getExecutionAmountLimit() > 0) {
-            $interceptors[] = new LimitExecutionAmountInterceptor($pollingMetadata->getExecutionAmountLimit());
+        if ($pollingMetadata->executionAmountLimit > 0) {
+            $interceptors[] = new LimitExecutionAmountInterceptor($pollingMetadata->executionAmountLimit);
         }
-        if ($pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0) {
-            $interceptors[] = new TimeLimitInterceptor($clock, $pollingMetadata->getExecutionTimeLimitInMilliseconds());
+        if ($pollingMetadata->executionTimeLimitInMilliseconds > 0) {
+            $interceptors[] = new TimeLimitInterceptor($clock, $pollingMetadata->executionTimeLimitInMilliseconds);
         }
-        if ($pollingMetadata->finishWhenNoMessages()) {
+        if ($pollingMetadata->finishWhenNoMessages) {
             $interceptors[] = new FinishWhenNoMessagesInterceptor($clock);
         }
-        $interceptors[] = new ConnectionExceptionRetryInterceptor($clock, $logger, $pollingMetadata->getConnectionRetryTemplate(), $pollingMetadata->isStoppedOnError());
+        $interceptors[] = new ConnectionExceptionRetryInterceptor($clock, $logger, $pollingMetadata->connectionRetryTemplate, $pollingMetadata->stopOnError);
 
         return $interceptors;
     }

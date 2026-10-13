@@ -104,8 +104,8 @@ final class KafkaAdmin
             $conf = $configuration->getConfig();
             $kafkaConsumerConfig = $this->getConsumerConfiguration($endpointId, $channelName);
 
-            $conf->set('group.id', $kafkaConsumerConfig->getGroupId());
-            $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
+            $conf->set('group.id', $kafkaConsumerConfig->groupId);
+            $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->bootstrapServers));
             $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
@@ -155,7 +155,7 @@ final class KafkaAdmin
         if (! array_key_exists($referenceName, $this->initializedProducers)) {
             $configuration = $this->getConfigurationForPublisher($referenceName);
             $conf = $configuration->getAsKafkaConfig();
-            $conf->set('metadata.broker.list', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
+            $conf->set('metadata.broker.list', implode(',', $this->kafkaBrokerConfigurations[$configuration->brokerConfigurationReference]->bootstrapServers));
             $this->setLoggerCallbacks($conf, $referenceName);
             $deliveryTracker = $this->getDeliveryTracker($referenceName);
             $conf->setDrMsgCb(
@@ -164,7 +164,7 @@ final class KafkaAdmin
                 }
             );
             $producer = new Producer($conf);
-            $producer->addBrokers(implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
+            $producer->addBrokers(implode(',', $this->kafkaBrokerConfigurations[$configuration->brokerConfigurationReference]->bootstrapServers));
 
             $this->initializedProducers[$referenceName] = $producer;
         }
@@ -180,7 +180,7 @@ final class KafkaAdmin
     public function getTopicForProducer(string $referenceName): ProducerTopic
     {
         $producer = $this->getProducer($referenceName);
-        $topicName = $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->getDefaultTopicName());
+        $topicName = $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->defaultTopicName);
 
         return $producer->newTopic(
             $topicName,
@@ -239,7 +239,7 @@ final class KafkaAdmin
             $defaultChannelConfig = $this->consumerConfigurations[$channelName];
 
             if ($this->isUsedAsInputChannelForDifferentEndpoint($defaultChannelConfig, $endpointId)) {
-                return $defaultChannelConfig->changeGroupId($defaultChannelConfig->getGroupId() . '_' . $endpointId);
+                return $defaultChannelConfig->changeGroupId($defaultChannelConfig->groupId . '_' . $endpointId);
             }
 
             return $defaultChannelConfig;

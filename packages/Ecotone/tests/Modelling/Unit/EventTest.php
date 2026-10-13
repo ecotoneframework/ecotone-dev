@@ -38,7 +38,7 @@ final class EventTest extends TestCase
 
         $recordedEvent = $ecotone->getGateway(EventStore::class)->load('explicitMetadataStream')[0];
 
-        $this->assertSame('uuid', $recordedEvent->getMetadata()[MessageHeaders::MESSAGE_ID]);
-        $this->assertSame(123, $recordedEvent->getMetadata()[MessageHeaders::TIMESTAMP]);
+        $this->assertSame('uuid', $recordedEvent->metadata[MessageHeaders::MESSAGE_ID]);
+        $this->assertSame(123, $recordedEvent->metadata[MessageHeaders::TIMESTAMP]);
     }
 }

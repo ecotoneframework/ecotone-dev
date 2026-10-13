@@ -21,19 +21,19 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
 
     public function canHandle(string $aggregateClassName): bool
     {
-        if (is_null($this->dbalConfiguration->getDoctrineORMClasses())) {
+        if (is_null($this->dbalConfiguration->doctrineORMClasses)) {
             return false;
         }
 
-        return in_array($aggregateClassName, $this->dbalConfiguration->getDoctrineORMClasses());
+        return in_array($aggregateClassName, $this->dbalConfiguration->doctrineORMClasses);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(ManagerRegistryRepository::class, [
-            new Reference($this->dbalConfiguration->getDoctrineORMRepositoryConnectionReference()),
-            $this->dbalConfiguration->getDoctrineORMClasses(),
-            $this->dbalConfiguration->isFlushingDuringPersisting(),
+            new Reference($this->dbalConfiguration->doctrineORMRepositoryConnectionReference),
+            $this->dbalConfiguration->doctrineORMClasses,
+            $this->dbalConfiguration->flushDuringPersisting,
         ]);
     }
 }

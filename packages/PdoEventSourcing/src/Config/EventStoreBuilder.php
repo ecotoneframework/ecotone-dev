@@ -21,7 +21,7 @@ final class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
     private function __construct(private string $methodName, private array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventStoreReference)
     {
-        $this->inputMessageChannelName = $eventSourcingConfiguration->getEventStoreReferenceName() . $methodName;
+        $this->inputMessageChannelName = $eventSourcingConfiguration->eventStoreReferenceName . $methodName;
     }
 
     /**

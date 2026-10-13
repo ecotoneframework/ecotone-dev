@@ -20,8 +20,8 @@ final class ConnectionRetryChannels
         return [
             SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive('connection_lost_four_times', 4)),
             SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive('connection_lost_five_times', 5)),
-            PollingMetadata::create('connection_lost_four_times')->setStopOnError(false),
-            PollingMetadata::create('connection_lost_five_times')->setStopOnError(false),
+            PollingMetadata::create('connection_lost_four_times')->withStopOnError(false),
+            PollingMetadata::create('connection_lost_five_times')->withStopOnError(false),
         ];
     }
 }

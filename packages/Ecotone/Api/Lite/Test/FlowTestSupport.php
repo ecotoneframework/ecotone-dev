@@ -26,7 +26,6 @@ use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -56,7 +55,7 @@ final class FlowTestSupport
         private EventBus $eventBus,
         private QueryBus $queryBus,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
-        private MessagingTestSupport $testSupportGateway,
+        public readonly MessagingTestSupport $testSupportGateway,
         private MessagingEntrypointService $messagingEntrypoint,
         private EcotoneClockInterface $clock,
         private ConfiguredMessagingSystem $configuredMessagingSystem
@@ -107,7 +106,6 @@ final class FlowTestSupport
 
         return $this;
     }
-
 
     /**
      * @return mixed[]
@@ -414,7 +412,6 @@ final class FlowTestSupport
      * This will only be recorded when Message was sent via Command Bus
      *
      * @return string[]
-     * @throws MessagingException
      */
     public function popRecordedCommandsWithRouting(): array
     {
@@ -455,7 +452,6 @@ final class FlowTestSupport
     /**
      * @template T of object
      * @param class-string<T> $className
-     * @param string|array $identifiers
      * @return T
      */
     public function getSaga(string $className, string|array $identifiers): object
@@ -524,11 +520,6 @@ final class FlowTestSupport
     public function getQueryBus(): QueryBus
     {
         return $this->queryBus;
-    }
-
-    public function getMessagingTestSupport(): MessagingTestSupport
-    {
-        return $this->testSupportGateway;
     }
 
     public function getDistributedBus(string $referenceName = DistributedBus::class): DistributedBus

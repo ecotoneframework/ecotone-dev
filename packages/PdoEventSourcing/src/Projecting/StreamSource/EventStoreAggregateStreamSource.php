@@ -99,6 +99,6 @@ class EventStoreAggregateStreamSource implements StreamSource
         if ($lastEvent === false) {
             return $lastPosition ?? '';
         }
-        return (string) $lastEvent->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
+        return (string) $lastEvent->metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
     }
 }

@@ -57,7 +57,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
 
         $events = $ecotone->getEventStreamEvents('ecotone_event_stream');
         $this->assertCount(1, $events);
-        $this->assertSame('abc', $events[0]->getMetadata()['correlationHeader']);
+        $this->assertSame('abc', $events[0]->metadata['correlationHeader']);
     }
 
     public function test_reference_service_is_injected_alongside_a_decision_model(): void

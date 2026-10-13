@@ -47,9 +47,9 @@ final class TempestModule extends NoExternalConfigurationModule implements Annot
 
         foreach ($tempestConnections as $connection) {
             TempestConnectionDbalGuard::assertDbalInstalledFor(
-                $connection->getConfigTag() === null
+                $connection->configTag === null
                     ? "TempestConnectionReference '{$connection->getReferenceName()}'"
-                    : "TempestConnectionReference::create('{$connection->getConfigTag()}')"
+                    : "TempestConnectionReference::create('{$connection->configTag}')"
             );
             $messagingConfiguration->registerServiceDefinition(
                 $connection->getReferenceName(),
@@ -66,7 +66,7 @@ final class TempestModule extends NoExternalConfigurationModule implements Annot
         $tempestRelatedMultiTenantConfigurations = [];
 
         foreach ($multiTenantConfigurations as $multiTenantConfiguration) {
-            foreach ($multiTenantConfiguration->getTenantToConnectionMapping() as $connectionReference) {
+            foreach ($multiTenantConfiguration->tenantToConnectionMapping as $connectionReference) {
                 if (! ($connectionReference instanceof TempestConnectionReference)) {
                     continue;
                 }

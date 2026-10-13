@@ -22,8 +22,8 @@ class ChannelConfiguration
                 ->withReceiveTimeout(1)
                 ->withPublisherConfirms(false),
             PollingMetadata::create(self::QUEUE_NAME)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(5000),
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(5000),
             AmqpConfiguration::createWithDefaults()
                 ->withTransactionOnAsynchronousEndpoints(true)
                 ->withTransactionOnCommandBus(true),

@@ -11,10 +11,10 @@ use Countable;
  */
 final class BatchMessage implements Countable
 {
-    /** @var array<int, array{payload: mixed, headers: array<string, mixed>}> */
-    private array $entries = [];
-
-    private function __construct()
+    /**
+     * @param array<int, array{payload: mixed, headers: array<string, mixed>}> $entries
+     */
+    private function __construct(public readonly array $entries = [])
     {
     }
 
@@ -28,10 +28,7 @@ final class BatchMessage implements Countable
      */
     public static function fromEntries(array $entries): self
     {
-        $batchMessage = new self();
-        $batchMessage->entries = array_values($entries);
-
-        return $batchMessage;
+        return new self(array_values($entries));
     }
 
     /**
@@ -39,18 +36,7 @@ final class BatchMessage implements Countable
      */
     public function append(mixed $payload, array $headers = []): self
     {
-        $appended = clone $this;
-        $appended->entries[] = ['payload' => $payload, 'headers' => $headers];
-
-        return $appended;
-    }
-
-    /**
-     * @return array<int, array{payload: mixed, headers: array<string, mixed>}>
-     */
-    public function getEntries(): array
-    {
-        return $this->entries;
+        return new self(...[...get_object_vars($this), 'entries' => [...$this->entries, ['payload' => $payload, 'headers' => $headers]]]);
     }
 
     public function count(): int

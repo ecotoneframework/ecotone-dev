@@ -5,12 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\Gateway;
 
 /**
- * Interface SerializerGateway
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- *
- * @TODO 2.0 change namespace and name to SerializerGateway
- */
-/**
  * licence Apache-2.0
  */
 interface SerializerGateway

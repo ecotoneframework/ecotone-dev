@@ -489,11 +489,11 @@ final class KafkaMessageChannelTest extends TestCase
         // Verify group IDs are set correctly
         $this->assertEquals(
             $channelName,
-            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->groupId
         );
         $this->assertEquals(
             $channelName . '_consumer1',
-            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->groupId
         );
     }
 
@@ -526,11 +526,11 @@ final class KafkaMessageChannelTest extends TestCase
         // Verify group IDs are set correctly
         $this->assertEquals(
             $messageGroupId,
-            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->groupId
         );
         $this->assertEquals(
             $messageGroupId . '_consumer1',
-            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->groupId
         );
     }
 

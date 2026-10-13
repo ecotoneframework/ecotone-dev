@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\Assert;
  */
 class CombinedMessageChannel
 {
-    protected function __construct(private string $referenceName, private array $combinedChannels)
+    protected function __construct(private string $referenceName, public readonly array $combinedChannels)
     {
         Assert::notNull($referenceName, 'Reference name can not be null');
         Assert::notNullAndEmpty($this->combinedChannels, 'Combined channels can not be empty');
@@ -28,10 +28,5 @@ class CombinedMessageChannel
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    public function getCombinedChannels(): array
-    {
-        return $this->combinedChannels;
     }
 }

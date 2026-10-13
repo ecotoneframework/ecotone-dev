@@ -19,8 +19,8 @@ class TicketServiceMessagingConfiguration
         return [
             AmqpBackedMessageChannelBuilder::create(self::SERVICE_NAME),
             PollingMetadata::create(self::SERVICE_NAME)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(5000),
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(5000),
         ];
     }
 }

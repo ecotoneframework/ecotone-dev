@@ -125,7 +125,7 @@ final class DecisionModelBatchLoader
     private static function nameScopeOnEveryTagOf(EventCriteria $criteria, string $scopeName, array $decidingScopeNamesByTagKey): array
     {
         foreach ($criteria->branches() as $branch) {
-            foreach ($branch->tags() as $tag) {
+            foreach ($branch->tags as $tag) {
                 $tagKey = TagKey::of($tag['name'], $tag['value']);
 
                 if (! in_array($scopeName, $decidingScopeNamesByTagKey[$tagKey] ?? [], true)) {
@@ -393,7 +393,7 @@ final class DecisionModelBatchLoader
     {
         foreach ($events as $event) {
             $payload = $event->getPayload();
-            $eventClass = is_object($payload) ? $payload::class : $event->getEventName();
+            $eventClass = is_object($payload) ? $payload::class : $event->eventName;
 
             if (in_array($eventClass, $handledEventClasses, true)) {
                 $coveredPosition = max($coveredPosition, self::versionOf($event));
@@ -405,7 +405,7 @@ final class DecisionModelBatchLoader
 
     private static function versionOf(Event $event): int
     {
-        return (int) ($event->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? 0);
+        return (int) ($event->metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? 0);
     }
 
     /**

@@ -171,7 +171,7 @@ class AmqpAdmin
         foreach ($this->amqpBindings as $amqpBinding) {
             if ($amqpBinding->isRelatedToQueueName($queueName) && ! $amqpBinding->isBindToDefaultExchange()) {
                 $this->declareExchange($amqpBinding->getExchangeName(), $amqpContext);
-                $amqpContext->bind($amqpBinding->toEnqueueBinding());
+                $amqpContext->bind($amqpBinding->enqueueBinding);
             }
         }
     }

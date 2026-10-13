@@ -194,7 +194,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
     {
-        $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
+        $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->extensionObjects);
         $extensionApplicationConfiguration = [];
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof ServiceConfiguration) {
@@ -203,14 +203,14 @@ final class MessagingSystemConfiguration implements Configuration
         }
         $serviceConfiguration = $serviceConfiguration->mergeWith($extensionApplicationConfiguration);
 
-        if (! $serviceConfiguration->getConnectionRetryTemplate()) {
+        if (! $serviceConfiguration->connectionRetryTemplate) {
             if ($serviceConfiguration->isProductionConfiguration()) {
-                $serviceConfiguration->withConnectionRetryTemplate(
+                $serviceConfiguration = $serviceConfiguration->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackOff(1000, 3)
                         ->maxRetries(5)
                 );
             } else {
-                $serviceConfiguration->withConnectionRetryTemplate(
+                $serviceConfiguration = $serviceConfiguration->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackOff(100, 3)
                         ->maxRetries(3)
                 );
@@ -240,14 +240,14 @@ final class MessagingSystemConfiguration implements Configuration
                     $extensionObjects[] = $combinedMessageChannel->getEmbeddedSourceChannelBuilder();
                 }
             } else {
-                $this->plainCombinedChannelUsages[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->getCombinedChannels();
+                $this->plainCombinedChannelUsages[$combinedMessageChannel->getReferenceName()] = $combinedMessageChannel->combinedChannels;
             }
         }
 
         $extensionObjects[] = $serviceConfiguration;
 
-        if ($serviceConfiguration->getLicenceKey() !== null) {
-            (new LicenceService())->validate($serviceConfiguration->getLicenceKey());
+        if ($serviceConfiguration->licenceKey !== null) {
+            (new LicenceService())->validate($serviceConfiguration->licenceKey);
             $this->isRunningForEnterpriseLicence = true;
         }
 
@@ -465,7 +465,7 @@ final class MessagingSystemConfiguration implements Configuration
                             }
                         }
                     }
-                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getAsynchronousExecution() : [];
+                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->asynchronousExecution : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
                         throw LicensingException::create(Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::asynchronousExecutionRequiresEnterprise($targetEndpointId));
                     }
@@ -693,9 +693,9 @@ final class MessagingSystemConfiguration implements Configuration
         return self::prepareWithAnnotationFinder(
             AnnotationFinderFactory::createForAttributes(
                 realpath($rootPathToSearchConfigurationFor),
-                $serviceConfiguration->getNamespaces(),
-                $serviceConfiguration->getEnvironment(),
-                $serviceConfiguration->getLoadedCatalog() ?? '',
+                $serviceConfiguration->namespaces,
+                $serviceConfiguration->environment,
+                $serviceConfiguration->loadCatalog ?? '',
                 self::getModuleClassesFor($serviceConfiguration),
                 $userLandClassesToRegister,
                 $enableTestPackage

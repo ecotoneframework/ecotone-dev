@@ -102,10 +102,10 @@ class OrderService
 ## Key Rules
 
 - `ErrorHandlerConfiguration` only runs once its `errorChannelName` actually receives failures -- wire that with
-  `ServiceConfiguration::withDefaultErrorChannel()` or a per-endpoint `PollingMetadata::setErrorChannelName()`
+  `ServiceConfiguration::withDefaultErrorChannel()` or a per-endpoint `PollingMetadata::withErrorChannelName()`
 - Use `RetryTemplateBuilder` to define retry strategies (fixed, exponential, exponential with cap)
 - Use `ErrorHandlerConfiguration` for global error handling with optional dead letter
-- Use `PollingMetadata::setErrorChannelName()` for per-endpoint error routing
+- Use `PollingMetadata::withErrorChannelName()` for per-endpoint error routing
 - Use `DbalBackedMessageChannelBuilder` for outbox pattern (atomic event storage)
 - Use `FinalFailureStrategy` to control behavior when all recovery options are exhausted
 

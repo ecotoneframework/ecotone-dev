@@ -74,7 +74,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         /** @var ManagerRegistry $managerRegistry */
         $managerRegistry = $connectionFactory->getRegistry();
 
-        return $managerRegistry->getManager($connectionReference instanceof ConnectionReference ? $connectionReference->getConnectionName() : null);
+        return $managerRegistry->getManager($connectionReference instanceof ConnectionReference ? $connectionReference->connectionName : null);
     }
 
     public function getConnection(?string $tenant = null): Connection

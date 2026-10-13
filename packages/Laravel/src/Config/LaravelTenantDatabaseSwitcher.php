@@ -27,7 +27,7 @@ final class LaravelTenantDatabaseSwitcher
     public function switchOn(string|ConnectionReference $activatedConnection): void
     {
         if ($activatedConnection instanceof LaravelConnectionReference) {
-            Config::set('database.default', $activatedConnection->getLaravelConnectionName());
+            Config::set('database.default', $activatedConnection->laravelConnectionName);
         }
     }
 

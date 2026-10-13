@@ -141,7 +141,7 @@ class SaveAggregateServiceTemplate
             }
             $eventMetadata = $message->getHeaders()->headers();
             if ($event instanceof Event) {
-                $eventMetadata = $event->getMetadata();
+                $eventMetadata = $event->metadata;
                 $event = $event->getPayload();
             }
             $eventMetadata = FrameworkHeaders::unsetAllFrameworkHeaders($eventMetadata);

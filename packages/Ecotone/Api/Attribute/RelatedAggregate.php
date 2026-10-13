@@ -11,17 +11,12 @@ use Ecotone\Messaging\Support\Assert;
  */
 class RelatedAggregate
 {
-    private string $className;
+    public readonly string $className;
 
     public function __construct(string $className)
     {
         Assert::notNullAndEmpty($className, 'Class name for aggregate should not be empty.');
 
         $this->className = $className;
-    }
-
-    public function getClassName(): string
-    {
-        return $this->className;
     }
 }

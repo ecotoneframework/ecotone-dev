@@ -27,8 +27,8 @@ class PollableChannelPollerAdapter implements MessagePoller
 
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
-        $pollingMetadata = $pollingMetadata->setPolledChannelName($this->pollableChannelName);
-        $timeoutInMilliseconds = $pollingMetadata->getFixedRateInMilliseconds();
+        $pollingMetadata = $pollingMetadata->withPolledChannelName($this->pollableChannelName);
+        $timeoutInMilliseconds = $pollingMetadata->fixedRateInMilliseconds;
         $message = $timeoutInMilliseconds
             ? $this->pollableChannel->receiveWithTimeout($pollingMetadata)
             : $this->pollableChannel->receive();

@@ -55,7 +55,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('methodRecorder', $recorder)
-            ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
+            ->withPollingMetadata(PollingMetadata::create('test')->withHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $requestChannelName,
@@ -89,7 +89,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('classRecorder', $recorder)
-            ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
+            ->withPollingMetadata(PollingMetadata::create('test')->withHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $requestChannelName,
@@ -123,7 +123,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('endpointRecorder', $recorder)
-            ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
+            ->withPollingMetadata(PollingMetadata::create('test')->withHandledMessageLimit(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $requestChannelName,
@@ -155,7 +155,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withPollingMetadata(PollingMetadata::create('test')->setMemoryLimitInMegaBytes(1))
+            ->withPollingMetadata(PollingMetadata::create('test')->withMemoryLimitInMegaBytes(1))
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $requestChannelName,
@@ -189,10 +189,10 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
             ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withPollingMetadata(
                 PollingMetadata::create('test')
-                    ->setFixedRateInMilliseconds(1)
-                    ->setInitialDelayInMilliseconds(0)
-                    ->setHandledMessageLimit(1)
-                    ->setExecutionAmountLimit(1)
+                    ->withFixedRateInMilliseconds(1)
+                    ->withInitialDelayInMilliseconds(0)
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionAmountLimit(1)
             )
             ->withInboundChannelAdapter(
                 InboundChannelAdapterBuilder::create(

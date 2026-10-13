@@ -48,8 +48,8 @@ class RetryConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL)
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(1)
-            ->setErrorChannelName(self::ERROR_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(1)
+            ->withErrorChannelName(self::ERROR_CHANNEL);
     }
 }

@@ -115,8 +115,8 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $serviceConfiguration = $builder->getServiceConfiguration();
-        if (! $this->getConversionMediaType() && $serviceConfiguration->getDefaultSerializationMediaType()) {
-            $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
+        if (! $this->getConversionMediaType() && $serviceConfiguration->defaultSerializationMediaType) {
+            $this->withDefaultConversionMediaType($serviceConfiguration->defaultSerializationMediaType);
         }
         return new Definition(EnqueueMessageChannel::class, [
             $this->inboundChannelAdapter->compile($builder),

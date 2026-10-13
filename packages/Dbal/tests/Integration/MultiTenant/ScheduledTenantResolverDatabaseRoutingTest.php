@@ -142,8 +142,8 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
     {
         $extensionObjects = [
             PollingMetadata::create('externalPersonPoller')
-                ->setExecutionAmountLimit(1)
-                ->setHandledMessageLimit(1),
+                ->withExecutionAmountLimit(1)
+                ->withHandledMessageLimit(1),
             MultiTenantConfiguration::create(
                 tenantHeaderName: 'tenant',
                 tenantToConnectionMapping: [
@@ -159,8 +159,8 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
         ];
         if ($asynchronous) {
             $extensionObjects[] = PollingMetadata::create('persons_processing')
-                ->setExecutionAmountLimit(1)
-                ->setHandledMessageLimit(1);
+                ->withExecutionAmountLimit(1)
+                ->withHandledMessageLimit(1);
         }
 
         return $this->bootstrapFlowTesting(

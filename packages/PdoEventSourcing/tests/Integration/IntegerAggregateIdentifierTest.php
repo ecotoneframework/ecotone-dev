@@ -47,7 +47,7 @@ final class IntegerAggregateIdentifierTest extends EventSourcingMessagingTestCas
         $ecotone->sendCommand(new OpenCounterWithIntegerId(42));
 
         $recordedAggregateIds = array_map(
-            static fn ($event) => $event->getMetadata()[MessageHeaders::EVENT_AGGREGATE_ID],
+            static fn ($event) => $event->metadata[MessageHeaders::EVENT_AGGREGATE_ID],
             $ecotone->getGateway(EventStore::class)->load(self::STREAM),
         );
         self::assertSame(['42'], $recordedAggregateIds);

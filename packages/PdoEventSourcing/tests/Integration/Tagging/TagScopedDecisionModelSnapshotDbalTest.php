@@ -124,7 +124,7 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
         $persisted = $ecotone->getEventStreamEvents(self::ONLINE_STREAM);
         self::assertCount(2, $persisted);
         foreach ($persisted as $event) {
-            self::assertArrayNotHasKey(MatchedTagSequences::HEADER_NAME, $event->getMetadata());
+            self::assertArrayNotHasKey(MatchedTagSequences::HEADER_NAME, $event->metadata);
         }
 
         $collector = $ecotone->getServiceFromContainer(PublishedHeadersCollectorForTagSnapshotDbalTest::class);

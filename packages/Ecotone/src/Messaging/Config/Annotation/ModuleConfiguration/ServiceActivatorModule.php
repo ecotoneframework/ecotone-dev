@@ -38,7 +38,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         foreach ($annotationRegistrationService->findAnnotatedMethods(static::getMessageHandlerAnnotation()) as $annotationRegistration) {
             /** @var InternalHandler $annotation */
             $annotation = $annotationRegistration->getAnnotationForMethod();
-            if ($annotation->isChangingHeaders()) {
+            if ($annotation->changingHeaders) {
                 $instance->changingHeadersFindings[] = $annotationRegistration;
             }
         }
@@ -70,11 +70,11 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
 
         return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotationRegistration), $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName()))
             ->withEndpointId($annotation->getEndpointId())
-            ->withRequiredReply($annotation->isRequiresReply())
+            ->withRequiredReply($annotation->requiresReply)
             ->withOutputMessageChannel($annotation->getOutputChannelName())
             ->withInputChannelName($annotation->getInputChannelName())
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
-            ->withChangingHeaders($annotation->isChangingHeaders());
+            ->withChangingHeaders($annotation->changingHeaders);
     }
 
     /**

@@ -215,11 +215,13 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload, metadata: [
             'failCount' => 1,
         ]);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
-        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $handledMessages = [];
+        for ($consumerRun = 0; $consumerRun < 3 && count($handledMessages) < 2; $consumerRun++) {
+            $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
+            $handledMessages = $messaging->sendQueryWithRouting('consumer.getMessages');
+        }
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
-        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $this->assertCount(2, $handledMessages);
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));

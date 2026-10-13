@@ -123,19 +123,19 @@ class MessagingContainerBuilder
 
         if ($this->applicationConfiguration->defaultErrorChannel && $pollingMetadata->isErrorChannelEnabled && ! $pollingMetadata->getErrorChannelName()) {
             $pollingMetadata = $pollingMetadata
-                ->setErrorChannelName($this->applicationConfiguration->defaultErrorChannel);
+                ->withErrorChannelName($this->applicationConfiguration->defaultErrorChannel);
         }
         if ($this->applicationConfiguration->defaultMemoryLimitInMegabytes && ! $pollingMetadata->memoryLimitInMegabytes) {
             $pollingMetadata = $pollingMetadata
-                ->setMemoryLimitInMegaBytes($this->applicationConfiguration->defaultMemoryLimitInMegabytes);
+                ->withMemoryLimitInMegaBytes($this->applicationConfiguration->defaultMemoryLimitInMegabytes);
         }
         if ($this->applicationConfiguration->connectionRetryTemplate && ! $pollingMetadata->connectionRetryTemplate) {
             $pollingMetadata = $pollingMetadata
-                ->setConnectionRetryTemplate($this->applicationConfiguration->connectionRetryTemplate);
+                ->withConnectionRetryTemplate($this->applicationConfiguration->connectionRetryTemplate);
         }
 
         if ($withContinuousPolling) {
-            $pollingMetadata = $pollingMetadata->setFixedRateInMilliseconds(1);
+            $pollingMetadata = $pollingMetadata->withFixedRateInMilliseconds(1);
         }
 
         return $pollingMetadata;

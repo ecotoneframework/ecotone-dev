@@ -74,7 +74,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
                     AmqpBackedMessageChannelBuilder::create(ErrorConfigurationContext::INPUT_CHANNEL)
                         ->withReceiveTimeout(1),
                     PollingMetadata::create(ErrorConfigurationContext::INPUT_CHANNEL)
-                        ->setErrorChannelName($amqpDeadLetter),
+                        ->withErrorChannelName($amqpDeadLetter),
                 ])
                 ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ]),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -104,7 +104,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
                     AmqpBackedMessageChannelBuilder::create(ErrorConfigurationContext::INPUT_CHANNEL)
                         ->withReceiveTimeout(1),
                     PollingMetadata::create(ErrorConfigurationContext::INPUT_CHANNEL)
-                        ->setErrorChannelName('amqp_dead_letter'),
+                        ->withErrorChannelName('amqp_dead_letter'),
                 ])
                 ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ]),
             pathToRootCatalog: __DIR__ . '/../../',

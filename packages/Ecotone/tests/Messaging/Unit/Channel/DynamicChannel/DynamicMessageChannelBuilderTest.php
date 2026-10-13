@@ -58,7 +58,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -117,7 +117,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames: ['channel_one'], receivingChannelNames: ['channel_two', 'channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two')),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -144,7 +144,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels(
                     'async_channel',
                     sendingChannelNames: ['channel_one'],
@@ -179,7 +179,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels(
                     'async_channel',
                     sendingChannelNames: ['x'],
@@ -219,11 +219,11 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                     PollingMetadata::create('channel_one')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                     PollingMetadata::create('channel_two')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createThrottlingStrategy(
                     'async_channel',
                     'dynamicChannel.decide',
@@ -255,7 +255,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
@@ -288,7 +288,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three')),
@@ -326,7 +326,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one', 'channel_two', 'channel_three'])
                     ->withHeaderSendingStrategy(
                         'tenant',
@@ -373,7 +373,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
                     'async_channel',
                     'tenant',
@@ -415,7 +415,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
                     ->withHeaderSendingStrategy(
                         'tenant',
@@ -457,7 +457,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
                     ->withHeaderSendingStrategy(
                         'tenant',
@@ -478,7 +478,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])
                     ->withHeaderSendingStrategy(
                         'tenant',
@@ -510,7 +510,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])
                     ->withHeaderSendingStrategy(
                         'tenant'
@@ -536,7 +536,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                     DynamicMessageChannelBuilder::createRoundRobin('dynamic_channel', ['async_channel'])
                         ->withInternalChannels([
                             SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
@@ -557,7 +557,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
         );
     }

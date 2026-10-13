@@ -179,7 +179,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                     $defaultConnectionName
                         ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class)
                         : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),

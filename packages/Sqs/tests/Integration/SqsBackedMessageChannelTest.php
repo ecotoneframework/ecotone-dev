@@ -54,10 +54,10 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
 
         $this->assertEquals(
             $messagePayload,
-            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1))->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
     }
 
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void

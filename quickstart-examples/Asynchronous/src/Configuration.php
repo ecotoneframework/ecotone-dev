@@ -18,7 +18,7 @@ class Configuration
     public function consumerDefinition()
     {
         return PollingMetadata::create(NotificationService::ASYNCHRONOUS_MESSAGES)
-                    ->setHandledMessageLimit(1)
-                    ->setExecutionAmountLimit(1000);
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionAmountLimit(1000);
     }
 }

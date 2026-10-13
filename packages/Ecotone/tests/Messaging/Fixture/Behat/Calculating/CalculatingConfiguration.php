@@ -16,6 +16,6 @@ class CalculatingConfiguration
     public function registerMetadata()
     {
         return PollingMetadata::create('inboundCalculator')
-            ->setHandledMessageLimit(1);
+            ->withHandledMessageLimit(1);
     }
 }

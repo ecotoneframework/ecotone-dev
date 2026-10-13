@@ -58,7 +58,7 @@ final class DynamicMessageChannel implements PollableChannel
 
         $channel = $this->resolveMessageChannel($channelName);
         $message = $channel->receiveWithTimeout(
-            $pollingMetadata->setPolledChannelName($channelName)
+            $pollingMetadata->withPolledChannelName($channelName)
         );
         $this->loggingGateway->info("Decided to received message from `{$channelName}` for `{$this->channelName}`", $message, ['channel_name' => $this->channelName, 'chosen_channel_name' => $channelName]);
 

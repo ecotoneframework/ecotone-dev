@@ -103,7 +103,7 @@ class GatewayInternalProcessor implements MessageProcessor, AroundInterceptable
     private function getReply(PollableChannel $replyChannel): callable
     {
         return function () use ($replyChannel) {
-            $replyMessage = $this->replyMilliSecondsTimeout > 0 ? $replyChannel->receiveWithTimeout(PollingMetadata::create('gateway_reply')->setFixedRateInMilliseconds($this->replyMilliSecondsTimeout)) : $replyChannel->receive();
+            $replyMessage = $this->replyMilliSecondsTimeout > 0 ? $replyChannel->receiveWithTimeout(PollingMetadata::create('gateway_reply')->withFixedRateInMilliseconds($this->replyMilliSecondsTimeout)) : $replyChannel->receive();
 
             if (is_null($replyMessage) && ! $this->returnTypeAllowsNull) {
                 throw InvalidArgumentException::create("{$this->interfaceToCallName} expects value, but null was returned. Have you consider changing return value to nullable?");

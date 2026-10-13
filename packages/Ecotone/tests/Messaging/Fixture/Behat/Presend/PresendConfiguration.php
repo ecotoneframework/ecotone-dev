@@ -18,8 +18,8 @@ class PresendConfiguration
         return [
             SimpleMessageChannelBuilder::createQueueChannel('shop', conversionMediaType: MediaType::createApplicationXPHP()),
             PollingMetadata::create('shop')
-                ->setExecutionAmountLimit(1)
-                ->setHandledMessageLimit(1),
+                ->withExecutionAmountLimit(1)
+                ->withHandledMessageLimit(1),
         ];
     }
 }

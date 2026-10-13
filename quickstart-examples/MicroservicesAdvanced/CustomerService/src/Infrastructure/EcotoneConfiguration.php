@@ -19,8 +19,8 @@ class EcotoneConfiguration
         return [
             DbalBackedMessageChannelBuilder::create(self::ASYNCHRONOUS_CHANNEL),
             PollingMetadata::create(self::ASYNCHRONOUS_CHANNEL)
-                ->setStopOnError(true)
-                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->withStopOnError(true)
+                ->withExecutionTimeLimitInMilliseconds(1000)
         ];
     }
 

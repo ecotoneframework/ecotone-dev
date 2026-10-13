@@ -23,9 +23,9 @@ class ChannelConfiguration
             DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(1),
             PollingMetadata::create(self::CHANNEL_NAME)
-                ->setHandledMessageLimit(10)
-                ->setExecutionTimeLimitInMilliseconds(1000)
-                ->setStopOnError(true),
+                ->withHandledMessageLimit(10)
+                ->withExecutionTimeLimitInMilliseconds(1000)
+                ->withStopOnError(true),
         ];
     }
 }

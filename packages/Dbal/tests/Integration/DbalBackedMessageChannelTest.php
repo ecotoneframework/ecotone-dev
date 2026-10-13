@@ -325,10 +325,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1))->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1)));
     }
 
     public function test_receiving_when_not_declared_and_auto_declare_off_names_the_message_queue_setup_command()
@@ -338,7 +338,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
 
-        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1));
+        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1));
     }
 
     public function test_sending_when_not_declared_and_auto_declare_off_names_the_message_queue_setup_command()

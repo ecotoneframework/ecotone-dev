@@ -2767,6 +2767,39 @@ reaches the configuration Ecotone uses.
 `$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
 or passed to `EcotoneLite` as a chained expression is unaffected.
 
+### `PollingMetadata`'s `set*()` methods are `with*()`
+
+**Before:** `PollingMetadata` named its nineteen copy methods `set*()` — `setCron()`, `setHandledMessageLimit()`,
+`setStopOnError()` and the rest — although each returned a changed copy and left the instance alone. A name that
+reads as a mutator invites `$metadata->setStopOnError(false);` as a statement, which silently lost the change.
+**Now:** each is named `with*()`, as every other copy method in the `Api` is, and the `set*()` names are gone with
+no alias; calling one fails with PHP's `Call to undefined method`. What each method does is unchanged.
+
+| 1.x | 2.0 |
+|---|---|
+| `setStopOnError()` | `withStopOnError()` |
+| `setCron()` | `withCron()` |
+| `setErrorChannelName()` | `withErrorChannelName()` |
+| `setMaxMessagePerPoll()` | `withMaxMessagePerPoll()` |
+| `setTriggerReferenceName()` | `withTriggerReferenceName()` |
+| `setTaskExecutorName()` | `withTaskExecutorName()` |
+| `setEnabledErrorChannel()` | `withEnabledErrorChannel()` |
+| `setFixedRateInMilliseconds()` | `withFixedRateInMilliseconds()` |
+| `setInitialDelayInMilliseconds()` | `withInitialDelayInMilliseconds()` |
+| `setConnectionRetryTemplate()` | `withConnectionRetryTemplate()` |
+| `setExecutionTimeLimitInMilliseconds()` | `withExecutionTimeLimitInMilliseconds()` |
+| `setHandledMessageLimit()` | `withHandledMessageLimit()` |
+| `setMemoryLimitInMegaBytes()` | `withMemoryLimitInMegaBytes()` |
+| `setSignalInterceptors()` | `withSignalInterceptors()` |
+| `setExecutionAmountLimit()` | `withExecutionAmountLimit()` |
+| `setFinishWhenNoMessages()` | `withFinishWhenNoMessages()` |
+| `setPolledChannelName()` | `withPolledChannelName()` |
+| `setFixedRateExpression()` | `withFixedRateExpression()` |
+| `setCronExpression()` | `withCronExpression()` |
+
+**How to adapt:** rename the call. A `set*()` call written as a statement was already losing its change in 1.x; assign
+the `with*()` result instead.
+
 ### Forced trace flushing refuses a tracer provider that cannot flush
 
 **Before:** with the `tracing` package loaded, `TracerProviderInterface` bound to an API-level provider such as

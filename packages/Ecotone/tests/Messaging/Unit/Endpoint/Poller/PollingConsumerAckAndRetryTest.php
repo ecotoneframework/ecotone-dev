@@ -34,7 +34,7 @@ final class PollingConsumerAckAndRetryTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel(AlwaysThrowingHandler::CHANNEL),
                 PollingMetadata::create(AlwaysThrowingHandler::ENDPOINT_ID)
                     ->withTestingSetup(stopOnError: true)
-                    ->setConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)),
+                    ->withConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)),
             ]),
         );
 
@@ -61,7 +61,7 @@ final class PollingConsumerAckAndRetryTest extends TestCase
                 SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive(NeverCalledHandler::CHANNEL)),
                 PollingMetadata::create(NeverCalledHandler::ENDPOINT_ID)
                     ->withTestingSetup(stopOnError: false)
-                    ->setConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(2)),
+                    ->withConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(2)),
             ]),
         );
 

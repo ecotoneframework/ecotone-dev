@@ -43,7 +43,7 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
 
         $receivedMessage = $messageChannel->receiveWithTimeout(
             PollingMetadata::create('consumer')
-                ->setExecutionTimeLimitInMilliseconds(5000)
+                ->withExecutionTimeLimitInMilliseconds(5000)
         );
 
         $elapsedInMilliseconds = (microtime(true) - $startedAt) * 1000;

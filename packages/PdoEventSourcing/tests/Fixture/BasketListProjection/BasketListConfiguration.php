@@ -14,7 +14,7 @@ class BasketListConfiguration
     public function setMaximumOneRunForProjections()
     {
         return PollingMetadata::create(BasketList::PROJECTION_NAME)
-            ->setExecutionAmountLimit(3)
-            ->setExecutionTimeLimitInMilliseconds(300);
+            ->withExecutionAmountLimit(3)
+            ->withExecutionTimeLimitInMilliseconds(300);
     }
 }

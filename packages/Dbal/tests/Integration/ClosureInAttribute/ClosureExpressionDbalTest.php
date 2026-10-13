@@ -173,11 +173,11 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
-                        ->setExecutionAmountLimit(1)
-                        ->setHandledMessageLimit(1),
+                        ->withExecutionAmountLimit(1)
+                        ->withHandledMessageLimit(1),
                     PollingMetadata::create('external_processing')
-                        ->setExecutionAmountLimit(1)
-                        ->setHandledMessageLimit(1),
+                        ->withExecutionAmountLimit(1)
+                        ->withHandledMessageLimit(1),
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'],

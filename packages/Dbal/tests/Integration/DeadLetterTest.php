@@ -44,9 +44,9 @@ final class DeadLetterTest extends DbalMessagingTestCase
             'Test\Ecotone\Dbal\Fixture\DeadLetter\Example',
         ], extensionObjects: [
             PollingMetadata::create('orderService')
-                ->setExecutionTimeLimitInMilliseconds(1000)
-                ->setHandledMessageLimit(1)
-                ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL),
+                ->withExecutionTimeLimitInMilliseconds(1000)
+                ->withHandledMessageLimit(1)
+                ->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL),
         ], orderService: new OrderService(1));
 
         $gateway = $ecotone->getGateway(OrderGateway::class);

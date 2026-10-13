@@ -7,7 +7,7 @@
 `ErrorHandlerConfiguration` only fires once an endpoint's failures are actually routed to its `errorChannelName`
 (here `'errorChannel'`) -- set that globally with `ServiceConfiguration::withDefaultErrorChannel()` (or per Symfony's
 `defaultErrorChannel` / Laravel's `default_error_channel` config), or per endpoint with
-`PollingMetadata::setErrorChannelName()`.
+`PollingMetadata::withErrorChannelName()`.
 
 ```php
 class ResiliencyConfig
@@ -107,7 +107,7 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 public function ordersPolling(): PollingMetadata
 {
     return PollingMetadata::create('ordersEndpoint')
-        ->setErrorChannelName('orders_error');
+        ->withErrorChannelName('orders_error');
 }
 ```
 
@@ -130,7 +130,7 @@ class ErrorProcessor
 }
 ```
 
-Route errors to custom processing via `PollingMetadata::setErrorChannelName()` or `ErrorHandlerConfiguration`.
+Route errors to custom processing via `PollingMetadata::withErrorChannelName()` or `ErrorHandlerConfiguration`.
 
 ## #[InstantRetry] with Specific Exceptions (Enterprise)
 

@@ -133,7 +133,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 1,
                 CalculatingService::class
             ))
-            ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
+            ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->withExecutionAmountLimit(1))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                 $reference => $calculatingService,
@@ -488,7 +488,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     ->withInputChannelName('inputChannel')
             )
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
-            ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
+            ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->withExecutionAmountLimit(1))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('inputChannel', 'ref-name'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith(['ref-name' => $channelInterceptor]));
@@ -952,7 +952,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
-                    ->setHandledMessageLimit(1)
+                    ->withHandledMessageLimit(1)
             )
             ->registerBeforeMethodInterceptor(
                 MethodInterceptorBuilder::create(

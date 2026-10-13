@@ -52,7 +52,7 @@ public function test_retry_on_failure(): void
 
 An endpoint only reaches `ErrorHandlerConfiguration` once something routes its failures to the matching error
 channel name -- either `ServiceConfiguration::withDefaultErrorChannel()` for every endpoint, or
-`PollingMetadata::setErrorChannelName()` per endpoint.
+`PollingMetadata::withErrorChannelName()` per endpoint.
 
 ```php
 public function test_error_handler_routes_to_dead_letter(): void

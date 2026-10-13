@@ -63,7 +63,7 @@ final class KafkaMessageChannel implements PollableChannel, BatchSupportingMessa
     {
         return $this->inboundChannelAdapter->receiveWithTimeout(PollingMetadata::create(
             $this->inboundChannelAdapter->channelName
-        )->setFixedRateInMilliseconds(KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT));
+        )->withFixedRateInMilliseconds(KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT));
     }
 
     public function __toString(): string

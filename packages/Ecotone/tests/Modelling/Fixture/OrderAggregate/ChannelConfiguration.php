@@ -19,9 +19,9 @@ class ChannelConfiguration
         return [
             SimpleMessageChannelBuilder::createQueueChannel('orders'),
             PollingMetadata::create('orders')
-                ->setExecutionTimeLimitInMilliseconds(1)
-                ->setHandledMessageLimit(1)
-                ->setErrorChannelName(self::ERROR_CHANNEL),
+                ->withExecutionTimeLimitInMilliseconds(1)
+                ->withHandledMessageLimit(1)
+                ->withErrorChannelName(self::ERROR_CHANNEL),
         ];
     }
 }

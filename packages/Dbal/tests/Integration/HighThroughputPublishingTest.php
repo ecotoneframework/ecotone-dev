@@ -189,7 +189,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
         $channel = $messaging->getMessageChannel($queueName);
         $this->assertSame('immediate order', $channel->receive()->getPayload());
-        $this->assertNull($channel->receiveWithTimeout(PollingMetadata::create('assertNotYetDelivered')->setExecutionTimeLimitInMilliseconds(500)));
+        $this->assertNull($channel->receiveWithTimeout(PollingMetadata::create('assertNotYetDelivered')->withExecutionTimeLimitInMilliseconds(500)));
 
         $this->assertSame('delayed order', $this->receiveWithDeadline($channel, 10)?->getPayload());
     }

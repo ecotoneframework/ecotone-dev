@@ -65,12 +65,12 @@ final class PollingMetadata implements DefinedObject
     public function withTestingSetup(int $handledMessageLimit = 1, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {
         $pollingMetadata = $this
-            ->setHandledMessageLimit($handledMessageLimit)
-            ->setStopOnError($stopOnError);
+            ->withHandledMessageLimit($handledMessageLimit)
+            ->withStopOnError($stopOnError);
 
         if ($executionTimeLimitInMilliseconds) {
             $pollingMetadata = $pollingMetadata
-                ->setExecutionTimeLimitInMilliseconds($executionTimeLimitInMilliseconds);
+                ->withExecutionTimeLimitInMilliseconds($executionTimeLimitInMilliseconds);
         }
 
         return $pollingMetadata;
@@ -81,17 +81,17 @@ final class PollingMetadata implements DefinedObject
         return $pollingMetadata->copyWith([]);
     }
 
-    public function setStopOnError(bool $stopOnError): self
+    public function withStopOnError(bool $stopOnError): self
     {
         return $this->copyWith(['stopOnError' => $stopOnError]);
     }
 
-    public function setCron(string $cron): PollingMetadata
+    public function withCron(string $cron): PollingMetadata
     {
         return $this->copyWith(['cron' => $cron]);
     }
 
-    public function setErrorChannelName(string $errorChannelName): PollingMetadata
+    public function withErrorChannelName(string $errorChannelName): PollingMetadata
     {
         return $this->copyWith(['errorChannelName' => $errorChannelName]);
     }
@@ -105,81 +105,81 @@ final class PollingMetadata implements DefinedObject
         $copy = $this;
 
         if (! is_null($executionPollingMetadata->stopOnError)) {
-            $copy = $copy->setStopOnError($executionPollingMetadata->stopOnError);
+            $copy = $copy->withStopOnError($executionPollingMetadata->stopOnError);
         }
         if (! is_null($executionPollingMetadata->handledMessageLimit)) {
-            $copy = $copy->setHandledMessageLimit($executionPollingMetadata->handledMessageLimit);
+            $copy = $copy->withHandledMessageLimit($executionPollingMetadata->handledMessageLimit);
         }
         if (! is_null($executionPollingMetadata->executionTimeLimitInMilliseconds)) {
-            $copy = $copy->setExecutionTimeLimitInMilliseconds($executionPollingMetadata->executionTimeLimitInMilliseconds);
+            $copy = $copy->withExecutionTimeLimitInMilliseconds($executionPollingMetadata->executionTimeLimitInMilliseconds);
         }
         if (! is_null($executionPollingMetadata->memoryLimitInMegabytes)) {
-            $copy = $copy->setMemoryLimitInMegaBytes($executionPollingMetadata->memoryLimitInMegabytes);
+            $copy = $copy->withMemoryLimitInMegaBytes($executionPollingMetadata->memoryLimitInMegabytes);
         }
         if (! is_null($executionPollingMetadata->cron)) {
-            $copy = $copy->setCron($executionPollingMetadata->cron);
+            $copy = $copy->withCron($executionPollingMetadata->cron);
         }
         if (! is_null($executionPollingMetadata->finishWhenNoMessages)) {
-            $copy = $copy->setFinishWhenNoMessages($executionPollingMetadata->finishWhenNoMessages);
+            $copy = $copy->withFinishWhenNoMessages($executionPollingMetadata->finishWhenNoMessages);
         }
         if (! is_null($executionPollingMetadata->executionAmountLimit)) {
-            $copy = $copy->setExecutionAmountLimit($executionPollingMetadata->executionAmountLimit);
+            $copy = $copy->withExecutionAmountLimit($executionPollingMetadata->executionAmountLimit);
         }
 
         return $copy;
     }
 
-    public function setMaxMessagePerPoll(int $maxMessagePerPoll): PollingMetadata
+    public function withMaxMessagePerPoll(int $maxMessagePerPoll): PollingMetadata
     {
         return $this->copyWith(['maxMessagePerPoll' => $maxMessagePerPoll]);
     }
 
-    public function setTriggerReferenceName(string $triggerReferenceName): PollingMetadata
+    public function withTriggerReferenceName(string $triggerReferenceName): PollingMetadata
     {
         return $this->copyWith(['triggerReferenceName' => $triggerReferenceName]);
     }
 
-    public function setTaskExecutorName(string $taskExecutorName): PollingMetadata
+    public function withTaskExecutorName(string $taskExecutorName): PollingMetadata
     {
         return $this->copyWith(['taskExecutorName' => $taskExecutorName]);
     }
 
-    public function setEnabledErrorChannel(bool $isErrorChannelEnabled): PollingMetadata
+    public function withEnabledErrorChannel(bool $isErrorChannelEnabled): PollingMetadata
     {
         return $this->copyWith(['isErrorChannelEnabled' => $isErrorChannelEnabled]);
     }
 
-    public function setFixedRateInMilliseconds(int $fixedRateInMilliseconds): PollingMetadata
+    public function withFixedRateInMilliseconds(int $fixedRateInMilliseconds): PollingMetadata
     {
         return $this->copyWith(['fixedRateInMilliseconds' => $fixedRateInMilliseconds]);
     }
 
-    public function setInitialDelayInMilliseconds(int $initialDelayInMilliseconds): PollingMetadata
+    public function withInitialDelayInMilliseconds(int $initialDelayInMilliseconds): PollingMetadata
     {
         return $this->copyWith(['initialDelayInMilliseconds' => $initialDelayInMilliseconds]);
     }
 
-    public function setConnectionRetryTemplate(RetryTemplateBuilder $retryTemplateBuilder): PollingMetadata
+    public function withConnectionRetryTemplate(RetryTemplateBuilder $retryTemplateBuilder): PollingMetadata
     {
         return $this->copyWith(['connectionRetryTemplate' => $retryTemplateBuilder]);
     }
 
-    public function setExecutionTimeLimitInMilliseconds(int $executionTimeLimitInMilliseconds): PollingMetadata
+    public function withExecutionTimeLimitInMilliseconds(int $executionTimeLimitInMilliseconds): PollingMetadata
     {
         return $this->copyWith(['executionTimeLimitInMilliseconds' => $executionTimeLimitInMilliseconds]);
     }
 
-    public function setHandledMessageLimit(int $handledMessageLimit): PollingMetadata
+    public function withHandledMessageLimit(int $handledMessageLimit): PollingMetadata
     {
         return $this->copyWith(['handledMessageLimit' => $handledMessageLimit]);
     }
 
-    public function setMemoryLimitInMegaBytes(int $memoryLimit): PollingMetadata
+    public function withMemoryLimitInMegaBytes(int $memoryLimit): PollingMetadata
     {
         return $this->copyWith(['memoryLimitInMegabytes' => $memoryLimit]);
     }
 
-    public function setSignalInterceptors(bool $withSignalInterceptors): PollingMetadata
+    public function withSignalInterceptors(bool $withSignalInterceptors): PollingMetadata
     {
         return $this->copyWith(['withSignalInterceptors' => $withSignalInterceptors]);
     }
@@ -188,12 +188,12 @@ final class PollingMetadata implements DefinedObject
      * How many times Consumer should be executed before it will be stopped.
      * It takes under consideration polling when no messages are received.
      */
-    public function setExecutionAmountLimit(int $executionAmountLimit): PollingMetadata
+    public function withExecutionAmountLimit(int $executionAmountLimit): PollingMetadata
     {
         return $this->copyWith(['executionAmountLimit' => $executionAmountLimit]);
     }
 
-    public function setFinishWhenNoMessages(bool $finishWhenNoMessages): PollingMetadata
+    public function withFinishWhenNoMessages(bool $finishWhenNoMessages): PollingMetadata
     {
         return $this->copyWith([
             'finishWhenNoMessages' => $finishWhenNoMessages,
@@ -213,7 +213,7 @@ final class PollingMetadata implements DefinedObject
         return $this->endpointId;
     }
 
-    public function setPolledChannelName(string $polledChannelName): self
+    public function withPolledChannelName(string $polledChannelName): self
     {
         return $this->copyWith(['polledChannelName' => $polledChannelName]);
     }
@@ -228,12 +228,12 @@ final class PollingMetadata implements DefinedObject
         return $this->cronExpression !== null;
     }
 
-    public function setFixedRateExpression(?string $fixedRateExpression): PollingMetadata
+    public function withFixedRateExpression(?string $fixedRateExpression): PollingMetadata
     {
         return $this->copyWith(['fixedRateExpression' => $fixedRateExpression]);
     }
 
-    public function setCronExpression(?string $cronExpression): PollingMetadata
+    public function withCronExpression(?string $cronExpression): PollingMetadata
     {
         return $this->copyWith(['cronExpression' => $cronExpression]);
     }

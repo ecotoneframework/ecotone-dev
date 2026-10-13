@@ -15,8 +15,8 @@ class ProjectionConfiguration
     public function setMaximumLimitedTimeForProjections()
     {
         return PollingMetadata::create('asynchronous_projections')
-            ->setExecutionAmountLimit(3)
-            ->setExecutionTimeLimitInMilliseconds(300);
+            ->withExecutionAmountLimit(3)
+            ->withExecutionTimeLimitInMilliseconds(300);
     }
 
     #[ServiceContext]

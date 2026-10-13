@@ -14,8 +14,8 @@ class EcotoneConfiguration
         return [
             AmqpBackedMessageChannelBuilder::create("backoffice_service"),
             PollingMetadata::create("backoffice_service")
-                ->setStopOnError(true)
-                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->withStopOnError(true)
+                ->withExecutionTimeLimitInMilliseconds(1000)
         ];
     }
 }

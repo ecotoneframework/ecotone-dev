@@ -879,7 +879,7 @@ boundary is held in review, which is why it is written down.
 **A sibling in the same namespace is named bare — except in an attribute argument, which has to be fixed by hand
 when either class moves.** PHP resolves a bare name against the current namespace, so a same-namespace `use` adds
 nothing, and php-cs-fixer's `no_unused_imports` deletes it whenever it runs over the file — in an attribute argument
-too. That is what the tree does: across `packages/*/Api` on `6480318b9`, 55 of the 60 file-to-sibling references
+too. That is what the tree does: across `packages/*/Api` on `f5493764b`, 55 of the 60 file-to-sibling references
 inside one namespace are bare (each file's class-name tokens matched against the classes its own namespace declares).
 The attribute argument is the one place a bare name is a hazard, because it resolves lazily: when a class leaves the
 namespace, a sibling its attribute arguments name bare now resolves against the *new* namespace and fails only at

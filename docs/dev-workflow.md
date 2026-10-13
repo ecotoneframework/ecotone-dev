@@ -333,7 +333,7 @@ does not change this: whichever comes first, it is the one that cannot revert al
 
 What does hold is the suffix property: **the last commit reverts cleanly alone, and commit *k* reverts cleanly once
 commits *k*+1 to *n* are reverted** — so the unit is undone newest-first. The `EcotoneLite` move measured it
-(`df4e0f085`, `67161065f`, `f24c1c211`, `09ad57779`): reverting the `MessageChannel` commit alone was clean and left
+(`ab0b21319`, `3f0ab3a4c`, `0a917c33c`, `d98c4602a`): reverting the `MessageChannel` commit alone was clean and left
 phpstan at 0 errors, while reverting `EcotoneLite` alone conflicted in 89 files, `FlowTestSupport` in 14 and
 `ConfiguredMessagingSystem` in 8, every hunk inside a `use` block or the namespace-map rows. Two types landing in
 one namespace add a second, logical dependency: `ConfiguredMessagingSystem` and `MessageChannel` both moved into

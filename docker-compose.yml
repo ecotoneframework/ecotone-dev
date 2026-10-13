@@ -21,7 +21,6 @@ services:
       PHP_IDE_CONFIG: "serverName=ecotone"
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
-      SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       DATABASE_MARIADB: mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB
@@ -67,7 +66,6 @@ services:
       PHP_IDE_CONFIG: "serverName=ecotone"
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
-      SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       DATABASE_MARIADB: mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB

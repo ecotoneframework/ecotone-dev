@@ -135,13 +135,15 @@ Set in the `app` container (`docker-compose.yml`), reachable by service name onl
 | `DATABASE_MYSQL` | `mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0` |
 | `DATABASE_MARIADB` | `mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB` |
 | `SECONDARY_DATABASE_DSN` | `mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0` — a genuinely separate database, for two-connection tests |
-| `SQLITE_DATABASE_DSN` | `sqlite:////tmp/ecotone_test.db` |
 | `RABBIT_HOST` | `amqp://rabbitmq:5672` |
 | `SQS_DSN` | `sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest` |
 | `REDIS_DSN` | `redis://redis:6379` |
 | `KAFKA_DSN` | `kafka:9092` |
 
 In `app8_2`, `DATABASE_DSN` and `SECONDARY_DATABASE_DSN` are swapped: MySQL primary, PostgreSQL secondary.
+
+There is no SQLite variable: a suite runs against SQLite by being given a `sqlite:///` **`DATABASE_DSN`**, which is
+what `split-testing.yml` does for its third pass. Tests branch on the DSN's scheme, never on a separate variable.
 
 The host ports are ephemeral by default (`${POSTGRES_PORT:-0}`), so connect from the host only after setting the
 matching `*_PORT` variable.

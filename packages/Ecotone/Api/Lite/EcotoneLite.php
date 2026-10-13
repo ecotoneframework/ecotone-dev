@@ -133,7 +133,7 @@ final class EcotoneLite
     private static function withDatabaseTablesSetUp(ConfiguredMessagingSystemWithTestSupport $messagingSystem, ServiceConfiguration $configuration): FlowTestSupport
     {
         foreach ($configuration->getExtensionObjects() as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration && $extensionObject->isSettingUpDatabaseTablesOnBootstrap()) {
+            if ($extensionObject instanceof TestConfiguration && $extensionObject->databaseTablesSetUpOnBootstrap) {
                 $messagingSystem->getServiceFromContainer(DatabaseTablesSetUp::class)->setUpTablesOfProvidedConnections();
             }
         }

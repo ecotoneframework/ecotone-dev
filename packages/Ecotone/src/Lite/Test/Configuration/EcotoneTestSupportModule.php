@@ -134,7 +134,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             new Definition(InMemoryConsumerPositionTracker::class)
         );
         // Register in-memory consumer position tracker as default one
-        if ($testConfiguration->isInMemoryConsumerPositionTrackerEnabled()) {
+        if ($testConfiguration->inMemoryConsumerPositionTracker) {
             $messagingConfiguration->registerServiceDefinition(
                 ConsumerPositionTracker::class,
                 new Reference(InMemoryConsumerPositionTracker::class)
@@ -185,7 +185,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class, new Definition(AllowMissingDestination::class));
         $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
         /** @TODO Ecotone 2.0, reconsider if needed */
-        if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {
+        if (! $testConfiguration->failOnCommandHandlerNotFound) {
             $messagingConfiguration
                 ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                     AllowMissingDestination::class,
@@ -194,7 +194,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                     CommandBus::class
                 ));
         }
-        if (! $testConfiguration->isFailingOnQueryHandlerNotFound()) {
+        if (! $testConfiguration->failOnQueryHandlerNotFound) {
             $messagingConfiguration
                 ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                     AllowMissingDestination::class,
@@ -204,15 +204,15 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ));
         }
 
-        if ($testConfiguration->getPollableChannelMediaTypeConversion()) {
+        if ($testConfiguration->pollableChannelMediaTypeConversion) {
             $messagingConfiguration
-                ->registerChannelInterceptor(new SerializationChannelAdapterBuilder($testConfiguration->getChannelToConvertOn(), $testConfiguration->getPollableChannelMediaTypeConversion()));
+                ->registerChannelInterceptor(new SerializationChannelAdapterBuilder($testConfiguration->channelToConvertOn, $testConfiguration->pollableChannelMediaTypeConversion));
         }
 
         foreach ($this->spiedChannels as $spiedChannel) {
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($spiedChannel));
         }
-        $spiedChannels = array_unique(array_merge($testConfiguration->getSpiedChannels(), $this->spiedChannels));
+        $spiedChannels = array_unique(array_merge($testConfiguration->spiedChannelNames, $this->spiedChannels));
         foreach ($spiedChannels as $spiedChannel) {
             $messagingConfiguration
                 ->registerChannelInterceptor(new SpiedChannelAdapterBuilder($spiedChannel));

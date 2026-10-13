@@ -15,13 +15,13 @@ final class TestConfiguration
      * @param string[] $spiedChannelNames
      */
     private function __construct(
-        private bool $failOnCommandHandlerNotFound,
-        private bool $failOnQueryHandlerNotFound,
-        private ?MediaType $pollableChannelMediaTypeConversion,
-        private string $channelToConvertOn,
-        private array $spiedChannelNames,
-        private bool $inMemoryConsumerPositionTracker,
-        private bool $databaseTablesSetUpOnBootstrap,
+        public readonly bool $failOnCommandHandlerNotFound,
+        public readonly bool $failOnQueryHandlerNotFound,
+        public readonly ?MediaType $pollableChannelMediaTypeConversion,
+        public readonly string $channelToConvertOn,
+        public readonly array $spiedChannelNames,
+        public readonly bool $inMemoryConsumerPositionTracker,
+        public readonly bool $databaseTablesSetUpOnBootstrap,
     ) {
     }
 
@@ -32,29 +32,20 @@ final class TestConfiguration
 
     public function withFailOnCommandHandlerNotFound(bool $shouldFail): self
     {
-        $self = clone $this;
-        $self->failOnCommandHandlerNotFound = $shouldFail;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'failOnCommandHandlerNotFound' => $shouldFail]);
     }
 
     public function withFailOnQueryHandlerNotFound(bool $shouldFail): self
     {
-        $self = clone $this;
-        $self->failOnQueryHandlerNotFound = $shouldFail;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'failOnQueryHandlerNotFound' => $shouldFail]);
     }
 
     public function withMediaTypeConversion(string $channelName, MediaType $mediaType): self
     {
         Assert::notNullAndEmpty($channelName, 'Converted channel can not be empty');
 
-        $self = clone $this;
-        $self->pollableChannelMediaTypeConversion = $mediaType;
-        $self->channelToConvertOn = $channelName;
-
-        return $self->withSpyOnChannel($channelName);
+        return (new self(...[...get_object_vars($this), 'pollableChannelMediaTypeConversion' => $mediaType, 'channelToConvertOn' => $channelName]))
+            ->withSpyOnChannel($channelName);
     }
 
     public function withSpyOnChannel(string $channelName): self
@@ -63,60 +54,16 @@ final class TestConfiguration
             return $this;
         }
 
-        $self = clone $this;
-        $self->spiedChannelNames[] = $channelName;
-
-        return $self;
-    }
-
-    public function isFailingOnCommandHandlerNotFound(): bool
-    {
-        return $this->failOnCommandHandlerNotFound;
-    }
-
-    public function isFailingOnQueryHandlerNotFound(): bool
-    {
-        return $this->failOnQueryHandlerNotFound;
-    }
-
-    public function getPollableChannelMediaTypeConversion(): ?MediaType
-    {
-        return $this->pollableChannelMediaTypeConversion;
-    }
-
-    public function getChannelToConvertOn(): string
-    {
-        return $this->channelToConvertOn;
-    }
-
-    public function getSpiedChannels(): array
-    {
-        return $this->spiedChannelNames;
+        return new self(...[...get_object_vars($this), 'spiedChannelNames' => [...$this->spiedChannelNames, $channelName]]);
     }
 
     public function withInMemoryConsumerPositionTracker(bool $enabled): self
     {
-        $self = clone $this;
-        $self->inMemoryConsumerPositionTracker = $enabled;
-
-        return $self;
-    }
-
-    public function isInMemoryConsumerPositionTrackerEnabled(): bool
-    {
-        return $this->inMemoryConsumerPositionTracker;
+        return new self(...[...get_object_vars($this), 'inMemoryConsumerPositionTracker' => $enabled]);
     }
 
     public function withDatabaseTablesSetUpOnBootstrap(bool $enabled): self
     {
-        $self = clone $this;
-        $self->databaseTablesSetUpOnBootstrap = $enabled;
-
-        return $self;
-    }
-
-    public function isSettingUpDatabaseTablesOnBootstrap(): bool
-    {
-        return $this->databaseTablesSetUpOnBootstrap;
+        return new self(...[...get_object_vars($this), 'databaseTablesSetUpOnBootstrap' => $enabled]);
     }
 }

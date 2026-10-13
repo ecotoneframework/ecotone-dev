@@ -11,6 +11,8 @@ use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use PHPUnit\Framework\TestCase;
@@ -96,6 +98,32 @@ final class ImmutableConfigurationCopyTest extends TestCase
             ['distributedBusAnnotations' => [new AttributeDefinition(Asynchronous::class, ['async']), new AttributeDefinition(Asynchronous::class, ['second_async'])]],
             $observe,
         );
+    }
+
+    public function test_test_configuration_copy_changes_only_the_named_fields(): void
+    {
+        $original = TestConfiguration::createWithDefaults()
+            ->withFailOnCommandHandlerNotFound(false)
+            ->withFailOnQueryHandlerNotFound(false)
+            ->withMediaTypeConversion('orders', MediaType::createApplicationJson())
+            ->withSpyOnChannel('audit')
+            ->withInMemoryConsumerPositionTracker(false)
+            ->withDatabaseTablesSetUpOnBootstrap(false);
+
+        self::assertSame(
+            ['failOnCommandHandlerNotFound', 'failOnQueryHandlerNotFound', 'pollableChannelMediaTypeConversion', 'channelToConvertOn', 'spiedChannelNames', 'inMemoryConsumerPositionTracker', 'databaseTablesSetUpOnBootstrap'],
+            array_keys(get_object_vars($original)),
+        );
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withFailOnCommandHandlerNotFound(true), ['failOnCommandHandlerNotFound' => true]);
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withFailOnQueryHandlerNotFound(true), ['failOnQueryHandlerNotFound' => true]);
+        self::assertCopyChangesOnly(
+            $original,
+            fn (TestConfiguration $configuration) => $configuration->withMediaTypeConversion('payments', MediaType::createApplicationXml()),
+            ['pollableChannelMediaTypeConversion' => MediaType::createApplicationXml(), 'channelToConvertOn' => 'payments', 'spiedChannelNames' => ['orders', 'audit', 'payments']],
+        );
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withSpyOnChannel('shipping'), ['spiedChannelNames' => ['orders', 'audit', 'shipping']]);
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withInMemoryConsumerPositionTracker(true), ['inMemoryConsumerPositionTracker' => true]);
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withDatabaseTablesSetUpOnBootstrap(true), ['databaseTablesSetUpOnBootstrap' => true]);
     }
 
     private static function assertCopyChangesOnly(object $original, Closure $with, array $changedFields, ?Closure $observe = null): void

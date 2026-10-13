@@ -190,6 +190,7 @@
         "symfony/amqp-messenger": "^6.4|^7.0|^8.0",
         "symfony/doctrine-messenger": "^6.4|^7.0|^8.0",
         "doctrine/doctrine-bundle": "^2.12",
+        "symfony/doctrine-bridge": "^6.4|^7.0|^8.0",
         "phpbench/phpbench": "^1.2|^1.3",
         "enqueue/amqp-ext": "^0.10.18",
         "enqueue/null": "^0.10.18",

@@ -433,21 +433,20 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForTickets(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         );
     }
 
     private function bootstrapEcotoneForCalendar(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class,
@@ -458,7 +457,6 @@ final class TransactionRollbackTest extends ProjectingTestCase
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         );
     }

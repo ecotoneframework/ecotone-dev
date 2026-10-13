@@ -23,7 +23,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 {
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_without_metadata_mapping(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 AggregatesWithoutMetadataMapping\Basket::class,
                 AggregatesWithoutMetadataMapping\ItemInventory::class,
@@ -40,8 +40,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                       'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping',
                   ]
               ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->withEventsFor(
@@ -80,7 +79,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_with_metadata_mapping(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 AggregatesWithMetadataMapping\Basket::class,
                 AggregatesWithMetadataMapping\ItemInventory::class,
@@ -95,8 +94,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                     'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common',
                     'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping',
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->withEventsFor(

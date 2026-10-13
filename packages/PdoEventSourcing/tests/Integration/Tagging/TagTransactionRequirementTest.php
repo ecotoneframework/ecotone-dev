@@ -156,7 +156,7 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
             $connection->executeStatement($statement);
         }
 
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [CouponIssuedForTagTransactionTest::class, TagTransactionCommandHandler::class, EventsConverterForTagTransactionTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new TagTransactionCommandHandler(), new EventsConverterForTagTransactionTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -164,7 +164,6 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
                 ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $dbalConfiguration])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

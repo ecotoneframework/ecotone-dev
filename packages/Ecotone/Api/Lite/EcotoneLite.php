@@ -6,8 +6,6 @@ namespace Ecotone\Api\Lite;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
-use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -79,49 +77,10 @@ final class EcotoneLite
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, [], $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTesting');
+        $configuration = self::prepareForFlowTesting($configuration, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
 
-        if ($addInMemoryEventSourcedRepository && ! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
+        if ($addInMemoryEventSourcedRepository && ! $configuration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE) && ! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
-        }
-
-        return self::withDatabaseTablesSetUp(
-            self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false),
-            $configuration,
-        );
-    }
-
-    /**
-     * @param string[] $classesToResolve
-     * @param array<string,mixed> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     */
-    public static function bootstrapFlowTestingWithEventStore(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false,
-        bool                     $addInMemoryStateStoredRepository = true,
-        bool                     $runForProductionEventStore = false,
-        ?TestConfiguration        $testConfiguration = null,
-        ?string                  $licenceKey = null,
-    ): FlowTestSupport {
-        $enabledModulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
-
-        $configuration = self::prepareForFlowTesting($configuration, $enabledModulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey, 'bootstrapFlowTestingWithEventStore');
-
-        if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
-            Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
-
-            $configuration = $configuration
-                ->addExtensionObject(EventSourcingConfiguration::createInMemory());
-        }
-
-        if (! $configuration->hasExtensionObject(DbalConfiguration::class)) {
-            $configuration = $configuration
-                ->addExtensionObject(DbalConfiguration::createForTesting());
         }
 
         return self::withDatabaseTablesSetUp(
@@ -180,6 +139,7 @@ final class EcotoneLite
             configurationVariables: $configurationVariables,
             classesToResolve: $classesToResolve,
             enableTesting: $enableTesting,
+            providedServiceIds: $enableTesting ? self::providedServiceIds($containerOrAvailableServices) : [],
         );
         $annotationFinder = $cacheLayout->annotationFinder;
         $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
@@ -227,35 +187,33 @@ final class EcotoneLite
         return $messagingSystem;
     }
 
-    private static function refuseTestConfigurationPassedAsExtensionObject(ServiceConfiguration $configuration, string $bootstrapMethod): void
+    private static function refuseTestConfigurationPassedAsExtensionObject(ServiceConfiguration $configuration): void
     {
         if (! $configuration->hasExtensionObject(TestConfiguration::class)) {
             return;
         }
 
         throw ConfigurationException::create(
-            "EcotoneLite::{$bootstrapMethod}() was given a TestConfiguration as an extension object of the ServiceConfiguration. "
+            'EcotoneLite::bootstrapFlowTesting() was given a TestConfiguration as an extension object of the ServiceConfiguration. '
             . 'A flow test runs with exactly one TestConfiguration, the one passed as the testConfiguration: parameter, so this one would be replaced by that one and its settings ignored. '
-            . "Remove it from withExtensionObjects() / addExtensionObject() and pass it as EcotoneLite::{$bootstrapMethod}(..., testConfiguration: \$yourTestConfiguration) instead."
+            . 'Remove it from withExtensionObjects() / addExtensionObject() and pass it as EcotoneLite::bootstrapFlowTesting(..., testConfiguration: $yourTestConfiguration) instead.'
         );
     }
 
     private static function prepareForFlowTesting(
         ?ServiceConfiguration $configuration,
-        array                 $enabledModulePackageNames,
         array                 $classesToResolve,
         bool                  $addInMemoryStateStoredRepository,
         ?TestConfiguration    $testConfiguration,
         ?string               $enterpriseLicenceKey,
-        string                $bootstrapMethod,
     ): ServiceConfiguration {
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
-        self::refuseTestConfigurationPassedAsExtensionObject($configuration, $bootstrapMethod);
+        self::refuseTestConfigurationPassedAsExtensionObject($configuration);
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
         if (! $configuration->areEnabledModulePackageNamesDefined()) {
             $configuration = $configuration
-                ->withEnabledModulePackageNames($enabledModulePackageNames);
+                ->withEnabledModulePackageNames([]);
         }
 
         $configuration = $configuration
@@ -272,6 +230,24 @@ final class EcotoneLite
         }
 
         return $configuration;
+    }
+
+    /**
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @return string[]|null
+     */
+    private static function providedServiceIds(ContainerInterface|array $containerOrAvailableServices): ?array
+    {
+        if ($containerOrAvailableServices instanceof ContainerInterface) {
+            return null;
+        }
+
+        $serviceIds = [];
+        foreach ($containerOrAvailableServices as $referenceName => $service) {
+            $serviceIds[] = is_int($referenceName) ? get_class($service) : $referenceName;
+        }
+
+        return $serviceIds;
     }
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool

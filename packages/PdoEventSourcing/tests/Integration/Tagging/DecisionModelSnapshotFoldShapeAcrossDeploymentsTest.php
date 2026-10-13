@@ -87,7 +87,7 @@ final class DecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends EventSou
             }
         };
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [Basket::class, BasketEventConverter::class, BasketHistoryAcrossDeployments::class, $observer::class, $snapshotConverter::class],
             containerOrAvailableServices: [
                 new BasketEventConverter(),
@@ -103,7 +103,6 @@ final class DecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends EventSou
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->sendCommand(new ObserveBasketHistory('1'));
 

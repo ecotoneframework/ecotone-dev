@@ -436,7 +436,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             )->getGateway(EventStore::class);
         }
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -448,7 +448,6 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
                         'dbal' => EventSourcingConfiguration::createWithDefaults(),
                     },
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables()->getGateway(EventStore::class);
     }

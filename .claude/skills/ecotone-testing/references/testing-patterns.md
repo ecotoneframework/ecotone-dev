@@ -42,9 +42,11 @@ public function test_async_event_processing(): void
 ```php
 public function test_projection_builds_read_model(): void
 {
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [TicketListProjection::class, Ticket::class],
         containerOrAvailableServices: [new TicketListProjection()],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
     );
 
     $ecotone->initializeProjection('ticket_list');
@@ -106,4 +108,4 @@ public function test_with_dbal_module(): void
   PHP forces a named class below the `TestCase`
 - **Don't** test implementation details -- test behavior from the end-user perspective
 - **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
-- **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` -- pick the right one
+- **Don't** reach for in-memory switches to keep a test off the database -- leave the connection out instead

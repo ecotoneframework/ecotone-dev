@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -156,10 +157,10 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_events_with_event_store()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class],
             [new TicketEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
-            runForProductionEventStore: true,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         )->setupDatabaseTables();
 
         $ticketId = Uuid::v7()->toRfc4122();
@@ -180,13 +181,14 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_registering_in_memory_event_sourcing_repository()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $this->assertCount(

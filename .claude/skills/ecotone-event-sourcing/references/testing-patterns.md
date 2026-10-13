@@ -30,8 +30,10 @@ $this->assertEquals([new TicketWasClosed('t-1')], $events);
 ## Testing with Event Store
 
 ```php
-$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+$ecotone = EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [Ticket::class],
+    configuration: ServiceConfiguration::createWithDefaults()
+        ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
 );
 ```
 
@@ -42,9 +44,11 @@ public function test_projection(): void
 {
     $projection = new TicketListProjection();
 
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [TicketListProjection::class, Ticket::class],
         containerOrAvailableServices: [$projection],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
     );
 
     // Initialize

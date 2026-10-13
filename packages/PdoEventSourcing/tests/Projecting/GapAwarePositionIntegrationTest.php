@@ -74,7 +74,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
         $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
-        self::$ecotone = $this->bootstrapFlowTestingWithEventStore(
+        self::$ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [
                 $projection,
@@ -89,8 +89,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         self::$ticketStreamTable = Ticket::STREAM_NAME;
@@ -346,7 +345,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $lateWriterConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone');
         $this->lateWriterConnection = $lateWriterConnectionFactory->establishConnection();
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new TicketEventConverter(),
                 DbalConnectionFactory::class => $lateWriterConnectionFactory,
@@ -359,8 +358,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
     }
 

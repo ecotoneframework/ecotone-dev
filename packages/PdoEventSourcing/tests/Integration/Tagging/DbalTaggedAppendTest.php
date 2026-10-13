@@ -179,7 +179,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -188,7 +188,6 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();
@@ -201,7 +200,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
      */
     private function bootstrapEcotoneWithFilterOnlyTags(array $classesToResolve, array $filterOnlyTagNames): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -210,7 +209,6 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
                     DbalConfiguration::createWithDefaults(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

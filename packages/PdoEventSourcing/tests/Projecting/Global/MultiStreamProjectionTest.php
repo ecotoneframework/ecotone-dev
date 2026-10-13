@@ -319,7 +319,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class, EventsConverter::class,
@@ -328,7 +328,6 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

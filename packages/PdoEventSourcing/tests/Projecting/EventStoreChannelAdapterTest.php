@@ -70,7 +70,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -91,7 +91,6 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -137,7 +136,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -156,8 +155,8 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     )
                         ->withEventNames(['*TicketWasRegistered']), // Only TicketWasRegistered events
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
-                ]),
-            runForProductionEventStore: true,
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -226,7 +225,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $ticketCounter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -248,7 +247,6 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

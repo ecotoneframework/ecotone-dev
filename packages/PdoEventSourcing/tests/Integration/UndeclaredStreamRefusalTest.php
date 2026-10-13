@@ -82,7 +82,7 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -103,13 +103,12 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: array_map(static fn (object $class) => $class::class, $classes),
             containerOrAvailableServices: [...$classes, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
-            runForProductionEventStore: true,
         );
     }
 }

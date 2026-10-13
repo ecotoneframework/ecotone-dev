@@ -29,7 +29,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
     public function test_retry_happens_inside_aborted_transaction_with_concurrency_conflict(): void
     {
         $logger = new TestRetryLogger();
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Customer::class, RegisterCustomer::class, CustomerRegistered::class, EventsConverter::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => self::getConnectionFactory(),
@@ -47,8 +47,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $id = 'cust-1';
@@ -74,7 +73,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
     public function test_retry_with_nested_command_handlers_on_factory_conflict(): void
     {
         $logger = new TestRetryLogger();
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Customer::class, RegisterCustomer::class, CustomerRegistered::class, EventsConverter::class, CreateCustomerCaller::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => self::getConnectionFactory(),
@@ -93,8 +92,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $id = 'cust-nested-1';
@@ -125,7 +123,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         $logger = new TestRetryLogger();
         $connectionFactory = self::getConnectionFactory();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 Customer::class,
                 RegisterCustomer::class,
@@ -152,8 +150,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $id = 'cust-reconnect-1';

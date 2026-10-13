@@ -110,7 +110,7 @@ final class AggregateBackedDecisionModelLegacyStreamDbalTest extends EventSourci
 
     private function bootstrapEcotone(DbalConnectionFactory $connectionFactory): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [
                 $connectionFactory,
@@ -126,7 +126,6 @@ final class AggregateBackedDecisionModelLegacyStreamDbalTest extends EventSourci
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

@@ -198,7 +198,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CouponIssuedForVerifySchemaTest::class, EventsConverterForVerifySchemaTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForVerifySchemaTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -209,7 +209,6 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

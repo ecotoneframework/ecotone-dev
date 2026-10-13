@@ -104,7 +104,7 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
 
     private function bootstrapWithoutTheEventStreamTable(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 ScreeningForMissingStreamTableTest::class,
                 ScreeningOpenedForMissingStreamTableTest::class,

@@ -260,7 +260,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [StudentSubscribedForDbalLoadTest::class, CourseCapacityChangedForDbalLoadTest::class, EventsConverterForDbalLoadTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalLoadTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -269,7 +269,6 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

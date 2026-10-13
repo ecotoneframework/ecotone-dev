@@ -21,25 +21,6 @@ public static function bootstrapFlowTesting(
 ): FlowTestSupport
 ```
 
-### `EcotoneLite::bootstrapFlowTestingWithEventStore()`
-
-Test bootstrap with in-memory event store. Enables eventSourcing, dbal, jmsConverter packages.
-
-```php
-public static function bootstrapFlowTestingWithEventStore(
-    array                    $classesToResolve = [],
-    ContainerInterface|array $containerOrAvailableServices = [],
-    ?ServiceConfiguration    $configuration = null,
-    array                    $configurationVariables = [],
-    ?string                  $pathToRootCatalog = null,
-    bool                     $allowGatewaysToBeRegisteredInContainer = false,
-    bool                     $addInMemoryStateStoredRepository = true,
-    bool                     $runForProductionEventStore = false,
-    ?TestConfiguration       $testConfiguration = null,
-    ?string                  $licenceKey = null,
-): FlowTestSupport
-```
-
 ### `EcotoneLite::bootstrap()`
 
 Production/standalone bootstrap (not a test helper) -- loads every installed module package and returns the live

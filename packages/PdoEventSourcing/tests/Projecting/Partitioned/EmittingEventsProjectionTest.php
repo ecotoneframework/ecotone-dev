@@ -75,7 +75,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -90,7 +90,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -111,7 +110,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -126,7 +125,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -145,7 +143,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     {
         $projection = $this->createEmittingProjectionWithLinkToProjectionStream();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -159,7 +157,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -186,7 +183,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createNonLiveEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -201,7 +198,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($this->getConnection());
@@ -386,7 +382,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     {
         $projection = $this->createFlushEmittingProjection();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -400,7 +396,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -418,7 +413,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     {
         $projection = $this->createFlushEmittingProjection();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -432,7 +427,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -482,7 +476,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $this->expectException(LicensingException::class);
         $this->expectExceptionMessage('Using #[ProjectionState] in #[ProjectionFlush] methods requires Ecotone Enterprise licence.');
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -496,7 +490,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
     }
 
@@ -507,7 +500,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $this->expectException(LicensingException::class);
         $this->expectExceptionMessageMatches('/Enterprise licence/');
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -521,7 +514,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
     }
 

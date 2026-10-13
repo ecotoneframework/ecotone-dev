@@ -171,30 +171,4 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             $licenceKey,
         );
     }
-
-    protected function bootstrapFlowTestingWithEventStore(
-        array $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration $configuration = null,
-        array $configurationVariables = [],
-        ?string $pathToRootCatalog = null,
-        bool $allowGatewaysToBeRegisteredInContainer = false,
-        bool $addInMemoryStateStoredRepository = true,
-        bool $runForProductionEventStore = false,
-        ?TestConfiguration $testConfiguration = null,
-        ?string $licenceKey = null,
-    ): FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            $classesToResolve,
-            $containerOrAvailableServices,
-            $configuration,
-            $configurationVariables,
-            $pathToRootCatalog,
-            $allowGatewaysToBeRegisteredInContainer,
-            $addInMemoryStateStoredRepository,
-            $runForProductionEventStore,
-            $testConfiguration,
-            $licenceKey,
-        );
-    }
 }

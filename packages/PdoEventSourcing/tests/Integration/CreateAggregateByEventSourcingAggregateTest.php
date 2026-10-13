@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarClosed;
@@ -35,14 +36,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 {
     public function test_pure_event_sourcing_aggregate_can_create_state_based_aggregate(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, Meeting::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -72,14 +74,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_pure_event_sourcing_aggregate_can_create_state_based_aggregate_with_internal_recorder(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, MeetingWithInternalRecorder::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -109,14 +112,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_pure_event_sourcing_aggregate_can_create_another_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, MeetingWithEventSourcing::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -146,14 +150,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_state_based_aggregate(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, Meeting::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -182,14 +187,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_state_based_aggregate_with_internal_recorder(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithInternalRecorder::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -219,14 +225,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_another_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -263,14 +270,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_creating_new_instances_of_same_aggregate(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -308,14 +316,15 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_not_storing_events_twice_if_returned_aggregate_is_same_instance(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 

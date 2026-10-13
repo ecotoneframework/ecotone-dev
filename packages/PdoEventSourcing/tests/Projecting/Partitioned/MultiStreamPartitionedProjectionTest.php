@@ -317,7 +317,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForSharedStream(array $classesToResolve, array $services): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 SharedStreamProduct::class,
                 SharedStreamCategory::class,
@@ -327,7 +327,6 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();
@@ -604,7 +603,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForDifferentStreams(array $classesToResolve, array $services): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 DifferentStreamProductA::class,
                 DifferentStreamProductB::class,
@@ -614,7 +613,6 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();
@@ -624,7 +622,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class,
@@ -634,7 +632,6 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

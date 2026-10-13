@@ -251,7 +251,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
             $extensionObjects[] = EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(WalletForAggregateBackedDbalTest::class, 1);
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: $withDynamicConsistencyBoundary
                 ? [...self::AGGREGATE_CLASSES, ...self::DECISION_CLASSES]
                 : self::AGGREGATE_CLASSES,
@@ -268,7 +268,6 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
                 ->withExtensionObjects($extensionObjects)
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

@@ -93,7 +93,7 @@ final class LiteralEventTagDecisionModelDbalTest extends EventSourcingMessagingT
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [self::getConnectionFactory(), new InvoiceIssuingHandlerForDbalLiteralTag(), new InvoiceConverterForDbalLiteralTag()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -104,7 +104,6 @@ final class LiteralEventTagDecisionModelDbalTest extends EventSourcingMessagingT
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

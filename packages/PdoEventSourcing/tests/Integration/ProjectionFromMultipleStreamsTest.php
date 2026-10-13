@@ -26,7 +26,7 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
 {
     public function test_handling_multiple_streams_for_projection(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new MultipleStreamsProjection(), new BasketEventConverter(), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -39,8 +39,7 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone

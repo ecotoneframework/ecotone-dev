@@ -186,7 +186,7 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 OrderForMultiTenantBackfillTest::class,
                 PlaceOrderForMultiTenantBackfillTest::class,
@@ -218,7 +218,6 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

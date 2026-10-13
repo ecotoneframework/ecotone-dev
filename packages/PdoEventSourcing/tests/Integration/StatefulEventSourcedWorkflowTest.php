@@ -76,7 +76,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 Cycle::class,
                 CycleGateway::class,
@@ -93,7 +93,6 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
     }
 }

@@ -145,14 +145,13 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
             }
         };
 
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [$streamDeletion::class],
             containerOrAvailableServices: [$streamDeletion, DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
     }
 
@@ -171,7 +170,7 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -179,7 +178,6 @@ final class EventStreamDeletionTest extends EventSourcingMessagingTestCase
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Ticket'])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
 
         return $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));

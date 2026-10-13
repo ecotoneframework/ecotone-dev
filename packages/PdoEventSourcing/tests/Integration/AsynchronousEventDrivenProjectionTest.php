@@ -158,7 +158,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         ],
         array $extensionObjects = [],
     ): FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -169,7 +169,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                     EventSourcingConfiguration::createWithDefaults(),
                 ], $extensionObjects)),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         )->setupDatabaseTables();
     }
 }

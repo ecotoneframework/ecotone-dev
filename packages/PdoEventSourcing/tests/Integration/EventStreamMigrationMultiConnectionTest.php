@@ -103,7 +103,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
 
     private function bootstrapWithSecondaryStream(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [SecondaryOrder::class, SecondaryOrderConverter::class],
             containerOrAvailableServices: [
                 new SecondaryOrderConverter(),
@@ -115,7 +115,6 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
     }

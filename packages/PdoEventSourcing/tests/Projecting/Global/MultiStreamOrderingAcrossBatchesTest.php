@@ -259,12 +259,11 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
 
     private function bootstrapEcotone(object $projection): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -274,12 +273,11 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
         $lateWriterConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone');
         $this->lateWriterConnection = $lateWriterConnectionFactory->establishConnection();
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $lateWriterConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

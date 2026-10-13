@@ -63,7 +63,7 @@ final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [CouponForMultiTenantTest::class, CouponIssuerForMultiTenantTest::class, CouponIssuedForMultiTenantTest::class, EventsConverterForMultiTenantTest::class],
             containerOrAvailableServices: [
                 new EventsConverterForMultiTenantTest(),
@@ -88,7 +88,6 @@ final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

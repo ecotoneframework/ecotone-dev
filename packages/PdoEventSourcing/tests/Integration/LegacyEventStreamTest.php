@@ -105,7 +105,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
 
     private function bootstrap(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [LegacyOrder::class, LegacyOrderConverter::class],
             containerOrAvailableServices: [
                 new LegacyOrderConverter(),
@@ -115,7 +115,6 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
                 ->withEnvironment('prod')
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
     }

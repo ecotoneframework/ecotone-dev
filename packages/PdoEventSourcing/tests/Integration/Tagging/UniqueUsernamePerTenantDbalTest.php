@@ -165,7 +165,7 @@ final class UniqueUsernamePerTenantDbalTest extends EventSourcingMessagingTestCa
 
     private function bootstrapEcotone(DbalConnectionFactory $connectionFactory): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 UsernameAvailabilityForDbalTest::class,
                 UsernameRegistrationForDbalTest::class,
@@ -187,7 +187,6 @@ final class UniqueUsernamePerTenantDbalTest extends EventSourcingMessagingTestCa
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

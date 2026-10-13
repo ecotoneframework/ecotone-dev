@@ -32,7 +32,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving_events()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -40,8 +40,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -75,7 +74,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_events_without_aggregate_metadata()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -83,8 +82,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -116,7 +114,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_event_twice_without_aggregate_metadata()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -124,8 +122,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -142,7 +139,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_aggregate_version_twice_is_rejected()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -150,8 +147,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -192,7 +188,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_event_for_default_partioned_stream()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -200,8 +196,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -242,7 +237,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_fetching_with_pagination()
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -250,8 +245,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
@@ -277,7 +271,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_aggregates_are_stored_in_the_default_event_stream_table(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new InProgressTicketList($this->getConnection()),
                 new TicketEventConverter(),
@@ -289,8 +283,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(new RegisterTicket('1', 'johny', 'alert'));

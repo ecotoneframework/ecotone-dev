@@ -80,7 +80,7 @@ final class DecisionModelLoadTransactionOrderingDbalTest extends EventSourcingMe
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForOrderingTest(), new SubscribeHandlerForOrderingTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -91,7 +91,6 @@ final class DecisionModelLoadTransactionOrderingDbalTest extends EventSourcingMe
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

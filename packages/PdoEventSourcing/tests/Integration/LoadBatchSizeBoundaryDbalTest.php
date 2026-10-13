@@ -84,7 +84,7 @@ final class LoadBatchSizeBoundaryDbalTest extends EventSourcingMessagingTestCase
 
     private function bootstrapWithLoadBatchSize(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 BasketWithBatchedEvents::class,
                 BasketWithBatchedEventsConverter::class,
@@ -98,7 +98,6 @@ final class LoadBatchSizeBoundaryDbalTest extends EventSourcingMessagingTestCase
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(self::LOAD_BATCH_SIZE),
                 ]),
-            runForProductionEventStore: true,
         );
 
         return $ecotone->setupDatabaseTables();

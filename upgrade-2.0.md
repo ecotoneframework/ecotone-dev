@@ -657,9 +657,8 @@ public function dbal(): DbalConfiguration
 
 A handler marked `#[WithoutDatabaseTransaction]` opts out of the bus transaction, so a tagged append from it fails
 the same way, and the message names the attribute. Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
-around the call (`$connection->transactional(fn () => $eventStore->appendTo(...))`). `EcotoneLite` tests bootstrapped
-with `bootstrapFlowTestingWithEventStore(runForProductionEventStore: true)` get `DbalConfiguration::createForTesting()`
-(all transactions off) unless they pass their own `DbalConfiguration`. Untagged appends stay a single `INSERT` and need
+around the call (`$connection->transactional(fn () => $eventStore->appendTo(...))`). `EcotoneLite` flow tests given a
+DBAL connection run with transactions on, as an application does, unless they pass their own `DbalConfiguration`. Untagged appends stay a single `INSERT` and need
 no transaction.
 
 **How to adapt:**
@@ -1255,7 +1254,7 @@ places:
 - **`ecotone:migration:database:setup --initialize`** — or its programmatic twin
   (`DatabaseSetupManager` / `DatabaseSetupManagerRegistry`), or `--sql` fed to your own migration tool;
 - **the test setup action, `$ecotone->setupDatabaseTables()`**, in an `EcotoneLite` flow test. The flow-test bootstrap
-  (`bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()`) calls it itself, for every connection the test
+  (`bootstrapFlowTesting()`) calls it itself, for every connection the test
   registers, so a flow test does not create tables by hand.
 
 Everywhere else — storing a dead letter, deduplicating a message, writing a document, appending events, reading the
@@ -1291,7 +1290,7 @@ The removed configuration, one by one:
   In a flow test nothing replaces it: the bootstrap sets the tables up. A test that passed
   `false` to watch a missing table be refused passes
   `testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false)` to
-  `bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` instead, and calls `$ecotone->setupDatabaseTables()`
+  `bootstrapFlowTesting()` instead, and calls `$ecotone->setupDatabaseTables()`
   when it wants the tables.
 - **`AutoCreateLevel` and `DbalConfiguration::withAutoCreateLevel()` never shipped.** They existed only in pre-release
   2.0 builds, between `withAutomaticTableInitialization()` and its removal; 1.x never had them. **How to adapt:** only
@@ -2797,8 +2796,7 @@ or override a `with*()` method.
 
 **Now:** all three are `final`, and their constructors are `private` behind the named factories
 (`ServiceConfiguration::createWithDefaults()`, `DbalConfiguration::createWithDefaults()`,
-`DbalConfiguration::createForTesting()`, `DbalConfiguration::createDefaultFor()` and
-`DataProtectionConfiguration::create()`). Extending one is a fatal error
+`DbalConfiguration::createForTesting()` and `DataProtectionConfiguration::create()`). Extending one is a fatal error
 at compile time. Their `with*()` methods return `new self(...)` rather than `new static(...)`, so a copy is always
 the class itself.
 
@@ -2877,19 +2875,40 @@ actually flushed.
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
 rename test-support methods without aliases; the renamed methods are listed in each entry.
 
-- **Dead letter and deduplication run in memory in a flow test that registers no `DbalConfiguration`.**
+- **`EcotoneLite::bootstrapFlowTestingWithEventStore()` is removed, and the connection a flow test is given decides
+  where its data is kept.**
+  **Before:** a flow test chose its storage by its bootstrap. `bootstrapFlowTestingWithEventStore()` enabled the
+  event sourcing, DBAL and JMS converter packages, kept events in memory unless `runForProductionEventStore: true`
+  was passed, and added `DbalConfiguration::createForTesting()`, whose document store was in memory. Any flow test
+  holding a `TestConfiguration` kept dead letter and deduplication in memory even when it was given a connection.
+  **Now:** `EcotoneLite::bootstrapFlowTesting()` is the only flow-testing bootstrap, and in it the connections you
+  provide decide the implementation. Each of the event store, document store, deduplication and dead letter uses
+  DBAL when the connection it is configured on is provided — a `containerOrAvailableServices` entry under that
+  reference, a `MultiTenantConfiguration`, or a framework `ConnectionReference` — and keeps its data in memory when
+  it is not. With no DBAL connection, DBAL transactions and object-manager flushing are off, since there is nothing
+  to wrap. An `EventSourcingConfiguration` or a `DbalBackedMessageChannelBuilder` on a connection the flow test was
+  not given is refused at bootstrap with a `ConfigurationException` naming the services entry to add, or the
+  in-memory alternative. `DbalConfiguration::createDefaultFor()` is removed, and
+  `DbalConfiguration::createForTesting()` no longer forces the document store into memory. An application outside a
+  flow test behaves as before. **How to adapt:** rename the call to `bootstrapFlowTesting()` and drop
+  `runForProductionEventStore:` — giving the test a connection is what keeps it on the database. A test that relied
+  on the packages the removed method enabled names them:
+  `ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])`.
+  A test that passed a connection for one feature but wanted another in memory keeps that one in memory explicitly,
+  with `EventSourcingConfiguration::createInMemory()`, `withDocumentStore(inMemoryDocumentStore: true)`,
+  `withDeduplication(inMemory: true)` or `withDeadLetter(true, inMemory: true)`.
+- **Dead letter and deduplication have an in-memory implementation.**
   **Before:** both existed only on DBAL, so a flow test using either needed a database connection and its tables.
   **Now:** each has an in-memory implementation beside the DBAL one, selected on the feature's own
   `DbalConfiguration` method — `withDeadLetter(true, inMemory: true)`, `withDeduplication(inMemory: true)` — and a
-  flow test (`EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()`) with no
-  `DbalConfiguration` registered gets both in memory. An explicit `DbalConfiguration` keeps DBAL, as does every
-  application outside a flow test. Each `DeadLetterGateway` and `CustomDeadLetterGateway` gets its own in-memory store,
+  flow test that is not given their connection gets both in memory (see the first entry of this section). Every
+  application outside a flow test keeps DBAL. Each `DeadLetterGateway` and `CustomDeadLetterGateway` gets its own in-memory store,
   and a custom gateway's `store()` now writes to its own dead letter — on DBAL, its own connection — instead of the
   default gateway's. **How to adapt:** a flow test that asserts on the dead-letter or deduplication *table* rather
   than through `DeadLetterGateway` and its handlers registers `DbalConfiguration::createWithDefaults()` explicitly.
   `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
 - **A `TestConfiguration` given as an extension object is refused.** **Before:**
-  `EcotoneLite::bootstrapFlowTesting()` and `bootstrapFlowTestingWithEventStore()` removed every `TestConfiguration`
+  `EcotoneLite::bootstrapFlowTesting()` and the since-removed `bootstrapFlowTestingWithEventStore()` removed every `TestConfiguration`
   found in the `ServiceConfiguration`'s extension objects and used the `testConfiguration:` parameter (or the defaults)
   instead, so settings passed through `withExtensionObjects()` / `addExtensionObject()` were ignored without a word.
   **Now:** bootstrap fails with `ConfigurationException`: `EcotoneLite::bootstrapFlowTesting() was given a

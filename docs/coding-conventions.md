@@ -686,8 +686,8 @@ final class BasketTest extends TestCase
 }
 ```
 
-- **`EcotoneLite::bootstrapFlowTesting()`** for everything;
-  `bootstrapFlowTestingWithEventStore()` when the test needs a real event store.
+- **`EcotoneLite::bootstrapFlowTesting()`** for everything. A test that needs the real event store or another DBAL
+  seam passes the connection; one that passes none runs them in memory.
 - **`snake_case` method names**, enforced by php-cs-fixer. Name after the behaviour, not the implementation:
   `test_adding_an_item_is_visible_to_the_query_side`, not `test_basket_repository_saves`.
 - **`final class`**, with `/** licence Apache-2.0 @internal */`. php-cs-fixer adds `@internal`.

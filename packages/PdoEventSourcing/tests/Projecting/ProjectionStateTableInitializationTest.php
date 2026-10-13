@@ -175,14 +175,13 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
 
     private function bootstrapEcotone(array $classesToResolve, array $services, TestConfiguration $testConfiguration): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
-            runForProductionEventStore: true,
             testConfiguration: $testConfiguration,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

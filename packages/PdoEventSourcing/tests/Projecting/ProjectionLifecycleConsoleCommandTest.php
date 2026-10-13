@@ -87,13 +87,12 @@ final class ProjectionLifecycleConsoleCommandTest extends ProjectingTestCase
             }
         };
 
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
-            runForProductionEventStore: true,
         );
     }
 }

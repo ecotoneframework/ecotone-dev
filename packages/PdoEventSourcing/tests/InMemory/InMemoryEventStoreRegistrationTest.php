@@ -38,7 +38,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         };
 
         // When bootstrapping with PdoEventSourcing in in-memory mode
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TestEventForInMemoryMode::class, TestEventForInMemoryModeConverter::class, $projection::class],
             [$projection, new TestEventForInMemoryModeConverter()],
             configuration: ServiceConfiguration::createWithDefaults()

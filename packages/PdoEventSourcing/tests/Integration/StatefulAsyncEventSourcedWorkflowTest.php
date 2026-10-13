@@ -92,7 +92,7 @@ class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCa
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,
@@ -105,8 +105,7 @@ class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCa
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
     }
 }

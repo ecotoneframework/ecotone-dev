@@ -102,7 +102,7 @@ final class InterfaceTypedPayloadTest extends TestCase
                 $this->received[] = $event;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore([EventSourcedBasket::class, $projection::class], [$projection]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([EventSourcedBasket::class, $projection::class], [$projection], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]));
 
         $ecotone->sendCommandWithRouting('eventSourcedBasket.addProduct', ['basketId' => 'basket-1', 'productId' => 'product-1']);
 

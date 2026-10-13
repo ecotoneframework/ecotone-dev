@@ -33,7 +33,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
     {
         $this->initializeMultiTenantDefaultStream();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
@@ -56,8 +56,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(
@@ -113,7 +112,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
     {
         $this->initializeMultiTenantDefaultStream();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant\InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
@@ -136,8 +135,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(
@@ -184,7 +182,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
     {
         $this->initializeMultiTenantDefaultStream();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new \Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
@@ -207,8 +205,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(

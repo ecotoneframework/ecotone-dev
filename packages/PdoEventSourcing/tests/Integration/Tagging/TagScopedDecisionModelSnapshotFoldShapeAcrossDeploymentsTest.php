@@ -95,7 +95,7 @@ final class TagScopedDecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends
             }
         };
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [SpentTodayAcrossDeployments::class, WalletSpentAcrossDeployments::class, WalletRefundedAcrossDeployments::class, $wallet::class, $snapshotConverter::class],
             containerOrAvailableServices: [
                 $wallet,
@@ -110,7 +110,6 @@ final class TagScopedDecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->sendCommand(new SpendFromWalletAcrossDeployments('w-1', 1));
 

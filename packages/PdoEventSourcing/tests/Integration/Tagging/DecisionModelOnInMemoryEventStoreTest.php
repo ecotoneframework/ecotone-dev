@@ -16,6 +16,7 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -137,11 +138,12 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, UsernameReleasedOnInMemoryEventStore::class, $registration::class, $converter::class],
             containerOrAvailableServices: [$registration, $converter],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

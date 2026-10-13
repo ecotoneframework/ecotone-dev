@@ -94,7 +94,7 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
 
     private function bootstrapEcotone(TestConfiguration $testConfiguration): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Ticket::class],
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -107,7 +107,6 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
                     DbalConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             testConfiguration: $testConfiguration,
         );
     }

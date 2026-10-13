@@ -87,7 +87,7 @@ $snapshotConverter = new #[MediaTypeConverter] class () implements Converter {
     }
 };
 
-EcotoneLite::bootstrapFlowTestingWithEventStore(
+EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [TicketFoldedAcrossDeployments::class, TicketEventConverter::class, $snapshotConverter::class],
     containerOrAvailableServices: [
         new TicketEventConverter(),
@@ -102,7 +102,6 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
             EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
         ]),
     pathToRootCatalog: __DIR__ . '/../../../',
-    runForProductionEventStore: true,
 )
     ->setupDatabaseTables()
     ->sendCommandWithRouting('ticketFoldedAcrossDeployments.register', '1')

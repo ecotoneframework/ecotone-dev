@@ -116,26 +116,26 @@ final class PollingMetadata implements DefinedObject
 
         $copy = $this->createCopy();
 
-        if (! is_null($executionPollingMetadata->getStopOnError())) {
-            $copy = $copy->setStopOnError($executionPollingMetadata->getStopOnError());
+        if (! is_null($executionPollingMetadata->stopOnError)) {
+            $copy = $copy->setStopOnError($executionPollingMetadata->stopOnError);
         }
-        if (! is_null($executionPollingMetadata->getHandledMessageLimit())) {
-            $copy = $copy->setHandledMessageLimit($executionPollingMetadata->getHandledMessageLimit());
+        if (! is_null($executionPollingMetadata->handledMessageLimit)) {
+            $copy = $copy->setHandledMessageLimit($executionPollingMetadata->handledMessageLimit);
         }
-        if (! is_null($executionPollingMetadata->getExecutionTimeLimitInMilliseconds())) {
-            $copy = $copy->setExecutionTimeLimitInMilliseconds($executionPollingMetadata->getExecutionTimeLimitInMilliseconds());
+        if (! is_null($executionPollingMetadata->executionTimeLimitInMilliseconds)) {
+            $copy = $copy->setExecutionTimeLimitInMilliseconds($executionPollingMetadata->executionTimeLimitInMilliseconds);
         }
-        if (! is_null($executionPollingMetadata->getMemoryLimitInMegabytes())) {
-            $copy = $copy->setMemoryLimitInMegaBytes($executionPollingMetadata->getMemoryLimitInMegabytes());
+        if (! is_null($executionPollingMetadata->memoryLimitInMegabytes)) {
+            $copy = $copy->setMemoryLimitInMegaBytes($executionPollingMetadata->memoryLimitInMegabytes);
         }
-        if (! is_null($executionPollingMetadata->getCron())) {
-            $copy = $copy->setCron($executionPollingMetadata->getCron());
+        if (! is_null($executionPollingMetadata->cron)) {
+            $copy = $copy->setCron($executionPollingMetadata->cron);
         }
-        if (! is_null($executionPollingMetadata->getFinishWhenNoMessages())) {
-            $copy = $copy->setFinishWhenNoMessages($executionPollingMetadata->getFinishWhenNoMessages());
+        if (! is_null($executionPollingMetadata->finishWhenNoMessages)) {
+            $copy = $copy->setFinishWhenNoMessages($executionPollingMetadata->finishWhenNoMessages);
         }
-        if (! is_null($executionPollingMetadata->getExecutionAmountLimit())) {
-            $copy = $copy->setExecutionAmountLimit($executionPollingMetadata->getExecutionAmountLimit());
+        if (! is_null($executionPollingMetadata->executionAmountLimit)) {
+            $copy = $copy->setExecutionAmountLimit($executionPollingMetadata->executionAmountLimit);
         }
 
         return $copy;

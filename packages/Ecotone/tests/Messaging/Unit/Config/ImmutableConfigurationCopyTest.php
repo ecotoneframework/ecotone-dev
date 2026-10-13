@@ -11,6 +11,7 @@ use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -124,6 +125,35 @@ final class ImmutableConfigurationCopyTest extends TestCase
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withSpyOnChannel('shipping'), ['spiedChannelNames' => ['orders', 'audit', 'shipping']]);
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withInMemoryConsumerPositionTracker(true), ['inMemoryConsumerPositionTracker' => true]);
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withDatabaseTablesSetUpOnBootstrap(true), ['databaseTablesSetUpOnBootstrap' => true]);
+    }
+
+    public function test_execution_polling_metadata_copy_changes_only_the_named_fields(): void
+    {
+        $original = ExecutionPollingMetadata::createWithDefaults()
+            ->withCron('* * * * *')
+            ->withHandledMessageLimit(10)
+            ->withMemoryLimitInMegabytes(256)
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withStopOnError(false)
+            ->withFinishWhenNoMessages(false)
+            ->withExecutionAmountLimit(5);
+
+        self::assertSame(
+            ['handledMessageLimit', 'executionTimeLimitInMilliseconds', 'memoryLimitInMegabytes', 'cron', 'stopOnError', 'finishWhenNoMessages', 'executionAmountLimit'],
+            array_keys(get_object_vars($original)),
+        );
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withCron('0 * * * *'), ['cron' => '0 * * * *']);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withHandledMessageLimit(20), ['handledMessageLimit' => 20]);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withMemoryLimitInMegabytes(512), ['memoryLimitInMegabytes' => 512]);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withExecutionTimeLimitInMilliseconds(0), ['executionTimeLimitInMilliseconds' => 0]);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withStopOnError(true), ['stopOnError' => true]);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withFinishWhenNoMessages(true), ['finishWhenNoMessages' => true]);
+        self::assertCopyChangesOnly($original, fn (ExecutionPollingMetadata $metadata) => $metadata->withExecutionAmountLimit(7), ['executionAmountLimit' => 7]);
+        self::assertCopyChangesOnly(
+            $original,
+            fn (ExecutionPollingMetadata $metadata) => $metadata->withTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 30, stopOnError: true),
+            ['handledMessageLimit' => 3, 'executionTimeLimitInMilliseconds' => 30, 'stopOnError' => true],
+        );
     }
 
     private static function assertCopyChangesOnly(object $original, Closure $with, array $changedFields, ?Closure $observe = null): void

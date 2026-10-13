@@ -9,16 +9,15 @@ namespace Ecotone\Api\ExtensionObject;
  */
 final class ExecutionPollingMetadata
 {
-    private ?int $handledMessageLimit = null;
-    private ?int $executionTimeLimitInMilliseconds = null;
-    private ?int $memoryLimitInMegabytes = null;
-    private ?string $cron = null;
-    private ?bool $stopOnError = null;
-    private ?bool $finishWhenNoMessages = null;
-    private ?int $executionAmountLimit = null;
-
-    private function __construct()
-    {
+    private function __construct(
+        public readonly ?int $handledMessageLimit = null,
+        public readonly ?int $executionTimeLimitInMilliseconds = null,
+        public readonly ?int $memoryLimitInMegabytes = null,
+        public readonly ?string $cron = null,
+        public readonly ?bool $stopOnError = null,
+        public readonly ?bool $finishWhenNoMessages = null,
+        public readonly ?int $executionAmountLimit = null,
+    ) {
     }
 
     public static function createWithDefaults(): self
@@ -45,26 +44,17 @@ final class ExecutionPollingMetadata
 
     public function withCron(string $cron): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->cron = $cron;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'cron' => $cron]);
     }
 
     public function withHandledMessageLimit(int $handledMessageLimit): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->handledMessageLimit = $handledMessageLimit;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'handledMessageLimit' => $handledMessageLimit]);
     }
 
     public function withMemoryLimitInMegabytes(int $memoryLimitInMegabytes): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->memoryLimitInMegabytes = $memoryLimitInMegabytes;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'memoryLimitInMegabytes' => $memoryLimitInMegabytes]);
     }
 
     /**
@@ -80,68 +70,21 @@ final class ExecutionPollingMetadata
 
     public function withExecutionTimeLimitInMilliseconds(int $executionTimeLimitInMilliseconds): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->executionTimeLimitInMilliseconds = $executionTimeLimitInMilliseconds;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'executionTimeLimitInMilliseconds' => $executionTimeLimitInMilliseconds]);
     }
 
     public function withStopOnError(bool $stopOnError): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->stopOnError = $stopOnError;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'stopOnError' => $stopOnError]);
     }
 
     public function withFinishWhenNoMessages(bool $finishWhenNoMessages): ExecutionPollingMetadata
     {
-        $self = clone $this;
-        $self->finishWhenNoMessages = $finishWhenNoMessages;
-
-        return $self;
+        return new self(...[...get_object_vars($this), 'finishWhenNoMessages' => $finishWhenNoMessages]);
     }
 
     public function withExecutionAmountLimit(int $limit): self
     {
-        $self = clone $this;
-        $self->executionAmountLimit = $limit;
-
-        return $self;
-    }
-
-    public function getCron(): ?string
-    {
-        return $this->cron;
-    }
-
-    public function getHandledMessageLimit(): ?int
-    {
-        return $this->handledMessageLimit;
-    }
-
-    public function getMemoryLimitInMegabytes(): ?int
-    {
-        return $this->memoryLimitInMegabytes;
-    }
-
-    public function getExecutionTimeLimitInMilliseconds(): ?int
-    {
-        return $this->executionTimeLimitInMilliseconds;
-    }
-
-    public function getStopOnError(): ?bool
-    {
-        return $this->stopOnError;
-    }
-
-    public function getFinishWhenNoMessages(): ?bool
-    {
-        return $this->finishWhenNoMessages;
-    }
-
-    public function getExecutionAmountLimit(): ?int
-    {
-        return $this->executionAmountLimit;
+        return new self(...[...get_object_vars($this), 'executionAmountLimit' => $limit]);
     }
 }

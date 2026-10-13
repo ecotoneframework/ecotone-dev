@@ -19,43 +19,36 @@ class DbalConfiguration
     public const DEFAULT_DEDUPLICATION_ENABLED = true;
     public const DEFAULT_DEAD_LETTER_ENABLED = true;
 
-    private bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS;
-    private array $disableTransactionsOnAsynchronousEndpointNames = [];
-    private bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS;
-    private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
-    private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
-    private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
-    private bool $clearAndFlushObjectManagerOnProjectionBatch = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
-    private bool $flushDuringPersisting = true;
-    private array $defaultConnectionReferenceNames = [DbalConnectionReference::DEFAULT];
-
-    private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
-    private bool $deduplicationInMemory = false;
-    private bool $deadLetterEnabled = self::DEFAULT_DEAD_LETTER_ENABLED;
-    private bool $deadLetterInMemory = false;
-
-    private ?string $deduplicationConnectionReference = null;
-    private ?string $deadLetterConnectionReference = null;
-
-    private bool $consumerPositionTrackingEnabled = true;
-    private string $consumerPositionTrackingConnectionReference = DbalConnectionReference::DEFAULT;
-
-    private bool $enableDoctrineORMRepositories = false;
-    private ?string $doctrineORMRepositoryConnectionReference = null;
-    private ?array $doctrineORMClasses = null;
-    private bool $enableDbalDocumentStore = true;
-    private string $dbalDocumentStoreReference = DocumentStore::class;
-    private string $documentStoreConnectionReference = DbalConnectionReference::DEFAULT;
-    private bool $inMemoryDocumentStore = false;
-    private ?array $documentStoreRelatedAggregates = null;
-
-    private bool $enableDocumentStoreStateStoredRepository = false;
-    private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
-    private int $deduplicationRemovalBatchSize = 1000;
-
-
-    private function __construct()
-    {
+    final private function __construct(
+        public readonly bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS,
+        public readonly array $disableTransactionsOnAsynchronousEndpointNames = [],
+        public readonly bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS,
+        public readonly bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS,
+        public readonly bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER,
+        public readonly bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER,
+        public readonly bool $clearAndFlushObjectManagerOnProjectionBatch = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER,
+        public readonly bool $flushDuringPersisting = true,
+        public readonly array $defaultConnectionReferenceNames = [DbalConnectionReference::DEFAULT],
+        public readonly bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED,
+        public readonly bool $deduplicationInMemory = false,
+        public readonly bool $deadLetterEnabled = self::DEFAULT_DEAD_LETTER_ENABLED,
+        public readonly bool $deadLetterInMemory = false,
+        private readonly ?string $deduplicationConnectionReference = null,
+        private readonly ?string $deadLetterConnectionReference = null,
+        public readonly bool $consumerPositionTrackingEnabled = true,
+        public readonly string $consumerPositionTrackingConnectionReference = DbalConnectionReference::DEFAULT,
+        public readonly bool $enableDoctrineORMRepositories = false,
+        public readonly ?string $doctrineORMRepositoryConnectionReference = null,
+        public readonly ?array $doctrineORMClasses = null,
+        public readonly bool $enableDbalDocumentStore = true,
+        public readonly string $dbalDocumentStoreReference = DocumentStore::class,
+        public readonly string $documentStoreConnectionReference = DbalConnectionReference::DEFAULT,
+        public readonly bool $inMemoryDocumentStore = false,
+        public readonly ?array $documentStoreRelatedAggregates = null,
+        public readonly bool $enableDocumentStoreStateStoredRepository = false,
+        public readonly int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS,
+        public readonly int $deduplicationRemovalBatchSize = 1000,
+    ) {
     }
 
     public static function createWithDefaults(): self
@@ -84,11 +77,7 @@ class DbalConfiguration
     {
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof TestConfiguration) {
-                $self = self::createWithDefaults();
-                $self->deduplicationInMemory = true;
-                $self->deadLetterInMemory = true;
-
-                return $self;
+                return new self(deduplicationInMemory: true, deadLetterInMemory: true);
             }
         }
 
@@ -122,101 +111,54 @@ class DbalConfiguration
         return $this->defaultConnectionReferenceNames[0];
     }
 
-    public function isDoctrineORMRepositoriesEnabled(): bool
-    {
-        return $this->enableDoctrineORMRepositories;
-    }
-
-    public function getDoctrineORMRepositoryConnectionReference(): ?string
-    {
-        return $this->doctrineORMRepositoryConnectionReference;
-    }
-
-    public function getDoctrineORMClasses(): ?array
-    {
-        return $this->doctrineORMClasses;
-    }
-
     public function withTransactionOnAsynchronousEndpoints(bool $isTransactionEnabled): self
     {
-        $self                                     = clone $this;
-        $self->transactionOnAsynchronousEndpoints = $isTransactionEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'transactionOnAsynchronousEndpoints' => $isTransactionEnabled]);
     }
 
     public function withoutTransactionOnAsynchronousEndpoints(array $names): self
     {
-        $self                                     = clone $this;
-        $self->disableTransactionsOnAsynchronousEndpointNames = $names;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'disableTransactionsOnAsynchronousEndpointNames' => $names]);
     }
 
     public function withTransactionOnCommandBus(bool $isTransactionEnabled): self
     {
-        $self                          = clone $this;
-        $self->transactionOnCommandBus = $isTransactionEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'transactionOnCommandBus' => $isTransactionEnabled]);
     }
 
     public function withDoctrineORMRepositories(bool $isORMEnabled, ?array $relatedClasses = null, string $connectionReferenceName = DbalConnectionReference::DEFAULT): self
     {
-        $self = clone $this;
-        $self->enableDoctrineORMRepositories = $isORMEnabled;
-        $self->doctrineORMRepositoryConnectionReference = $connectionReferenceName;
-        $self->doctrineORMClasses = $relatedClasses;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'enableDoctrineORMRepositories' => $isORMEnabled, 'doctrineORMRepositoryConnectionReference' => $connectionReferenceName, 'doctrineORMClasses' => $relatedClasses]);
     }
 
     public function withTransactionOnConsoleCommands(bool $isTransactionEnabled): self
     {
-        $self                          = clone $this;
-        $self->transactionOnConsoleCommands = $isTransactionEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'transactionOnConsoleCommands' => $isTransactionEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
     {
-        $self                                     = clone $this;
-        $self->clearObjectManagerOnAsynchronousEndpoints = $isEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'clearObjectManagerOnAsynchronousEndpoints' => $isEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnCommandBus(bool $isEnabled): self
     {
-        $self                                     = clone $this;
-        $self->clearAndFlushObjectManagerOnCommandBus = $isEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnCommandBus' => $isEnabled]);
     }
 
     public function withClearAndFlushObjectManagerOnProjectionBatch(bool $isEnabled): self
     {
-        $self = clone $this;
-        $self->clearAndFlushObjectManagerOnProjectionBatch = $isEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'clearAndFlushObjectManagerOnProjectionBatch' => $isEnabled]);
     }
 
     public function withFlushWhenPersisting(bool $isEnabled): self
     {
-        $self                                 = clone $this;
-        $self->flushDuringPersisting = $isEnabled;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'flushDuringPersisting' => $isEnabled]);
     }
 
     public function withDefaultConnectionReferenceNames(array $connectionReferenceNames = [DbalConnectionReference::DEFAULT]): self
     {
-        $self = clone $this;
-        $self->defaultConnectionReferenceNames = $connectionReferenceNames;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'defaultConnectionReferenceNames' => $connectionReferenceNames]);
     }
 
     /**
@@ -224,162 +166,23 @@ class DbalConfiguration
      */
     public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000, bool $inMemory = false): self
     {
-        $self = clone $this;
-        $self->deduplicatedEnabled = $isDeduplicatedEnabled;
-        $self->deduplicationInMemory = $inMemory;
-        $self->deduplicationConnectionReference = $connectionReference;
-        $self->minimumTimeToRemoveMessageInMilliseconds = $expirationTime;
-        $self->deduplicationRemovalBatchSize = $removalBatchSize;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'deduplicatedEnabled' => $isDeduplicatedEnabled, 'deduplicationInMemory' => $inMemory, 'deduplicationConnectionReference' => $connectionReference, 'minimumTimeToRemoveMessageInMilliseconds' => $expirationTime, 'deduplicationRemovalBatchSize' => $removalBatchSize]);
     }
 
     public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT, bool $inMemory = false): self
     {
-        $self = clone $this;
-        $self->deadLetterEnabled = $isDeadLetterEnabled;
-        $self->deadLetterInMemory = $inMemory;
-        $self->deadLetterConnectionReference = $connectionReference;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'deadLetterEnabled' => $isDeadLetterEnabled, 'deadLetterInMemory' => $inMemory, 'deadLetterConnectionReference' => $connectionReference]);
     }
 
     public function withConsumerPositionTracking(
         bool $enabled = true,
         string $connectionReference = DbalConnectionReference::DEFAULT
     ): self {
-        $self = clone $this;
-        $self->consumerPositionTrackingEnabled = $enabled;
-        $self->consumerPositionTrackingConnectionReference = $connectionReference;
-
-        return $self;
+        return new static(...[...get_object_vars($this), 'consumerPositionTrackingEnabled' => $enabled, 'consumerPositionTrackingConnectionReference' => $connectionReference]);
     }
 
     public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
-        $self = clone $this;
-        $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
-        $self->inMemoryDocumentStore = $inMemoryDocumentStore;
-        $self->dbalDocumentStoreReference = $reference;
-        $self->documentStoreConnectionReference = $connectionReference;
-        $self->enableDocumentStoreStateStoredRepository = $enableDocumentStoreStateStoredRepository;
-        $self->documentStoreRelatedAggregates = $documentStoreRelatedAggregates;
-
-        return $self;
-    }
-
-    public function isDeduplicatedEnabled(): bool
-    {
-        return $this->deduplicatedEnabled;
-    }
-
-    public function minimumTimeToRemoveMessageFromDeduplication(): int
-    {
-        return $this->minimumTimeToRemoveMessageInMilliseconds;
-    }
-
-    public function deduplicationRemovalBatchSize(): int
-    {
-        return $this->deduplicationRemovalBatchSize;
-    }
-
-    public function isDeduplicationInMemory(): bool
-    {
-        return $this->deduplicationInMemory;
-    }
-
-    public function isDeadLetterEnabled(): bool
-    {
-        return $this->deadLetterEnabled;
-    }
-
-    public function isDeadLetterInMemory(): bool
-    {
-        return $this->deadLetterInMemory;
-    }
-
-    public function isTransactionOnAsynchronousEndpoints(): bool
-    {
-        return $this->transactionOnAsynchronousEndpoints;
-    }
-
-    public function isTransactionOnCommandBus(): bool
-    {
-        return $this->transactionOnCommandBus;
-    }
-
-    public function isTransactionOnConsoleCommands(): bool
-    {
-        return $this->transactionOnConsoleCommands;
-    }
-
-    public function getDefaultConnectionReferenceNames(): array
-    {
-        return $this->defaultConnectionReferenceNames;
-    }
-
-    public function isClearObjectManagerOnAsynchronousEndpoints(): bool
-    {
-        return $this->clearObjectManagerOnAsynchronousEndpoints;
-    }
-
-    public function isClearAndFlushObjectManagerOnCommandBus(): bool
-    {
-        return $this->clearAndFlushObjectManagerOnCommandBus;
-    }
-
-    public function isClearAndFlushObjectManagerOnProjectionBatch(): bool
-    {
-        return $this->clearAndFlushObjectManagerOnProjectionBatch;
-    }
-
-    public function isFlushingDuringPersisting(): bool
-    {
-        return $this->flushDuringPersisting;
-    }
-
-    public function isEnableDbalDocumentStore(): bool
-    {
-        return $this->enableDbalDocumentStore;
-    }
-
-    public function getDbalDocumentStoreReference(): string
-    {
-        return $this->dbalDocumentStoreReference;
-    }
-
-    public function getDocumentStoreConnectionReference(): string
-    {
-        return $this->documentStoreConnectionReference;
-    }
-
-    public function isInMemoryDocumentStore(): bool
-    {
-        return $this->inMemoryDocumentStore;
-    }
-
-    public function isEnableDocumentStoreStateStoredRepository(): bool
-    {
-        return $this->enableDocumentStoreStateStoredRepository;
-    }
-
-    public function getDocumentStoreRelatedAggregates(): ?array
-    {
-        return $this->documentStoreRelatedAggregates;
-    }
-
-    public function getDisabledTransactionsOnAsynchronousEndpointNames(): array
-    {
-        return $this->disableTransactionsOnAsynchronousEndpointNames;
-    }
-
-    public function isConsumerPositionTrackingEnabled(): bool
-    {
-        return $this->consumerPositionTrackingEnabled;
-    }
-
-    public function getConsumerPositionTrackingConnectionReference(): string
-    {
-        return $this->consumerPositionTrackingConnectionReference;
+        return new static(...[...get_object_vars($this), 'enableDbalDocumentStore' => $isDocumentStoreEnabled, 'inMemoryDocumentStore' => $inMemoryDocumentStore, 'dbalDocumentStoreReference' => $reference, 'documentStoreConnectionReference' => $connectionReference, 'enableDocumentStoreStateStoredRepository' => $enableDocumentStoreStateStoredRepository, 'documentStoreRelatedAggregates' => $documentStoreRelatedAggregates]);
     }
 }

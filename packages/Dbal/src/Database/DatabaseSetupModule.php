@@ -51,7 +51,7 @@ final class DatabaseSetupModule implements AnnotationModule
 
         $tableManagerReferences = ExtensionObjectResolver::resolve(DbalTableManagerReference::class, $extensionObjects);
 
-        $defaultConnectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? DbalConnectionReference::DEFAULT;
+        $defaultConnectionReference = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
 
         $tableManagerRefsByConnection = [$defaultConnectionReference => []];
         foreach ($tableManagerReferences as $tableManagerReference) {

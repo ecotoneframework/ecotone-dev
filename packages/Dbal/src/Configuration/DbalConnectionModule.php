@@ -42,7 +42,7 @@ final class DbalConnectionModule implements AnnotationModule
             DbalConfiguration::createDefaultFor($extensionObjects)
         );
 
-        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
+        $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
 
         foreach ($connectionFactories as $connectionFactory) {
             $messagingConfiguration->requireReference(

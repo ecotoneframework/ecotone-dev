@@ -58,7 +58,7 @@ final class DbalDeadLetterModule implements AnnotationModule
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-        $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
+        $isDeadLetterEnabled = $dbalConfiguration->deadLetterEnabled;
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
@@ -67,7 +67,7 @@ final class DbalDeadLetterModule implements AnnotationModule
             DeadLetterTableManager::class,
             new Definition(DeadLetterTableManager::class, [
                 DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE,
-                $isDeadLetterEnabled && ! $dbalConfiguration->isDeadLetterInMemory(),
+                $isDeadLetterEnabled && ! $dbalConfiguration->deadLetterInMemory,
                 $consoleInvocationPrefix,
                 $connectionFactoryReference,
             ])
@@ -85,10 +85,10 @@ final class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
 
-        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->isDeadLetterInMemory(), $messagingConfiguration);
+        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
             $referenceName = $customDeadLetterGateway->getGatewayReferenceName();
-            $this->registerGateway($referenceName, $customDeadLetterGateway->getConnectionReferenceName(), DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::STORE_CHANNEL), $dbalConfiguration->isDeadLetterInMemory(), $messagingConfiguration);
+            $this->registerGateway($referenceName, $customDeadLetterGateway->getConnectionReferenceName(), DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::STORE_CHANNEL), $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         }
     }
 

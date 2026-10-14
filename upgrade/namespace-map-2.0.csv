@@ -57,7 +57,7 @@ Ecotone\Modelling\Attribute\CommandHandler,Ecotone\Api\Attribute\CommandHandler
 Ecotone\Modelling\Attribute\Distributed,Ecotone\Api\Attribute\Distributed
 Ecotone\Modelling\Attribute\EventHandler,Ecotone\Api\Attribute\EventHandler
 Ecotone\Modelling\Attribute\EventSourcingAggregate,Ecotone\Api\Attribute\EventSourcingAggregate
-Ecotone\Modelling\Attribute\EventSourcingHandler,Ecotone\Api\Attribute\EventSourcingHandler
+Ecotone\Modelling\Attribute\EventSourcingHandler,Ecotone\Api\Attribute\Apply
 Ecotone\Modelling\Attribute\EventSourcingSaga,Ecotone\Api\Attribute\EventSourcingSaga
 Ecotone\Modelling\Attribute\IdentifierMethod,Ecotone\Api\Attribute\IdentifierMethod
 Ecotone\Modelling\Attribute\Identifier,Ecotone\Api\Attribute\Identifier

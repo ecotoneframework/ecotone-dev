@@ -57,7 +57,7 @@ class Order
 
 ```php
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -86,13 +86,13 @@ class Ticket
         return [new TicketWasClosed($this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyRegistered(TicketWasRegistered $event): void
     {
         $this->ticketId = $event->ticketId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyClosed(TicketWasClosed $event): void
     {
         $this->isClosed = true;
@@ -146,7 +146,7 @@ public function cancel(CancelOrder $command): void { }
 - `#[Identifier]` on the identity property
 - Factory (creation) handlers are always `static`
 - State-stored factories return `self`, event-sourced factories return `array` of events
-- `#[EventSourcingHandler]` methods have NO side effects -- only state assignment
+- `#[Apply]` methods have NO side effects -- only state assignment
 - Use `WithAggregateVersioning` trait for event-sourced aggregates
 - Command properties matching `#[Identifier]` field names are auto-resolved
 
@@ -158,6 +158,6 @@ public function cancel(CancelOrder $command): void { }
 
 ## Additional resources
 
-- [API Reference](references/api-reference.md) -- Attribute definitions for `#[Aggregate]`, `#[EventSourcingAggregate]`, `#[Identifier]`, `#[EventSourcingHandler]`, and `#[Version]` with constructor signatures and parameter details. Load when you need exact attribute definitions or parameter types.
+- [API Reference](references/api-reference.md) -- Attribute definitions for `#[Aggregate]`, `#[EventSourcingAggregate]`, `#[Identifier]`, `#[Apply]`, and `#[Version]` with constructor signatures and parameter details. Load when you need exact attribute definitions or parameter types.
 - [Usage Examples](references/usage-examples.md) -- Complete aggregate implementations: full state-stored Customer aggregate with multiple commands and queries, full event-sourced Product aggregate with multiple event handlers, multiple identifiers (ShelfItem), state-stored aggregate with `WithEvents` trait for event publishing. Load when you need complete, copy-paste-ready aggregate class definitions.
 - [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test patterns for aggregates: state-stored testing with `getAggregate()`, event-sourced testing with `withEventsFor()` and `popRecordedEvents()`, event store testing with `bootstrapFlowTesting()`, and multiple identifier testing. Load when writing tests for aggregates.

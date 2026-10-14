@@ -131,16 +131,16 @@ $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'projection
 
 Backfill and delete work the same way, through `ecotone:projection:backfill` and `ecotone:projection:delete`.
 
-## Testing Revision-Aware Event Sourcing Handlers
+## Testing Revision-Aware `#[Apply]` Methods
 
-There is no framework-invoked "upcaster" -- test that the `#[EventSourcingHandler]` reads the injected
+There is no framework-invoked "upcaster" -- test that the `#[Apply]` reads the injected
 `#[Header(MessageHeaders::REVISION)]` correctly. Injecting that header requires an Enterprise licence; without
 one, bootstrap accepts the class but `sendCommand()` throws `Ecotone\Messaging\Support\InvalidArgumentException`.
 
 ```php
 use Ecotone\Test\LicenceTesting;
 
-public function test_event_sourcing_handler_receives_revision_header(): void
+public function test_apply_method_receives_revision_header(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         [Person::class],

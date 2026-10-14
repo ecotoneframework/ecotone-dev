@@ -279,14 +279,14 @@ class TicketWasRegistered
 
 There is no separate "upcaster" class the framework invokes -- `#[Revision]` only stamps
 `MessageHeaders::REVISION` on the event when it is produced. To branch on which revision produced a stored event,
-inject the header into the `#[EventSourcingHandler]` that applies it:
+inject the header into the `#[Apply]` that applies it:
 
 ```php
 use Ecotone\Api\Attribute\Header;
-use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Messaging\MessageHeaders;
 
-#[EventSourcingHandler]
+#[Apply]
 public function applyRegistered(
     PersonWasRegistered $event,
     #[Header(MessageHeaders::REVISION)] int $revision
@@ -302,7 +302,7 @@ public function applyRegistered(
 ```php
 // v1: { personId, name }
 // v2: { personId, name, type }
-// The EventSourcingHandler supplies type='default' when $revision < 2
+// The #[Apply] method supplies type='default' when $revision < 2
 ```
 
 **Removing Fields:** a v1 event's extra property is simply never read by the current handler -- nothing to do.

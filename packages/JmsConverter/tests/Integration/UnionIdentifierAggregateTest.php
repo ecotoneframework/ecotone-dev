@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Error;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +26,6 @@ final class UnionIdentifierAggregateTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Ticket::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ecotoneLite->sendCommand(new CreateTicket(new InternalIdWithDiscriminator('123')));
@@ -45,7 +42,6 @@ final class UnionIdentifierAggregateTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [TicketWithoutDiscriminator::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $this->expectException(Error::class);

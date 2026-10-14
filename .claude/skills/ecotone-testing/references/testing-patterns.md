@@ -45,8 +45,6 @@ public function test_projection_builds_read_model(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [TicketListProjection::class, Ticket::class],
         containerOrAvailableServices: [new TicketListProjection()],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
     );
 
     $ecotone->initializeProjection('ticket_list');

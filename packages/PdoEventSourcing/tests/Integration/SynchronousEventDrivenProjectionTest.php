@@ -181,8 +181,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshotsFor([Ticket::class, Basket::class], 1),
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 

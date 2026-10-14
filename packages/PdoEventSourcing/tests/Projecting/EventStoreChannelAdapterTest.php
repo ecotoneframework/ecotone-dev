@@ -155,8 +155,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     )
                         ->withEventNames(['*TicketWasRegistered']), // Only TicketWasRegistered events
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

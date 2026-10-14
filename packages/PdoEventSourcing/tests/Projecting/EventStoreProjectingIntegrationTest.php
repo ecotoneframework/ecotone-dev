@@ -27,7 +27,6 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromStream;
@@ -70,7 +69,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -107,7 +105,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL))
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -145,7 +142,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -182,7 +178,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -216,7 +211,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -256,7 +250,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -300,7 +293,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -322,7 +314,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ticketId2 = Uuid::v7()->toRfc4122();
@@ -354,7 +345,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -392,7 +382,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         // Delete any existing data
@@ -439,7 +428,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -473,8 +461,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $this->bootstrapFlowTesting(
             [$basketProjection::class, Basket::class, BasketEventConverter::class, BasketWasCreated::class],
             [self::getConnectionFactory(), $basketProjection, new BasketEventConverter()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            ServiceConfiguration::createWithDefaults(),
             licenceKey: LicenceTesting::VALID_LICENCE,
         )
             ->deleteEventStream(Basket::BASKET_STREAM)->setupDatabaseTables()
@@ -503,7 +490,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -529,7 +515,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -564,7 +549,6 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -626,8 +610,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
                 ->withExtensionObjects([
                     DbalConfiguration::createForTesting()
                         ->withClearAndFlushObjectManagerOnProjectionBatch(true),
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

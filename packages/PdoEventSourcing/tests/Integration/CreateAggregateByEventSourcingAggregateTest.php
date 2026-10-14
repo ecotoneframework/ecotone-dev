@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarClosed;
@@ -43,8 +42,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -81,8 +79,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -119,8 +116,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Calendar',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -157,8 +153,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -194,8 +189,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -232,8 +226,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -277,8 +270,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
@@ -323,8 +315,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\CalendarMessages',
                     'Test\Ecotone\EventSourcing\Fixture\CalendarWithInternalRecorder',
-                ])
-                    ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
 

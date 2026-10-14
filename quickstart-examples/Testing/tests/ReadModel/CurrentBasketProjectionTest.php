@@ -12,7 +12,6 @@ use App\Testing\Infrastructure\Converter\EmailConverter;
 use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
 use App\Testing\ReadModel\CurrentBasketProjection;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -106,8 +105,7 @@ final class CurrentBasketProjectionTest extends TestCase
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 // Loading converters, so they can be used for events
-                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+                ->withNamespaces(["App\Testing\Infrastructure\Converter"]),
             pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
         );
     }

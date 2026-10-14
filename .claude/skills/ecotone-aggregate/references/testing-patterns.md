@@ -70,15 +70,13 @@ $this->assertEquals(
 
 ## Event-Sourced with Event Store
 
-Enable the event sourcing package for the full event store integration. It keeps events in memory unless the test is given a `DbalConnectionFactory`.
+The event store keeps events in memory unless the test is given a `DbalConnectionFactory`, which puts them in the database.
 
 ```php
 public function test_with_event_store(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [Ticket::class],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
     );
 
     $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Bug'));

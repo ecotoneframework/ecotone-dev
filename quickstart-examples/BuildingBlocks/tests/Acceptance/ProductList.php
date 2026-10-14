@@ -8,8 +8,6 @@ use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Product;
 use App\Infrastructure\Converter\UuidConverter;
 use App\ReadModel\UnapprovedProductList;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,7 +34,7 @@ final class ProductList extends TestCase
                     'price' => $productPrice,
                 ],
             ],
-            EcotoneLite::bootstrapFlowTesting([UnapprovedProductList::class, Product::class, UuidConverter::class], [new UnapprovedProductList(), new UuidConverter()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+            EcotoneLite::bootstrapFlowTesting([UnapprovedProductList::class, Product::class, UuidConverter::class], [new UnapprovedProductList(), new UuidConverter()])
                 ->sendCommand(new CreateProduct(
                     Uuid::fromString($productId),
                     $productName,

@@ -12,7 +12,6 @@ use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
 use App\Testing\Domain\ShoppingBasket\ProductService;
 use App\Testing\Infrastructure\Converter\UuidConverter;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -78,7 +77,7 @@ final class BasketTest extends TestCase
         $testSupport = EcotoneLite::bootstrapFlowTesting(
             [Basket::class, BasketRepository::class, UuidConverter::class],
             [new UuidConverter()],
-            pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+            pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
         );
 
         $userId = Uuid::uuid4();

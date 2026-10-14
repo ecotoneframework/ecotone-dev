@@ -211,11 +211,6 @@ final class EcotoneLite
         self::refuseTestConfigurationPassedAsExtensionObject($configuration);
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
-        if (! $configuration->areEnabledModulePackageNamesDefined()) {
-            $configuration = $configuration
-                ->withEnabledModulePackageNames([]);
-        }
-
         $configuration = $configuration
             ->addExtensionObject($testConfiguration);
 

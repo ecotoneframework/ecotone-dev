@@ -4,7 +4,7 @@
 
 ### `EcotoneLite::bootstrapFlowTesting()`
 
-Standard test bootstrap. Skips all module packages by default.
+Standard test bootstrap. Loads every installed module package; each runs in memory until the test gives it a connection (a `DbalConnectionFactory`, a `TracerProviderInterface`). Name packages with `withEnabledModulePackageNames([...])` to load fewer.
 
 ```php
 public static function bootstrapFlowTesting(

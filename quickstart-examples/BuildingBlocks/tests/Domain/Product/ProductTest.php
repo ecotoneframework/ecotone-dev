@@ -11,8 +11,6 @@ use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
 use App\Domain\Product\Product;
 use App\Infrastructure\Converter\UuidConverter;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
@@ -68,7 +66,7 @@ final class ProductTest extends TestCase
 
         $this->assertEquals(
             [new ProductWasApproved($productId)],
-            EcotoneLite::bootstrapFlowTesting([Product::class, UuidConverter::class], [new UuidConverter()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+            EcotoneLite::bootstrapFlowTesting([Product::class, UuidConverter::class], [new UuidConverter()])
                 // Set initial state
                 ->withEventsFor($productId, Product::class, [
                     new ProductWasAdded($productId, 'Wooden table', Money::EUR(1000)),

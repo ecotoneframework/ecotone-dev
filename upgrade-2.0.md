@@ -2891,12 +2891,22 @@ rename test-support methods without aliases; the renamed methods are listed in e
   in-memory alternative. `DbalConfiguration::createDefaultFor()` is removed, and
   `DbalConfiguration::createForTesting()` no longer forces the document store into memory. An application outside a
   flow test behaves as before. **How to adapt:** rename the call to `bootstrapFlowTesting()` and drop
-  `runForProductionEventStore:` — giving the test a connection is what keeps it on the database. A test that relied
-  on the packages the removed method enabled names them:
-  `ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])`.
+  `runForProductionEventStore:` — giving the test a connection is what keeps it on the database.
   A test that passed a connection for one feature but wanted another in memory keeps that one in memory explicitly,
   with `EventSourcingConfiguration::createInMemory()`, `withDocumentStore(inMemoryDocumentStore: true)`,
   `withDeduplication(inMemory: true)` or `withDeadLetter(true, inMemory: true)`.
+- **A flow test loads every installed module package.** **Before:** `EcotoneLite::bootstrapFlowTesting()` given no
+  `withEnabledModulePackageNames()` loaded only the core package, so a test using event sourcing, DBAL or any other
+  module had to name it. **Now:** it loads every installed package, as `EcotoneLite::bootstrap()` and the framework
+  integrations do, and each one runs in memory until the test is given what it needs to run for real: a DBAL
+  connection for the event store, document store, deduplication and dead letter, a `TracerProviderInterface` for
+  tracing, which otherwise traces through OpenTelemetry's no-op provider. **How to adapt:** nothing, unless a test
+  depended on a module *not* being loaded; such a test names the packages it wants with
+  `ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([...])`.
+- **The Kafka licence is required when Kafka is used, not when it is installed.** **Before:** an installed Kafka
+  module refused to boot without an Enterprise licence even when nothing used it. **Now:** it refuses only when a
+  `#[KafkaConsumer]`, a `KafkaMessageChannelBuilder`, a `KafkaConsumerConfiguration`, a `TopicConfiguration` or a
+  `KafkaPublisherConfiguration` is present, and the message names each one. **How to adapt:** nothing.
 - **Dead letter and deduplication have an in-memory implementation.**
   **Before:** both existed only on DBAL, so a flow test using either needed a database connection and its tables.
   **Now:** each has an in-memory implementation beside the DBAL one, selected on the feature's own

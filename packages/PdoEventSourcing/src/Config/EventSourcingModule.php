@@ -415,12 +415,9 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         $eventSourcingConfiguration = ExtensionObjectResolver::resolve(EventSourcingConfiguration::class, $extensionObjects)[0] ?? null;
 
         if ($eventSourcingConfiguration === null) {
-            $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-            $storesInDatabase = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE) && $connections->has(DbalConnectionReference::DEFAULT);
-
             return [
                 ...$extensionObjects,
-                $storesInDatabase ? EventSourcingConfiguration::createWithDefaults() : EventSourcingConfiguration::createInMemory(),
+                $connections->has(DbalConnectionReference::DEFAULT) ? EventSourcingConfiguration::createWithDefaults() : EventSourcingConfiguration::createInMemory(),
             ];
         }
 

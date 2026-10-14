@@ -70,24 +70,6 @@ final class FlowTestingEventStoreFromProvidedConnectionTest extends EventSourcin
         self::assertFalse($flowTest()->getGateway(EventStore::class)->hasStream(self::STREAM));
     }
 
-    public function test_a_flow_test_given_a_connection_without_the_dbal_module_keeps_events_in_memory(): void
-    {
-        $stream = new #[Stream(FlowTestingEventStoreFromProvidedConnectionTest::STREAM)] class () {
-        };
-        $flowTest = fn () => $this->bootstrapFlowTesting(
-            classesToResolve: [$stream::class],
-            containerOrAvailableServices: [DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
-        );
-        $eventStore = $flowTest()->getGateway(EventStore::class);
-
-        $eventStore->appendTo(self::STREAM, [Event::createWithType('order.placed', ['orderId' => 'o-1'])]);
-
-        self::assertCount(1, $eventStore->load(self::STREAM));
-        self::assertFalse($flowTest()->getGateway(EventStore::class)->hasStream(self::STREAM));
-    }
-
     public function test_an_event_store_configured_on_a_connection_a_flow_test_was_not_given_is_refused_naming_both_ways_out(): void
     {
         try {

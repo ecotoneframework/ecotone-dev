@@ -1269,7 +1269,9 @@ that asserts one of them verbatim.
 - Replace `#[EventSourcingHandler]` with `#[Apply]` and the import
   `Ecotone\Modelling\Attribute\EventSourcingHandler` with `Ecotone\Api\Attribute\Apply` —
   `upgrade/namespace-map-2.0.csv` maps the old class straight to the new one.
-- A class that extended `EventSourcingHandler` cannot extend `Apply`; mark the methods with `#[Apply]` directly.
+- An attribute of your own that extended `EventSourcingHandler` cannot extend `Apply`, which is `final`. Drop the
+  `extends`, keep your attribute for whatever it carries, and put `#[Apply]` beside it on each method:
+  `#[Apply] #[AuditedChange('balance')] public function applyCredited(WalletCredited $event): void`.
 
 ## 8. Database tables are no longer created on the fly
 

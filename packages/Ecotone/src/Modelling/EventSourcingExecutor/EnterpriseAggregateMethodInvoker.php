@@ -7,7 +7,7 @@ namespace Ecotone\Modelling\EventSourcingExecutor;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerStaticObjectResolver;
-use Ecotone\Modelling\EventSourcingHandlerMethod;
+use Ecotone\Modelling\ApplyMethod;
 
 /**
  * licence Enterprise
@@ -29,13 +29,13 @@ use Ecotone\Modelling\EventSourcingHandlerMethod;
  */
 final class EnterpriseAggregateMethodInvoker implements AggregateMethodInvoker
 {
-    public function executeMethod(mixed $aggregate, EventSourcingHandlerMethod $eventSourcingHandler, Message $message): void
+    public function executeMethod(mixed $aggregate, ApplyMethod $applyMethod, Message $message): void
     {
         (new MethodInvoker(
             new MethodInvokerStaticObjectResolver($aggregate),
-            $eventSourcingHandler->getMethodName(),
-            $eventSourcingHandler->getParameterConverters(),
-            $eventSourcingHandler->getInterfaceParametersNames(),
+            $applyMethod->getMethodName(),
+            $applyMethod->getParameterConverters(),
+            $applyMethod->getInterfaceParametersNames(),
         ))->execute($message);
     }
 }

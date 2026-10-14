@@ -6,11 +6,11 @@ namespace Test\Ecotone\Modelling\AggregateBoundary;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
@@ -310,7 +310,7 @@ final class BasketCheckoutCountForWithoutCounterTag
 {
     public int $checkouts = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(BasketCheckedOutForWithoutCounterTag $event): void
     {
         $this->checkouts++;
@@ -349,7 +349,7 @@ final class LedgerForWithoutCounterTag
         return [new LedgerEntryAddedForWithoutCounterTag($ledgerId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyEntryAdded(LedgerEntryAddedForWithoutCounterTag $event): void
     {
         $this->ledgerId = $event->ledgerId;

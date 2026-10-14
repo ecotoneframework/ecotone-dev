@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ecotone\Api\Attribute;
 
 use Attribute;
@@ -8,6 +10,6 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class EventSourcingHandler
+final class Apply
 {
 }

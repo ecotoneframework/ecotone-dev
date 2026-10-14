@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\Calendar;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
@@ -35,7 +35,7 @@ final class MeetingWithEventSourcing
         return $this->version;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyMeetingCreated(MeetingCreated $event): void
     {
         $this->meetingId = $event->meetingId;

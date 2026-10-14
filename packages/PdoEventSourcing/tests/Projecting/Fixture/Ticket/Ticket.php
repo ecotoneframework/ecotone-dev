@@ -22,9 +22,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -60,7 +60,7 @@ class Ticket
         return [new TicketUnassigned($this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyTicketCreated(TicketCreated $event): void
     {
         $this->ticketId = $event->ticketId;

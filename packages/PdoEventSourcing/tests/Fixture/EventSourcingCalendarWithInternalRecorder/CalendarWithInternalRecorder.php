@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -90,7 +90,7 @@ final class CalendarWithInternalRecorder
         return $this;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCalendarCreated(CalendarCreated $event): void
     {
         $this->calendarId = $event->calendarId;
@@ -98,13 +98,13 @@ final class CalendarWithInternalRecorder
         $this->isOpen = true;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyMeetingScheduled(MeetingScheduled $event): void
     {
         $this->meetings[] = $event->meetingId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCalendarClosed(CalendarClosed $event): void
     {
         $this->isOpen = false;

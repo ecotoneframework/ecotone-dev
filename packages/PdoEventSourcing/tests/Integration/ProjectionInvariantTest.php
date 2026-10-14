@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -240,7 +240,7 @@ final class SomeAggregateForInvariantTest
         return [new CouponIssuedForInvariantTest($command->code)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenIssued(CouponIssuedForInvariantTest $event): void
     {
     }

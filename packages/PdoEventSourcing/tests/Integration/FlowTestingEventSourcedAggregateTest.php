@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -95,7 +95,7 @@ final class FlowTestingOrder
         return [new FlowTestingOrderPlaced($command->orderId, $command->product)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyPlaced(FlowTestingOrderPlaced $event): void
     {
         $this->orderId = $event->orderId;
@@ -163,14 +163,14 @@ final class FlowTestingTicket
         return [new FlowTestingTicketReassigned($command->ticketId, $command->reference)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(FlowTestingTicketOpened $event): void
     {
         $this->ticketId = $event->ticketId;
         $this->reference = $event->reference;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyReassigned(FlowTestingTicketReassigned $event): void
     {
         $this->reference = $event->reference;

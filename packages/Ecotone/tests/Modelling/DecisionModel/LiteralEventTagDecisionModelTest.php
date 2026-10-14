@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -140,7 +140,7 @@ final class InvoiceNumberingForLiteralTag
 {
     private int $lastNumber = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(InvoiceIssuedForLiteralTag $event): void
     {
         $this->lastNumber = $event->number;
@@ -183,7 +183,7 @@ final class RegionalInvoiceNumberingForLiteralTag
 {
     private int $lastNumber = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(RegionalInvoiceIssuedForLiteralTag $event): void
     {
         $this->lastNumber = $event->number;
@@ -221,7 +221,7 @@ final class BatchCountForLiteralTag
 {
     private int $lastNumber = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function added(BatchItemAddedForLiteralTag $event): void
     {
         $this->lastNumber = $event->number;
@@ -261,12 +261,12 @@ final readonly class ArchivedSequenceInvoiceIssuedForLiteralTag
 #[DecisionModel(tags: ['invoiceSequence'])]
 final class DisagreeingNumberingForLiteralTag
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(DefaultSequenceInvoiceIssuedForLiteralTag $event): void
     {
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function archived(ArchivedSequenceInvoiceIssuedForLiteralTag $event): void
     {
     }

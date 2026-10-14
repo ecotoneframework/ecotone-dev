@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -57,7 +57,7 @@ final readonly class TaggedEventForDecisionModelLicenceTest
 #[DecisionModel]
 final class ModelForLicenceTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForDecisionModelLicenceTest $event): void
     {
     }

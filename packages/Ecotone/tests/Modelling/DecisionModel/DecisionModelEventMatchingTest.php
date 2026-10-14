@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -106,7 +106,7 @@ final class ParentEventCountForMatchingTest
 {
     public int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(CourseEventForMatchingTest $event): void
     {
         $this->count++;
@@ -118,7 +118,7 @@ final class NamedEventCountForMatchingTest
 {
     public int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(NamedCourseEventForMatchingTest $event): void
     {
         $this->count++;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -166,7 +166,7 @@ final class CustomerCouponUseForFetchTest
 {
     private bool $used = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForFetchTest $event): void
     {
         $this->used = true;
@@ -218,7 +218,7 @@ final class AccountActivityForFetchTest
 {
     private int $transferCount = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function transferred(MoneyTransferredForFetchTest $event): void
     {
         $this->transferCount++;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit\Versioning;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -19,14 +19,14 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class EventSourcingHandlerMetadataWithoutLicenceTest extends TestCase
+final class ApplyMethodMetadataWithoutLicenceTest extends TestCase
 {
-    public function test_reading_metadata_in_event_sourcing_handler_without_licence_names_the_open_source_alternative(): void
+    public function test_reading_metadata_in_apply_method_without_licence_names_the_open_source_alternative(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting([BasketReadingRecordTime::class]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Using multiple parameters for Event Sourcing Handler: ' . BasketReadingRecordTime::class . '::applyCreated is part of Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the time of the change) in the event itself.');
+        $this->expectExceptionMessage('Using multiple parameters for #[Apply] method: ' . BasketReadingRecordTime::class . '::applyCreated is part of Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the time of the change) in the event itself.');
 
         $ecotone->sendCommandWithRouting('basketReadingRecordTime.create', 'basket-1');
     }
@@ -52,7 +52,7 @@ final class BasketReadingRecordTime
         return [new BasketReadingRecordTimeCreated($basketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCreated(BasketReadingRecordTimeCreated $event, #[Header(MessageHeaders::TIMESTAMP)] int $recordedAt): void
     {
         $this->basketId = $event->basketId;

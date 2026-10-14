@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\SharedStream;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -35,7 +35,7 @@ final class SharedStreamProduct
         return $product;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductCreated(ProductCreated $event): void
     {
         $this->productId = $event->productId;

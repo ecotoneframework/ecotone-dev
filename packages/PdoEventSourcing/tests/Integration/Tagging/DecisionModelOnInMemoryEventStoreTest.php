@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Closure;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -211,7 +211,7 @@ final class UsernameAvailabilityOnInMemoryEventStore
 {
     public bool $taken = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function claimed(UsernameClaimedOnInMemoryEventStore $event): void
     {
         $this->taken = true;

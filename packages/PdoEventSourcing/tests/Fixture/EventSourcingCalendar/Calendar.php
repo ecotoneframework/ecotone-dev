@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendar;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
@@ -53,7 +53,7 @@ final class Calendar
         return MeetingWithEventSourcing::create($command->meetingId, $this->calendarId);
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCalendarCreated(CalendarCreated $event): void
     {
         $this->calendarId = $event->calendarId;

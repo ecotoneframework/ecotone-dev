@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
@@ -249,13 +249,13 @@ final class CouponRedemptionsForDbalCouponTest
     private int $limit = 0;
     private int $used = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(CouponIssuedForDbalCouponTest $event): void
     {
         $this->limit = $event->limit;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForDbalCouponTest $event): void
     {
         $this->used++;
@@ -272,7 +272,7 @@ final class CustomerCouponUseForDbalCouponTest
 {
     private bool $used = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForDbalCouponTest $event): void
     {
         $this->used = true;
@@ -335,7 +335,7 @@ final class OrderForDbalCouponTest
         return [new OrderPlacedForDbalCouponTest($command->orderId, $command->customerId, $command->couponCode)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenPlaced(OrderPlacedForDbalCouponTest $event): void
     {
         $this->orderId = $event->orderId;

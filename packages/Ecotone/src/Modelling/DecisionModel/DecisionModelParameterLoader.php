@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelFoldShape;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
+use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
 
 use function implode;
 use function is_array;
@@ -48,7 +48,7 @@ final class DecisionModelParameterLoader
         private readonly string $modelClassName,
         private readonly bool $doesAllowNulls,
         private readonly DecisionModelDefinitionRegistry $decisionModelDefinitionRegistry,
-        private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
+        private readonly ApplyMethodExecutor $applyMethodExecutor,
         private readonly ParameterConverter $payloadConverter,
         private readonly AttributeExpressionExecutor $expressionExecutor,
     ) {
@@ -96,7 +96,7 @@ final class DecisionModelParameterLoader
      */
     public function fold(array $events, ?object $snapshotState = null): object
     {
-        return $this->eventSourcingHandlerExecutor->fill($events, $snapshotState);
+        return $this->applyMethodExecutor->fill($events, $snapshotState);
     }
 
     /**

@@ -89,7 +89,7 @@ class SaveAggregateServiceTemplate
                     continue;
                 }
 
-                throw NoCorrectIdentifierDefinedException::create("After calling {$aggregateDefinition->getClassName()} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
+                throw NoCorrectIdentifierDefinedException::create("After calling {$aggregateDefinition->getClassName()} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[Apply] that will assign the id after first event");
             }
 
             $aggregateIds[$aggregateIdName] = $id;

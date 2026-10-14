@@ -6,9 +6,9 @@ use App\WorkingWithAggregateDirectly\Command\ChangePrice;
 use App\WorkingWithAggregateDirectly\Command\RegisterProduct;
 use App\WorkingWithAggregateDirectly\Event\PriceWasChanged;
 use App\WorkingWithAggregateDirectly\Event\ProductWasRegistered;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -44,14 +44,14 @@ class Product
         return $this->price;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onProductWasRegistered(ProductWasRegistered $event): void
     {
         $this->productId = $event->getProductId();
         $this->price = $event->getPrice();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onPriceWasChanged(PriceWasChanged $event): void
     {
         $this->price = $event->getPrice();

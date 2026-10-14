@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -33,14 +33,14 @@ class Twitter
         return [new TwitContentWasChanged($this->twitId, $content)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenTwitWasCreated(TwitWasCreated $event): void
     {
         $this->twitId = $event->twitId;
         $this->content = $event->content;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenTwitContentWasChanged(TwitContentWasChanged $event): void
     {
         $this->content = $event->content;

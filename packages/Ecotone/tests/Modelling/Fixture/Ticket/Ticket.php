@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Ticket;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 
@@ -26,13 +26,13 @@ class Ticket
         return [new TicketWasStartedEvent($command->getTicketId())];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onTicketWasStarted(TicketWasStartedEvent $event): void
     {
         $this->ticketId = $event->getTicketId();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onWorkerWasAssigned(WorkerWasAssignedEvent $event): void
     {
         $this->workerId = $event->getAssignedWorkerId();

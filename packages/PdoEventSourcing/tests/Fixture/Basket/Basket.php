@@ -3,9 +3,9 @@
 namespace Test\Ecotone\EventSourcing\Fixture\Basket;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\Stream;
@@ -49,13 +49,13 @@ class Basket
         $this->recordThat(new ProductWasAddedToBasket($this->id, $command->getProductName()));
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenBasketWasCreated(BasketWasCreated $event): void
     {
         $this->id = $event->getId();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenProductWasAdded(ProductWasAddedToBasket $event): void
     {
         $this->currentBasket[] = $event->getProductName();

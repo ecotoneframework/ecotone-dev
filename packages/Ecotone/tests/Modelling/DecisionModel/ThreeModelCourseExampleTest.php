@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
@@ -180,19 +180,19 @@ final class CourseCapacityForThreeModelTest
     private int $capacity = 0;
     private int $seatsTaken = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function defined(CourseDefinedForThreeModelTest $event): void
     {
         $this->capacity = $event->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function capacityChanged(CourseCapacityChangedForThreeModelTest $event): void
     {
         $this->capacity = $event->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function seatTaken(StudentSubscribedToCourseForThreeModelTest $event): void
     {
         $this->seatsTaken++;
@@ -214,7 +214,7 @@ final class StudentCoursesForThreeModelTest
 {
     private int $courses = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function joined(StudentSubscribedToCourseForThreeModelTest $event): void
     {
         $this->courses++;
@@ -231,7 +231,7 @@ final class StudentSubscriptionForThreeModelTest
 {
     private bool $exists = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function subscribed(StudentSubscribedToCourseForThreeModelTest $event): void
     {
         $this->exists = true;
@@ -294,7 +294,7 @@ final class EnrollmentNotificationSagaForThreeModelTest
     #[Identifier]
     private string $courseId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onSubscribed(StudentSubscribedToCourseForThreeModelTest $event): void
     {
         $this->courseId = $event->courseId;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\Reference;
@@ -219,13 +219,13 @@ final class CourseForRetryTest
     private int $capacity = 0;
     private int $seatsTaken = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function defined(CourseDefinedForRetryTest $event): void
     {
         $this->capacity = $event->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function seatTaken(StudentSubscribedForRetryTest $event): void
     {
         $this->seatsTaken++;

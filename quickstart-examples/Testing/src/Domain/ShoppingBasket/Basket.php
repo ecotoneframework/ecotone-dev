@@ -10,9 +10,9 @@ use App\Testing\Domain\ShoppingBasket\Event\OrderWasPlaced;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
 use Assert\Assert;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -66,14 +66,14 @@ final class Basket
         return [new OrderWasPlaced($this->userId, $this->productIds)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductWasAddedToBasket(ProductWasAddedToBasket $event): void
     {
         $this->userId = $event->getUserId();
         $this->productIds[] = $event->getProductId();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductWasRemovedFromBasket(ProductWasRemovedFromBasket $event): void
     {
         unset($this->productIds[array_search($event->getProductId(), $this->productIds)]);

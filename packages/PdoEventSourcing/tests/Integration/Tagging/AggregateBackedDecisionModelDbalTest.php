@@ -8,11 +8,11 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\MediaTypeConverter;
@@ -438,21 +438,21 @@ final class WalletForAggregateBackedDbalTest
         return $this->balance;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCredited(WalletCreditedForAggregateBackedDbalTest $event): void
     {
         $this->walletId = $event->walletId;
         $this->balance += $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyDebited(WalletDebitedForAggregateBackedDbalTest $event): void
     {
         $this->walletId = $event->walletId;
         $this->balance -= $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyFrozen(WalletFrozenForAggregateBackedDbalTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -464,13 +464,13 @@ final class WalletBalanceForAggregateBackedDbalTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedDbalTest $event): void
     {
         $this->balance += $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function debited(WalletDebitedForAggregateBackedDbalTest $event): void
     {
         $this->balance -= $event->amount;

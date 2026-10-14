@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter as PayloadConverter;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -162,13 +162,13 @@ final class SpentTodayAcrossDeployments
 {
     private int $spent = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenSpent(WalletSpentAcrossDeployments $event): void
     {
         $this->spent += $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenRefunded(WalletRefundedAcrossDeployments $event): void
     {
         $this->spent -= $event->amount;

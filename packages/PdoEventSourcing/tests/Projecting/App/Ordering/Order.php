@@ -23,9 +23,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -86,7 +86,7 @@ class Order
         return $events;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasPlaced(OrderWasPlaced $event): void
     {
         $this->orderId = $event->orderId;
@@ -94,19 +94,19 @@ class Order
         $this->quantity = $event->quantity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasShipped(OrderWasShipped $event): void
     {
         $this->shipped = true;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasReturned(OrderWasReturned $event): void
     {
         $this->shipped = false;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasCancelled(OrderWasCancelled $event): void
     {
         $this->cancelled = true;

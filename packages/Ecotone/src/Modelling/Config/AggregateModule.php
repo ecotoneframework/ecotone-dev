@@ -60,8 +60,8 @@ use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
+use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutorBuilder;
 use Ecotone\Modelling\EventSourcingExecutor\EnterpriseAggregateMethodInvoker;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
 use Ecotone\Modelling\FetchAggregate;
@@ -347,7 +347,7 @@ final class AggregateModule implements AnnotationModule, RoutingEventHandler
         $eventSourcingExecutors = [];
         foreach ($this->aggregateClassDefinitions as $aggregateClassDefinition) {
             if ($aggregateClassDefinition->isEventSourced()) {
-                $eventSourcingExecutors[$aggregateClassDefinition->getClassName()] = EventSourcingHandlerExecutorBuilder::createFor(
+                $eventSourcingExecutors[$aggregateClassDefinition->getClassName()] = ApplyMethodExecutorBuilder::createFor(
                     $interfaceToCallRegistry->getClassDefinitionFor(Type::object($aggregateClassDefinition->getClassName())),
                     $interfaceToCallRegistry
                 );

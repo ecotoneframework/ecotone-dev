@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -33,13 +33,13 @@ class ItemInventory
         $this->recordThat(new ItemReserved($this->itemId, $itemReservation->quantity));
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyItemInventoryCreated(ItemInventoryCreated $event): void
     {
         $this->itemId = $event->itemId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyInventoryStockIncreased(InventoryStockIncreased $event): void
     {
         $this->quantity += $event->quantity;

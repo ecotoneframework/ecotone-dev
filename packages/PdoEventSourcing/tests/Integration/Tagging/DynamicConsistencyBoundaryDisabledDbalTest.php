@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -180,7 +180,7 @@ final readonly class RenamedForDisabledBoundaryDbalTest
 #[DecisionModel]
 final class RenamesForDisabledBoundaryDbalTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function renamed(RenamedForDisabledBoundaryDbalTest $event): void
     {
     }
@@ -215,7 +215,7 @@ final class TaggedEntityForDisabledBoundaryDbalTest
         return [new RenamedForDisabledBoundaryDbalTest($this->id)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenRenamed(RenamedForDisabledBoundaryDbalTest $event): void
     {
         $this->id = $event->id;

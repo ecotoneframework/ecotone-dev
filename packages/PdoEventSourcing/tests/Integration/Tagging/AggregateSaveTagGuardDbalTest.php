@@ -6,12 +6,12 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Closure;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
@@ -274,13 +274,13 @@ final class CouponRedemptionsForAggregateGuardTest
     private int $limit = 0;
     private int $redeemed = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(CouponIssuedForAggregateGuardTest $event): void
     {
         $this->limit = $event->limit;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForAggregateGuardTest $event): void
     {
         $this->redeemed++;
@@ -364,7 +364,7 @@ final class OrderForAggregateGuardTest
         return [new OrderPlacedForAggregateGuardTest($this->orderId, $command->couponCode)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenStarted(OrderStartedForAggregateGuardTest $event): void
     {
         $this->orderId = $event->orderId;

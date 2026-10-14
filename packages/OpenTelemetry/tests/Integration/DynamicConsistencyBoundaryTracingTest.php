@@ -7,9 +7,9 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use function array_map;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -217,7 +217,7 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
                 return [new CourseDefined($command->courseId, $command->capacity)];
             }
 
-            #[EventSourcingHandler]
+            #[Apply]
             public function applyDefined(CourseDefined $event): void
             {
                 $this->courseId = $event->courseId;

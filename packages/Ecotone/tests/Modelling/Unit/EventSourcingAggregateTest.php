@@ -36,7 +36,7 @@ use Test\Ecotone\Modelling\Fixture\EventRevision\RegisterPerson;
  */
 final class EventSourcingAggregateTest extends TestCase
 {
-    public function test_registering_and_using_headers_in_event_sourcing_handler(): void
+    public function test_registering_and_using_headers_in_apply_method(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
             Person::class,
@@ -52,7 +52,7 @@ final class EventSourcingAggregateTest extends TestCase
         self::assertEquals(2, $person->getRegisteredWithRevision());
     }
 
-    public function test_failing_on_using_event_sourcing_handler_without_enterprise_mode(): void
+    public function test_failing_on_using_apply_method_without_enterprise_mode(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
             Person::class,

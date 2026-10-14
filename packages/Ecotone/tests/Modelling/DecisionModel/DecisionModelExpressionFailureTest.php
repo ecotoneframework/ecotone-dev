@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
@@ -193,7 +193,7 @@ final class ActivityForExpressionFailureTest
 {
     private int $transferCount = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function transferred(MoneyTransferredForExpressionFailureTest $event): void
     {
         $this->transferCount++;
@@ -272,7 +272,7 @@ final class CouponUseForExpressionFailureTest
 {
     private bool $used = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(CouponRedeemedForExpressionFailureTest $event): void
     {
         $this->used = true;
@@ -318,7 +318,7 @@ final class WalletForExpressionFailureTest
     #[Identifier]
     public string $walletId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForExpressionFailureTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -330,7 +330,7 @@ final class WalletBalanceForExpressionFailureTest
 {
     private int $credits = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForExpressionFailureTest $event): void
     {
         $this->credits++;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 
@@ -27,7 +27,7 @@ final class Aggregate
         return [];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(AggregateCreated $event): void
     {
         $this->id = $event->id;

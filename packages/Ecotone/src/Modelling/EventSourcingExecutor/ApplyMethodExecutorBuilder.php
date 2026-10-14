@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -12,13 +12,13 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\EventSourcingHandlerMethod;
+use Ecotone\Modelling\ApplyMethod;
 use ReflectionClass;
 
 /**
  * licence Apache-2.0
  */
-final class EventSourcingHandlerExecutorBuilder
+final class ApplyMethodExecutorBuilder
 {
     public static function createFor(ClassDefinition $classDefinition, InterfaceToCallRegistry $interfaceToCallRegistry): Definition
     {
@@ -36,39 +36,39 @@ final class EventSourcingHandlerExecutorBuilder
             }
         }
 
-        $aggregateFactoryAnnotation = Type::object(EventSourcingHandler::class);
-        $eventSourcingHandlerMethods = [];
+        $aggregateFactoryAnnotation = Type::object(Apply::class);
+        $applyMethods = [];
         foreach ($classDefinition->getPublicMethodNames() as $method) {
             $methodToCheck = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $method);
 
             if ($methodToCheck->hasMethodAnnotation($aggregateFactoryAnnotation)) {
                 if ($methodToCheck->isStaticallyCalled()) {
-                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should not be static.");
+                    throw ConfigurationException::create("{$methodToCheck} is an #[Apply] method and should not be static.");
                 }
                 if ($methodToCheck->getInterfaceParameterAmount() < 1) {
-                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should have at least one parameter.");
+                    throw ConfigurationException::create("{$methodToCheck} is an #[Apply] method and should have at least one parameter.");
                 }
                 if (! $methodToCheck->getFirstParameter()->isClassOrInterface()) {
-                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should have first parameter as Event Class or Interface type hint.");
+                    throw ConfigurationException::create("{$methodToCheck} is an #[Apply] method and should have first parameter as Event Class or Interface type hint.");
                 }
                 if (! $methodToCheck->hasReturnTypeVoid()) {
-                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should return void return type");
+                    throw ConfigurationException::create("{$methodToCheck} is an #[Apply] method and should return void return type");
                 }
 
-                $eventSourcingHandlerMethods[$method] = EventSourcingHandlerMethod::prepareDefinition(
+                $applyMethods[$method] = ApplyMethod::prepareDefinition(
                     $methodToCheck,
                     $parameterConverterFactory->createParameterWithDefaults($methodToCheck)
                 );
             }
         }
 
-        if (! $eventSourcingHandlerMethods) {
-            throw ConfigurationException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
+        if (! $applyMethods) {
+            throw ConfigurationException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define at least one #[Apply] method to provide aggregate's identifier after first event.");
         }
 
-        return new Definition(EventSourcingHandlerExecutor::class, [
+        return new Definition(ApplyMethodExecutor::class, [
             $classDefinition->getClassType()->toString(),
-            $eventSourcingHandlerMethods,
+            $applyMethods,
             LicenceDecider::prepareDefinition(AggregateMethodInvoker::class, OpenCoreAggregateMethodInvoker::class, EnterpriseAggregateMethodInvoker::class),
             Reference::to(EventMapper::class),
         ]);

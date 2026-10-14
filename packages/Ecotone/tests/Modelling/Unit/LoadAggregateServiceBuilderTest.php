@@ -12,12 +12,12 @@ use Test\Ecotone\Messaging\BaseEcotoneTestCase;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
-use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithReturnType;
-use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithWrongParameterCountExample;
+use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\ApplyMethodWithReturnType;
+use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\ApplyMethodWithWrongParameterCountExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoFactoryMethodAggregateExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\CreateNoIdDefinedAggregate;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodForEventSourcedAggregate;
-use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\StaticEventSourcingHandlerMethodExample;
+use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\StaticApplyMethodExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithConstructorHavingParameters;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithPrivateConstructor;
 use Test\Ecotone\Modelling\Fixture\NoIdentifierAggregate\Product;
@@ -179,10 +179,10 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             ->sendCommandWithRouting('doSomething');
     }
 
-    public function test_throwing_exception_if_no_event_sourcing_handler_defined_for_event_sourced_aggregate()
+    public function test_throwing_exception_if_no_apply_method_defined_for_event_sourced_aggregate()
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
+        $this->expectExceptionMessage("You must define at least one #[Apply] method to provide aggregate's identifier after first event.");
 
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [NoFactoryMethodAggregateExample::class]);
     }
@@ -190,10 +190,10 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_throwing_exception_if_factory_method_for_event_sourced_aggregate_has_no_parameters()
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(EventSourcingHandlerMethodWithWrongParameterCountExample::class .'::factory is Event Sourcing Handler and should have at least one parameter.');
+        $this->expectExceptionMessage(ApplyMethodWithWrongParameterCountExample::class .'::factory is an #[Apply] method and should have at least one parameter.');
 
         try {
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [ApplyMethodWithWrongParameterCountExample::class]);
         } catch (Exception $e) {
             throw $e;
         }
@@ -213,17 +213,17 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [WithPrivateConstructor::class]);
     }
 
-    public function test_throwing_exception_if_event_sourcing_handler_is_non_void()
+    public function test_throwing_exception_if_apply_method_is_non_void()
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithReturnType::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [ApplyMethodWithReturnType::class]);
     }
 
-    public function test_throwing_exception_if_event_sourcing_handler_is_static()
+    public function test_throwing_exception_if_apply_method_is_static()
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [StaticEventSourcingHandlerMethodExample::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [StaticApplyMethodExample::class]);
     }
 }

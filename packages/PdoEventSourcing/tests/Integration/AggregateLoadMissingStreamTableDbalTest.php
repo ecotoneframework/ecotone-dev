@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -150,14 +150,14 @@ final class ScreeningWithoutStreamTable
         return $this->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(ScreeningOpenedWithoutStreamTable $event): void
     {
         $this->screeningId = $event->screeningId;
         $this->capacity = $event->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applySeatsAdded(SeatsAddedWithoutStreamTable $event): void
     {
         $this->capacity += $event->seats;

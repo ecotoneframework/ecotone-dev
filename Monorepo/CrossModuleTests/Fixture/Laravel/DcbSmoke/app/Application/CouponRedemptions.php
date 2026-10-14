@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\DcbSmoke\Laravel\Application;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 
 /**
  * licence Enterprise
@@ -28,13 +28,13 @@ final class CouponRedemptions
     private int $limit = 0;
     private int $used = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(CouponIssued $event): void
     {
         $this->limit = $event->limit;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(CouponRedeemed $event): void
     {
         $this->used++;

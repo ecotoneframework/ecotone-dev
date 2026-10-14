@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\DecisionModelFlow;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 
 /**
  * licence Apache-2.0
@@ -17,13 +17,13 @@ final class CourseCapacity
 
     private int $seatsTaken = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function defined(CourseDefined $event): void
     {
         $this->capacity = $event->capacity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function enrolled(StudentEnrolled $event): void
     {
         $this->seatsTaken++;

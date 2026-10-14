@@ -6,11 +6,11 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -220,7 +220,7 @@ final class LegacyWalletForAggregateBackedDbalTest
         return [new LegacyWalletCreditedForAggregateBackedDbalTest($this->legacyWalletId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCredited(LegacyWalletCreditedForAggregateBackedDbalTest $event): void
     {
         $this->legacyWalletId = $event->legacyWalletId;
@@ -232,7 +232,7 @@ final class LegacyWalletBalanceForAggregateBackedDbalTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(LegacyWalletCreditedForAggregateBackedDbalTest $event): void
     {
         $this->balance += $event->amount;

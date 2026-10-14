@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\Event;
@@ -203,13 +203,13 @@ final class CounterWithIntegerId
         return $this->count;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(CounterWithIntegerIdOpened $event): void
     {
         $this->counterId = $event->counterId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyIncremented(CounterWithIntegerIdIncremented $event): void
     {
         $this->count++;

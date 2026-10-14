@@ -6,10 +6,10 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -221,7 +221,7 @@ final class SeatCountForConflictNaming
 {
     public int $taken = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(SeatTakenForConflictNaming $event): void
     {
         $this->taken++;
@@ -233,7 +233,7 @@ final class WaitlistLengthForConflictNaming
 {
     public int $waiting = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(SeatTakenForConflictNaming $event): void
     {
         $this->waiting++;
@@ -326,7 +326,7 @@ final class PurseSpendCountForConflictNaming
 {
     public int $spent = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(PurseSpentForConflictNaming $event): void
     {
         $this->spent++;

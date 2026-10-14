@@ -35,6 +35,7 @@ use Ecotone\EventSourcing\DeserializingEventStore;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AsGivenRecordedEventFormat;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
@@ -205,7 +206,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
-        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary);
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary, ExtensionObjectResolver::contains(InMemoryEventsKeptAsGiven::class, $extensionObjects));
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
     }
@@ -247,6 +248,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         ?string $consoleInvocationPrefix,
         InterfaceToCallRegistry $interfaceToCallRegistry,
         DynamicConsistencyBoundary $dynamicConsistencyBoundary,
+        bool $inMemoryEventsKeptAsGiven,
     ): void {
         $messagingConfiguration->registerServiceDefinition(
             EventSerializer::class,
@@ -262,7 +264,9 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
                 RecordedEventFormat::class,
-                new Definition(SerializedRecordedEventFormat::class, [new Reference(EventSerializer::class)])
+                $inMemoryEventsKeptAsGiven
+                    ? new Definition(AsGivenRecordedEventFormat::class, [new Reference(ConversionService::REFERENCE_NAME)])
+                    : new Definition(SerializedRecordedEventFormat::class, [new Reference(EventSerializer::class)])
             );
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
@@ -270,10 +274,12 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,
-                new Definition(DeserializingEventStore::class, [
-                    new Reference(InMemoryEventStore::class),
-                    new Reference(EventSerializer::class),
-                ])
+                $inMemoryEventsKeptAsGiven
+                    ? new Reference(InMemoryEventStore::class)
+                    : new Definition(DeserializingEventStore::class, [
+                        new Reference(InMemoryEventStore::class),
+                        new Reference(EventSerializer::class),
+                    ])
             );
             $messagingConfiguration->registerServiceDefinition(
                 GuardedTagBump::class,
@@ -415,10 +421,9 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         $eventSourcingConfiguration = ExtensionObjectResolver::resolve(EventSourcingConfiguration::class, $extensionObjects)[0] ?? null;
 
         if ($eventSourcingConfiguration === null) {
-            return [
-                ...$extensionObjects,
-                $connections->has(DbalConnectionReference::DEFAULT) ? EventSourcingConfiguration::createWithDefaults() : EventSourcingConfiguration::createInMemory(),
-            ];
+            return $connections->has(DbalConnectionReference::DEFAULT)
+                ? [...$extensionObjects, EventSourcingConfiguration::createWithDefaults()]
+                : [...$extensionObjects, EventSourcingConfiguration::createInMemory(), new InMemoryEventsKeptAsGiven()];
         }
 
         if (! $eventSourcingConfiguration->isInMemory() && ! $connections->has($eventSourcingConfiguration->getConnectionReferenceName())) {

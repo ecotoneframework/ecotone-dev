@@ -15,6 +15,7 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -141,7 +142,7 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
             classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, UsernameReleasedOnInMemoryEventStore::class, $registration::class, $converter::class],
             containerOrAvailableServices: [$registration, $converter],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), EventSourcingConfiguration::createInMemory()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

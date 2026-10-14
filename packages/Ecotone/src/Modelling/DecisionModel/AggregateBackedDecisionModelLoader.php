@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverter;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
+use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutor;
 
 use function implode;
 use function is_object;
@@ -46,7 +46,7 @@ final class AggregateBackedDecisionModelLoader
         private readonly string $modelClassName,
         private readonly bool $doesAllowNulls,
         private readonly DecisionModelDefinitionRegistry $decisionModelDefinitionRegistry,
-        private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
+        private readonly ApplyMethodExecutor $applyMethodExecutor,
         private readonly ParameterConverter $payloadConverter,
         private readonly AttributeExpressionExecutor $expressionExecutor,
         private readonly AggregateDefinitionRegistry $aggregateDefinitionRegistry,
@@ -74,7 +74,7 @@ final class AggregateBackedDecisionModelLoader
      */
     public function fold(array $events, ?object $snapshotState = null): object
     {
-        return $this->eventSourcingHandlerExecutor->fill($events, $snapshotState);
+        return $this->applyMethodExecutor->fill($events, $snapshotState);
     }
 
     /**

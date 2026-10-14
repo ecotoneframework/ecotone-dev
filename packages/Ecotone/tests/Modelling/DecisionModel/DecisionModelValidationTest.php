@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -53,7 +53,7 @@ final class DecisionModelValidationTest extends TestCase
         );
     }
 
-    public function test_event_sourcing_handler_with_an_interface_typed_parameter_is_rejected(): void
+    public function test_apply_method_with_an_interface_typed_parameter_is_rejected(): void
     {
         $this->expectException(ConfigurationException::class);
 
@@ -353,7 +353,7 @@ final readonly class EventWithoutStudentTagForValidationTest
 #[DecisionModel(tags: ['course', 'student'])]
 final class ModelWithMissingTagForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(EventWithoutStudentTagForValidationTest $event): void
     {
     }
@@ -366,7 +366,7 @@ interface TaggedEventInterfaceForValidationTest
 #[DecisionModel]
 final class ModelWithInterfaceTypedHandlerForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventInterfaceForValidationTest $event): void
     {
     }
@@ -379,7 +379,7 @@ final class ModelWithConstructorArgumentsForValidationTest
     {
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
     }
@@ -388,7 +388,7 @@ final class ModelWithConstructorArgumentsForValidationTest
 #[DecisionModel]
 final class ModelForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
     }
@@ -405,7 +405,7 @@ final readonly class CommandWithoutTagPropertyForValidationTest
 #[DecisionModel]
 final class ModelWithCommandHandlerForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
     }
@@ -476,7 +476,7 @@ final readonly class StudentTaggedEventForValidationTest
 #[DecisionModel]
 final class ModelHandlingUntaggedEventForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(UntaggedEventForValidationTest $event): void
     {
     }
@@ -485,12 +485,12 @@ final class ModelHandlingUntaggedEventForValidationTest
 #[DecisionModel]
 final class ModelHandlingDisjointlyTaggedEventsForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenCourseTagged(TaggedEventForValidationTest $event): void
     {
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenStudentTagged(StudentTaggedEventForValidationTest $event): void
     {
     }
@@ -503,7 +503,7 @@ final class ModelAlsoAggregateForValidationTest
     #[Identifier]
     public string $courseId = '';
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
     }
@@ -516,7 +516,7 @@ final class ModelAlsoSagaForValidationTest
     #[Identifier]
     public string $courseId = '';
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
     }
@@ -557,7 +557,7 @@ final class CountingModelForValidationTest
 {
     public int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TaggedEventForValidationTest $event): void
     {
         $this->count++;
@@ -613,7 +613,7 @@ final readonly class TenantItemAddedForValidationTest
 #[DecisionModel(tags: ['tenant'])]
 final class TenantItemsModelForValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TenantItemAddedForValidationTest $event): void
     {
     }
@@ -624,7 +624,7 @@ final class TenantItemModelForValidationTest
 {
     public int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function when(TenantItemAddedForValidationTest $event): void
     {
         $this->count++;

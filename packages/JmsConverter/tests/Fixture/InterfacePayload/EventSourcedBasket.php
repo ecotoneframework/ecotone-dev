@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Fixture\InterfacePayload;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 
@@ -27,7 +27,7 @@ final class EventSourcedBasket
         return [new ProductAddedToBasket($payload['basketId'], $payload['productId'])];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductAdded(ProductAddedToBasket $event): void
     {
         $this->basketId = $event->basketId;

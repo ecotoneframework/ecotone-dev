@@ -52,7 +52,7 @@ use Ecotone\Modelling\DecisionModel\DecisionModelHandler;
 use Ecotone\Modelling\DecisionModel\DecisionModelHandlers;
 use Ecotone\Modelling\DecisionModel\DecisionModelTagResolvabilityGuard;
 use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
+use Ecotone\Modelling\EventSourcingExecutor\ApplyMethodExecutorBuilder;
 
 use function implode;
 use function in_array;
@@ -168,7 +168,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
             $messagingConfiguration->registerServiceDefinition(
                 DecisionModelExecutorRegistry::serviceIdFor($modelClass),
-                EventSourcingHandlerExecutorBuilder::createFor($classDefinition, $interfaceToCallRegistry),
+                ApplyMethodExecutorBuilder::createFor($classDefinition, $interfaceToCallRegistry),
             );
         }
 

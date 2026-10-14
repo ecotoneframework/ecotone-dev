@@ -6,9 +6,9 @@ namespace Test\Ecotone\Modelling\AggregateBoundary;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
@@ -225,7 +225,7 @@ final class LedgerWithoutAggregateType
         return [new LedgerOpened($ledgerId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(LedgerOpened $event): void
     {
         $this->ledgerId = $event->ledgerId;
@@ -246,7 +246,7 @@ final class LedgerWithAggregateType
         return [new LedgerOpened($ledgerId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(LedgerOpened $event): void
     {
         $this->ledgerId = $event->ledgerId;
@@ -287,7 +287,7 @@ final class ShipmentSagaWithoutAggregateType
         return [new ShipmentStarted($shipmentId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyStarted(ShipmentStarted $event): void
     {
         $this->shipmentId = $event->shipmentId;

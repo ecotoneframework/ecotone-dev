@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\JMSConverter\Fixture\UnionIdentifierAggregate;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\ExternalIdWithDiscriminator;
@@ -35,13 +35,13 @@ final class Ticket
         return [new TicketWasClosed((string) $this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCreated(TicketWasCreated $event): void
     {
         $this->ticketId = $event->ticketId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyClosed(TicketWasClosed $event): void
     {
         $this->closed = true;

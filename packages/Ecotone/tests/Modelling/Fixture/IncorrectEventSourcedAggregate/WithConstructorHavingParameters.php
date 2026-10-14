@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use stdClass;
 
@@ -26,7 +26,7 @@ class WithConstructorHavingParameters
     {
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function factory(stdClass $event)
     {
     }

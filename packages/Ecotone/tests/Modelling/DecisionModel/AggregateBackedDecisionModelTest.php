@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
@@ -349,19 +349,19 @@ final class WalletForAggregateBackedTest
     #[Identifier]
     private string $walletId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedTest $event): void
     {
         $this->walletId = $event->walletId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function debited(WalletDebitedForAggregateBackedTest $event): void
     {
         $this->walletId = $event->walletId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function frozen(WalletFrozenForAggregateBackedTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -377,7 +377,7 @@ final class LedgerForAggregateBackedTest
     #[Identifier]
     private string $ledger;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(LedgerCreditedForAggregateBackedTest $event): void
     {
         $this->ledger = $event->ledgerId;
@@ -392,14 +392,14 @@ final class WalletBalanceForAggregateBackedTest
     /** @var int[] */
     private array $runningBalances = [];
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedTest $event): void
     {
         $this->balance += $event->amount;
         $this->runningBalances[] = $this->balance;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function debited(WalletDebitedForAggregateBackedTest $event): void
     {
         $this->balance -= $event->amount;
@@ -435,7 +435,7 @@ final class WalletCreditCountForAggregateBackedTest
 {
     private int $credits = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedTest $event): void
     {
         $this->credits++;
@@ -452,7 +452,7 @@ final class LedgerBalanceForAggregateBackedTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(LedgerCreditedForAggregateBackedTest $event): void
     {
         $this->balance += $event->amount;
@@ -469,7 +469,7 @@ final class PayoutsTodayForAggregateBackedTest
 {
     private int $total = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function requested(PayoutRequestedForAggregateBackedTest $event): void
     {
         $this->total += $event->amount;

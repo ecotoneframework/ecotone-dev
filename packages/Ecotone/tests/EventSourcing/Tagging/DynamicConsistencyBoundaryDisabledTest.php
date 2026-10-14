@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Tagging;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\AppendCondition;
@@ -203,7 +203,7 @@ final readonly class RenamedForDisabledBoundaryTest
 #[DecisionModel]
 final class RenamesForDisabledBoundaryTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function renamed(RenamedForDisabledBoundaryTest $event): void
     {
     }
@@ -229,7 +229,7 @@ final class EntityForDisabledBoundaryTest
         return [new RenamedForDisabledBoundaryTest($this->id)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenRenamed(RenamedForDisabledBoundaryTest $event): void
     {
         $this->id = $event->id;

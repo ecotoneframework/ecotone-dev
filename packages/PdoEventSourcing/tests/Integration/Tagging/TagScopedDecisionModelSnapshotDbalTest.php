@@ -7,12 +7,12 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use function array_column;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
@@ -242,7 +242,7 @@ final class BranchLedgerForTagSnapshotDbalTest
         return [new BranchSpentForTagSnapshotDbalTest($command->walletId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function spent(BranchSpentForTagSnapshotDbalTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -256,14 +256,14 @@ final class SpentTodayForTagSnapshotDbalTest
 
     private int $foldedEvents = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function online(OnlineSpentForTagSnapshotDbalTest $event): void
     {
         $this->spent += $event->amount;
         $this->foldedEvents++;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function inBranch(BranchSpentForTagSnapshotDbalTest $event): void
     {
         $this->spent += $event->amount;

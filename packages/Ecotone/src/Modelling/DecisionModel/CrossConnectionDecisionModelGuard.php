@@ -6,9 +6,9 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -120,7 +120,7 @@ final class CrossConnectionDecisionModelGuard
         $aggregateConnections = [];
         $eventRecordingAggregates = [];
 
-        foreach ($annotationFinder->findAnnotatedMethods(EventSourcingHandler::class) as $annotatedMethod) {
+        foreach ($annotationFinder->findAnnotatedMethods(Apply::class) as $annotatedMethod) {
             $className = $annotatedMethod->getClassName();
 
             if (! isset($aggregateConnections[$className])) {

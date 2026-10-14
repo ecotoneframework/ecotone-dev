@@ -306,7 +306,7 @@ Standard aggregate handling requires explicit repository injection and fetch/sav
 
 ---
 
-### Advanced Event Sourcing Handlers (with Metadata)
+### Advanced `#[Apply]` Methods (with Metadata)
 
 #### You'll Know You Need This When
 
@@ -316,4 +316,4 @@ Standard aggregate handling requires explicit repository injection and fetch/sav
 
 #### What It Replaces
 
-Standard `#[EventSourcingHandler]` methods only receive the event payload. When reconstruction needs context (tenant, source system, environment), you'd have to embed that context in the event itself -- polluting domain events with infrastructure concerns. Metadata-aware handlers receive event metadata as a separate parameter, keeping events clean and reconstruction context-aware.
+Standard `#[Apply]` methods only receive the event payload. When reconstruction needs context (tenant, source system, environment), you'd have to embed that context in the event itself -- polluting domain events with infrastructure concerns. Metadata-aware handlers receive event metadata as a separate parameter, keeping events clean and reconstruction context-aware.

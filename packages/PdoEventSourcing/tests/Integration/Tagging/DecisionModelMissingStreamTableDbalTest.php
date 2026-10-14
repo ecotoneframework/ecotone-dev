@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
@@ -181,7 +181,7 @@ final class ScreeningForMissingStreamTableTest
         return [new ScreeningOpenedForMissingStreamTableTest($command->screeningId, $command->capacity)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(ScreeningOpenedForMissingStreamTableTest $event): void
     {
         $this->screeningId = $event->screeningId;
@@ -194,7 +194,7 @@ final class ScreeningCapacityForMissingStreamTableTest
 {
     private int $capacity = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function opened(ScreeningOpenedForMissingStreamTableTest $event): void
     {
         $this->capacity = $event->capacity;

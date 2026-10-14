@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\ServiceContext;
@@ -194,13 +194,13 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
                 return $this->balance;
             }
 
-            #[EventSourcingHandler]
+            #[Apply]
             public function whenOpened(LedgerOpenedForDefaultTableTest $event): void
             {
                 $this->ledgerId = $event->ledgerId;
             }
 
-            #[EventSourcingHandler]
+            #[Apply]
             public function whenDeposited(MoneyDepositedForDefaultTableTest $event): void
             {
                 $this->balance += $event->amount;

@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventNameFiltering;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -29,13 +29,13 @@ class MultiEventAggregate
         return [new FirstEvent($id), new SecondEvent($id)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onFirstEvent(FirstEvent $event): void
     {
         $this->id = $event->id;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onSecondEvent(SecondEvent $event): void
     {
         // No-op, just for event sourcing

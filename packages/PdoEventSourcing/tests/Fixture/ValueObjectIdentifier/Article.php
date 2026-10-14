@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -28,7 +28,7 @@ class Article
         return [new ArticleWasPublished($command->articleId, $command->content)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function apply(ArticleWasPublished $event): void
     {
         $this->articleId = $event->articleId;

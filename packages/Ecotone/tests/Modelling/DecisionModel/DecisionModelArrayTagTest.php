@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -84,7 +84,7 @@ final class SeatReservationForArrayTagTest
 {
     private bool $reserved = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function reserved(SeatsReservedForArrayTagTest $event): void
     {
         $this->reserved = true;

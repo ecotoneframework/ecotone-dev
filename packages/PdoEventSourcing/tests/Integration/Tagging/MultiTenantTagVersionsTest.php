@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -137,7 +137,7 @@ final class CouponForMultiTenantTest
 {
     private int $issued = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenIssued(CouponIssuedForMultiTenantTest $event): void
     {
         $this->issued++;

@@ -16,7 +16,7 @@ use function sort;
 final class GroupedEventSourcingExecutor
 {
     /**
-     * @param array<string, EventSourcingHandlerExecutor> $eventSourcingExecutors
+     * @param array<string, ApplyMethodExecutor> $eventSourcingExecutors
      */
     public function __construct(private array $eventSourcingExecutors)
     {

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\EventRevision;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -51,7 +51,7 @@ final class Person
         return $this->registeredWithRevision;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyPersonWasRegistered(
         PersonWasRegistered $event,
         #[Header(MessageHeaders::REVISION)] int $revision

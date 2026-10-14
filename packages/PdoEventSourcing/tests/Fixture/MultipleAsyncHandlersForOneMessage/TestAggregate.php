@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MultipleAsyncHandlersForOneMessage;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 
@@ -34,7 +34,7 @@ final class TestAggregate
         return [new ActionCalled($command->id)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyActionCalled(ActionCalled $event): void
     {
         $this->id = $event->id;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
@@ -210,13 +210,13 @@ final class CouponRedemptionsForCouponTest
     private int $limit = 0;
     private int $used = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(CouponIssuedForCouponTest $event): void
     {
         $this->limit = $event->limit;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForCouponTest $event): void
     {
         $this->used++;
@@ -233,7 +233,7 @@ final class CustomerCouponUseForCouponTest
 {
     private bool $used = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function redeemed(OrderPlacedForCouponTest $event): void
     {
         $this->used = true;
@@ -296,7 +296,7 @@ final class OrderForCouponTest
         return [new OrderPlacedForCouponTest($command->orderId, $command->customerId, $command->couponCode)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenPlaced(OrderPlacedForCouponTest $event): void
     {
         $this->orderId = $event->orderId;

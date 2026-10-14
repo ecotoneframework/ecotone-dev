@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Apache-2.0
  */
-final class EventSourcingHandlerMethod
+final class ApplyMethod
 {
     /**
      * @param array<string> $interfaceParametersNames
@@ -36,7 +36,7 @@ final class EventSourcingHandlerMethod
         array $parameterConverters,
     ): Definition {
         return new Definition(
-            EventSourcingHandlerMethod::class,
+            ApplyMethod::class,
             [
                 $interfaceToCall->getInterfaceName(),
                 $interfaceToCall->getMethodName(),

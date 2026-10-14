@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\AggregateBoundary;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
@@ -141,7 +141,7 @@ final class RecordingTicket
         $this->recordThat(new TicketClosed($this->ticketId));
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(TicketOpened $event): void
     {
         $this->ticketId = $event->ticketId;
@@ -165,7 +165,7 @@ final readonly class TicketClosed
 #[DecisionModel]
 final class TicketQueue
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenEscalated(TicketEscalated $event): void
     {
     }
@@ -237,7 +237,7 @@ final class TransactionlessTicket
         return [new TicketOpened($this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(TicketOpened $event): void
     {
         $this->ticketId = $event->ticketId;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Header;
@@ -211,13 +211,13 @@ final class WalletForStatelessTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function funded(WalletFundedForStatelessTest $event): void
     {
         $this->balance += $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function charged(WalletChargedForStatelessTest $event): void
     {
         $this->balance -= $event->amount;
@@ -313,7 +313,7 @@ final class PaymentForStatelessTest
         return [new PaymentMadeForStatelessTest($command->paymentId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenMade(PaymentMadeForStatelessTest $event): void
     {
         $this->paymentId = $event->paymentId;

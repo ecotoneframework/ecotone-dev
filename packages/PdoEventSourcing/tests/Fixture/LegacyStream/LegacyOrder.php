@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\LegacyStream;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\Stream;
@@ -46,14 +46,14 @@ final class LegacyOrder
         return $this->status;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyPlaced(LegacyOrderPlaced $event): void
     {
         $this->orderId = $event->orderId;
         $this->status = 'placed';
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCancelled(LegacyOrderCancelled $event): void
     {
         $this->status = 'cancelled';

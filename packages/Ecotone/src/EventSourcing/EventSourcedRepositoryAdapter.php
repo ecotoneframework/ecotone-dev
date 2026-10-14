@@ -35,7 +35,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         private EventSourcedRepository $eventSourcedRepository,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private BaseEventSourcingConfiguration $eventSourcingConfiguration,
-        private GroupedEventSourcingExecutor $eventSourcingHandlerExecutor,
+        private GroupedEventSourcingExecutor $applyMethodExecutor,
         private ContainerInterface $container,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private bool $isDefaultRepository,
@@ -70,7 +70,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                 }
 
                 if ($aggregate !== null && ! $this->foldShapeStoredWith($documentStore, $aggregateClassName, $identifiers)) {
-                    $this->logger->error("Snapshot for aggregate {$aggregateClassName} with identifiers " . json_encode($identifiers) . ' was taken with a different set of #[EventSourcingHandler] events than the class declares now. Snapshot ignored to self-heal system.');
+                    $this->logger->error("Snapshot for aggregate {$aggregateClassName} with identifiers " . json_encode($identifiers) . ' was taken with a different set of #[Apply] events than the class declares now. Snapshot ignored to self-heal system.');
                     $aggregate = null;
                 }
 
@@ -88,7 +88,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
 
         if ($eventStream->getEvents()) {
             $aggregateVersion = $eventStream->getAggregateVersion();
-            $aggregate = $this->eventSourcingHandlerExecutor->fillFor($aggregateClassName, $aggregate, $eventStream->getEvents());
+            $aggregate = $this->applyMethodExecutor->fillFor($aggregateClassName, $aggregate, $eventStream->getEvents());
         }
 
         if (! $aggregate) {
@@ -132,7 +132,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                     $documentStore->upsertDocument(
                         self::getSnapshotFoldShapeCollectionName($aggregate->getAggregateClassName()),
                         self::getSnapshotDocumentId($aggregate->getIdentifiers()),
-                        json_encode(['foldShape' => $this->eventSourcingHandlerExecutor->foldShapeOf($aggregate->getAggregateClassName())]),
+                        json_encode(['foldShape' => $this->applyMethodExecutor->foldShapeOf($aggregate->getAggregateClassName())]),
                         DocumentStore::LAST_WRITE_WINS,
                     );
                 }
@@ -167,7 +167,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
             return false;
         }
 
-        return (json_decode($marker, true)['foldShape'] ?? null) === $this->eventSourcingHandlerExecutor->foldShapeOf($aggregateClassName);
+        return (json_decode($marker, true)['foldShape'] ?? null) === $this->applyMethodExecutor->foldShapeOf($aggregateClassName);
     }
 
     private function getAggregateVersion(object $aggregate): mixed

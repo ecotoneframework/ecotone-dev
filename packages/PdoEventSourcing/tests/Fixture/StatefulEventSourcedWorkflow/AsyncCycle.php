@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
@@ -100,19 +100,19 @@ class AsyncCycle
         return $this->certificates;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCycleStarted(CycleStarted $event): void
     {
         $this->cycleId = $event->cycleId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyAuditConducted(AuditConducted $event): void
     {
         $this->audits[] = $event->auditId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCertificateIssued(CertificateIssued $event): void
     {
         $this->certificates[] = $event->certificateId;

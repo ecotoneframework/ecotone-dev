@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit\Versioning;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -55,7 +55,7 @@ final class VersionedBasket
         return [new VersionedBasketCreated($this->basketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCreated(VersionedBasketCreated $event): void
     {
         $this->basketId = $event->basketId;

@@ -20,7 +20,7 @@ Source: `Ecotone\Api\Attribute\EventSourcingAggregate`
 class EventSourcingAggregate {}
 ```
 
-Class-level attribute. Marks a class as an event-sourced aggregate. State is rebuilt from events via `#[EventSourcingHandler]` methods.
+Class-level attribute. Marks a class as an event-sourced aggregate. State is rebuilt from events via `#[Apply]` methods.
 
 ## Identifier Attribute
 
@@ -39,13 +39,13 @@ properties create a composite identifier. To resolve the identifier from a comma
 different name, use `#[TargetIdentifier]` on that property, or `identifierMapping`/`identifierMetadataMapping` on
 the handler attribute -- not a parameter on `#[Identifier]` itself.
 
-## EventSourcingHandler Attribute
+## Apply Attribute
 
-Source: `Ecotone\Api\Attribute\EventSourcingHandler`
+Source: `Ecotone\Api\Attribute\Apply`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
-class EventSourcingHandler {}
+class Apply {}
 ```
 
 Method-level attribute. Marks a method that applies an event to rebuild aggregate state. These methods must have NO side effects -- only state assignment.

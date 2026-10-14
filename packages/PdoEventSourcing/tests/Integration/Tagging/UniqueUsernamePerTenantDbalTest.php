@@ -8,10 +8,10 @@ use function array_map;
 
 use Closure;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Header;
@@ -316,13 +316,13 @@ final class UsernameAvailabilityForDbalTest
 {
     private bool $taken = false;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function claimed(UsernameClaimedForDbalTest $event): void
     {
         $this->taken = true;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function released(UsernameReleasedForDbalTest $event): void
     {
         $this->taken = false;

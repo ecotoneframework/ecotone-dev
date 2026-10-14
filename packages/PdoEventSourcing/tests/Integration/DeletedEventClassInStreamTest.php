@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace Integration;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\EventSourcing\Event;
@@ -102,7 +102,7 @@ class AnAggregate
         return [new ANamedEvent($command['id'])];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onAnotherNamedEvent(ANamedEvent $event): void
     {
         $this->id = $event->id;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -270,7 +270,7 @@ final class SpentTodayForTagSnapshotTest
 
     private int $foldedEvents = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForTagSnapshotTest $event): void
     {
         $this->spent += $event->amount;
@@ -314,7 +314,7 @@ final class RegionalSpentTodayForTagSnapshotTest
 
     private int $foldedEvents = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(RegionalWalletCreditedForTagSnapshotTest $event): void
     {
         $this->spent += $event->amount;

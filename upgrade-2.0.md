@@ -545,8 +545,8 @@ own stream or repository, snapshots included.
   {
       private int $balance = 0;
 
-      #[EventSourcingHandler] public function credited(WalletCredited $e): void { $this->balance += $e->amount; }
-      #[EventSourcingHandler] public function debited(WalletDebited $e): void   { $this->balance -= $e->amount; }
+      #[Apply] public function credited(WalletCredited $e): void { $this->balance += $e->amount; }
+      #[Apply] public function debited(WalletDebited $e): void   { $this->balance -= $e->amount; }
 
       public function canCover(int $amount): bool { return $this->balance >= $amount; }
   }
@@ -681,11 +681,11 @@ no transaction.
   must be valid UTF-8, non-empty, at most 255 characters (characters, not bytes), without a NUL byte or trailing
   whitespace; a tag name must be non-empty and at most 100 characters (checked at bootstrap). A subclass of a tagged
   event carries the tags of its nearest tagged ancestor, so it is indexed and guarded like its parent; a decision
-  model, though, folds only the exact classes its `#[EventSourcingHandler]`s name — a handler for the parent does not
+  model, though, folds only the exact classes its `#[Apply]`s name — a handler for the parent does not
   receive the subclass. Tags are known from Ecotone's class scan: an event class outside the scanned namespaces is
   appended **without** tags (not indexed, not guarded) even if it declares `#[EventTag]` — keep tagged events in a
   scanned namespace. A decision model handling such an event fails at bootstrap, naming the scan as the cause.
-- Declare a decision model with `#[DecisionModel]` and fold it with `#[EventSourcingHandler]`, exactly like an
+- Declare a decision model with `#[DecisionModel]` and fold it with `#[Apply]`, exactly like an
   aggregate, with a public no-argument constructor:
 
   ```php
@@ -695,10 +695,10 @@ no transaction.
       private int $capacity = 0;
       private int $seatsTaken = 0;
 
-      #[EventSourcingHandler]
+      #[Apply]
       public function defined(CourseDefined $event): void { $this->capacity = $event->capacity; }
 
-      #[EventSourcingHandler]
+      #[Apply]
       public function seatTaken(StudentSubscribedToCourse $event): void { $this->seatsTaken++; }
 
       public function hasFreeSeat(): bool { return $this->seatsTaken < $this->capacity; }
@@ -927,7 +927,7 @@ sees these tables in its setup output or its database (§8's feature list now in
 alongside `deduplication`, `dead_letter`, `document_store`, ...). Counters are keyed by tag alone, not by stream, so
 a decision model can read events from several streams on the same connection without any extra configuration.
 **Cross-connection injection fails loudly at bootstrap, not silently at runtime.** Every event class a model handles
-is traced — via the `#[EventSourcingHandler]`s of the aggregates that record it — to that aggregate's `#[Stream]`
+is traced — via the `#[Apply]`s of the aggregates that record it — to that aggregate's `#[Stream]`
 connection; if it differs from the connection the injecting handler's own write stream lives on, bootstrap raises a
 `ConfigurationException` naming the model, the event, and both connections, instead of silently loading a model that
 can never see events committed on the other connection (cross-database consistency is a saga's job, not a
@@ -1028,7 +1028,7 @@ one. **Nothing is added to the schema** — no table, no column, no index — an
 - **No `#[Version]` property.** The covered position and the fold shape are written by Ecotone around your state,
   never inside it. Your converter only has to round-trip the model's own fields.
 - **A changed model re-folds itself.** The stored document records which class, handled events and tag names it was
-  folded with. Deploy a model with one more `#[EventSourcingHandler]` and its old snapshots stop matching: the next
+  folded with. Deploy a model with one more `#[Apply]` and its old snapshots stop matching: the next
   read folds the whole scope and the next write stores a snapshot under the new shape. The same happens to a
   snapshot that cannot be read, holds another class, or covers a position its scope has not reached — it is logged
   and ignored, never trusted and never deleted mid-read.
@@ -1237,6 +1237,41 @@ with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` insi
 classes that concrete attributes extend (`EndpointAnnotation`, `IdentifiedAnnotation`, `ChannelAdapter`,
 `MessageConsumer`, `StreamBasedSource`, …) are now `@internal`: application code never uses them, and custom modules
 that type against them should expect them to change in minor versions.
+
+### 7c. `#[EventSourcingHandler]` is renamed to `#[Apply]`
+
+**Before:** an event-sourced aggregate or a decision model folded its events in methods marked
+`#[EventSourcingHandler]` (`Ecotone\Modelling\Attribute\EventSourcingHandler`).
+
+**Now:** the attribute is `#[Apply]` (`Ecotone\Api\Attribute\Apply`), and it is `final`. Nothing else changed: the
+same methods are found, they are invoked in the same order with the same arguments, and the same mistakes are refused
+at bootstrap. `Ecotone\Modelling\Attribute\EventSourcingHandler` no longer exists and has no alias.
+
+```php
+use Ecotone\Api\Attribute\Apply;
+
+#[EventSourcingAggregate]
+final class Wallet
+{
+    #[Apply]
+    public function applyCredited(WalletCredited $event): void
+    {
+        $this->balance += $event->amount;
+    }
+}
+```
+
+The exception messages that named the "Event Sourcing Handler" now name the `#[Apply]` method, for example
+`Using multiple parameters for #[Apply] method: Wallet::applyCredited is part of Enterprise features.` Update any test
+that asserts one of them verbatim.
+
+**How to adapt:**
+- Replace `#[EventSourcingHandler]` with `#[Apply]` and the import
+  `Ecotone\Modelling\Attribute\EventSourcingHandler` with `Ecotone\Api\Attribute\Apply` —
+  `upgrade/namespace-map-2.0.csv` maps the old class straight to the new one.
+- An attribute of your own that extended `EventSourcingHandler` cannot extend `Apply`, which is `final`. Drop the
+  `extends`, keep your attribute for whatever it carries, and put `#[Apply]` beside it on each method:
+  `#[Apply] #[AuditedChange('balance')] public function applyCredited(WalletCredited $event): void`.
 
 ## 8. Database tables are no longer created on the fly
 
@@ -2485,11 +2520,11 @@ to keep a global projection that waits for `ecotone:projection:init <name>`.
 ### Aggregate snapshots are invalidated when the aggregate folds other events
 
 **Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an
-`#[EventSourcingHandler]` left every stored snapshot loadable, so the aggregate came back folded by the old rules
+`#[Apply]` left every stored snapshot loadable, so the aggregate came back folded by the old rules
 and silently stayed that way until enough new events accumulated to overwrite it.
 
 **Now:** Every snapshot is written beside a marker recording the fold it was taken with — the aggregate class and
-its sorted `#[EventSourcingHandler]` event types — in a sibling collection `aggregate_snapshot_fold_shapes_<Class>`
+its sorted `#[Apply]` event types — in a sibling collection `aggregate_snapshot_fold_shapes_<Class>`
 of the same document store. On load, a marker that is missing or names another fold makes the snapshot stale: it is
 logged and ignored, the aggregate is replayed from its events, and the next save writes a fresh snapshot and marker.
 
@@ -3088,7 +3123,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   also travels with every recorded event in the `MessageHeaders::EVENT_AGGREGATE_VERSION` header, including across
   asynchronous channels, so a delayed handler can compare it with the aggregate's current version.
   **How to adapt:** nothing; remove your own `getVersion()` accessor if it only returned the trait's property.
-- **The Enterprise-only `#[EventSourcingHandler]` metadata parameter names the open-source alternative.** Without a
+- **The Enterprise-only `#[Apply]` metadata parameter names the open-source alternative.** Without a
   licence, a second parameter such as `#[Header(MessageHeaders::TIMESTAMP)] int $recordedAt` fails with `… is part of
   Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the
   time of the change) in the event itself. To read metadata here, obtain Enterprise: https://docs.ecotone.tech/enterprise`.
@@ -3142,7 +3177,7 @@ normal section with "How to adapt" steps when it ships.
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
-| Stateless `#[EventSourcingHandler]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[EventSourcingHandler]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
+| Stateless `#[Apply]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[Apply]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
 
 ---
 
@@ -3151,7 +3186,7 @@ normal section with "How to adapt" steps when it ships.
 1. Upgrade to the latest 1.x first and fix every deprecation notice.
 2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
 3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
-4. Replace imports with the namespace map (§13). Fetch `ConfiguredMessagingSystem`, `MessagingTestSupport`, `ConsoleWriter` and `InMemoryConsoleWriter` by their new ids, and clear Ecotone's cache on deploy (§13e, §13f).
+4. Replace imports with the namespace map (§13), which also renames `#[EventSourcingHandler]` to `#[Apply]` (§7c). Fetch `ConfiguredMessagingSystem`, `MessagingTestSupport`, `ConsoleWriter` and `InMemoryConsoleWriter` by their new ids, and clear Ecotone's cache on deploy (§13e, §13f).
 5. Replace `withSkippedModulePackageNames` with `withEnabledModulePackageNames`, and the `skippedModulePackageNames` framework key with `enabledModulePackageNames`, inverting the list into the packages to load; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).

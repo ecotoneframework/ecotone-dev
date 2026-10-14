@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter as PayloadConverter;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -141,13 +141,13 @@ final class BasketHistoryAcrossDeployments
 {
     private array $history = [];
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function created(BasketWasCreated $event): void
     {
         $this->history[] = 'created';
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function productAdded(ProductWasAddedToBasket $event): void
     {
         $this->history[] = $event->getProductName();

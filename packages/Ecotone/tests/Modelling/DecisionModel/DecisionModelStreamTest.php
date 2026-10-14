@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
@@ -83,7 +83,7 @@ final class CourseForStreamTest
 {
     private int $capacity = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function defined(CourseDefinedForStreamTest $event): void
     {
         $this->capacity = $event->capacity;

@@ -6,11 +6,11 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\MediaTypeConverter;
@@ -293,13 +293,13 @@ final class AccountForSnapshotDbalTest
         return [new AccountCreditedForSnapshotDbalTest($this->accountId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(AccountOpenedForSnapshotDbalTest $event): void
     {
         $this->accountId = $event->accountId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCredited(AccountCreditedForSnapshotDbalTest $event): void
     {
         $this->accountId = $event->accountId;
@@ -313,7 +313,7 @@ final class AccountBalanceForSnapshotDbalTest
 
     private int $foldedEvents = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(AccountCreditedForSnapshotDbalTest $event): void
     {
         $this->balance += $event->amount;

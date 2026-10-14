@@ -6,11 +6,11 @@ namespace Test\Ecotone\Modelling\AggregateBoundary;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Identifier;
@@ -227,14 +227,14 @@ final class CustomerOnCredit
         return [new CreditSpent($this->customerId, $command['amount'])];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyGranted(CreditGranted $event): void
     {
         $this->customerId = $event->customerId;
         $this->credit += $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applySpent(CreditSpent $event): void
     {
         $this->credit -= $event->amount;
@@ -291,7 +291,7 @@ final class CouponRedemptions
 {
     private int $redemptions = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenPlaced(CreditOrderPlaced $event): void
     {
         $this->redemptions++;

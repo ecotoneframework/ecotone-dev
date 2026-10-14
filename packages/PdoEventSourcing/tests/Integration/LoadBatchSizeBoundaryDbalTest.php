@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -160,14 +160,14 @@ final class BasketWithBatchedEvents
         return $this->itemCount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyStarted(BasketWasStarted $event): void
     {
         $this->basketId = $event->basketId;
         $this->itemCount = 1;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyItemAdded(ItemWasAddedToBasket $event): void
     {
         $this->itemCount++;

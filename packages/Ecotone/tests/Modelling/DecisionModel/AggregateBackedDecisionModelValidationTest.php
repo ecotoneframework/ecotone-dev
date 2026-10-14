@@ -6,10 +6,10 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -229,13 +229,13 @@ final class WalletForAggregateBackedValidationTest
         return [new WalletCreditedForAggregateBackedValidationTest($command->walletId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
         $this->walletId = $event->walletId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function debited(WalletDebitedForAggregateBackedValidationTest $event): void
     {
     }
@@ -257,7 +257,7 @@ final class SagaForAggregateBackedValidationTest
     #[Identifier]
     private string $walletId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -271,7 +271,7 @@ final class PlainClassForAggregateBackedValidationTest
 #[DecisionModel(tags: ['wallet'], aggregate: WalletForAggregateBackedValidationTest::class)]
 final class ModelScopedByBothAggregateAndTagsForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
@@ -280,7 +280,7 @@ final class ModelScopedByBothAggregateAndTagsForAggregateBackedValidationTest
 #[DecisionModel(aggregate: StateStoredLedgerForAggregateBackedValidationTest::class)]
 final class ModelBackedByStateStoredAggregateForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
@@ -289,7 +289,7 @@ final class ModelBackedByStateStoredAggregateForAggregateBackedValidationTest
 #[DecisionModel(aggregate: SagaForAggregateBackedValidationTest::class)]
 final class ModelBackedBySagaForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
@@ -298,7 +298,7 @@ final class ModelBackedBySagaForAggregateBackedValidationTest
 #[DecisionModel(aggregate: PlainClassForAggregateBackedValidationTest::class)]
 final class ModelBackedByPlainClassForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
@@ -307,12 +307,12 @@ final class ModelBackedByPlainClassForAggregateBackedValidationTest
 #[DecisionModel(aggregate: WalletForAggregateBackedValidationTest::class)]
 final class ModelHandlingAnEventTheWalletDoesNotRecordForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function requested(PayoutRequestedForAggregateBackedValidationTest $event): void
     {
     }
@@ -321,7 +321,7 @@ final class ModelHandlingAnEventTheWalletDoesNotRecordForAggregateBackedValidati
 #[DecisionModel]
 final class ModelOverUntaggedWalletEventsForAggregateBackedValidationTest
 {
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
     }
@@ -332,7 +332,7 @@ final class WalletBalanceForAggregateBackedValidationTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
         $this->balance += $event->amount;
@@ -363,7 +363,7 @@ final class ArchivedWalletForAggregateBackedValidationTest
     #[Identifier]
     private string $walletId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -375,7 +375,7 @@ final class ArchivedWalletBalanceForAggregateBackedValidationTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForAggregateBackedValidationTest $event): void
     {
         $this->balance += $event->amount;

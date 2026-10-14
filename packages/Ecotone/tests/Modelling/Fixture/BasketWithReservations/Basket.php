@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\BasketWithReservations;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 
@@ -33,7 +33,7 @@ final class Basket
         return [new ItemReservationCreated($event->itemId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyBasketCreated(BasketCreated $event): void
     {
         $this->basketId = $event->basketId;

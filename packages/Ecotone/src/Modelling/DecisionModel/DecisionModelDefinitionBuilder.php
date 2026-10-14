@@ -14,10 +14,10 @@ use function class_exists;
 use function count;
 
 use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -77,7 +77,7 @@ final class DecisionModelDefinitionBuilder
 
         if ($handledEventClasses === []) {
             throw ConfigurationException::create(sprintf(
-                'DecisionModel %s must define at least one #[EventSourcingHandler].',
+                'DecisionModel %s must define at least one #[Apply].',
                 $className
             ));
         }
@@ -271,13 +271,13 @@ final class DecisionModelDefinitionBuilder
     private static function eventClassesRecordedBy(string $aggregateClassName, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::object($aggregateClassName));
-        $eventSourcingHandlerAnnotation = Type::object(EventSourcingHandler::class);
+        $applyAnnotation = Type::object(Apply::class);
 
         $recordedEventClasses = [];
         foreach ($classDefinition->getPublicMethodNames() as $method) {
             $interfaceToCall = $interfaceToCallRegistry->getFor($aggregateClassName, $method);
 
-            if (! $interfaceToCall->hasMethodAnnotation($eventSourcingHandlerAnnotation)) {
+            if (! $interfaceToCall->hasMethodAnnotation($applyAnnotation)) {
                 continue;
             }
 
@@ -348,27 +348,27 @@ final class DecisionModelDefinitionBuilder
     private static function findHandledEventClasses(ClassDefinition $classDefinition, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         $className = $classDefinition->getClassType()->toString();
-        $eventSourcingHandlerAnnotation = Type::object(EventSourcingHandler::class);
+        $applyAnnotation = Type::object(Apply::class);
 
         $handledEventClasses = [];
         foreach ($classDefinition->getPublicMethodNames() as $method) {
             $interfaceToCall = $interfaceToCallRegistry->getFor($className, $method);
 
-            if (! $interfaceToCall->hasMethodAnnotation($eventSourcingHandlerAnnotation)) {
+            if (! $interfaceToCall->hasMethodAnnotation($applyAnnotation)) {
                 continue;
             }
 
             if ($interfaceToCall->isStaticallyCalled()) {
-                throw ConfigurationException::create("{$interfaceToCall} is Event Sourcing Handler and should not be static.");
+                throw ConfigurationException::create("{$interfaceToCall} is an #[Apply] method and should not be static.");
             }
 
             if ($interfaceToCall->getInterfaceParameterAmount() < 1 || ! $interfaceToCall->getFirstParameter()->isClassOrInterface()) {
-                throw ConfigurationException::create("{$interfaceToCall} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
+                throw ConfigurationException::create("{$interfaceToCall} is an #[Apply] method and should have first parameter as Event Class type hint.");
             }
 
             $firstParameterTypeHint = $interfaceToCall->getFirstParameter()->getTypeHint();
             if (interface_exists($firstParameterTypeHint) && ! class_exists($firstParameterTypeHint)) {
-                throw ConfigurationException::create("{$interfaceToCall} is a DecisionModel Event Sourcing Handler and its first parameter must be a concrete Event class, an interface or union type is not allowed, as its tag names could not be derived.");
+                throw ConfigurationException::create("{$interfaceToCall} is a DecisionModel #[Apply] method and its first parameter must be a concrete Event class, an interface or union type is not allowed, as its tag names could not be derived.");
             }
 
             $handledEventClasses[] = $firstParameterTypeHint;

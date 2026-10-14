@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\EventWasLogged;
@@ -36,7 +36,7 @@ class Logger
         return [new EventWasLogged($data)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onEventWasLogged(EventWasLogged $event): void
     {
         $this->loggerId      = $event->getLoggerId();

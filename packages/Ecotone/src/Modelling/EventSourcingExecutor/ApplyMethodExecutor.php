@@ -8,19 +8,19 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\EventSourcingHandlerMethod;
+use Ecotone\Modelling\ApplyMethod;
 
 /**
  * licence Apache-2.0
  */
-final class EventSourcingHandlerExecutor
+final class ApplyMethodExecutor
 {
     /**
-     * @param EventSourcingHandlerMethod[] $eventSourcingHandlerMethods
+     * @param ApplyMethod[] $applyMethods
      */
     public function __construct(
         private string $aggregateClassName,
-        private array $eventSourcingHandlerMethods,
+        private array $applyMethods,
         private AggregateMethodInvoker $aggregateMethodInvoker,
     ) {
     }
@@ -31,8 +31,8 @@ final class EventSourcingHandlerExecutor
     public function handledEventTypeNames(): array
     {
         return array_map(
-            static fn (EventSourcingHandlerMethod $method): string => $method->handledEventType()->toString(),
-            $this->eventSourcingHandlerMethods,
+            static fn (ApplyMethod $method): string => $method->handledEventType()->toString(),
+            $this->applyMethods,
         );
     }
 
@@ -57,9 +57,9 @@ final class EventSourcingHandlerExecutor
             $message = MessageBuilder::withPayload($eventPayload)
                 ->setMultipleHeaders($metadata)
                 ->build();
-            foreach ($this->eventSourcingHandlerMethods as $eventSourcingHandler) {
-                if ($eventSourcingHandler->canHandle($eventPayload)) {
-                    $this->aggregateMethodInvoker->executeMethod($aggregate, $eventSourcingHandler, $message);
+            foreach ($this->applyMethods as $applyMethod) {
+                if ($applyMethod->canHandle($eventPayload)) {
+                    $this->aggregateMethodInvoker->executeMethod($aggregate, $applyMethod, $message);
                 }
             }
         }

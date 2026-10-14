@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -132,7 +132,7 @@ final class WidgetAggregateForCrossConnectionDecisionModelTest
         return [new WidgetDefinedForCrossConnectionDecisionModelTest($command->widgetId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyDefined(WidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->widgetId = $event->widgetId;
@@ -152,7 +152,7 @@ final class WidgetCountForCrossConnectionDecisionModelTest
 {
     private int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenDefined(WidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->count++;
@@ -204,7 +204,7 @@ final class SameConnectionAggregateForCrossConnectionDecisionModelTest
         return [new SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest($command->widgetId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyDefined(SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->widgetId = $event->widgetId;
@@ -224,7 +224,7 @@ final class SameConnectionModelForCrossConnectionDecisionModelTest
 {
     private int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenDefined(SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->count++;
@@ -249,7 +249,7 @@ final class ArchivedWidgetForCrossConnectionDecisionModelTest
     #[Identifier]
     private string $widgetId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyDefined(ArchivedWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->widgetId = $event->widgetId;
@@ -261,7 +261,7 @@ final class ArchivedWidgetCountForCrossConnectionDecisionModelTest
 {
     private int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenDefined(ArchivedWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->count++;
@@ -287,7 +287,7 @@ final class SameConnectionAggregateBackedModelForCrossConnectionDecisionModelTes
 {
     private int $count = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenDefined(SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest $event): void
     {
         $this->count++;

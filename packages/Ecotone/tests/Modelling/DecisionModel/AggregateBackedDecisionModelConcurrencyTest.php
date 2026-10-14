@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
@@ -267,13 +267,13 @@ final class WalletForConcurrencyTest
         return [new WalletFrozenForConcurrencyTest($this->walletId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForConcurrencyTest $event): void
     {
         $this->walletId = $event->walletId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function frozen(WalletFrozenForConcurrencyTest $event): void
     {
         $this->walletId = $event->walletId;
@@ -285,7 +285,7 @@ final class WalletBalanceForConcurrencyTest
 {
     private int $balance = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function credited(WalletCreditedForConcurrencyTest $event): void
     {
         $this->balance += $event->amount;
@@ -302,7 +302,7 @@ final class PayoutsTodayForConcurrencyTest
 {
     private int $total = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function requested(PayoutRequestedForConcurrencyTest $event): void
     {
         $this->total += $event->amount;

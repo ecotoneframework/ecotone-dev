@@ -9,9 +9,9 @@ use App\MultiTenant\Application\Command\UnregisterProduct;
 use App\MultiTenant\Application\Event\ProductWasRegistered;
 use App\MultiTenant\Application\Event\ProductWasUnregistered;
 use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\UuidInterface;
@@ -40,7 +40,7 @@ final class Product
         ];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductWasRegistered(ProductWasRegistered $event): void
     {
         $this->productId = $event->productId;

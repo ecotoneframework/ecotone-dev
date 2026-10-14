@@ -38,7 +38,7 @@ the problem, so it must contain enough to fix it. Three parts, in order:
 
 ```php
 throw InvalidArgumentException::create(
-    "Using multiple parameters for Event Sourcing Handler: {$eventSourcingHandler} is part of Enterprise features. "
+    "Using multiple parameters for #[Apply] method: {$applyMethod} is part of Enterprise features. "
     . 'Without Enterprise, keep a single event parameter and carry the value you need (for example the time of the '
     . 'change) in the event itself. To read metadata here, obtain Enterprise: https://docs.ecotone.tech/enterprise'
 );
@@ -369,7 +369,7 @@ The canonical set, all in `packages/Ecotone/src/Modelling/EventSourcingExecutor/
 - `OpenCoreAggregateMethodInvoker` — `licence Apache-2.0`; throws the message in rule 1 when asked for the
   Enterprise behaviour
 - `EnterpriseAggregateMethodInvoker` — `licence Enterprise`; the real implementation
-- wired in `EventSourcingHandlerExecutorBuilder.php:72` with
+- wired in `ApplyMethodExecutorBuilder.php:72` with
   `LicenceDecider::prepareDefinition(AggregateMethodInvoker::class, ...)`
 
 ### The licence header
@@ -708,7 +708,7 @@ final class BasketTest extends TestCase
   outside them qualifies:
 
   1. **A class used as a type declaration** — every command, event and query, and any object a handler,
-     `#[EventSourcingHandler]` or converter names in a parameter or return type. PHP has no syntax for naming an
+     `#[Apply]` or converter names in a parameter or return type. PHP has no syntax for naming an
      anonymous class in a type. `AggregateNotFoundCausationTest` is the shape to copy: `OrderCreated` is a named
      class below the `TestCase`, while both aggregates and the event handler that pass it around are anonymous.
   2. **A class named inside another fixture's attribute argument** — an attribute argument is a constant

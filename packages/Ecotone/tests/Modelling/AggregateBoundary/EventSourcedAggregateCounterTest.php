@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\AggregateBoundary;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -182,7 +182,7 @@ final class LedgerWallet
         return [new LedgerWalletDeposited($this->walletId, $command['amount'])];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(LedgerWalletOpened $event): void
     {
         $this->walletId = $event->walletId;
@@ -224,7 +224,7 @@ final class LedgerShipmentSaga
         return [new LedgerShipmentStarted($shipmentId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyStarted(LedgerShipmentStarted $event): void
     {
         $this->shipmentId = $event->shipmentId;

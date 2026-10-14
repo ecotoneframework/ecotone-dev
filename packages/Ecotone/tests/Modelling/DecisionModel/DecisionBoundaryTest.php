@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConfigurationVariable;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Header;
@@ -582,7 +582,7 @@ final class CourseRatingsForBoundaryTest
 {
     private int $ratings = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function rated(CourseRatedForBoundaryTest $event): void
     {
         $this->ratings++;
@@ -602,7 +602,7 @@ final class CourseForBoundaryTest
     #[Identifier]
     private string $courseId;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyRated(CourseRatedForBoundaryTest $event): void
     {
         $this->courseId = $event->courseId;

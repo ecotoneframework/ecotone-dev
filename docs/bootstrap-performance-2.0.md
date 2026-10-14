@@ -251,7 +251,7 @@ per `InterfaceToCall`. One resolver per registry with a per-file memo fixes it w
 
 ## Observation outside this task
 
-phpstan reported `EventSourcingHandlerExecutor constructor invoked with 4 parameters, 3 required` — in a gitignored
+phpstan reported `ApplyMethodExecutor constructor invoked with 4 parameters, 3 required` — in a gitignored
 dumped container under `Monorepo/ExampleAppEventSourcing/var/cache` left behind by a benchmark run, not in source.
 After deleting that generated directory phpstan is clean. It does mean some definition passes a superfluous
 constructor argument, which PHP ignores at runtime; worth a separate look.

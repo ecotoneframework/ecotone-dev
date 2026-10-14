@@ -302,7 +302,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_throwing_exception_if_aggregate_before_saving_has_no_nullable_identifier()
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
+        $this->expectExceptionMessage("You must define at least one #[Apply] method to provide aggregate's identifier after first event.");
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [NoIdDefinedAfterRecordingEvents::class],

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -95,7 +95,7 @@ final class OrderForRoutingTest
         return [new OrderPlacedForRoutingTest($command->orderId, $command->couponCode)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenPlaced(OrderPlacedForRoutingTest $event): void
     {
         $this->orderId = $event->orderId;

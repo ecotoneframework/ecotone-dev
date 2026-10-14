@@ -6,9 +6,9 @@ namespace App\Testing\Domain\Product;
 
 use App\Testing\Domain\Product\Command\AddProduct;
 use App\Testing\Domain\Product\Event\ProductWasAdded;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -38,7 +38,7 @@ final class Product
     {
         return $this->price;
     }
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductWasRegistered(ProductWasAdded $event): void
     {
         $this->productId = $event->getProductId();

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -48,7 +48,7 @@ final class TicketFoldedAcrossDeployments
         return [new AssignedPersonWasChanged($this->ticketId, $assignedPerson)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyRegistered(TicketWasRegistered $event): void
     {
         $this->ticketId = $event->getTicketId();

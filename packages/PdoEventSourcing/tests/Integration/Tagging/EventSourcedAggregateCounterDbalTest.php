@@ -9,10 +9,10 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -342,7 +342,7 @@ final class WalletForCounterDbalTest
         return [new WalletDepositedForCounterDbalTest($this->walletId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyOpened(WalletOpenedForCounterDbalTest $event): void
     {
         $this->walletId = $event->walletId;

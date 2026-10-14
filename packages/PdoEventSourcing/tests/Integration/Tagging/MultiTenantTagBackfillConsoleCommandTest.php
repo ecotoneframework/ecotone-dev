@@ -8,11 +8,11 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -263,13 +263,13 @@ final class CouponRedemptionsForMultiTenantBackfillTest
     private int $limit = 0;
     private int $used = 0;
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function issued(CouponIssuedForMultiTenantBackfillTest $event): void
     {
         $this->limit = $event->limit;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function placed(OrderPlacedForMultiTenantBackfillTest $event): void
     {
         $this->used++;
@@ -302,7 +302,7 @@ final class OrderForMultiTenantBackfillTest
         return [new OrderPlacedForMultiTenantBackfillTest($command->orderId, $command->couponCode)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenPlaced(OrderPlacedForMultiTenantBackfillTest $event): void
     {
         $this->orderId = $event->orderId;

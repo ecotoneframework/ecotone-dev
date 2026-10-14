@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping;
 
+use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -31,7 +31,7 @@ class Basket
         return new ItemReservation($command->itemId, $command->quantity);
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyBasketCreated(BasketCreated $event): void
     {
         $this->basketId = $event->basketId;

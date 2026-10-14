@@ -177,6 +177,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\Snapshots',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()

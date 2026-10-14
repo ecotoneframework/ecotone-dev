@@ -92,7 +92,7 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(bool $failFast = true): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [TicketCounterProjection::class],
             containerOrAvailableServices: [new TicketEventConverter(), new StateAndEventConverter(), new NotificationService(), new TicketCounterProjection(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -104,7 +104,6 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

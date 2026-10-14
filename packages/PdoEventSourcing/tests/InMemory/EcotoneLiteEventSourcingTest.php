@@ -109,12 +109,13 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = $this->bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withEnvironment('test'),
+                ->withEnvironment('test')
+                ->withExtensionObjects([EventSourcingConfiguration::createInMemory()]),
         );
 
         /** @var EventStore $eventStore */

@@ -83,7 +83,7 @@ final class AggregateSnapshotFoldShapeTest extends TestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     BaseEventSourcingConfiguration::withDefaults()->withSnapshotsFor(Ticket::class, 1),
-                ])
+                ])->withEnabledModulePackageNames([])
         );
     }
 }

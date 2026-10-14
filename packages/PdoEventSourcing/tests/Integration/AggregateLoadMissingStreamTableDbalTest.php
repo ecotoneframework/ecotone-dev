@@ -69,7 +69,7 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
 
     private function bootstrapWithoutTheEventStreamTable(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 ScreeningWithoutStreamTable::class,
                 ScreeningWithoutStreamTableConverter::class,

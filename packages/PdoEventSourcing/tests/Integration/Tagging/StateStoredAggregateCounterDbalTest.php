@@ -241,7 +241,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
                 : DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 PurseForCounterDbalTest::class,
                 PurseJsonConverterForCounterDbalTest::class,
@@ -264,7 +264,6 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false,
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

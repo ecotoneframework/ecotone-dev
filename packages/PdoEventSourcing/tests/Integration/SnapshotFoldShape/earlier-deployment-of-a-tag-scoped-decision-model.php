@@ -133,7 +133,7 @@ $snapshotConverter = new #[MediaTypeConverter] class () implements Converter {
     }
 };
 
-EcotoneLite::bootstrapFlowTestingWithEventStore(
+EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [SpentTodayAcrossDeployments::class, WalletSpentAcrossDeployments::class, WalletRefundedAcrossDeployments::class, $wallet::class, $snapshotConverter::class],
     containerOrAvailableServices: [
         $wallet,
@@ -148,7 +148,6 @@ EcotoneLite::bootstrapFlowTestingWithEventStore(
         ])
         ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
     pathToRootCatalog: __DIR__ . '/../../../',
-    runForProductionEventStore: true,
     licenceKey: LicenceTesting::VALID_LICENCE,
 )
     ->setupDatabaseTables()

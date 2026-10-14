@@ -294,7 +294,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()
@@ -304,7 +304,6 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
                     PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
                 ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -326,14 +325,13 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
                     ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         );
     }

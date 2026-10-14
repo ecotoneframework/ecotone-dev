@@ -376,7 +376,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 StudentSubscribedForContentionTest::class,
                 CourseCapacityChangedForContentionTest::class,
@@ -395,7 +395,6 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

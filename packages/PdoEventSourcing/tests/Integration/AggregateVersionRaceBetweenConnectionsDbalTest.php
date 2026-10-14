@@ -91,13 +91,12 @@ final class AggregateVersionRaceBetweenConnectionsDbalTest extends EventSourcing
         $stream = new #[Stream(AggregateVersionRaceBetweenConnectionsDbalTest::STREAM)] class () {
         };
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$stream::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
-            runForProductionEventStore: true,
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($setUpTables),
         )->getGateway(EventStore::class);
     }

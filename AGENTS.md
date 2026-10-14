@@ -136,8 +136,9 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
 - **Write the test first**: RED, then GREEN, then refactor, one increment per commit, and prove the test is red
   against the base commit before making it pass. A pure refactor with no behaviour change rides on the tests that
   already cover it
-- Tests use **`EcotoneLite::bootstrapFlowTesting()`**, or `bootstrapFlowTestingWithEventStore()` when the test
-  needs a real event store
+- Tests use **`EcotoneLite::bootstrapFlowTesting()`**, the only flow-testing bootstrap. The connections it is given
+  decide the storage: pass a `DbalConnectionFactory` and the event store, document store, deduplication and dead
+  letter run on the database; pass none and they run in memory
 - **Assert only on what the application observes.** No SQL against Ecotone's own tables, no reflection, no
   statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`,
   `Ecotone\Api\EventSourcing\EventStore`) and drive the public API. This is the most-corrected rule in the

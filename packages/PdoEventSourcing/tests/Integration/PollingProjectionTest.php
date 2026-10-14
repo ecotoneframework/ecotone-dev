@@ -39,7 +39,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -52,7 +52,6 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -103,7 +102,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -143,7 +142,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_building_multiple_polling_projection(): void
     {
-        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [BasketListConfiguration::class, BasketList::class, ProductsConfiguration::class, Products::class],
             containerOrAvailableServices: [new BasketList(), new Products(), new BasketEventConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()

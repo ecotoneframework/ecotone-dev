@@ -18,6 +18,8 @@ use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -32,13 +34,14 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
+use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule
+final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -49,6 +52,10 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
     {
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
         $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
+
+        if (ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $extensionObjects)) {
+            $messagingConfiguration->registerServiceDefinition(TracerProviderInterface::class, new Definition(NoopTracerProvider::class));
+        }
 
         $messagingConfiguration->addCompilerPass(new RegisterAddSpanEventLoggerCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
@@ -116,6 +123,15 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 )
             );
         }
+    }
+
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        if ($providedReferences->has(TracerProviderInterface::class)) {
+            return $extensionObjects;
+        }
+
+        return [...$extensionObjects, new NoTracerProviderGiven()];
     }
 
     public function getModulePackageName(): string

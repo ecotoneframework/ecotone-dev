@@ -48,12 +48,11 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $projection = $this->getProjectionWithObjectRouting();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -73,12 +72,11 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
         $projection = $this->getProjectionWithRegexRouting();
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -87,12 +85,11 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $projection = $this->getProjectionWithMultipleHandlers();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -125,12 +122,11 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

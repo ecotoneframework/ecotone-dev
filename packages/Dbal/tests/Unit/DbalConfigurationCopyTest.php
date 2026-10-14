@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Unit;
 
 use Closure;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -80,18 +79,6 @@ final class DbalConfigurationCopyTest extends TestCase
                 'enableDbalDocumentStore' => true, 'inMemoryDocumentStore' => false, 'dbalDocumentStoreReference' => 'other_document_store',
                 'enableDocumentStoreStateStoredRepository' => false, 'documentStoreConnectionReference' => 'other_document_store_connection', 'documentStoreRelatedAggregates' => ['Wallet'],
             ],
-        );
-    }
-
-    public function test_default_for_a_test_run_keeps_deduplication_and_dead_letter_in_memory(): void
-    {
-        $configuration = DbalConfiguration::createDefaultFor([TestConfiguration::createWithDefaults()]);
-
-        self::assertTrue($configuration->deduplicationInMemory);
-        self::assertTrue($configuration->deadLetterInMemory);
-        self::assertEquals(
-            array_replace(get_object_vars(DbalConfiguration::createWithDefaults()), ['deduplicationInMemory' => true, 'deadLetterInMemory' => true]),
-            get_object_vars($configuration),
         );
     }
 

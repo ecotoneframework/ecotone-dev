@@ -15,8 +15,8 @@ final class WithoutDatabaseTables implements DatabaseTablesSetUp
     {
         throw ConfigurationException::create(
             'setupDatabaseTables() has no database tables to set up: none of the modules this test enables keeps its data in a database. '
-            . 'Enable the DBAL module, which the database tables belong to - ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]), '
-            . 'or bootstrapFlowTestingWithEventStore(), which enables it - and register the DbalConnectionFactory the tables are created through; '
+            . 'Enable the DBAL module, which the database tables belong to - ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]) - '
+            . 'and register the DbalConnectionFactory the tables are created through; '
             . 'or remove the call, when the test is not meant to use a database.'
         );
     }

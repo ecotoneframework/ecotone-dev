@@ -29,6 +29,7 @@ final class ContainerCacheLayout
     /**
      * @param array<string, mixed> $configurationVariables
      * @param string[] $classesToResolve
+     * @param string[]|null $providedServiceIds
      */
     public static function resolve(
         string $rootCatalog,
@@ -39,6 +40,7 @@ final class ContainerCacheLayout
         array $configurationVariables = [],
         array $classesToResolve = [],
         bool $enableTesting = false,
+        ?array $providedServiceIds = [],
     ): self {
         $realRootCatalog = realpath($rootCatalog) ?: $rootCatalog;
         $annotationFinder = AnnotationFinderFactory::createForAttributes(
@@ -56,12 +58,16 @@ final class ContainerCacheLayout
             $configurationVariables,
             $enableTesting,
         );
+        if ($providedServiceIds) {
+            sort($providedServiceIds);
+            $configHash = 'ecotone' . DIRECTORY_SEPARATOR . sha1($configHash . serialize($providedServiceIds));
+        }
 
         return new self(
             $annotationFinder,
             new ServiceCacheConfiguration(
                 $useHashSubDirectory ? $cacheDirectory . DIRECTORY_SEPARATOR . $configHash : $cacheDirectory,
-                $shouldUseCache && ! self::containsAnonymousClass($annotationFinder->registeredClasses()),
+                $shouldUseCache && $providedServiceIds !== null && ! self::containsAnonymousClass($annotationFinder->registeredClasses()),
             ),
             $configHash,
         );

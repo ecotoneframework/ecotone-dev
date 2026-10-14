@@ -35,7 +35,7 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_event_sourcing_with_deleted_event_class_in_stream(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             [ANamedEvent::class, AnAggregate::class, AProjection::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -44,7 +44,6 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
         )->sendCommandWithRouting('create', ['id' => 'aggregate-1']);
 

@@ -180,7 +180,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, CouponIssuedForInvariantTest::class, IssueCouponForInvariantTest::class, EventsConverterForInvariantTest::class],
             containerOrAvailableServices: [...$services, self::getConnectionFactory(), new EventsConverterForInvariantTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -191,7 +191,6 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

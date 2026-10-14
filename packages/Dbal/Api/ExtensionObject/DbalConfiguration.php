@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -66,22 +65,7 @@ final class DbalConfiguration
             ->withDeadLetter(false)
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
-            ->withClearAndFlushObjectManagerOnProjectionBatch(false)
-            ->withDocumentStore(true, true);
-    }
-
-    /**
-     * @param object[] $extensionObjects
-     */
-    public static function createDefaultFor(array $extensionObjects): self
-    {
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration) {
-                return new self(deduplicationInMemory: true, deadLetterInMemory: true);
-            }
-        }
-
-        return self::createWithDefaults();
+            ->withClearAndFlushObjectManagerOnProjectionBatch(false);
     }
 
     public function getDeduplicationConnectionReference(): string

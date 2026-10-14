@@ -4,7 +4,7 @@
 
 ### `EcotoneLite::bootstrapFlowTesting()`
 
-Standard test bootstrap. Skips all module packages by default.
+Standard test bootstrap. Loads every installed module package; each runs in memory until the test gives it a connection (a `DbalConnectionFactory`, a `TracerProviderInterface`). Name packages with `withEnabledModulePackageNames([...])` to load fewer.
 
 ```php
 public static function bootstrapFlowTesting(
@@ -18,25 +18,6 @@ public static function bootstrapFlowTesting(
     bool                     $addInMemoryEventSourcedRepository = true,
     ?TestConfiguration       $testConfiguration = null,
     ?string                  $licenceKey = null
-): FlowTestSupport
-```
-
-### `EcotoneLite::bootstrapFlowTestingWithEventStore()`
-
-Test bootstrap with in-memory event store. Enables eventSourcing, dbal, jmsConverter packages.
-
-```php
-public static function bootstrapFlowTestingWithEventStore(
-    array                    $classesToResolve = [],
-    ContainerInterface|array $containerOrAvailableServices = [],
-    ?ServiceConfiguration    $configuration = null,
-    array                    $configurationVariables = [],
-    ?string                  $pathToRootCatalog = null,
-    bool                     $allowGatewaysToBeRegisteredInContainer = false,
-    bool                     $addInMemoryStateStoredRepository = true,
-    bool                     $runForProductionEventStore = false,
-    ?TestConfiguration       $testConfiguration = null,
-    ?string                  $licenceKey = null,
 ): FlowTestSupport
 ```
 

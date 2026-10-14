@@ -19,8 +19,7 @@ Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test en
 
 | Method | Use When |
 |--------|----------|
-| `EcotoneLite::bootstrapFlowTesting()` | Standard handler/aggregate tests |
-| `EcotoneLite::bootstrapFlowTestingWithEventStore()` | Event-sourced aggregate and projection tests |
+| `EcotoneLite::bootstrapFlowTesting()` | Every flow test. Every installed package loads; each runs in memory until the test gives it a connection |
 
 ```php
 use Ecotone\Api\Lite\EcotoneLite;
@@ -31,8 +30,8 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
     containerOrAvailableServices: [new MyHandler()],
 );
 
-// Event sourcing testing
-$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+// Event sourcing testing: in memory, as no connection is given; pass DbalConnectionFactory::class => ... to use the database
+$ecotone = EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [MyAggregate::class],
 );
 ```
@@ -185,12 +184,12 @@ public function test_with_service_dependency(): void
 
 - Use `EcotoneLite::bootstrapFlowTesting()` as the starting point
 - Pass handler instances via `containerOrAvailableServices`
-- For event sourcing, use `bootstrapFlowTestingWithEventStore()`
+- Event sourcing needs nothing extra: the event store is in memory unless the test is given a `DbalConnectionFactory`
 
 ## Additional resources
 
-- [API reference](references/api-reference.md) -- Full `EcotoneLite` bootstrap method signatures (`bootstrapFlowTesting`, `bootstrapFlowTestingWithEventStore`, `bootstrapFlowTesting`) and complete `FlowTestSupport` API including all `send*`, `publish*`, `run()`, `getAggregate()`, `getSaga()`, `popRecordedEvents()`, `popRecordedEventHeaders()`, projection methods, time control, and infrastructure methods. Load when you need exact method signatures, parameter types, or available options.
+- [API reference](references/api-reference.md) -- Full `EcotoneLite` bootstrap method signatures (`bootstrapFlowTesting`, `bootstrap`) and complete `FlowTestSupport` API including all `send*`, `publish*`, `run()`, `getAggregate()`, `getSaga()`, `popRecordedEvents()`, `popRecordedEventHeaders()`, projection methods, time control, and infrastructure methods. Load when you need exact method signatures, parameter types, or available options.
 
 - [Usage examples](references/usage-examples.md) -- Complete test implementations for all patterns: event handler testing, query handler testing, state-stored and event-sourced aggregate testing, projection testing with inline classes, service stubs with dependencies, recorded messages inspection, and `ModulePackageList` configuration with all available package constants. Load when you need full copy-paste test examples or advanced testing patterns.
 
-- [Testing patterns](references/testing-patterns.md) -- Async-tested-synchronously patterns with `SimpleMessageChannelBuilder` and `ExecutionPollingMetadata`, projection testing with `bootstrapFlowTestingWithEventStore`, and the debugging/failure diagnosis reference table. Load when testing async handlers, projections, or diagnosing test failures.
+- [Testing patterns](references/testing-patterns.md) -- Async-tested-synchronously patterns with `SimpleMessageChannelBuilder` and `ExecutionPollingMetadata`, projection testing, and the debugging/failure diagnosis reference table. Load when testing async handlers, projections, or diagnosing test failures.

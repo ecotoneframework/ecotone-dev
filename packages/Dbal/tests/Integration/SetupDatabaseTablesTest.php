@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -71,7 +71,7 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
         self::assertSame([], $ecotone->popRecordedEvents());
     }
 
-    public function test_setting_up_tables_names_the_connection_a_used_feature_needs_and_the_test_does_not_register(): void
+    public function test_setting_up_tables_without_a_connection_keeps_the_document_store_in_memory(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
@@ -79,14 +79,28 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
                 ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
         );
 
+        $ecotone->setupDatabaseTables();
+        $ecotone->getGateway(DocumentStore::class)->addDocument('orders', 'o-1', ['product' => 'milk']);
+
+        self::assertSame(['product' => 'milk'], $ecotone->getGateway(DocumentStore::class)->getDocument('orders', 'o-1'));
+    }
+
+    public function test_setting_up_tables_names_the_connection_a_used_feature_needs_and_the_test_does_not_register(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([CustomDeadLetterGateway::createWith('reportingDeadLetter', 'reporting_connection')]),
+        );
+
         try {
             $ecotone->setupDatabaseTables();
             self::fail('Expected the unregistered connection to be refused');
         } catch (ConfigurationException $exception) {
             self::assertStringContainsString('setupDatabaseTables() cannot create the tables of', $exception->getMessage());
-            self::assertStringContainsString("'document_store'", $exception->getMessage());
-            self::assertStringContainsString("on connection '" . DbalConnectionReference::DEFAULT . "'", $exception->getMessage());
-            self::assertStringContainsString('withDocumentStore(inMemoryDocumentStore: true)', $exception->getMessage());
+            self::assertStringContainsString("on connection 'reporting_connection'", $exception->getMessage());
+            self::assertStringContainsString("containerOrAvailableServices: ['reporting_connection' => new DbalConnectionFactory(\$dsn)]", $exception->getMessage());
         }
     }
 }

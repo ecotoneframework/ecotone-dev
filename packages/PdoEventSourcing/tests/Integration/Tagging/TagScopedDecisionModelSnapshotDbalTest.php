@@ -159,7 +159,7 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
             $boundaryConfiguration = $boundaryConfiguration->withSnapshotsFor(SpentTodayForTagSnapshotDbalTest::class, $snapshotThreshold);
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [
                 self::getConnectionFactory(),
@@ -176,7 +176,6 @@ final class TagScopedDecisionModelSnapshotDbalTest extends EventSourcingMessagin
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

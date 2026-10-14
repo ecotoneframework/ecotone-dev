@@ -181,7 +181,7 @@ final class AggregateBackedDecisionModelSnapshotDbalTest extends EventSourcingMe
             $boundaryConfiguration = $boundaryConfiguration->withSnapshotsFor(AccountBalanceForSnapshotDbalTest::class, $snapshotThreshold);
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [
                 $connectionFactory,
@@ -198,7 +198,6 @@ final class AggregateBackedDecisionModelSnapshotDbalTest extends EventSourcingMe
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

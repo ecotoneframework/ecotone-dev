@@ -10,6 +10,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -23,7 +25,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  *
  * licence Apache-2.0
  */
-final class DbalConnectionModule implements AnnotationModule
+final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
     private function __construct()
     {
@@ -39,7 +41,7 @@ final class DbalConnectionModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
             DbalConfiguration::class,
             $extensionObjects,
-            DbalConfiguration::createDefaultFor($extensionObjects)
+            DbalConfiguration::createWithDefaults()
         );
 
         $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
@@ -61,6 +63,11 @@ final class DbalConnectionModule implements AnnotationModule
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];
+    }
+
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        return (new FlowTestingDbalConnections($providedReferences, $extensionObjects))->resolveExtensionObjects();
     }
 
     public function getModulePackageName(): string

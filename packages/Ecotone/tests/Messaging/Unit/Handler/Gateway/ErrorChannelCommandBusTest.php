@@ -67,7 +67,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [TicketService::class, ErrorChannelCommandBus::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'))->withEnabledModulePackageNames([])
         );
 
         $commandBus = $ecotoneLite->getGateway(ErrorChannelCommandBus::class);

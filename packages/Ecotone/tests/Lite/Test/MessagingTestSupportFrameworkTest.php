@@ -163,7 +163,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [new OrderService(), new PlaceOrderConverter()],
             testConfiguration: TestConfiguration::createWithDefaults()
                 ->withSpyOnChannel('orders'),
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()))->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder('someId'));

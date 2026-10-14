@@ -226,7 +226,7 @@ public function test_projection_builds_read_model(): void
         }
     };
 
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$projection::class, Ticket::class],
         containerOrAvailableServices: [$projection],
     );

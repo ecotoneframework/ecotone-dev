@@ -46,7 +46,7 @@ final class DatabaseSetupModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
             DbalConfiguration::class,
             $extensionObjects,
-            DbalConfiguration::createDefaultFor($extensionObjects)
+            DbalConfiguration::createWithDefaults()
         );
 
         $tableManagerReferences = ExtensionObjectResolver::resolve(DbalTableManagerReference::class, $extensionObjects);

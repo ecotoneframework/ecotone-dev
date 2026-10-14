@@ -70,12 +70,12 @@ $this->assertEquals(
 
 ## Event-Sourced with Event Store
 
-Use `bootstrapFlowTestingWithEventStore()` when you need the full event store integration.
+The event store keeps events in memory unless the test is given a `DbalConnectionFactory`, which puts them in the database.
 
 ```php
 public function test_with_event_store(): void
 {
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [Ticket::class],
     );
 

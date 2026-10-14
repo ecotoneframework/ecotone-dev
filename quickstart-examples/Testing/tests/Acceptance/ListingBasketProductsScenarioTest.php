@@ -8,8 +8,6 @@ use App\Testing\Domain\Product\Command\AddProduct;
 use App\Testing\Domain\Product\Product;
 use App\Testing\Domain\ShoppingBasket\Basket;
 use App\Testing\Domain\ShoppingBasket\Command\AddProductToBasket;
-use App\Testing\Domain\ShoppingBasket\Event\OrderWasPlaced;
-use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\ProductService;
 use App\Testing\Domain\ShoppingBasket\UserService;
 use App\Testing\Domain\User\Command\RegisterUser;
@@ -27,15 +25,18 @@ use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
 use App\Testing\Infrastructure\MessagingConfiguration;
 use App\Testing\ReadModel\CurrentBasketProjection;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\App\Fixture\StubTokenGenerator;
 
+/**
+ * @internal
+ */
 final class ListingBasketProductsScenarioTest extends TestCase
 {
     public function test_listing_products_added_to_basket_after_success_user_registration()
@@ -43,15 +44,15 @@ final class ListingBasketProductsScenarioTest extends TestCase
         $userId = Uuid::uuid4();
         $productId = Uuid::uuid4();
         $productPrice = 500;
-        $emailToken = "123";
-        $phoneNumberToken = "12345";
+        $emailToken = '123';
+        $phoneNumberToken = '12345';
 
         /** Full acceptance test, based on high level Commands API. Which joins aggregates, sagas and projections. */
         $this->assertEquals(
             [$productId->toString() => $productPrice],
             $this->getTestSupport($emailToken, $phoneNumberToken)
-                ->sendCommand(new AddProduct($productId, "Milk", $productPrice))
-                ->sendCommand(new RegisterUser($userId, "John Snow", Email::create('test@wp.pl'), PhoneNumber::create('148518518518')))
+                ->sendCommand(new AddProduct($productId, 'Milk', $productPrice))
+                ->sendCommand(new RegisterUser($userId, 'John Snow', Email::create('test@wp.pl'), PhoneNumber::create('148518518518')))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->sendCommand(new AddProductToBasket($userId, $productId))
@@ -64,26 +65,26 @@ final class ListingBasketProductsScenarioTest extends TestCase
         $userId = Uuid::uuid4();
         $productId = Uuid::uuid4();
         $productPrice = 500;
-        $emailToken = "123";
-        $phoneNumberToken = "12345";
+        $emailToken = '123';
+        $phoneNumberToken = '12345';
 
         /** Full acceptance test, based on high level Commands API */
         $this->assertEquals(
             [],
             $this->getTestSupport($emailToken, $phoneNumberToken)
-                ->sendCommand(new AddProduct($productId, "Milk", $productPrice))
-                ->sendCommand(new RegisterUser($userId, "John Snow", Email::create('test@wp.pl'), PhoneNumber::create('148518518518')))
+                ->sendCommand(new AddProduct($productId, 'Milk', $productPrice))
+                ->sendCommand(new RegisterUser($userId, 'John Snow', Email::create('test@wp.pl'), PhoneNumber::create('148518518518')))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->sendCommand(new AddProductToBasket($userId, $productId))
-                ->sendCommandWithRouting("order.placeOrder", metadata: ["aggregate.id" => $userId])
+                ->sendCommandWithRouting('order.placeOrder', metadata: ['aggregate.id' => $userId])
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }
 
     private function getTestSupport(string $emailToken, $phoneNumberToken): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             [User::class, Basket::class, VerificationProcess::class, Product::class, CurrentBasketProjection::class, VerificationSender::class, ProductService::class, UserService::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter(), TokenGenerator::class => new StubTokenGenerator([$emailToken, $phoneNumberToken]), new VerificationSender()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -91,7 +92,7 @@ final class ListingBasketProductsScenarioTest extends TestCase
                 ->withNamespaces(["App\Testing\Infrastructure\Converter"])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup()
+                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
                 ]),
             pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
         );

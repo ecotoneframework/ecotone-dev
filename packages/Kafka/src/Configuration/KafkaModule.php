@@ -87,9 +87,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
-        }
+        $this->refuseKafkaUsedWithoutLicence($messagingConfiguration, $extensionObjects);
 
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
@@ -184,6 +182,37 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 Reference::to(LoggingGateway::class),
                 Reference::to(ExpressionEvaluationService::REFERENCE),
             ])
+        );
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function refuseKafkaUsedWithoutLicence(Configuration $messagingConfiguration, array $extensionObjects): void
+    {
+        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
+            return;
+        }
+
+        $usages = array_map(fn (KafkaConsumer $kafkaConsumer) => "#[KafkaConsumer] `{$kafkaConsumer->getEndpointId()}`", array_values($this->kafkaConsumers));
+        foreach ($extensionObjects as $extensionObject) {
+            $usages[] = match (true) {
+                $extensionObject instanceof KafkaMessageChannelBuilder => "KafkaMessageChannelBuilder for channel `{$extensionObject->getMessageChannelName()}`",
+                $extensionObject instanceof KafkaConsumerConfiguration => "KafkaConsumerConfiguration for `{$extensionObject->getEndpointId()}`",
+                $extensionObject instanceof TopicConfiguration => "TopicConfiguration for topic `{$extensionObject->getTopicName()}`",
+                $extensionObject instanceof KafkaPublisherConfiguration => "KafkaPublisherConfiguration `{$extensionObject->getReferenceName()}`",
+                default => null,
+            };
+        }
+        $usages = array_filter($usages);
+        if ($usages === []) {
+            return;
+        }
+
+        throw LicensingException::create(
+            'Kafka is used here (' . implode(', ', $usages) . '), but the Kafka module is available only with Ecotone Enterprise licence. '
+            . "Pass the licence key - ServiceConfiguration::createWithDefaults()->withLicenceKey('...'), or EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...') in a test - "
+            . 'or remove the Kafka configuration listed. See https://docs.ecotone.tech/enterprise for details.'
         );
     }
 

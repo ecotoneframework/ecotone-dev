@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\EventStreamEmitter;
@@ -16,6 +17,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Dbal\Configuration\FlowTestingDbalConnections;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
@@ -45,10 +47,13 @@ use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
@@ -77,7 +82,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * licence Apache-2.0
  */
-final class EventSourcingModule extends NoExternalConfigurationModule
+final class EventSourcingModule extends NoExternalConfigurationModule implements ResolvesExtensionObjectsForFlowTesting
 {
     /**
      * @param array<class-string, Stream> $streamAttributes
@@ -148,7 +153,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
         $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
@@ -402,6 +407,29 @@ final class EventSourcingModule extends NoExternalConfigurationModule
         }
 
         return EventStreamTableManager::class . '.' . $connectionReferenceName;
+    }
+
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        $connections = new FlowTestingDbalConnections($providedReferences, $extensionObjects);
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolve(EventSourcingConfiguration::class, $extensionObjects)[0] ?? null;
+
+        if ($eventSourcingConfiguration === null) {
+            return [
+                ...$extensionObjects,
+                $connections->has(DbalConnectionReference::DEFAULT) ? EventSourcingConfiguration::createWithDefaults() : EventSourcingConfiguration::createInMemory(),
+            ];
+        }
+
+        if (! $eventSourcingConfiguration->isInMemory() && ! $connections->has($eventSourcingConfiguration->getConnectionReferenceName())) {
+            throw ConfigurationException::create(
+                "The event store is configured on connection `{$eventSourcingConfiguration->getConnectionReferenceName()}` through EventSourcingConfiguration, but this flow test was given no such connection, so the events would have nowhere to be stored. "
+                . "Either pass the connection: EcotoneLite::bootstrapFlowTesting(containerOrAvailableServices: ['{$eventSourcingConfiguration->getConnectionReferenceName()}' => new DbalConnectionFactory(\$dsn)]), "
+                . 'or leave the EventSourcingConfiguration out of this flow test, which then keeps its events in memory.'
+            );
+        }
+
+        return $extensionObjects;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

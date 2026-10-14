@@ -163,7 +163,7 @@ final class AggregateSaveTagGuardDbalTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(DbalConnectionFactory $connectionFactory): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 OrderForAggregateGuardTest::class,
                 CouponRedemptionsForAggregateGuardTest::class,
@@ -182,7 +182,6 @@ final class AggregateSaveTagGuardDbalTest extends EventSourcingMessagingTestCase
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

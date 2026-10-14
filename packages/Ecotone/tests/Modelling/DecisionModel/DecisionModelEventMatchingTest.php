@@ -63,7 +63,7 @@ final class DecisionModelEventMatchingTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$counter::class, ParentEventCountForMatchingTest::class, NamedEventCountForMatchingTest::class, CourseEventForMatchingTest::class, SpecialCourseEventForMatchingTest::class, NamedCourseEventForMatchingTest::class],
             containerOrAvailableServices: [$counter],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

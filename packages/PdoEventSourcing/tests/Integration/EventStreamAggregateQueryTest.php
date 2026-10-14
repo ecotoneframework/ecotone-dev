@@ -62,7 +62,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEventStore(): EventStore
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -70,8 +70,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         return $ecotone->getGateway(EventStore::class);

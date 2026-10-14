@@ -43,12 +43,11 @@ final class AppendConditionWithoutBoundaryTest extends EventSourcingMessagingTes
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [UntaggedEventForAppendConditionWithoutBoundaryTest::class, EventsConverterForAppendConditionWithoutBoundaryTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForAppendConditionWithoutBoundaryTest()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
-            runForProductionEventStore: true,
         );
         $ecotone->setupDatabaseTables();
 

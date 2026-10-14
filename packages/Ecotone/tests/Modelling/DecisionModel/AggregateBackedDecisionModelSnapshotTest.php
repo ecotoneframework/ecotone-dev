@@ -233,7 +233,7 @@ final class AggregateBackedDecisionModelSnapshotTest extends TestCase
                 ...($withConverter ? [WalletBalanceConverterForSnapshotTest::class] : []),
             ],
             containerOrAvailableServices: $services,
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration])->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

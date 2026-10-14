@@ -22,7 +22,7 @@ final class MultiTenantLicensingTest extends EventSourcingMessagingTestCase
         $this->expectExceptionMessage('Multi-tenancy');
         $this->expectExceptionMessage('https://docs.ecotone.tech/enterprise');
 
-        $this->bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
@@ -41,7 +41,6 @@ final class MultiTenantLicensingTest extends EventSourcingMessagingTestCase
                     ),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
     }
 }

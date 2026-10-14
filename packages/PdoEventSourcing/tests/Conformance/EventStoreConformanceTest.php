@@ -729,7 +729,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             ];
         }
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -740,7 +740,6 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
                         'dbal' => EventSourcingConfiguration::createWithDefaults(),
                     },
                 ]),
-            runForProductionEventStore: true,
         );
 
         return [$ecotone->getGateway(EventStore::class), fn () => $ecotone->setupDatabaseTables()];

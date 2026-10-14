@@ -124,7 +124,7 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
 
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDisabledBoundaryDbalTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDisabledBoundaryDbalTest(), new HandlerInjectingRenamesForDisabledBoundaryDbalTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -132,7 +132,6 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults(),
                 ]),
-            runForProductionEventStore: true,
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

@@ -27,6 +27,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -70,7 +71,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
         $projection = $this->createMultiTenantProjection();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -84,6 +85,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                     ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
+                    DbalConfiguration::createForTesting(),
                     MultiTenantConfiguration::create(
                         'tenant',
                         [
@@ -92,7 +94,6 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                         ]
                     ),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -142,7 +143,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
         $projection = $this->createAsyncMultiTenantProjection();
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -168,7 +169,6 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                         ->withExecutionAmountLimit(3)
                         ->withExecutionTimeLimitInMilliseconds(5000),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

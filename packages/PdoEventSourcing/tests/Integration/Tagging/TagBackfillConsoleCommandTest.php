@@ -293,7 +293,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
             $connection->executeStatement($statement);
         }
 
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [CouponIssuedForBackfillTest::class, TenantCouponIssuedForBackfillTest::class, EventsConverterForBackfillTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForBackfillTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -304,7 +304,6 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

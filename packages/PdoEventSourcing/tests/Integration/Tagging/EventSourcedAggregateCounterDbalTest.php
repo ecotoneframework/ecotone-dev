@@ -230,7 +230,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
             $extensionObjects[] = DynamicConsistencyBoundaryConfiguration::createWithDefaults();
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [
                 WalletForCounterDbalTest::class,
                 WalletOpenedForCounterDbalTest::class,
@@ -244,7 +244,6 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
                 ->withExtensionObjects($extensionObjects)
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

@@ -231,7 +231,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             }
         };
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, TicketListUpdatedConverter::class, TicketListUpdated::class, $emitting::class, $downstream::class],
             containerOrAvailableServices: [
                 $emitting,
@@ -244,7 +244,6 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 ->withEnvironment('prod')
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -266,7 +265,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
 
     private function bootstrap(object $projection, ?string $licenceKey = LicenceTesting::VALID_LICENCE): FlowTestSupport
     {
-        return $this->bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, TicketListUpdatedConverter::class, TicketListUpdated::class, $projection::class],
             containerOrAvailableServices: [
                 $projection,
@@ -278,7 +277,6 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 ->withEnvironment('prod')
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: $licenceKey,
         );
     }

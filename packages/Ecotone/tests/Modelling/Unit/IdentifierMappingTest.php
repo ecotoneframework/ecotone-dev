@@ -233,7 +233,7 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommand(new CreateTicketAsync(new InternalId('123')));

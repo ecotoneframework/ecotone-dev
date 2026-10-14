@@ -137,7 +137,7 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, UsernameReleasedOnInMemoryEventStore::class, $registration::class, $converter::class],
             containerOrAvailableServices: [$registration, $converter],
             configuration: ServiceConfiguration::createWithDefaults()

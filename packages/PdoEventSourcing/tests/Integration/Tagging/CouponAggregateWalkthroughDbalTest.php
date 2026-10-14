@@ -171,7 +171,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...self::CLASSES, PublishedEventHeadersCollectorForDbalCouponTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalCouponTest(), new CompetingWriteInjectorForDbalCouponTest(), new PublishedEventHeadersCollectorForDbalCouponTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -182,7 +182,6 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

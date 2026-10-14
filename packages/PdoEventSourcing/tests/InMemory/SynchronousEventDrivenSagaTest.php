@@ -29,7 +29,7 @@ final class SynchronousEventDrivenSagaTest extends TestCase
 {
     public function test_product_is_added_by_synchronous_event_driven_saga(): void
     {
-        $testSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $testSupport = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new SagaProjection(), new SynchronousBasketList(), new SagaEventConverter(), new BasketEventConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])

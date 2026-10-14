@@ -23,7 +23,7 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
 {
     public function test_handling_multiple_same_messages(): void
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [TestAggregate::class, EventConverter::class],
             containerOrAvailableServices: [
                 new EventConverter(),
@@ -36,8 +36,7 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
                     DbalConfiguration::createWithDefaults(),
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createQueueChannel('testAggregate'),
-                ]),
-            runForProductionEventStore: true
+                ])
         );
 
         $ecotone->sendCommand(command: new ActionCommand('123'), metadata: ['call' => 1]);

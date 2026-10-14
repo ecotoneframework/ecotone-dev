@@ -66,6 +66,7 @@ class AggregateRepositoriesTest extends TestCase
             [Job::class, InMemoryStateStoredRepository::class],
             [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
             addInMemoryEventSourcedRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         self::expectException(InvalidArgumentException::class);
@@ -113,6 +114,7 @@ class AggregateRepositoriesTest extends TestCase
             [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new StartJob('123'));
     }

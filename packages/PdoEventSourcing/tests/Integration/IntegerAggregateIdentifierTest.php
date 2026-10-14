@@ -128,7 +128,7 @@ final class IntegerAggregateIdentifierTest extends EventSourcingMessagingTestCas
             );
         }
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [CounterWithIntegerId::class, $converter::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -139,7 +139,6 @@ final class IntegerAggregateIdentifierTest extends EventSourcingMessagingTestCas
                         'dbal' => EventSourcingConfiguration::createWithDefaults(),
                     },
                 ]),
-            runForProductionEventStore: true,
         );
         $ecotone->setupDatabaseTables();
 

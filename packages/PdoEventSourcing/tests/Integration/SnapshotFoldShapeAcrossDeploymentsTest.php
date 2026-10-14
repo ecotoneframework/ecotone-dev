@@ -52,7 +52,7 @@ final class SnapshotFoldShapeAcrossDeploymentsTest extends EventSourcingMessagin
         };
 
         $logger = StubLogger::create();
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [TicketFoldedAcrossDeployments::class, TicketEventConverter::class, $snapshotConverter::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -68,7 +68,6 @@ final class SnapshotFoldShapeAcrossDeploymentsTest extends EventSourcingMessagin
                     EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
         );
 
         $this->assertSame('Lucas', $ecotone->sendQueryWithRouting('ticketFoldedAcrossDeployments.assignedPerson', metadata: ['aggregate.id' => '1']));

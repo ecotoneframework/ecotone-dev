@@ -99,7 +99,7 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
 
     private function bootstrapWithoutTheEventStreamTable(object $projection): FlowTestSupport
     {
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -107,7 +107,6 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

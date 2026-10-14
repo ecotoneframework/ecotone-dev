@@ -31,7 +31,7 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
             $secondaryConnection->executeStatement($statement);
         }
 
-        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [SecondaryOrder::class, SecondaryOrderConverter::class],
             containerOrAvailableServices: [
                 new SecondaryOrderConverter(),
@@ -41,8 +41,7 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommandWithRouting('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));

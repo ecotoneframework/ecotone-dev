@@ -8,7 +8,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
@@ -21,7 +20,7 @@ use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasP
  * licence Apache-2.0
  * @internal
  */
-final class HeaderPropagationTest extends TestCase
+final class HeaderPropagationTest extends EventSourcingMessagingTestCase
 {
     public function test_will_provide_propagate_correlation_and_parent_id_header_for_aggregate()
     {

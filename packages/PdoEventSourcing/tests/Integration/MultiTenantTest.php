@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -127,6 +128,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
+                    DbalConfiguration::createForTesting(),
                     MultiTenantConfiguration::create(
                         'tenant',
                         [

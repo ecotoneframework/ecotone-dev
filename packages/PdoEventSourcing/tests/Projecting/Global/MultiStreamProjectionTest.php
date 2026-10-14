@@ -130,7 +130,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-poll-1', 'm-poll-1'));
 
         // run polling endpoint
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['m-poll-1' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-1'));
     }
@@ -147,12 +147,12 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-poll-reset', 'm-poll-reset'));
 
         // run polling once to build state
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(['m-poll-reset' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset'));
 
         // reset and then run polling again to catch up
         $ecotone->resetProjection($projection::NAME);
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['m-poll-reset' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset'));
 

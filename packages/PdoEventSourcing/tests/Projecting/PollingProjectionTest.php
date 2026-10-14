@@ -54,7 +54,7 @@ final class PollingProjectionTest extends ProjectingTestCase
         $this->assertCount(0, $projection->projectedEvents);
 
         // When polling consumer runs
-        $ecotone->run('polling_test_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('polling_test_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then all events are projected
         $this->assertCount(2, $projection->projectedEvents);
@@ -84,14 +84,14 @@ final class PollingProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('ticket-inc-1', 'John', 'bug'));
 
         // And polling runs
-        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $this->assertCount(1, $projection->projectedEvents);
 
         // When more events are created
         $ecotone->sendCommand(new RegisterTicket('ticket-inc-2', 'Jane', 'feature'));
 
         // And polling runs again
-        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then only new events are processed (total is 2, not 3)
         $this->assertCount(2, $projection->projectedEvents);

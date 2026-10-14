@@ -102,13 +102,13 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $this->assertCount(0, $ecotone->sendQueryWithRouting('getConsumed'));
 
         // When feeder runs (polls event store and pushes to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are in the streaming channel but not consumed yet
         $this->assertCount(0, $ecotone->sendQueryWithRouting('getConsumed'));
 
         // When stream consumer runs (handle 2 messages)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are consumed
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');
@@ -166,10 +166,10 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $ecotone->sendCommand(new CloseTicket('ticket-2'));
 
         // When feeder runs (polls event store and pushes filtered events to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // When stream consumer runs (handle 2 messages - only TicketWasRegistered events)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then only TicketWasRegistered events are consumed (TicketWasClosed events are filtered out)
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');
@@ -260,10 +260,10 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $this->assertEquals(1, $counts['closed'], 'Event handler should have processed 1 TicketWasClosed event');
 
         // When feeder runs (polls event store and pushes to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // When stream consumer runs (handle 3 messages)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are also consumed from streaming channel (as arrays)
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');

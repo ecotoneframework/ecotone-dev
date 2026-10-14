@@ -2911,6 +2911,16 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `bootstrapFlowTesting()` always had - so an event with no converter can pass a flow test and fail against a database.
   **How to adapt:** register `EventSourcingConfiguration::createInMemory()` to keep the serializing in-memory store,
   or give the test a connection to run against the database.
+- **A flow test's queue channels serialize to JSON when the JMS converter is installed.** **Before:** a flow test
+  that named no packages loaded only the core, so a pollable channel serialized its payloads with the default
+  `application/x-php-serialized`, which needs no converter. **Now:** the flow test loads every installed package; with
+  `ecotone/jms-converter` installed, its `JMSDefaultSerialization` makes `application/json` the default serialization,
+  so a payload crossing a queue channel is serialized to JSON and rebuilt by JMS on the way back. A type JMS cannot
+  rebuild - an interface such as `Ramsey\Uuid\UuidInterface` - then fails with a `ConversionException`, although
+  the application declares a converter the test never registered. **How to adapt:** register the application's
+  `#[Converter]` for that type in the flow test (its class in `classesToResolve` and an instance in
+  `containerOrAvailableServices`), or keep the channel PHP-serialized explicitly:
+  `SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::APPLICATION_X_PHP_SERIALIZED)`.
 - **The Kafka licence is required when Kafka is used, not when it is installed.** **Before:** an installed Kafka
   module refused to boot without an Enterprise licence even when nothing used it. **Now:** it refuses only when a
   `#[KafkaConsumer]`, a `KafkaMessageChannelBuilder`, a `KafkaConsumerConfiguration`, a `TopicConfiguration` or a

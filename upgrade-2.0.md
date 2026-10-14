@@ -2900,9 +2900,17 @@ rename test-support methods without aliases; the renamed methods are listed in e
   module had to name it. **Now:** it loads every installed package, as `EcotoneLite::bootstrap()` and the framework
   integrations do, and each one runs in memory until the test is given what it needs to run for real: a DBAL
   connection for the event store, document store, deduplication and dead letter, a `TracerProviderInterface` for
-  tracing, which otherwise traces through OpenTelemetry's no-op provider. **How to adapt:** nothing, unless a test
+  tracing, which otherwise traces through OpenTelemetry's no-op provider. "Installed" means the package's module
+  classes exist, so a test enables exactly what Composer installed. **How to adapt:** nothing, unless a test
   depended on a module *not* being loaded; such a test names the packages it wants with
   `ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([...])`.
+- **A flow test given no connection keeps events in memory as the objects they were recorded as.** **Before:**
+  `bootstrapFlowTestingWithEventStore()` kept events in a serializing in-memory store, so an event that could not be
+  converted failed in the test, as it would in production. **Now:** with no connection and no
+  `EventSourcingConfiguration`, appends and loads keep the event objects and nothing is converted - the behaviour plain
+  `bootstrapFlowTesting()` always had - so an event with no converter can pass a flow test and fail against a database.
+  **How to adapt:** register `EventSourcingConfiguration::createInMemory()` to keep the serializing in-memory store,
+  or give the test a connection to run against the database.
 - **The Kafka licence is required when Kafka is used, not when it is installed.** **Before:** an installed Kafka
   module refused to boot without an Enterprise licence even when nothing used it. **Now:** it refuses only when a
   `#[KafkaConsumer]`, a `KafkaMessageChannelBuilder`, a `KafkaConsumerConfiguration`, a `TopicConfiguration` or a

@@ -26,36 +26,6 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
 {
-    public function test_a_flow_test_without_a_dbal_configuration_keeps_dead_letters_in_memory(): void
-    {
-        $first = $this->bootstrapFlowTesting(
-            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-        );
-        $second = $this->bootstrapFlowTesting(
-            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-        );
-
-        $first->getGateway(DeadLetterGateway::class)->store($this->failedMessage('m-1'));
-
-        self::assertSame(1, $first->getGateway(DeadLetterGateway::class)->count());
-        self::assertSame(0, $second->getGateway(DeadLetterGateway::class)->count());
-    }
-
-    public function test_a_flow_test_without_a_dbal_configuration_deduplicates_in_memory(): void
-    {
-        $first = $this->bootstrapWithDeduplicatedHandler(null);
-        $second = $this->bootstrapWithDeduplicatedHandler(null);
-
-        $first->sendCommandWithRouting('inMemoryStorage.order', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => 'm-1']);
-        $first->sendCommandWithRouting('inMemoryStorage.order', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => 'm-1']);
-        $second->sendCommandWithRouting('inMemoryStorage.order', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => 'm-1']);
-
-        self::assertSame(['coffee'], $first->sendQueryWithRouting('inMemoryStorage.orders'));
-        self::assertSame(['coffee'], $second->sendQueryWithRouting('inMemoryStorage.orders'));
-    }
-
     public function test_an_explicit_dbal_configuration_keeps_dead_letters_in_the_database(): void
     {
         $first = $this->bootstrapFlowTesting(

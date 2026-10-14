@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Test;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +24,7 @@ final class SetupDatabaseTablesWithoutDatabaseTest extends TestCase
 
     public function test_setting_up_tables_without_a_database_module_says_what_to_enable(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         try {
             $ecotone->setupDatabaseTables();

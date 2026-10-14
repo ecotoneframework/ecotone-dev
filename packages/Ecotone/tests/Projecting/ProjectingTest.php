@@ -537,7 +537,7 @@ class ProjectingTest extends TestCase
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)->withEnabledModulePackageNames([])
         );
 
         // Add events for different partitions

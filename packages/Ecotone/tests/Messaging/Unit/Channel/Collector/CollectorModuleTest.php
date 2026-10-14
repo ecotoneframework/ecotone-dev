@@ -354,7 +354,7 @@ final class CollectorModuleTest extends TestCase
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects(array_merge($collectorConfigurations, $channelBuilders)),
+                ->withExtensionObjects(array_merge($collectorConfigurations, $channelBuilders))->withEnabledModulePackageNames([]),
             licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
         );
     }

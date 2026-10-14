@@ -513,7 +513,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     $eventSourcingConfiguration,
-                ])
+                ])->withEnabledModulePackageNames([])
         );
     }
 

@@ -160,7 +160,8 @@ final class TestClockTest extends TestCase
             [$handler::class],
             [$handler, ClockInterface::class => $clock],
             ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('async')]),
+                ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('async')])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

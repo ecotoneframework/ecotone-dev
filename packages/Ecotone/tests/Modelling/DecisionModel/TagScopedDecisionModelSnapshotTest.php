@@ -218,7 +218,8 @@ final class TagScopedDecisionModelSnapshotTest extends TestCase
                 new SpentTodayConverterForTagSnapshotTest(),
                 DocumentStore::class => $documentStore ?? InMemoryDocumentStore::createEmpty(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

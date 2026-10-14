@@ -22,7 +22,8 @@ final class LicenceRefusalMessageTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 configuration: ServiceConfiguration::createWithDefaults()
                     ->withServiceName('licence_refusal')
-                    ->withExtensionObjects([DistributedServiceMap::initialize()]),
+                    ->withExtensionObjects([DistributedServiceMap::initialize()])
+                    ->withEnabledModulePackageNames([]),
             );
             $this->fail('An Enterprise feature was accepted without a licence key');
         } catch (LicensingException $exception) {

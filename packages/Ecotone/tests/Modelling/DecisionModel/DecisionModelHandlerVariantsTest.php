@@ -49,7 +49,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -68,7 +69,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -84,7 +86,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [AsyncHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -104,7 +107,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, CourseOpenedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -122,7 +126,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [QueryHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, GetItemCountForVariantsTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -145,7 +150,8 @@ final class DecisionModelHandlerVariantsTest extends TestCase
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('forwardedChannel'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

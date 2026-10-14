@@ -136,7 +136,8 @@ final class DecisionModelStatelessExecutionTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [...$classes, WalletForStatelessTest::class, WalletFundedForStatelessTest::class, WalletChargedForStatelessTest::class, PaymentMadeForStatelessTest::class],
             containerOrAvailableServices: $services,
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

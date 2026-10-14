@@ -71,7 +71,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->assertEquals(
             1,
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class]
+                [Order::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommand(CreateOrderCommand::createWith(1, 10, 'Poland'))
                 ->getAggregate(Order::class, ['orderId' => 1])
@@ -204,7 +205,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_returning_all_identifiers_assigned_during_aggregate_creation()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Article::class]
+            classesToResolve: [Article::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -218,7 +220,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_returning_all_identifiers_when_command_provides_no_identifiers()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Article::class]
+            classesToResolve: [Article::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $result = $ecotoneLite
@@ -235,7 +238,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_returning_all_identifiers_when_command_provides_single_identifier()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Article::class]
+            classesToResolve: [Article::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $result = $ecotoneLite
@@ -252,7 +256,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_returning_all_identifiers_when_factory_method_assigns_null_to_identifier()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Article::class]
+            classesToResolve: [Article::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $result = $ecotoneLite
@@ -269,7 +274,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_calling_save_method_with_automatic_increasing_version()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Order::class]
+            classesToResolve: [Order::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $aggregate = $ecotoneLite
@@ -282,7 +288,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
     public function test_calling_save_method_with_manual_increasing_version()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [OrderWithManualVersioning::class]
+            classesToResolve: [OrderWithManualVersioning::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $aggregate = $ecotoneLite
@@ -298,7 +305,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->expectExceptionMessage("You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [NoIdDefinedAfterRecordingEvents::class]
+            classesToResolve: [NoIdDefinedAfterRecordingEvents::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -307,14 +315,16 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->expectException(NoCorrectIdentifierDefinedException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [PublicIdentifierGetMethodWithParameters::class]
+            classesToResolve: [PublicIdentifierGetMethodWithParameters::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
     public function test_result_aggregate_are_published_in_order(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Job::class]
+            classesToResolve: [Job::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $jobId = Uuid::v7()->toRfc4122();
@@ -339,6 +349,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [EventSourcingAggregateWithInternalRecorder::class, Something::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new CreateAggregate($id = 1))
             ->sendCommand(new CreateSomething($id, $somethingId = 200));
@@ -362,6 +373,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [EventSourcingAggregateWithInternalRecorder::class, Something::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new CreateAggregate($id = 1000), metadata: [
                 MessageHeaders::MESSAGE_ID => $messageId = Uuid::v7()->toRfc4122(),
@@ -404,6 +416,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [EventSourcingAggregateWithInternalRecorder::class, Something::class, CustomEventSourcingRepository::class, SomethingWasCreated::class],
             [CustomEventSourcingRepository::class => $repository],
             addInMemoryEventSourcedRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new CreateAggregate($id = 1000));
 
@@ -423,6 +436,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Twitter::class, TwitterRepository::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var TwitterRepository $twitterRepository */
@@ -447,6 +461,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Twitter::class, TwitterRepository::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var TwitterRepository $twitterRepository */
@@ -466,6 +481,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TwitterWithRecorder::class, TwitterWithRecorderRepository::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var TwitterWithRecorderRepository $twitterRepository */
@@ -486,6 +502,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TwitterWithRecorder::class, TwitterWithRecorderRepository::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var TwitterWithRecorderRepository $twitterRepository */

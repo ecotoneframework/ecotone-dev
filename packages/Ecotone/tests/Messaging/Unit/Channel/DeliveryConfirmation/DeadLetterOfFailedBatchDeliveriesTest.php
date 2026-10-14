@@ -56,6 +56,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
                 PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
                     ->withErrorChannel('dead_letters'),
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
+                ->withEnabledModulePackageNames([])
         );
         $ordersChannel = $ecotoneLite->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
@@ -82,6 +83,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
                 PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
                     ->withErrorChannel('dead_letters'),
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
+                ->withEnabledModulePackageNames([])
         );
     }
 

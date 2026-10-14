@@ -25,7 +25,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
     public function test_running_an_event_driven_consumer_processes_the_message_immediately(): void
     {
         $handler = new DirectlyConsumedHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([DirectlyConsumedHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([DirectlyConsumedHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendDirectToChannel(DirectlyConsumedHandler::CHANNEL, 'a');
 
@@ -46,7 +46,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
 
     public function test_throws_when_running_a_consumer_that_does_not_exist(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([], []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([], [], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -73,7 +73,8 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(TwoHopAsyncHandler::CHANNEL_ONE),
                 SimpleMessageChannelBuilder::createQueueChannel(TwoHopAsyncHandler::CHANNEL_TWO),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting(TwoHopAsyncHandler::ROUTING_KEY, 2);
@@ -95,7 +96,8 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel(ThreeHopAsyncHandler::CHANNEL_ONE),
                 SimpleMessageChannelBuilder::createQueueChannel(ThreeHopAsyncHandler::CHANNEL_TWO),
                 SimpleMessageChannelBuilder::createQueueChannel(ThreeHopAsyncHandler::CHANNEL_THREE),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting(ThreeHopAsyncHandler::ROUTING_KEY, 2);
@@ -116,7 +118,8 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(SingleHopAsyncHandler::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

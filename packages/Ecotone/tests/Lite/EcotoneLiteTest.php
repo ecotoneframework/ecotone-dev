@@ -44,7 +44,8 @@ class EcotoneLiteTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(TestConfiguration::createWithDefaults()->withSpyOnChannel('async')),
+                ->addExtensionObject(TestConfiguration::createWithDefaults()->withSpyOnChannel('async'))
+                ->withEnabledModulePackageNames([]),
         );
     }
 
@@ -57,6 +58,7 @@ class EcotoneLiteTest extends TestCase
                 ->withSpyOnChannel('async1')
                 ->withSpyOnChannel('async2'),
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async1'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async2'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('async1', 'test1');
@@ -102,7 +104,7 @@ class EcotoneLiteTest extends TestCase
             $this->markTestSkipped('pcntl extension is not loaded');
         }
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->withEnabledModulePackageNames([]));
 
         $handler = pcntl_signal_get_handler(SIGINT);
 

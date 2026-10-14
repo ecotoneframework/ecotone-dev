@@ -28,6 +28,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             configuration: self::ordersChannelConfiguration()
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -42,7 +43,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_state_stored_aggregate(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration());
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration()->withEnabledModulePackageNames([]));
 
         $orderId = '1';
 
@@ -58,7 +59,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
 
     public function test_state_stored_aggregate(): void
     {
-        $flowSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration());
+        $flowSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration()->withEnabledModulePackageNames([]));
 
         $this->assertEquals(
             1,

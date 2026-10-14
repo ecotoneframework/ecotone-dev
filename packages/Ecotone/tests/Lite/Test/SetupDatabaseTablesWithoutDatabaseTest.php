@@ -17,7 +17,7 @@ final class SetupDatabaseTablesWithoutDatabaseTest extends TestCase
 {
     public function test_a_flow_test_without_a_database_module_boots_without_setting_up_tables(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         self::assertSame([], $ecotone->popRecordedEvents());
     }

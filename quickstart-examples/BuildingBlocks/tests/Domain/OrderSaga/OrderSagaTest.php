@@ -12,6 +12,7 @@ use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductService;
+use App\Infrastructure\Converter\UuidConverter;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -95,8 +96,8 @@ final class OrderSagaTest extends TestCase
 
     private function getBootstrapFlowTesting(bool $isReservationSuccessful): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class],
-            [new ProductReservationService($isReservationSuccessful)],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class, UuidConverter::class],
+            [new ProductReservationService($isReservationSuccessful), new UuidConverter()],
             configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true)));
         return $ecotoneLite;
     }

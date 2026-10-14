@@ -112,7 +112,8 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
                     SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::OUTPUT_CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::NEXT_CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::FINAL_CHANNEL),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
     }
 }

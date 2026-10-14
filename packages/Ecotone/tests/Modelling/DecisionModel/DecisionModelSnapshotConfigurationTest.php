@@ -52,7 +52,8 @@ final class DecisionModelSnapshotConfigurationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults()
                     ->withSnapshotsFor(NotADecisionModelForSnapshotConfigurationTest::class),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -88,7 +89,8 @@ final class DecisionModelSnapshotConfigurationTest extends TestCase
                 new WalletBalanceConverterForSnapshotConfigurationTest(),
                 DocumentStore::class => InMemoryDocumentStore::createEmpty(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

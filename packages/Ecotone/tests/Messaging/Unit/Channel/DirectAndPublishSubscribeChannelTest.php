@@ -21,7 +21,7 @@ final class DirectAndPublishSubscribeChannelTest extends TestCase
     public function test_direct_channel_dispatches_to_its_single_subscribed_handler(): void
     {
         $handler = new DirectChannelHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([DirectChannelHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([DirectChannelHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendDirectToChannel(DirectChannelHandler::CHANNEL, 'test');
 
@@ -35,7 +35,8 @@ final class DirectAndPublishSubscribeChannelTest extends TestCase
             [],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createDirectMessageChannel('unhandledChannel'),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $this->expectException(MessageDispatchingException::class);
@@ -51,7 +52,8 @@ final class DirectAndPublishSubscribeChannelTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createPublishSubscribeChannel(PublishSubscribeChannelHandlers::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel(PublishSubscribeChannelHandlers::CHANNEL, 'test');

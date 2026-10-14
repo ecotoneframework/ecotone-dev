@@ -43,7 +43,8 @@ final class DecisionModelArrayTagTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, SeatReservationForArrayTagTest::class, SeatsReservedForArrayTagTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

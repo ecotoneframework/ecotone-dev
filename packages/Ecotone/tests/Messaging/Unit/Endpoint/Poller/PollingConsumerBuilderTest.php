@@ -138,6 +138,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');
@@ -168,6 +169,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->withExecutionAmountLimit(1)
                         ->withErrorChannelName($errorChannelName),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
@@ -194,6 +196,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->withExecutionAmountLimit(1)
                         ->withErrorChannelName('errorHandler'),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
@@ -224,6 +227,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->withExecutionAmountLimit(1)
                         ->withErrorChannelName($errorChannelName),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $originalNessage = MessageBuilder::withPayload('some')->build();
@@ -244,6 +248,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($inputChannelName))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');
@@ -266,6 +271,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($inputChannelName))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');

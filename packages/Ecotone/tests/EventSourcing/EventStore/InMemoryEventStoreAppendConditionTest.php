@@ -94,11 +94,12 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
     private function bootstrapEcotone(bool $dynamicConsistencyBoundaryEnabled = false): FlowTestSupport
     {
         if (! $dynamicConsistencyBoundaryEnabled) {
-            return EcotoneLite::bootstrapFlowTesting();
+            return EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
         }
 
         return EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

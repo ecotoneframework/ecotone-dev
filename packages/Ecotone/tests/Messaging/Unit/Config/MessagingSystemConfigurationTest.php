@@ -1785,6 +1785,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [MultipleMethodsGatewayExample::class],
             [],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 

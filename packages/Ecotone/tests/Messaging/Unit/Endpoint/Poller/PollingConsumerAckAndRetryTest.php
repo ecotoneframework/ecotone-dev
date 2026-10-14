@@ -35,7 +35,8 @@ final class PollingConsumerAckAndRetryTest extends TestCase
                 PollingMetadata::create(AlwaysThrowingHandler::ENDPOINT_ID)
                     ->withTestingSetup(stopOnError: true)
                     ->withConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel(AlwaysThrowingHandler::CHANNEL, 'somePayload');
@@ -62,7 +63,8 @@ final class PollingConsumerAckAndRetryTest extends TestCase
                 PollingMetadata::create(NeverCalledHandler::ENDPOINT_ID)
                     ->withTestingSetup(stopOnError: false)
                     ->withConnectionRetryTemplate(RetryTemplateBuilder::fixedBackOff(1)->maxRetries(2)),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         try {
@@ -89,7 +91,8 @@ final class PollingConsumerAckAndRetryTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnReceive('defaultConnectionRetry.channel', 3)),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel('defaultConnectionRetry.channel', 'somePayload');

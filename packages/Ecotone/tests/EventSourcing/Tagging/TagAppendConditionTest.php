@@ -40,7 +40,8 @@ final class TagAppendConditionTest extends TestCase
     {
         $eventStore = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [CourseChangedForAppendConditionTest::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->getGateway(EventStore::class);
         $eventStore->appendTo('ecotone_event_stream', [new CourseChangedForAppendConditionTest('course-1')]);

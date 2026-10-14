@@ -49,7 +49,8 @@ final class DelayedRetryBackOffTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->publishEventWithRouting('order.completed', 'order-1');
@@ -120,7 +121,8 @@ final class DelayedRetryBackOffTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
     }
 }

@@ -45,7 +45,8 @@ final class DecisionModelFetchTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -63,7 +64,8 @@ final class DecisionModelFetchTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CustomerCouponUseForFetchTest::class, OrderPlacedForFetchTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -117,7 +119,8 @@ final class DecisionModelFetchTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -136,7 +139,8 @@ final class DecisionModelFetchTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

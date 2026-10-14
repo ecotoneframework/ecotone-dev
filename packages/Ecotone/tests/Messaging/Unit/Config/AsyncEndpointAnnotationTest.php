@@ -71,6 +71,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('doWork', 'test');
@@ -113,6 +114,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('doWork', 'test');
@@ -161,6 +163,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('doWorkOne', 'test');
@@ -205,6 +208,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler::class, $interceptor::class],
             [$handler, $interceptor],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('doWork', 'test');
@@ -229,6 +233,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler::class],
             [$handler],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -259,6 +264,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('events')->withCollector(true),
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('events'))
+                    ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('doWork', 'test');
@@ -298,7 +304,8 @@ final class AsyncEndpointAnnotationTest extends TestCase
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('events')->withCollector(true),
-                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('events')),
+                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('events'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 

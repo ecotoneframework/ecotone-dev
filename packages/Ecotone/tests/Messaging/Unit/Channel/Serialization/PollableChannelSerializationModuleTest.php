@@ -57,6 +57,7 @@ final class PollableChannelSerializationModuleTest extends TestCase
             $services,
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects($extensionObjects))->withExtensionObjects($channelBuilders)
+                ->withEnabledModulePackageNames([])
         );
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
@@ -35,6 +36,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
             [Article::class, ArticleRepository::class, RepositoryBusinessInterface::class, Page::class, Author::class],
             [ArticleRepository::class => $articleRepository],
             addInMemoryStateStoredRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->verify(Article::create('123'), $ecotoneLite, 'create.article', Article::class, $articleRepository);
@@ -56,6 +58,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
                 PageRepository::class => $pageRepository,
             ],
             addInMemoryStateStoredRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->verify(Article::create('123'), $ecotoneLite, 'create.article', Article::class, $articleRepository);
@@ -82,6 +85,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
                 PageRepository::class => $pageRepository,
             ],
             addInMemoryStateStoredRepository: true,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->verify(Author::create('123'), $ecotoneLite, 'create.author', Author::class, null);
@@ -101,6 +105,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
                 PageRepository::class => $pageRepository,
             ],
             licenceKey: $isEnterprise ? LicenceTesting::VALID_LICENCE : null,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         // We have provided multiple standard repositories, therefore there is single Event Sourced repository

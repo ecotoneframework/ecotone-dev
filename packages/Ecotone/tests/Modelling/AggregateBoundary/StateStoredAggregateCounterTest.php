@@ -90,7 +90,7 @@ final class StateStoredAggregateCounterTest extends TestCase
 
     public function test_concurrent_commands_on_a_state_stored_aggregate_keep_last_write_wins_when_dcb_is_disabled(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Purse::class, PurseAudited::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Purse::class, PurseAudited::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
         $ecotone->sendCommandWithRouting('purse.open', 'p-1');
 
         $ecotone->sendCommandWithRouting('purse.withdrawWhileAnotherWithdrawalLands', ['purseId' => 'p-1', 'amount' => 30]);
@@ -110,7 +110,7 @@ final class StateStoredAggregateCounterTest extends TestCase
 
     private function versionAfterSameCommandsWithoutDcb(): int
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Purse::class, PurseAudited::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Purse::class, PurseAudited::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
         $ecotone->sendCommandWithRouting('purse.open', 'p-1');
         $ecotone->sendCommandWithRouting('purse.withdraw', ['purseId' => 'p-1', 'amount' => 30]);
         $ecotone->sendCommandWithRouting('purse.withdraw', ['purseId' => 'p-1', 'amount' => 20]);
@@ -133,7 +133,8 @@ final class StateStoredAggregateCounterTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Purse::class, PurseAudited::class, RefundSaga::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

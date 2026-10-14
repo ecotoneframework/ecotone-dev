@@ -26,6 +26,7 @@ final class ClosureInAttributeTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, LockingInterceptor::class],
             [new OrderService(), $lockingInterceptor],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'coffee');

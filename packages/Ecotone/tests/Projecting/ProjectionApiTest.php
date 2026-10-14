@@ -60,6 +60,7 @@ final class ProjectionApiTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -80,6 +81,7 @@ final class ProjectionApiTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -100,6 +102,7 @@ final class ProjectionApiTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -120,6 +123,7 @@ final class ProjectionApiTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -168,6 +172,7 @@ final class ProjectionApiTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 }

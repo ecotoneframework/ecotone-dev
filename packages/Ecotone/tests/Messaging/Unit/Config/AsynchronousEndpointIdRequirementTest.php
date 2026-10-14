@@ -28,7 +28,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessageMatches('/GeneratedIdCommandHandler::handle::.*CommandHandler should have endpointId defined for handling asynchronously/');
 
-        EcotoneLite::bootstrapFlowTesting([GeneratedIdCommandHandler::class], [new GeneratedIdCommandHandler()]);
+        EcotoneLite::bootstrapFlowTesting([GeneratedIdCommandHandler::class], [new GeneratedIdCommandHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_event_handler_without_endpoint_id_throws(): void
@@ -36,7 +36,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessageMatches('/GeneratedIdEventHandler::handle::.*EventHandler should have endpointId defined for handling asynchronously/');
 
-        EcotoneLite::bootstrapFlowTesting([GeneratedIdEventHandler::class], [new GeneratedIdEventHandler()]);
+        EcotoneLite::bootstrapFlowTesting([GeneratedIdEventHandler::class], [new GeneratedIdEventHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_internal_handler_without_endpoint_id_throws_for_method_level_asynchronous(): void
@@ -44,7 +44,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessageMatches('/GeneratedIdInternalHandlerMethodLevel::handle::.*InternalHandler should have endpointId defined for handling asynchronously/');
 
-        EcotoneLite::bootstrapFlowTesting([GeneratedIdInternalHandlerMethodLevel::class], [new GeneratedIdInternalHandlerMethodLevel()]);
+        EcotoneLite::bootstrapFlowTesting([GeneratedIdInternalHandlerMethodLevel::class], [new GeneratedIdInternalHandlerMethodLevel()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_internal_handler_without_endpoint_id_throws_for_class_level_asynchronous(): void
@@ -52,12 +52,12 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessageMatches('/GeneratedIdInternalHandlerClassLevel::handle::.*InternalHandler should have endpointId defined for handling asynchronously/');
 
-        EcotoneLite::bootstrapFlowTesting([GeneratedIdInternalHandlerClassLevel::class], [new GeneratedIdInternalHandlerClassLevel()]);
+        EcotoneLite::bootstrapFlowTesting([GeneratedIdInternalHandlerClassLevel::class], [new GeneratedIdInternalHandlerClassLevel()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_query_handler_without_endpoint_id_is_exempt(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([GeneratedIdQueryHandler::class], [new GeneratedIdQueryHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([GeneratedIdQueryHandler::class], [new GeneratedIdQueryHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->assertNotNull($ecotone);
     }
@@ -104,7 +104,8 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel(ExplicitIdCommandHandler::CHANNEL),
                 SimpleMessageChannelBuilder::createQueueChannel(ExplicitIdEventHandler::CHANNEL),
                 SimpleMessageChannelBuilder::createQueueChannel(ExplicitIdInternalHandler::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

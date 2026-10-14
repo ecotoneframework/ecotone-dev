@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
@@ -54,7 +55,7 @@ final class AggregateNotFoundCausationTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$order::class, $walletCharging::class, $wallet::class], [$walletCharging]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$order::class, $walletCharging::class, $wallet::class], [$walletCharging], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->expectException(AggregateNotFoundException::class);
         $this->expectExceptionMessage('Aggregate ' . $wallet::class . ' for calling charge was not found using identifiers {"walletId":"wallet-404"}. Command wallet.charge was sent by ' . $walletCharging::class . '::chargeWalletWhenOrderCreated() while handling event ' . OrderCreated::class . ', which was published while handling command order.create.');

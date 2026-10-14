@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\Unit\MessageHandling;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -98,6 +99,6 @@ final class MessageHeadersPropagationAcrossMessagesTest extends TestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting([$orderService::class, $ticket::class], [$orderService]);
+        return EcotoneLite::bootstrapFlowTesting([$orderService::class, $ticket::class], [$orderService], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 }

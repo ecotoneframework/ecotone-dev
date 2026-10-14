@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Priority;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +20,7 @@ final class BusRoutingTest extends TestCase
     public function test_multiple_handlers_for_the_same_event_class_fire_in_priority_order(): void
     {
         $handler = new RoutingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEvent(new AEvent());
 
@@ -32,7 +33,7 @@ final class BusRoutingTest extends TestCase
     public function test_handler_typed_to_a_parent_class_also_fires_for_a_subclass_event(): void
     {
         $handler = new RoutingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEvent(new BEvent());
 
@@ -43,7 +44,7 @@ final class BusRoutingTest extends TestCase
     public function test_handler_typed_to_an_implemented_interface_fires_for_the_event(): void
     {
         $handler = new RoutingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEvent(new AEvent());
 
@@ -53,7 +54,7 @@ final class BusRoutingTest extends TestCase
     public function test_named_routing_key_exact_match_and_wildcard_both_fire(): void
     {
         $handler = new RoutingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEventWithRouting('test.named', 'payload');
 
@@ -64,7 +65,7 @@ final class BusRoutingTest extends TestCase
     public function test_named_routing_key_wildcard_matches_an_unknown_but_prefixed_key(): void
     {
         $handler = new RoutingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEventWithRouting('test.unknown', 'payload');
 
@@ -74,7 +75,7 @@ final class BusRoutingTest extends TestCase
     public function test_a_handler_typed_to_the_native_object_type_catches_every_event_class(): void
     {
         $handler = new CatchAllHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([CatchAllHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([CatchAllHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->publishEvent(new AEvent());
         $ecotone->publishEvent(new UnrelatedEvent());

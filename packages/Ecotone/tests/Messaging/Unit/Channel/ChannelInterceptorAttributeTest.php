@@ -130,6 +130,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [UppercasingInterceptor::class, CapturingHandler::class],
             [new UppercasingInterceptor(), new CapturingHandler()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -142,7 +143,8 @@ final class ChannelInterceptorAttributeTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncCapturingHandler::CHANNEL),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
     }
 }

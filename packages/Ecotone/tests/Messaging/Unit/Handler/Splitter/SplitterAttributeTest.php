@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -24,7 +25,7 @@ final class SplitterAttributeTest extends TestCase
     public function test_splitting_array_payload_into_one_message_per_element(): void
     {
         $handler = new SplittingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([SplittingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([SplittingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendDirectToChannel(SplittingHandler::PAYLOAD_CHANNEL, [1, 2, 3, 4]);
 
@@ -49,7 +50,7 @@ final class SplitterAttributeTest extends TestCase
     public function test_splitting_when_service_already_returns_built_messages(): void
     {
         $handler = new SplittingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([SplittingHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([SplittingHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendDirectToChannel(SplittingHandler::MESSAGES_CHANNEL, ['some1', 'some2'], [
             'token' => 'abcd',
@@ -69,7 +70,7 @@ final class SplitterAttributeTest extends TestCase
     {
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([WrongSplittingHandler::class], [new WrongSplittingHandler()]);
+        EcotoneLite::bootstrapFlowTesting([WrongSplittingHandler::class], [new WrongSplittingHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 }
 

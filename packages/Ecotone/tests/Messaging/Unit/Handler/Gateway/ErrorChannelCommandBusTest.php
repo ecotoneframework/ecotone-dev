@@ -58,6 +58,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [TicketService::class, ErrorChannelCommandBus::class],
             [new TicketService()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'))
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -104,6 +105,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'))
+                ->withEnabledModulePackageNames([])
         );
 
         $commandBus = $ecotoneLite->getGateway(ErrorChannelWithAsyncChannel::class);
@@ -187,6 +189,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [TicketService::class, DelayedRetryCommandBus::class],
             [new TicketService()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(DelayedRetry::generateGatewayChannelName(DelayedRetryCommandBus::class)))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('gatewayRetryDeadLetter'))
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -199,6 +202,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($generatedRetryChannel))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('gatewayRetryDeadLetter'))
+                ->withEnabledModulePackageNames([])
         );
 
         $commandBus = $ecotoneLite->getGateway(DelayedRetryCommandBus::class);

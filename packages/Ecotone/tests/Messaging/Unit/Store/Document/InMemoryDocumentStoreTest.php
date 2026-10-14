@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Store\Document;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Store\Document\DocumentException;
@@ -152,6 +153,7 @@ class InMemoryDocumentStoreTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [DocumentStore::class => InMemoryDocumentStore::createEmpty()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )->getGateway(DocumentStore::class);
     }
 }

@@ -29,6 +29,7 @@ final class PollerExpressionTest extends TestCase
                 $pollerExample,
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([])
         );
 
         // Run the consumer - this will evaluate the expression and create the trigger
@@ -51,6 +52,7 @@ final class PollerExpressionTest extends TestCase
                 $pollerExample,
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->run('expression_poller_endpoint', ExecutionPollingMetadata::createWithTestingSetup(1, 100));

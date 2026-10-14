@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -70,7 +71,8 @@ class GatewayProxyBuilderTest extends MessagingTestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TicketCreator::class, TicketService::class],
-            [new TicketService()]
+            [new TicketService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var TicketCreator $ticketCreator */

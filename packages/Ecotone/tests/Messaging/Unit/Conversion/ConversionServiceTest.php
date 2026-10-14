@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\SerializerGateway;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -30,7 +31,7 @@ class ConversionServiceTest extends TestCase
 {
     public function test_using_php_serializing_converters()
     {
-        $serializer = EcotoneLite::bootstrapFlowTesting()->getGateway(SerializerGateway::class);
+        $serializer = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))->getGateway(SerializerGateway::class);
 
         $serializedObject = new stdClass();
         $serializedObject->name = 'johny';
@@ -53,7 +54,7 @@ class ConversionServiceTest extends TestCase
 
     public function test_not_converting_when_source_is_null()
     {
-        $conversionService = EcotoneLite::bootstrapFlowTesting()->getGateway(ConversionService::class);
+        $conversionService = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))->getGateway(ConversionService::class);
 
         $this->assertEquals(
             null,
@@ -102,6 +103,7 @@ class ConversionServiceTest extends TestCase
                 $converterTwo,
                 $converterThree,
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $serializer = $ecotone->getGateway(SerializerGateway::class);
@@ -158,6 +160,7 @@ class ConversionServiceTest extends TestCase
                 $converterThree::class,
             ],
             containerOrAvailableServices: [],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $serializer = $ecotone->getGateway(SerializerGateway::class);
@@ -189,6 +192,7 @@ class ConversionServiceTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $convertors,
             containerOrAvailableServices: [],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $serializer = $ecotone->getGateway(SerializerGateway::class);

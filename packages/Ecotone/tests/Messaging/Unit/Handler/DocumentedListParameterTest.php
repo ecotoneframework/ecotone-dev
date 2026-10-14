@@ -24,7 +24,7 @@ final class DocumentedListParameterTest extends TestCase
     public function test_command_handler_receives_a_payload_documented_as_a_list_of_strings(): void
     {
         $handler = $this->listRecordingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.payload', ['first', 'second']);
 
@@ -34,7 +34,7 @@ final class DocumentedListParameterTest extends TestCase
     public function test_command_handler_receives_an_empty_payload_documented_as_a_list_of_strings(): void
     {
         $handler = $this->listRecordingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.payload', []);
 
@@ -44,7 +44,7 @@ final class DocumentedListParameterTest extends TestCase
     public function test_header_parameter_receives_a_value_documented_as_a_list_of_integers(): void
     {
         $handler = $this->listRecordingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.header', metadata: ['versions' => [1, 2, 3]]);
 
@@ -54,7 +54,7 @@ final class DocumentedListParameterTest extends TestCase
     public function test_header_parameter_receives_an_empty_value_documented_as_a_list_of_integers(): void
     {
         $handler = $this->listRecordingHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.header', metadata: ['versions' => []]);
 
@@ -76,7 +76,7 @@ final class DocumentedListParameterTest extends TestCase
                 $this->received[] = ['orderIds' => $orderIds, 'tags' => $tags];
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, OrderTagging::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, OrderTagging::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->getGateway(OrderTagging::class)->tag(['order-1', 'order-2'], ['vip']);
 
@@ -103,7 +103,8 @@ final class DocumentedListParameterTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_X_PHP_SERIALIZED)
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone
@@ -116,7 +117,7 @@ final class DocumentedListParameterTest extends TestCase
     public function test_header_parameter_receives_objects_already_of_the_documented_list_element_type(): void
     {
         $handler = new DocumentedListElementRecorder();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.elements', metadata: ['elements' => [new DocumentedListElement('first')]]);
 
@@ -127,7 +128,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = new DocumentedListElementRecorder();
         $converter = $this->elementConverter();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, $converter::class], [$handler, $converter]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, $converter::class], [$handler, $converter], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.elements', metadata: ['elements' => ['first', 'second']]);
 
@@ -138,7 +139,7 @@ final class DocumentedListParameterTest extends TestCase
     {
         $handler = new DocumentedListElementRecorder();
         $converter = $this->elementConverter();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, $converter::class], [$handler, $converter]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class, $converter::class], [$handler, $converter], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('list.keyedElements', metadata: ['elements' => ['primary' => 'first', 'secondary' => 'second']]);
 

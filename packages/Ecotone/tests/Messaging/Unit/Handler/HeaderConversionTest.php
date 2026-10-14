@@ -35,6 +35,7 @@ final class HeaderConversionTest extends TestCase
             ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                 'async'
             ))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite
@@ -59,6 +60,7 @@ final class HeaderConversionTest extends TestCase
             ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                 'async'
             ))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite
@@ -83,6 +85,7 @@ final class HeaderConversionTest extends TestCase
             ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                 'async'
             ))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite
@@ -113,6 +116,7 @@ final class HeaderConversionTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('withNullableEnumConversion', metadata: [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             [new OrderService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -53,6 +55,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             [new OrderService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -74,6 +77,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             [new OrderService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -95,6 +99,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, PropagatingGateway::class, PropagatingOrderService::class],
             [new OrderService(), new PropagatingOrderService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithPropagation([
@@ -111,6 +116,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, PropagatingGateway::class, PropagatingOrderService::class],
             [new OrderService(), new PropagatingOrderService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithoutPropagation([
@@ -127,6 +133,7 @@ final class HeaderPropagationTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, FakeLoggingService::class, FakeLoggingGateway::class, PropagatingGateway::class],
             [new OrderService(), new FakeLoggingService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithPropagation([

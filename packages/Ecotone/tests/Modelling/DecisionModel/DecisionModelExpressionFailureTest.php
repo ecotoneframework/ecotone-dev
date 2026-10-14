@@ -106,7 +106,8 @@ final class DecisionModelExpressionFailureTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CouponUseForExpressionFailureTest::class, CouponRedeemedForExpressionFailureTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -145,7 +146,8 @@ final class DecisionModelExpressionFailureTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, WalletForExpressionFailureTest::class, WalletBalanceForExpressionFailureTest::class, WalletCreditedForExpressionFailureTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -166,7 +168,8 @@ final class DecisionModelExpressionFailureTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handlerClassName, ActivityForExpressionFailureTest::class, MoneyTransferredForExpressionFailureTest::class],
             containerOrAvailableServices: [new $handlerClassName()],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

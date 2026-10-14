@@ -33,6 +33,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createDirectMessageChannel($service::DIRECT_CHANNEL),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $ecotone->sendCommandWithRouting($service::TRIGGER_ROUTING_KEY, 'first');
@@ -52,6 +53,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createDirectMessageChannel($service::DIRECT_CHANNEL),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $ecotone->sendCommandWithRouting($service::TRIGGER_OBJECT_ROUTING_KEY, 'second');

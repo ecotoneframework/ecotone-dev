@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Test;
 
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -22,7 +23,7 @@ final class RecordedMessagesTest extends TestCase
     public function test_popping_recorded_events_returns_each_event_once(): void
     {
         $handler = $this->orderHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
 
@@ -37,7 +38,7 @@ final class RecordedMessagesTest extends TestCase
     public function test_popping_recorded_events_of_type_leaves_other_events_recorded(): void
     {
         $handler = $this->orderHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
 
@@ -49,7 +50,7 @@ final class RecordedMessagesTest extends TestCase
     public function test_popping_recorded_commands_of_type_leaves_other_commands_recorded(): void
     {
         $handler = $this->orderHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
 

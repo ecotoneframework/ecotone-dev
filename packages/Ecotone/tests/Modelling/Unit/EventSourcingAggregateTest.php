@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
@@ -38,9 +39,13 @@ final class EventSourcingAggregateTest extends TestCase
 {
     public function test_registering_and_using_headers_in_event_sourcing_handler(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
-            Person::class,
-        ], licenceKey: LicenceTesting::VALID_LICENCE);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [
+                Person::class,
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+        );
 
 
         $ecotoneLite->sendCommand(new RegisterPerson('123', 'premium'));
@@ -54,9 +59,12 @@ final class EventSourcingAggregateTest extends TestCase
 
     public function test_failing_on_using_event_sourcing_handler_without_enterprise_mode(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
-            Person::class,
-        ]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [
+                Person::class,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+        );
 
 
         $this->expectException(InvalidArgumentException::class);
@@ -66,9 +74,12 @@ final class EventSourcingAggregateTest extends TestCase
 
     public function test_calling_pure_event_sourced_aggregate_only_for_side_effects(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
-            EventSourcingAggregateExample::class,
-        ]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [
+                EventSourcingAggregateExample::class,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+        );
 
 
         $stdClass = new stdClass();

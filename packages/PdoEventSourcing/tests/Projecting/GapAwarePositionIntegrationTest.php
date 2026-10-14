@@ -24,6 +24,7 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -88,7 +89,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -357,7 +358,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
     }

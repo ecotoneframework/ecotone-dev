@@ -17,6 +17,7 @@ use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ModuleClassList;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
@@ -211,6 +212,10 @@ final class EcotoneLite
         self::refuseTestConfigurationPassedAsExtensionObject($configuration);
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
+        if (! $configuration->areEnabledModulePackageNamesDefined()) {
+            $configuration = $configuration->withEnabledModulePackageNames(self::installedModulePackageNames());
+        }
+
         $configuration = $configuration
             ->addExtensionObject($testConfiguration);
 
@@ -225,6 +230,20 @@ final class EcotoneLite
         }
 
         return $configuration;
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function installedModulePackageNames(): array
+    {
+        return array_values(array_filter(
+            array_diff(ModuleClassList::packageNames(), [ModulePackageList::TEST_PACKAGE]),
+            fn (string $packageName): bool => array_filter(
+                ModuleClassList::forPackage($packageName),
+                fn (string $moduleClassName): bool => class_exists($moduleClassName),
+            ) !== [],
+        ));
     }
 
     /**

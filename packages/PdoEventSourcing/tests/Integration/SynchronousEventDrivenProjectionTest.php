@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -42,7 +43,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
             ->withExtensionObjects([
                 EventSourcingConfiguration::createWithDefaults(),
-            ]),
+            ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -74,7 +75,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -119,7 +120,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -145,7 +146,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
             ->withExtensionObjects([
                 EventSourcingConfiguration::createWithDefaults(),
-            ]),
+            ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -177,11 +178,12 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\Snapshots',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshotsFor([Ticket::class, Basket::class], 1),
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -210,7 +212,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -241,7 +243,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 

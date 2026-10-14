@@ -292,7 +292,8 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects(array_merge($extensionObjects, $channelBuilders)),
+                ->withExtensionObjects(array_merge($extensionObjects, $channelBuilders))
+                ->withEnabledModulePackageNames([]),
             licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
         );
     }

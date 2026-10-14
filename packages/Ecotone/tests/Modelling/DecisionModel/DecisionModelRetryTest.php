@@ -93,7 +93,8 @@ final class DecisionModelRetryTest extends TestCase
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2, [DecisionModelConcurrencyException::class]),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -147,7 +148,8 @@ final class DecisionModelRetryTest extends TestCase
                 RetryCommandBusForRetryTest::class,
             ],
             containerOrAvailableServices: [$handler, $injector],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -175,7 +177,8 @@ final class DecisionModelRetryTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class, CompetingWriteInjectorForRetryTest::class],
             containerOrAvailableServices: [$handler, $injector],
-            configuration: $configuration,
+            configuration: $configuration
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

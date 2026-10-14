@@ -25,7 +25,8 @@ final class BridgeTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [BridgeExample::class],
-            [new BridgeExample()]
+            [new BridgeExample()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(

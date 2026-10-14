@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
@@ -106,6 +107,7 @@ final class ExpressionFailureContextTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ExpressionFailureService::class],
             ['expressionFailureMapper' => $mapper, ExpressionFailureService::class => new ExpressionFailureService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame('MAPPED order-1', $ecotone->sendQueryWithRouting('expressionFailure.working', 'order-1'));
@@ -117,6 +119,7 @@ final class ExpressionFailureContextTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [ExpressionFailureService::class],
             ['expressionFailureMapper' => new ExpressionFailureMapper(), ExpressionFailureService::class => new ExpressionFailureService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 }

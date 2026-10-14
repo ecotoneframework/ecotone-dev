@@ -45,6 +45,7 @@ final class ServiceActivatorAttributeTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [MathHandler::class, MathInterceptors::class],
             [new MathHandler(), new MathInterceptors(2)],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame(8, $ecotone->sendDirectToChannel(MathHandler::MATH_CHANNEL, 1));
@@ -55,7 +56,8 @@ final class ServiceActivatorAttributeTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            ServiceConfiguration::createWithDefaults()->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

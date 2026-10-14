@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Console\InMemoryConsoleWriter;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Exception;
@@ -28,7 +29,7 @@ final class ConsoleWriterInjectionTest extends TestCase
                 $writer->success('Hello ' . $name);
             }
         };
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $inMemoryWriter = new InMemoryConsoleWriter();
         /** @var DelegatingConsoleWriter $delegatingWriter */
@@ -50,7 +51,7 @@ final class ConsoleWriterInjectionTest extends TestCase
                 $writer->success('Hello ' . $name);
             }
         };
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotoneLite->runConsoleCommand('app:greet', ['name' => 'John']);
 
@@ -70,7 +71,7 @@ final class ConsoleWriterInjectionTest extends TestCase
                 $progressBar->finish();
             }
         };
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $inMemoryWriter = new InMemoryConsoleWriter();
         /** @var DelegatingConsoleWriter $delegatingWriter */
@@ -96,7 +97,7 @@ final class ConsoleWriterInjectionTest extends TestCase
                 throw new RuntimeException('failure');
             }
         };
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $commandWriter = new InMemoryConsoleWriter();
         $restoredWriter = new InMemoryConsoleWriter();

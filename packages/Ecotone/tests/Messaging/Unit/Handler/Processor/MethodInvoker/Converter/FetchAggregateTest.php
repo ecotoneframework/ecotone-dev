@@ -70,6 +70,7 @@ class FetchAggregateTest extends TestCase
                 OrderService::class => $orderService,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new PlaceOrder('order-123', 'user-1', 'Laptop');
@@ -97,6 +98,7 @@ class FetchAggregateTest extends TestCase
                 OrderService::class => $orderService,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new PlaceOrder('order-123', '', 'Laptop');
@@ -124,6 +126,7 @@ class FetchAggregateTest extends TestCase
                 OrderService::class => $orderService,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new PlaceOrder('order-456', null, 'Mouse');
@@ -146,6 +149,7 @@ class FetchAggregateTest extends TestCase
                 OrderService::class => $orderService,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new PlaceOrder('order-789', 'non-existent-user', 'Keyboard');
@@ -171,6 +175,7 @@ class FetchAggregateTest extends TestCase
                 'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new ComplexCommand('johny@wp.pl');
@@ -197,6 +202,7 @@ class FetchAggregateTest extends TestCase
                 'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $command = new ComplexCommand('johny@wp.pl');
@@ -221,6 +227,7 @@ class FetchAggregateTest extends TestCase
                 'identifierMapper' => new IdentifierMapper([]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         try {
@@ -254,6 +261,7 @@ class FetchAggregateTest extends TestCase
                 ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         // This will throw Ecotone's exception, as interface does not allow for null
@@ -283,6 +291,7 @@ class FetchAggregateTest extends TestCase
                     'johny@wp.pl' => 'user-1',
                 ]),
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -297,7 +306,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($handler::class . '::place');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_an_event_handler_at_bootstrap_without_enterprise_licence(): void
@@ -311,7 +320,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($handler::class . '::whenOrderPlaced');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_an_asynchronous_event_handler_at_bootstrap_without_enterprise_licence(): void
@@ -329,7 +338,8 @@ class FetchAggregateTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class, $handler::class],
             [$handler],
-            ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
+            ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([]),
         );
     }
 
@@ -345,7 +355,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($handler::class . '::userName');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_an_aggregate_command_handler_at_bootstrap_without_enterprise_licence(): void
@@ -362,7 +372,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($aggregate::class . '::assign');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $aggregate::class]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $aggregate::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_a_saga_event_handler_at_bootstrap_without_enterprise_licence(): void
@@ -383,7 +393,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($saga::class . '::start');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $saga::class]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $saga::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_a_before_interceptor_at_bootstrap_without_enterprise_licence(): void
@@ -403,7 +413,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_an_around_interceptor_at_bootstrap_without_enterprise_licence(): void
@@ -424,7 +434,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($interceptor::class . '::verifyUser');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $handler::class, $interceptor::class], [$handler, $interceptor], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_refusing_fetch_on_a_console_command_at_bootstrap_without_enterprise_licence(): void
@@ -438,7 +448,7 @@ class FetchAggregateTest extends TestCase
 
         $this->expectFetchRefusalIn($command::class . '::show');
 
-        EcotoneLite::bootstrapFlowTesting([User::class, $command::class], [$command]);
+        EcotoneLite::bootstrapFlowTesting([User::class, $command::class], [$command], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_throwing_exception_when_using_fetch_with_non_aggregate(): void
@@ -455,6 +465,7 @@ class FetchAggregateTest extends TestCase
                 ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 

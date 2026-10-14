@@ -153,6 +153,7 @@ final class AggregateBackedDecisionModelConcurrencyTest extends TestCase
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [new PayoutsForConcurrencyTest(), new CompetingWalletWriterForConcurrencyTest()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -166,7 +167,8 @@ final class AggregateBackedDecisionModelConcurrencyTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [new PayoutsForConcurrencyTest(), new CompetingWalletWriterForConcurrencyTest()],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects($extensionObjects),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects($extensionObjects)
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

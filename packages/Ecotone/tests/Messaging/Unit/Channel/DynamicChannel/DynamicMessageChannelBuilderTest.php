@@ -59,7 +59,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
                         ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
+                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -82,6 +83,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
                 $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName)
             ))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel($channelName, ['test']);
@@ -89,6 +91,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject($sharedChannel)
+                ->withEnabledModulePackageNames([])
         );
         $this->assertNotNull($ecotoneLite->getMessageChannel($channelName)->receive());
     }
@@ -101,6 +104,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
                 SimpleMessageChannelBuilder::createQueueChannel($channelName)
             ))
+                ->withEnabledModulePackageNames([])
         );
 
         $this->expectException(ConfigurationException::class);
@@ -118,7 +122,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
                         ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames: ['channel_one'], receivingChannelNames: ['channel_two', 'channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two')),
+                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames: ['channel_one'], receivingChannelNames: ['channel_two', 'channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -153,7 +158,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -188,7 +194,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     ->withInternalChannels([
                         'x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -228,7 +235,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     'async_channel',
                     'dynamicChannel.decide',
                     ['channel_one', 'channel_two']
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two')),
+                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -258,7 +266,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
-                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
+                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -291,7 +300,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
-                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three')),
+                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -340,7 +350,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -382,7 +393,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         'tenant_b' => 'channel_two',
                         'tenant_c' => 'channel_three',
                     ]
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three')),
+                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three'))
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -424,7 +436,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_b'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_c'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -461,7 +474,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
                     ->withHeaderSendingStrategy(
                         'tenant',
-                    )),
+                    ))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -487,7 +501,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -517,7 +532,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     )
                     ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
-                    ])),
+                    ]))
+                        ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -559,6 +575,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     PollingMetadata::create('async_channel')
                         ->withExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
+                    ->withEnabledModulePackageNames([])
         );
     }
 

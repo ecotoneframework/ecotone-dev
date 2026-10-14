@@ -35,6 +35,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $this->assertContains('shared_channel', $ecotoneLite->list());
@@ -68,6 +69,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Consumer should be registered when handler uses the shared channel
@@ -88,6 +90,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('regular_channel'),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Regular pollable channel SHOULD be in the list of consumers
@@ -121,6 +124,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
                     PollingMetadata::create('consumer_group_1')->withHandledMessageLimit(1),
                     PollingMetadata::create('consumer_group_2')->withHandledMessageLimit(1),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Both consumers should be registered with their own endpoint IDs
@@ -173,6 +177,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
                     PollingMetadata::create('consumer_group_1')->withHandledMessageLimit(1),
                     PollingMetadata::create('consumer_group_2')->withHandledMessageLimit(1),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Send messages to the shared channel

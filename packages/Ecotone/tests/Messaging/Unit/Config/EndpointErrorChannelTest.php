@@ -31,7 +31,8 @@ final class EndpointErrorChannelTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');
@@ -51,7 +52,8 @@ final class EndpointErrorChannelTest extends TestCase
                     SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
                     PollingMetadata::create(ThrowingHandler::ENDPOINT_ID)->withEnabledErrorChannel(false),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');

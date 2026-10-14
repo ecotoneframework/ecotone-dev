@@ -492,6 +492,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';
@@ -518,6 +519,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';
@@ -543,6 +545,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';
@@ -563,6 +566,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';
@@ -588,6 +592,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', false))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = 'someId';

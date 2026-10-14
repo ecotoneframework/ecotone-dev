@@ -96,7 +96,7 @@ final class FetchedAggregateReadOnlyTest extends TestCase
 
     public function test_an_aggregate_command_handler_marked_without_database_transaction_boots_when_dcb_is_disabled(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [TransactionlessTicket::class, TicketOpened::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [TransactionlessTicket::class, TicketOpened::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('transactionlessTicket.open', 't-1');
 
@@ -111,7 +111,8 @@ final class FetchedAggregateReadOnlyTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [RecordingTicket::class, TicketOpened::class, TicketClosed::class, TicketQueue::class, TicketEscalated::class, ...$services],
             containerOrAvailableServices: array_map(static fn (string $service): object => new $service(), array_filter($services, static fn (string $class): bool => ! str_contains($class, 'TransactionlessTicket'))),
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

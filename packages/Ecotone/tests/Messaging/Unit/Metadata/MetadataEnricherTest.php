@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithEvents;
@@ -22,7 +23,7 @@ final class MetadataEnricherTest extends TestCase
 {
     public function test_revision_header_is_resolved_from_the_recorded_events_class_attribute(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('revisionAggregate.createWithRevisionedEvent', 'agg-1');
 
@@ -31,7 +32,7 @@ final class MetadataEnricherTest extends TestCase
 
     public function test_revision_header_defaults_to_1_when_the_recorded_events_class_has_no_revision_attribute(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendCommandWithRouting('revisionAggregate.createWithUnrevisionedEvent', 'agg-2');
 

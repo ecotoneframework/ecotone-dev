@@ -54,7 +54,8 @@ final class StreamingChannelTest extends TestCase
                     $sharedChannel,
                     DistributedServiceMap::initialize()
                         ->withCommandMapping(targetServiceName: 'test-service', channelName: 'distributed_channel'),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE
         );

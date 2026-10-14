@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -27,7 +28,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
 {
     public function test_converting_reply_according_to_the_interfaces_declared_return_type(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([UuidGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([UuidGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->assertEquals(
             Uuid::fromString($id = 'e7019549-9733-45a3-b088-783de2b2357f'),
@@ -37,7 +38,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
 
     public function test_not_converting_if_reply_already_has_the_expected_type(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([UuidGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([UuidGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $uuid = Uuid::fromString('e7019549-9733-45a3-b088-783de2b2357f');
 
@@ -46,7 +47,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
 
     public function test_not_converting_when_the_declared_return_type_is_message(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([EchoMessageGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([EchoMessageGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $sentMessage = MessageBuilder::withPayload('some')->build();
         $replyMessage = $ecotone->getGateway(EchoMessageGateway::class)->execute($sentMessage);
@@ -56,7 +57,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
 
     public function test_throws_when_no_converter_exists_for_the_declared_reply_type(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([StdClassGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([StdClassGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->expectException(TypeError::class);
 
@@ -65,7 +66,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
 
     public function test_missing_argument_falls_back_to_the_gateway_methods_declared_default_value(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting([DefaultParameterGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([DefaultParameterGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->assertSame('default', $ecotone->getGateway(DefaultParameterGateway::class)->executeWithDefault());
     }
@@ -74,7 +75,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
     {
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([NonNullableErrorChannelGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()]);
+        EcotoneLite::bootstrapFlowTesting([NonNullableErrorChannelGateway::class, EchoMessageHandler::class], [new EchoMessageHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_reply_media_type_can_be_requested_dynamically_per_call(): void
@@ -82,6 +83,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ReplyMediaTypeGateway::class, EchoMessageHandler::class, ArrayToJsonMediaTypeConverter::class],
             [new EchoMessageHandler(), new ArrayToJsonMediaTypeConverter()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $result = $ecotone->getGateway(ReplyMediaTypeGateway::class)->executeWithPayload(['some'], MediaType::APPLICATION_JSON);
@@ -92,7 +94,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
     public function test_generator_reply_without_a_declared_element_type_is_passed_through_untouched(): void
     {
         $handler = new IterableEchoHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $resultSet = [];
         foreach ($ecotone->getGateway(IteratorGateway::class)->executeIteratorWithoutType($expected = [1, 2]) as $item) {
@@ -105,7 +107,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
     public function test_generator_reply_with_a_scalar_element_type_needs_no_conversion(): void
     {
         $handler = new IterableEchoHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $resultSet = [];
         foreach ($ecotone->getGateway(IteratorGateway::class)->executeIteratorWithScalarType($expected = [1, 2]) as $item) {
@@ -118,7 +120,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
     public function test_generator_reply_with_a_complex_element_type_needs_no_conversion_when_types_already_match(): void
     {
         $handler = new IterableEchoHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([IteratorGateway::class, IterableEchoHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $resultSet = [];
         foreach ($ecotone->getGateway(IteratorGateway::class)->executeWithAdvancedIterator($expected = [new stdClass(), new stdClass()]) as $item) {
@@ -134,6 +136,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ArrayConvertingIteratorGateway::class, IterableEchoHandler::class, IntToStdClassConverter::class],
             [$handler, new IntToStdClassConverter()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $resultSet = $ecotone->getGateway(ArrayConvertingIteratorGateway::class)->executeIteratorWithConversion([1, 2]);
@@ -147,6 +150,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [GeneratorConvertingIteratorGateway::class, GeneratorEchoHandler::class, IntToStdClassConverter::class],
             [$handler, new IntToStdClassConverter()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $resultSet = [];

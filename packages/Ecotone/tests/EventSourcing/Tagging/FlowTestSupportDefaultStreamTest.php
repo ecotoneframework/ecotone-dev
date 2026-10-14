@@ -39,7 +39,8 @@ final class FlowTestSupportDefaultStreamTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [CourseDefinedForDefaultStreamTest::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

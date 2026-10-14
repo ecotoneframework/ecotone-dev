@@ -34,6 +34,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -57,6 +58,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -80,6 +82,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 2),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $this->expectException(RuntimeException::class);
@@ -100,6 +103,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3, [RuntimeException::class]),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -123,6 +127,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3, [InvalidArgumentException::class]),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $exceptionThrown = false;
@@ -227,6 +232,7 @@ final class InstantRetryModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('interceptor.after.retry', 3);

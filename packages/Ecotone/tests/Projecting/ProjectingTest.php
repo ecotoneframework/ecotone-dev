@@ -253,6 +253,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotone->withEvents([
@@ -283,6 +284,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotone->withEvents([
@@ -330,6 +332,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         // Add all events to the stream first
@@ -373,6 +376,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         // Add events to stream
@@ -413,6 +417,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         // Add events to stream
@@ -453,6 +458,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         // Add multiple events to stream
@@ -496,6 +502,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         // Add multiple events to stream
@@ -600,6 +607,7 @@ class ProjectingTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -686,6 +694,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
         $ecotone->withEvents([
             Event::createWithType('event1', []),
@@ -718,6 +727,7 @@ class ProjectingTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async'))
+                ->withEnabledModulePackageNames([])
         );
         $ecotone->withEvents([
             Event::createWithType('event1', []),
@@ -744,6 +754,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
         $ecotone->withEvents([
             Event::createWithType('event1', []),
@@ -775,6 +786,7 @@ class ProjectingTest extends TestCase
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
         $ecotone->withEvents([
             Event::createWithType('event1', []),
@@ -964,6 +976,7 @@ class ProjectingTest extends TestCase
             [$projection, $interceptor],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotone->withEvents([

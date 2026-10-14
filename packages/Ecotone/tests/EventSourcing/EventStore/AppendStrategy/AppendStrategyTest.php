@@ -79,12 +79,13 @@ final class AppendStrategyTest extends TestCase
     private function bootstrapEcotone(bool $dynamicConsistencyBoundaryEnabled = false, array $classesToResolve = []): FlowTestSupport
     {
         if (! $dynamicConsistencyBoundaryEnabled) {
-            return EcotoneLite::bootstrapFlowTesting(classesToResolve: $classesToResolve);
+            return EcotoneLite::bootstrapFlowTesting(classesToResolve: $classesToResolve, configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
         }
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

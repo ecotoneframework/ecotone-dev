@@ -76,7 +76,8 @@ final class DelayedMessageReleaseTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(DelayedMessageHandler::CHANNEL, delayable: true),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         )->changeTimeTo(new DateTimeImmutable('2026-01-01 12:00:00'));
     }
 }

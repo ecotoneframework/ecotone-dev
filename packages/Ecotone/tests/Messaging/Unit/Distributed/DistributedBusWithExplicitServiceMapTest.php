@@ -587,7 +587,8 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
                 ->withServiceName('test')
                 ->withExtensionObjects([
                     DistributedServiceMap::initialize(),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -600,7 +601,8 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     DistributedServiceMap::initialize(),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

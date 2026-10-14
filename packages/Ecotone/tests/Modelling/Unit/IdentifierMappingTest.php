@@ -44,7 +44,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$sagaClass],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -62,6 +63,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$sagaClass],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -78,7 +80,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -97,7 +100,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -121,6 +125,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -141,6 +146,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $this->assertEquals(
@@ -168,6 +174,7 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributeHeadersMapping::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -196,7 +203,8 @@ final class IdentifierMappingTest extends TestCase
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Article::class, get_class($converter)],
-            [$converter]
+            [$converter],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertEquals(
@@ -216,7 +224,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommand(new CreateTicket(new InternalId('123')));
@@ -251,7 +260,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommand(new CreateTicket(new InternalId('123')));
@@ -270,7 +280,8 @@ final class IdentifierMappingTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommand(new CreateTicket(new InternalId('123')));

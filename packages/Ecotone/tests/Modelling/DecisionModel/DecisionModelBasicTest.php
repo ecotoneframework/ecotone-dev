@@ -54,7 +54,8 @@ final class DecisionModelBasicTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$courseSubscriptions::class, CourseCapacityForBasicTest::class, CourseDefinedForBasicTest::class, StudentSubscribedToCourseForBasicTest::class],
             containerOrAvailableServices: [$courseSubscriptions],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

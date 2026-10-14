@@ -39,7 +39,8 @@ final class EventTagLicenceTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [TaggedEventForLicenceTest::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

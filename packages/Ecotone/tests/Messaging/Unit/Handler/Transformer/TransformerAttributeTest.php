@@ -39,7 +39,7 @@ final class TransformerAttributeTest extends TestCase
     {
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([VoidTransformerHandler::class], [new VoidTransformerHandler()]);
+        EcotoneLite::bootstrapFlowTesting([VoidTransformerHandler::class], [new VoidTransformerHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_message_is_not_sent_to_output_channel_when_transformer_returns_null(): void
@@ -98,7 +98,8 @@ final class TransformerAttributeTest extends TestCase
             [new TransformerHandler()],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(TransformerHandler::NULL_OUTPUT_CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

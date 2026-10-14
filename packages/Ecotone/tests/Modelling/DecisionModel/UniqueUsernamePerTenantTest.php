@@ -145,7 +145,8 @@ final class UniqueUsernamePerTenantTest extends TestCase
             containerOrAvailableServices: $tenantFirst ? [new UsernameRegistrationScopedTenantFirst()] : [new UsernameRegistration()],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

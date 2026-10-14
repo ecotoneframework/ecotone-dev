@@ -69,6 +69,7 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
             (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector($collectorEnabled),
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))
+                ->withEnabledModulePackageNames([])
         );
     }
 }

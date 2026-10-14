@@ -52,6 +52,7 @@ final class InMemoryStreamingChannelTest extends TestCase
                     SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Send 3 messages
@@ -115,6 +116,7 @@ final class InMemoryStreamingChannelTest extends TestCase
                     PollingMetadata::create('consumer1')->withHandledMessageLimit(1),
                     PollingMetadata::create('consumer2')->withHandledMessageLimit(1),
                 ])
+                    ->withEnabledModulePackageNames([])
         );
 
         // Send 3 messages

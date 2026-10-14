@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +29,8 @@ final class WorkflowTest extends TestCase
             [OrderProcessSaga::class, PaymentHandler::class],
             [
                 PaymentHandler::class => new PaymentHandler(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $orderId = '123';
@@ -50,7 +52,8 @@ final class WorkflowTest extends TestCase
             [OrderProcessSaga::class, PaymentHandler::class],
             [
                 PaymentHandler::class => new PaymentHandler(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $orderId = '123';
@@ -68,7 +71,8 @@ final class WorkflowTest extends TestCase
             [
                 AsynchronousPaymentHandler::class => new AsynchronousPaymentHandler(),
             ],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $orderId = '123';
@@ -93,7 +97,8 @@ final class WorkflowTest extends TestCase
     public function test_workflow_with_separated_output_command_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcessSaga::class]
+            [OrderProcessSaga::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $orderId = '123';

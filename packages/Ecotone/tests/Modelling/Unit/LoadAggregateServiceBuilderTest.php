@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
@@ -42,7 +43,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->assertEquals(
             $duration = 1000,
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [Appointment::class])
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [Appointment::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))
                 ->sendCommand(new CreateAppointmentCommand(123, $duration))
                 ->sendQueryWithRouting('getDuration', metadata: ['aggregate.id' => 123])
         );
@@ -52,7 +53,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->assertEquals(
             'done',
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [OrderFulfilment::class])
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [OrderFulfilment::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))
                 ->sendCommandWithRouting('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $oderId])
@@ -65,7 +66,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             'done',
             EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: [AsynchronousOrderFulfilment::class],
-                configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                    ->withEnabledModulePackageNames([])
             )
                 ->sendCommandWithRouting('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
@@ -78,7 +80,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->assertEquals(
             100,
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [PublicIdentifierGetMethodForEventSourcedAggregate::class])
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [PublicIdentifierGetMethodForEventSourcedAggregate::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))
                 ->sendCommand(new CreateNoIdDefinedAggregate(100))
                 ->getAggregate(PublicIdentifierGetMethodForEventSourcedAggregate::class, 100)
                 ->getId()
@@ -88,7 +90,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_providing_override_aggregate_identifier_as_array()
     {
         $this->assertFalse(
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [Article::class])
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [Article::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))
                 ->sendCommand(PublishArticleCommand::createWith(1000, 'Some', 'bla bla'))
                 ->sendCommandWithRouting('close', metadata: ['aggregate.id' => ['author' => 1000, 'title' => 'Some']])
                 ->getAggregate(Article::class, ['author' => 1000, 'title' => 'Some'])
@@ -100,7 +102,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [Product::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [Product::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_fetch_aggregate_via_business_repository()
@@ -110,7 +112,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
                 AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createWith([$appointment]),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var AppointmentRepositoryInterface $repository */
@@ -127,7 +130,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
                 AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var AppointmentRepositoryInterface $repository */
@@ -141,7 +145,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
                 AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var AppointmentRepositoryInterface $repository */
@@ -157,7 +162,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
                 AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         /** @var AppointmentRepositoryInterface $repository */
@@ -175,7 +181,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->expectException(AggregateNotFoundException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [AggregateWithoutMessageClassesExample::class])
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [AggregateWithoutMessageClassesExample::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]))
             ->sendCommandWithRouting('doSomething');
     }
 
@@ -184,7 +190,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage("You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [NoFactoryMethodAggregateExample::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [NoFactoryMethodAggregateExample::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_throwing_exception_if_factory_method_for_event_sourced_aggregate_has_no_parameters()
@@ -193,7 +199,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->expectExceptionMessage(EventSourcingHandlerMethodWithWrongParameterCountExample::class .'::factory is Event Sourcing Handler and should have at least one parameter.');
 
         try {
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
         } catch (Exception $e) {
             throw $e;
         }
@@ -203,27 +209,27 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [WithConstructorHavingParameters::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [WithConstructorHavingParameters::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_throwing_exception_if_construct_is_private()
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [WithPrivateConstructor::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [WithPrivateConstructor::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_throwing_exception_if_event_sourcing_handler_is_non_void()
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithReturnType::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithReturnType::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_throwing_exception_if_event_sourcing_handler_is_static()
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [StaticEventSourcingHandlerMethodExample::class]);
+        EcotoneLite::bootstrapFlowTesting(classesToResolve: [StaticEventSourcingHandlerMethodExample::class], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 }

@@ -61,6 +61,7 @@ final class RouterAttributeTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [NotRequiredRouterHandler::class],
             [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel(NotRequiredRouterHandler::ROUTER_CHANNEL, 'some');
@@ -89,7 +90,7 @@ final class RouterAttributeTest extends TestCase
         };
 
         try {
-            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
+            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
             $this->fail('A direct channel with two subscribed handlers was not refused at bootstrap');
         } catch (WrongHandlerAmountException $exception) {
             $this->assertStringContainsString('Direct channel `router.shared` delivers a message to one handler only', $exception->getMessage());
@@ -114,7 +115,7 @@ final class RouterAttributeTest extends TestCase
         };
 
         try {
-            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture]);
+            EcotoneLite::bootstrapFlowTesting([$fixture::class], [$fixture], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
             $this->fail('Two handlers on one direct channel were not refused at bootstrap');
         } catch (WrongHandlerAmountException $exception) {
             $this->assertStringContainsString('Direct channel `shared.channel` delivers a message to one handler only', $exception->getMessage());
@@ -147,7 +148,8 @@ final class RouterAttributeTest extends TestCase
             [$fixture],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createPublishSubscribeChannel('shared.channel'),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel('shared.channel', 'some');
@@ -162,7 +164,8 @@ final class RouterAttributeTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('unused'),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

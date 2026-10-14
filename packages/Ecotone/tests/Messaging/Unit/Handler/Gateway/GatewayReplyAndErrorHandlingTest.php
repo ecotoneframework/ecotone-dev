@@ -30,7 +30,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_send_only_gateway_invokes_the_handler_without_expecting_a_reply(): void
     {
         $handler = new ReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->getGateway(ReplyGateway::class)->sendOnly(new stdClass());
 
@@ -40,7 +40,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_receive_only_gateway_returns_the_handlers_reply(): void
     {
         $handler = new ReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->assertSame('handled', $ecotone->getGateway(ReplyGateway::class)->receiveOnly());
     }
@@ -48,7 +48,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_a_specific_header_converter_overrides_the_same_key_from_a_headers_array_converter(): void
     {
         $handler = new ReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->getGateway(ReplyGateway::class)->sendWithHeaderOverride('someValue', ['personId' => '123', 'other' => 'data']);
 
@@ -65,7 +65,8 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
             [],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(PollableReplyGateway::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 
@@ -76,7 +77,8 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
             [],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(PollableSendOnlyGateway::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->getGateway(PollableSendOnlyGateway::class)->send('some');
@@ -87,7 +89,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_future_reply_resolves_to_the_handlers_direct_return_value(): void
     {
         $handler = new ReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $future = $ecotone->getGateway(ReplyGateway::class)->futureReceive();
 
@@ -98,7 +100,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_receive_only_with_nullable_return_type_returns_null_when_no_reply_is_produced(): void
     {
         $handler = new VoidReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([NullableReplyGateway::class, VoidReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([NullableReplyGateway::class, VoidReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->assertNull($ecotone->getGateway(NullableReplyGateway::class)->receiveOnly());
     }
@@ -106,7 +108,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_receive_only_with_non_nullable_return_type_throws_when_no_reply_is_produced(): void
     {
         $handler = new VoidReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, VoidReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, VoidReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -121,7 +123,8 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
             [$handler],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(ErrorChannelGateway::ERROR_CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->getGateway(ErrorChannelGateway::class)->receiveOnly();
@@ -135,7 +138,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
     public function test_error_without_a_declared_error_channel_propagates_the_root_cause_exception(): void
     {
         $handler = new ThrowingReplyGatewayHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ThrowingReplyGatewayHandler::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([ReplyGateway::class, ThrowingReplyGatewayHandler::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('testing exception');
@@ -149,6 +152,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [InterceptedGateway::class, ReplyGatewayHandler::class, GatewayCallRecorder::class],
             [$handler, new GatewayCallRecorder()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->getGateway(InterceptedGateway::class)->sendOnly(new stdClass());

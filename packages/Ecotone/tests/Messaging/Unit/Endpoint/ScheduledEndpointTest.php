@@ -28,7 +28,7 @@ final class ScheduledEndpointTest extends TestCase
     public function test_scheduled_method_with_no_parameters_is_called_with_no_request_channel_needed(): void
     {
         $service = new NoArgScheduledService();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([NoArgScheduledService::class], [$service]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([NoArgScheduledService::class], [$service], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->run(NoArgScheduledService::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(1));
 
@@ -43,7 +43,8 @@ final class ScheduledEndpointTest extends TestCase
             [$service],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(1));
@@ -63,7 +64,8 @@ final class ScheduledEndpointTest extends TestCase
                     ->withFixedRateInMilliseconds(1)
                     ->withInitialDelayInMilliseconds(0)
                     ->withExecutionTimeLimitInMilliseconds(100),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID);
@@ -95,7 +97,7 @@ final class ScheduledEndpointTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([UnresolvableParameterScheduledService::class], [new UnresolvableParameterScheduledService()]);
+        EcotoneLite::bootstrapFlowTesting([UnresolvableParameterScheduledService::class], [new UnresolvableParameterScheduledService()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     /**
@@ -144,7 +146,8 @@ final class ScheduledEndpointTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('countedTicks'),
                 PollingMetadata::create('countingScheduler')->withFixedRateInMilliseconds($fixedRateInMilliseconds),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
 
         return [$ecotone, $clock, $service];

@@ -41,7 +41,8 @@ final class DecisionModelLicenceTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelForLicenceTest::class, TaggedEventForDecisionModelLicenceTest::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

@@ -109,7 +109,8 @@ final class ChannelSetupCommandTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(self::IN_MEMORY_CHANNEL),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

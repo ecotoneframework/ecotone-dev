@@ -73,7 +73,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            self::asyncChannelConfiguration(),
+            self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -91,7 +92,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            self::asyncChannelConfiguration(),
+            self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -117,7 +119,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            self::asyncChannelConfiguration(),
+            self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -139,7 +142,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -162,7 +166,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
-                ]),
+                ])
+                    ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -183,7 +188,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                 new RetriedCommandHandler(),
                 $errorChannelHandler,
             ],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -204,7 +210,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                 new RetriedCommandHandler(),
                 $errorChannelHandler,
             ],
-            configuration: self::asyncChannelConfiguration(),
+            configuration: self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
@@ -226,7 +233,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            self::asyncChannelConfiguration(),
+            self::asyncChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
     }

@@ -22,13 +22,13 @@ final class HandlerAndChannelNamingValidationTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting([DuplicateEndpointIdHandlers::class], [new DuplicateEndpointIdHandlers()]);
+        EcotoneLite::bootstrapFlowTesting([DuplicateEndpointIdHandlers::class], [new DuplicateEndpointIdHandlers()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 
     public function test_handlers_with_no_explicit_endpoint_id_are_registered_with_generated_ids(): void
     {
         $handler = new GeneratedEndpointIdHandlers();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([GeneratedEndpointIdHandlers::class], [$handler]);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([GeneratedEndpointIdHandlers::class], [$handler], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
 
         $ecotone->sendDirectToChannel('channelOne', 'a');
         $ecotone->sendDirectToChannel('channelTwo', 'b');
@@ -46,7 +46,8 @@ final class HandlerAndChannelNamingValidationTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createDirectMessageChannel('duplicateChannel'),
                 SimpleMessageChannelBuilder::createQueueChannel('duplicateChannel'),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

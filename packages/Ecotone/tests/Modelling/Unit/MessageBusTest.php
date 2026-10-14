@@ -89,7 +89,8 @@ final class MessageBusTest extends TestCase
             [SynchronousPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame(
@@ -106,7 +107,8 @@ final class MessageBusTest extends TestCase
             [SynchronousPriorityHandlerWithInheritance::class],
             [
                 new SynchronousPriorityHandlerWithInheritance(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame(
@@ -123,7 +125,8 @@ final class MessageBusTest extends TestCase
             [AggregateSynchronousPriorityWithLowerPriorityHandler::class, SynchronousPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame(
@@ -145,7 +148,8 @@ final class MessageBusTest extends TestCase
             [AggregateSynchronousPriorityWithHigherPriorityHandler::class, SynchronousPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
-            ]
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->assertSame(
@@ -302,6 +306,7 @@ final class MessageBusTest extends TestCase
             ],
             containerOrAvailableServices: [new GuestNotifier()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('background'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite
@@ -354,6 +359,7 @@ final class MessageBusTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EmailNotifier::class, ],
             containerOrAvailableServices: [$emailNotifier = new EmailNotifier()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->publishEvent($notification = new ANotification('john doe'));

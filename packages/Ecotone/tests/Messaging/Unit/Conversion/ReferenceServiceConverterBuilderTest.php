@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -30,6 +31,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ExampleConverterService::class, StdClassArrayHandler::class],
             ['exampleConverterService' => new ExampleConverterService(), StdClassArrayHandler::class => $handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel(StdClassArrayHandler::CHANNEL, ['some']);
@@ -44,6 +46,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ExampleIncorrectConverterService::class, StdClassArrayHandler::class],
             [new ExampleIncorrectConverterService(), new StdClassArrayHandler()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -52,6 +55,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ExampleIncorrectUnionSourceTypeConverterService::class, StdClassArrayHandler::class],
             [new ExampleIncorrectUnionSourceTypeConverterService(), new StdClassArrayHandler()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->expectNotToPerformAssertions();
@@ -64,6 +68,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ExampleIncorrectUnionReturnTypeConverterService::class, StdClassArrayHandler::class],
             [new ExampleIncorrectUnionReturnTypeConverterService(), new StdClassArrayHandler()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -90,6 +95,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$staticConverter::class, StdClassArrayHandler::class],
             [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendDirectToChannel(StdClassArrayHandler::CHANNEL, ['some']);
@@ -126,6 +132,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$staticConverter::class, $handler::class],
             [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->expectException(MethodInvocationException::class);

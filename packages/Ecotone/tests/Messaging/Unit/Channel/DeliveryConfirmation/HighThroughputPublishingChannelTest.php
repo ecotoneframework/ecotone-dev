@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
@@ -74,7 +75,8 @@ final class HighThroughputPublishingChannelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))
+                ->withEnabledModulePackageNames([])
         );
     }
 }

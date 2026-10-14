@@ -27,6 +27,7 @@ final class EventTest extends TestCase
             [],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([InMemoryRepositoryBuilder::createDefaultEventSourcedRepository()])
+                ->withEnabledModulePackageNames([])
         );
 
         $metadata = [

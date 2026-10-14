@@ -77,7 +77,8 @@ final class AggregateBoundaryConfigurationTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [WalletWithoutAggregateType::class, LedgerWithoutAggregateType::class, LedgerOpened::class],
-            configuration: ServiceConfiguration::createWithDefaults(),
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('wallet.open', 'w-1');
@@ -145,7 +146,8 @@ final class AggregateBoundaryConfigurationTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

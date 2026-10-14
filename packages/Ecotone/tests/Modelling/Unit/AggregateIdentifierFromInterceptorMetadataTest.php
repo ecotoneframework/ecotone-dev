@@ -34,6 +34,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
             containerOrAvailableServices: [
                 new BeforeFinishOrder(),
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
@@ -53,7 +54,8 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
                 new BeforeFinishOrder(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
@@ -73,6 +75,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
             containerOrAvailableServices: [
                 new PresendFinishOrder(),
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
@@ -92,7 +95,8 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
                 new PresendFinishOrder(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('order.start', $orderId = 100);

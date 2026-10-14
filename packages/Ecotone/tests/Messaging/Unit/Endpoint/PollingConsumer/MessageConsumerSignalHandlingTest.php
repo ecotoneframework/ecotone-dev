@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +25,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TestMessageHandler::class],
             [$messageHandler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'test-message');
@@ -47,7 +49,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TestMessageHandler::class],
             [$messageHandler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
@@ -73,7 +76,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TestMessageHandler::class],
             [$messageHandler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
@@ -98,7 +102,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SignalSendingMessageHandler::class],
             [$signalHandler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
@@ -123,7 +128,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SignalSendingMessageHandler::class],
             [$signalHandler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');

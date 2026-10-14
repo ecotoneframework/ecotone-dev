@@ -41,7 +41,8 @@ final class EventTagFilterOnlyTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [TenantScopedEventForFilterOnlyTest::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -68,7 +69,8 @@ final class EventTagFilterOnlyTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: [TenantScopedEventForFilterOnlyTest::class],
                 configuration: ServiceConfiguration::createWithDefaults()
-                    ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tennant'])]),
+                    ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tennant'])])
+                    ->withEnabledModulePackageNames([]),
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
             $this->fail('Expected a ConfigurationException');

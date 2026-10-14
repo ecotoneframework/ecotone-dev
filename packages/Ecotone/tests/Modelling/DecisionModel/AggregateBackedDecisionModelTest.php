@@ -215,7 +215,8 @@ final class AggregateBackedDecisionModelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

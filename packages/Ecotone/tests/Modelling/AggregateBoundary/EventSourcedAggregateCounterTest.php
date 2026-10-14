@@ -123,6 +123,7 @@ final class EventSourcedAggregateCounterTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [LedgerWallet::class, LedgerWalletOpened::class, LedgerWalletDeposited::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommandWithRouting('ledgerWallet.open', 'w-1');
@@ -146,7 +147,8 @@ final class EventSourcedAggregateCounterTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [LedgerWallet::class, LedgerWalletOpened::class, LedgerWalletDeposited::class, LedgerWalletAudited::class, LedgerShipmentSaga::class, LedgerShipmentStarted::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

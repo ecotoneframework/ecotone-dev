@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use DateTimeImmutable;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -38,7 +39,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -64,7 +66,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $command = new stdClass();
@@ -96,7 +99,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $command = new stdClass();
@@ -125,7 +129,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $command = new stdClass();
@@ -154,7 +159,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -178,7 +184,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -199,7 +206,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -222,7 +230,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -245,7 +254,8 @@ class EndpointHeadersInterceptorTest extends TestCase
                 AddingMultipleHeaders::class => new AddingMultipleHeaders(),
             ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $command = new stdClass();
@@ -272,7 +282,8 @@ class EndpointHeadersInterceptorTest extends TestCase
             [AddingMultipleHeaders::class],
             [AddingMultipleHeaders::class => new AddingMultipleHeaders()],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $command = new stdClass();

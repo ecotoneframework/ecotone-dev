@@ -52,6 +52,7 @@ final class ClosureExpressionTest extends TestCase
             [ClosureExpressionService::class, UpperCaseService::class],
             [new ClosureExpressionService(), new UpperCaseService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('notification.send', 'hello', metadata: ['token' => 'abc']);
@@ -65,6 +66,7 @@ final class ClosureExpressionTest extends TestCase
             [ClosureExpressionService::class, UpperCaseService::class],
             [new ClosureExpressionService(), new UpperCaseService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('notification.sendWithReversedToken', 'hello', metadata: ['token' => 'abc']);
@@ -78,6 +80,7 @@ final class ClosureExpressionTest extends TestCase
             [ClosureExpressionService::class, UpperCaseService::class],
             [new ClosureExpressionService(), new UpperCaseService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('order.total', ['items' => [100, 250]], metadata: ['fee' => 50]);
@@ -92,6 +95,7 @@ final class ClosureExpressionTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ClosureExpressionService::class, UpperCaseService::class],
             [new ClosureExpressionService(), new UpperCaseService()],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -103,6 +107,7 @@ final class ClosureExpressionTest extends TestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
             licenceKey: LicenceTesting::VALID_LICENCE,
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
 
         $headers = $ecotoneLite
@@ -120,6 +125,7 @@ final class ClosureExpressionTest extends TestCase
             [DelayedClosureService::class],
             [new DelayedClosureService()],
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                ->withEnabledModulePackageNames([])
         );
     }
 
@@ -134,6 +140,7 @@ final class ClosureExpressionTest extends TestCase
                 FetchClosureOrderService::class => $orderService,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotoneLite->sendCommandWithRouting('placeOrderWithClosureFetch', new PlaceOrder('order-1', 'user-1', 'Laptop'));

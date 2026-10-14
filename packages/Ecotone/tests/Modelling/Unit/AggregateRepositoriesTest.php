@@ -36,7 +36,8 @@ class AggregateRepositoriesTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 [Order::class, InMemoryStateStoredRepository::class],
                 [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
-                self::ordersChannelConfiguration(),
+                self::ordersChannelConfiguration()
+                    ->withEnabledModulePackageNames([]),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
@@ -54,6 +55,7 @@ class AggregateRepositoriesTest extends TestCase
                 [InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty()],
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommand(new StartJob('123'))
                 ->getAggregate(Job::class, '123')
@@ -79,7 +81,8 @@ class AggregateRepositoriesTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [Order::class, InMemoryEventSourcedRepository::class],
             [InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty()],
-            self::ordersChannelConfiguration(),
+            self::ordersChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             addInMemoryStateStoredRepository: false,
         );
 
@@ -97,7 +100,8 @@ class AggregateRepositoriesTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [Order::class, InMemoryEventSourcedRepository::class],
             [InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty()],
-            self::ordersChannelConfiguration(),
+            self::ordersChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
@@ -128,7 +132,8 @@ class AggregateRepositoriesTest extends TestCase
                     InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
-                self::ordersChannelConfiguration(),
+                self::ordersChannelConfiguration()
+                    ->withEnabledModulePackageNames([]),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
@@ -147,7 +152,8 @@ class AggregateRepositoriesTest extends TestCase
                     InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
-                self::ordersChannelConfiguration(),
+                self::ordersChannelConfiguration()
+                    ->withEnabledModulePackageNames([]),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
@@ -169,6 +175,7 @@ class AggregateRepositoriesTest extends TestCase
             ],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(PublishArticleCommand::createWith('test', 'title', 'test'));
 
@@ -187,7 +194,8 @@ class AggregateRepositoriesTest extends TestCase
                 AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
                 InMemoryArticleStateStoredRepository::class => InMemoryArticleStateStoredRepository::createEmpty(),
             ],
-            self::ordersChannelConfiguration(),
+            self::ordersChannelConfiguration()
+                ->withEnabledModulePackageNames([]),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
@@ -202,7 +210,8 @@ class AggregateRepositoriesTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 [Appointment::class],
                 configuration: ServiceConfiguration::createWithDefaults()
-                    ->withExtensionObjects([AppointmentRepositoryBuilder::createEmpty()]),
+                    ->withExtensionObjects([AppointmentRepositoryBuilder::createEmpty()])
+                    ->withEnabledModulePackageNames([]),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )

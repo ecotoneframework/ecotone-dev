@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
@@ -43,6 +44,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             [InMemoryStateStoredRepository::createWith([AggregateWithoutMessageClassesExample::create($id = 1)])],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommandWithRouting('doSomething', metadata: ['aggregate.id' => $id]);
 
@@ -60,7 +62,8 @@ class CallAggregateServiceBuilderTest extends TestCase
         $this->assertEquals(
             $orderAmount,
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class]
+                [Order::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommand(CreateOrderCommand::createWith(1, $orderAmount, 'Poland'))
                 ->sendQueryWithRouting('get_order_amount_channel', GetOrderAmountQuery::createWith(1))
@@ -75,6 +78,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'array<' . SmallBox::class . '>',
             EcotoneLite::bootstrapFlowTesting(
                 [Storage::class, StorageService::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommand(new CreateStorage($storageId, [SmallBox::create(1)], []))
                 ->getGateway(StorageService::class)
@@ -93,6 +97,7 @@ class CallAggregateServiceBuilderTest extends TestCase
                 '|',
                 EcotoneLite::bootstrapFlowTesting(
                     [Storage::class, StorageService::class],
+                    configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
                 )
                     ->sendCommand(new CreateStorage($storageId, [SmallBox::create(1)], []))
                     ->getGateway(StorageService::class)
@@ -106,7 +111,8 @@ class CallAggregateServiceBuilderTest extends TestCase
     {
         $this->assertNull(
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class]
+                [Order::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommand(CreateOrderCommand::createWith(1, 5, 'Poland'))
                 ->sendQueryWithRouting('get_customer_id', metadata: ['aggregate.id' => 1])
@@ -119,6 +125,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             true,
             EcotoneLite::bootstrapFlowTesting(
                 [AggregateWithoutMessageClassesExample::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
             )
                 ->sendCommandWithRouting('createAggregateNoParams', $id = 1)
                 ->sendQueryWithRouting('querySomething', metadata: ['aggregate.id' => $id])
@@ -131,6 +138,7 @@ class CallAggregateServiceBuilderTest extends TestCase
 
         $reply = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->getGateway(CommandBus::class)
             ->send($commandToRun);
@@ -144,6 +152,7 @@ class CallAggregateServiceBuilderTest extends TestCase
 
         $reply = EcotoneLite::bootstrapFlowTesting(
             [EventSourcingAggregateWithInternalRecorder::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->getGateway(CommandBus::class)
             ->send($commandToRun);
@@ -158,6 +167,7 @@ class CallAggregateServiceBuilderTest extends TestCase
 
         $reply = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new StartTicketCommand($ticketId))
             ->getGateway(CommandBus::class)
@@ -172,6 +182,7 @@ class CallAggregateServiceBuilderTest extends TestCase
 
         $reply = EcotoneLite::bootstrapFlowTesting(
             [EventSourcingAggregateWithInternalRecorder::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new CreateAggregate(1))
             ->getGateway(CommandBus::class)
@@ -187,6 +198,7 @@ class CallAggregateServiceBuilderTest extends TestCase
 
         $reply = EcotoneLite::bootstrapFlowTesting(
             [StateBasedAggregateWithInternalRecorder::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         )
             ->sendCommand(new CreateAggregate(1))
             ->getGateway(CommandBus::class)

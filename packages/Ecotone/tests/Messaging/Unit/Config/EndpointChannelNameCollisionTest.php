@@ -27,7 +27,8 @@ final class EndpointChannelNameCollisionTest extends TestCase
             [new CollidingEndpointIdHandler()],
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createDirectMessageChannel(CollidingEndpointIdHandler::ENDPOINT_ID),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
         );
     }
 
@@ -35,7 +36,7 @@ final class EndpointChannelNameCollisionTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting([SameChannelAndEndpointIdHandler::class], [new SameChannelAndEndpointIdHandler()]);
+        EcotoneLite::bootstrapFlowTesting([SameChannelAndEndpointIdHandler::class], [new SameChannelAndEndpointIdHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
     }
 }
 

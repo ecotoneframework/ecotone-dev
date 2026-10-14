@@ -64,6 +64,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
             classesToResolve: [$handler::class, RenamesForDisabledBoundaryTest::class, RenamedForDisabledBoundaryTest::class],
             containerOrAvailableServices: [$handler],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -75,6 +76,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [RenamesForDisabledBoundaryTest::class, RenamedForDisabledBoundaryTest::class],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -101,6 +103,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
             classesToResolve: [$handler::class, RenamedForDisabledBoundaryTest::class],
             containerOrAvailableServices: [$handler],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
     }
 
@@ -109,6 +112,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EntityForDisabledBoundaryTest::class],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $ecotone->sendCommand(new CreateEntityForDisabledBoundaryTest('entity-1'));
@@ -122,6 +126,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EntityForDisabledBoundaryTest::class],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->expectException(ConfigurationException::class);
@@ -135,6 +140,7 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EntityForDisabledBoundaryTest::class],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
         );
 
         $this->expectException(ConfigurationException::class);
@@ -153,7 +159,8 @@ final class DynamicConsistencyBoundaryDisabledTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [UntaggedForDisabledBoundaryTest::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
         );
     }
 }

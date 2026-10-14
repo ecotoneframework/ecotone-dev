@@ -57,7 +57,8 @@ final class DecisionBoundaryTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -127,7 +128,8 @@ final class DecisionBoundaryTest extends TestCase
             containerOrAvailableServices: [$handler],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['region']),
-            ]),
+            ])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -225,7 +227,8 @@ final class DecisionBoundaryTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CompetingWriteInjectorForBoundaryTest()],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -237,7 +240,8 @@ final class DecisionBoundaryTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CourseTagMapperForBoundaryTest(), new CompetingWriteInjectorForBoundaryTest()],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -249,7 +253,8 @@ final class DecisionBoundaryTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, TenantCourseRatedForBoundaryTest::class, RegionAuditedForBoundaryTest::class, CourseTagMapperForBoundaryTest::class, CompetingWriteInjectorForBoundaryTest::class],
             containerOrAvailableServices: [$handler, new CourseTagMapperForBoundaryTest(), new CompetingWriteInjectorForBoundaryTest()],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                ->withEnabledModulePackageNames([]),
             configurationVariables: ['region' => 'eu'],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -279,7 +284,8 @@ final class DecisionBoundaryTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class],
                 containerOrAvailableServices: [$handler],
-                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()])
+                    ->withEnabledModulePackageNames([]),
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
             $this->fail('Expected a ConfigurationException');

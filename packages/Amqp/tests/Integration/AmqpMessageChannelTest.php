@@ -64,7 +64,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(100))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1000)));
     }
 
     public function test_sending_and_receiving_without_delivery_guarantee()
@@ -94,7 +94,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(100))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1000)));
     }
 
     public function test_sending_and_receiving_message_from_amqp_using_consumer()

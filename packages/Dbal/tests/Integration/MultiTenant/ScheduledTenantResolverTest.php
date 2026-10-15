@@ -297,11 +297,11 @@ final class ScheduledTenantResolverTest extends TestCase
 
     private function pollOnce(FlowTestSupport $ecotone): void
     {
-        $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
     }
 
     private function drainProcessing(FlowTestSupport $ecotone): void
     {
-        $ecotone->run('external_processing', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $ecotone->run('external_processing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
     }
 }

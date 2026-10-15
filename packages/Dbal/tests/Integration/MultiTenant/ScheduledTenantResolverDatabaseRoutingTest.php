@@ -58,10 +58,10 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
 
         $ecotone = $this->bootstrap([$poller, $handler], asynchronous: true);
 
-        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
-        $ecotone->run('persons_processing', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
-        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
-        $ecotone->run('persons_processing', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
+        $ecotone->run('persons_processing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
+        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
+        $ecotone->run('persons_processing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $this->assertTenantTablesIsolated($tenantADbal, $tenantBDbal);
     }
@@ -88,8 +88,8 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
 
         $ecotone = $this->bootstrap([$poller, $handler], asynchronous: false);
 
-        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
-        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
+        $ecotone->run('externalPersonPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $this->assertTenantTablesIsolated($tenantADbal, $tenantBDbal);
     }

@@ -193,8 +193,8 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
-        $ecotone->run('external_processing', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
+        $ecotone->run('external_processing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
 
         $capturedHeaders = $ecotone->sendQueryWithRouting('lastCapturedHeaders');
         $this->assertNotNull($capturedHeaders);

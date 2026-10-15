@@ -106,7 +106,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         }
 
         $this->assertTrue($publishFailed);
-        $this->assertNull($messaging->getMessageChannel('verificationChannel')->receiveWithTimeout(PollingMetadata::create('verification')->withFixedRateInMilliseconds(200)));
+        $this->assertNull($messaging->getMessageChannel('verificationChannel')->receiveWithTimeout(PollingMetadata::create('verification')->withExecutionTimeLimitInMilliseconds(1000)));
     }
 
     public function test_publish_deferred_confirms_delivery_on_future_resolve(): void

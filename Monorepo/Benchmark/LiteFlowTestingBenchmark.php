@@ -87,6 +87,7 @@ final class LiteFlowTestingBenchmark
         Assert::assertSame([$this->executed, $this->executed], $this->executionSystem->getQueryBus()->sendWithRouting('benchmark.counts'));
     }
 
+    #[Warmup(2), Revs(20), Iterations(10)]
     public function bench_bootstrap_only(): void
     {
         $handler = new class () {
@@ -99,6 +100,7 @@ final class LiteFlowTestingBenchmark
         EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
     }
 
+    #[Warmup(2), Revs(20), Iterations(10)]
     public function bench_bootstrap_async_projection(): void
     {
         $projection = new #[Projection('benchmark'), FromStream('benchmark_stream'), Asynchronous('async')] class {
@@ -129,6 +131,7 @@ final class LiteFlowTestingBenchmark
         Assert::assertSame([['id' => 1], ['id' => 2]], $projection->events);
     }
 
+    #[Warmup(2), Revs(20), Iterations(10)]
     public function bench_bootstrap_send_assert(): void
     {
         $handler = new class () {

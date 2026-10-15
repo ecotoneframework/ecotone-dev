@@ -154,6 +154,15 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             SimpleMessageChannelBuilder::createPublishSubscribeChannel(HeaderBasedMultiTenantConnectionFactory::TENANT_DEACTIVATED_CHANNEL_NAME)
         );
 
+        if ($multiTenantConfigurations !== []) {
+            $messagingConfiguration->addCompilerPass(new IncludeTenantHeaderInLogContext(
+                array_values(array_unique(array_map(
+                    fn (MultiTenantConfiguration $multiTenantConfig): string => $multiTenantConfig->tenantHeaderName,
+                    $multiTenantConfigurations
+                )))
+            ));
+        }
+
         foreach ($multiTenantConfigurations as $multiTenantConfig) {
             $messagingConfiguration->registerServiceDefinition(
                 $multiTenantConfig->getReferenceName(),

@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
@@ -17,6 +18,8 @@ use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
@@ -112,7 +115,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -149,7 +152,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -169,7 +172,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         $this->assertSame(['immediate order'], $receivedPayloads);
@@ -195,7 +198,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
 
         $channel = $messaging->getMessageChannel($queueName);
         $this->assertSame('kept order', $channel->receive()->getPayload());
-        $this->assertNull($channel->receive());
+        $this->assertNull($this->receiveWithinOneSecond($channel));
     }
 
     public function test_publishing_to_wrong_type_key_throws(): void
@@ -309,5 +312,10 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function receiveWithinOneSecond(PollableChannel $channel): ?Message
+    {
+        return $channel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1000));
     }
 }

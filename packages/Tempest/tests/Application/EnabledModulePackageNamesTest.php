@@ -19,7 +19,7 @@ use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 final class EnabledModulePackageNamesTest extends EcotoneIntegrationTestCase
 {
     private const NAMESPACES = ['Test\\Ecotone\\Tempest\\Fixture\\EnabledModulePackageNames\\'];
-    private const RECOGNISED_KEYS = 'cacheConfiguration, defaultErrorChannel, defaultSerializationMediaType, enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, serviceName, test';
+    private const RECOGNISED_KEYS = 'cacheConfiguration, defaultErrorChannel, defaultSerializationMediaType, enabledModulePackageNames, headersInLogContext, licenceKey, loadAppNamespaces, namespaces, serviceName, test';
 
     private ?EcotoneConfig $bootedConfig = null;
 

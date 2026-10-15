@@ -92,6 +92,12 @@ class EcotoneProvider extends ServiceProvider
                 ->withDefaultErrorChannel($errorChannel);
         }
 
+        $headersInLogContext = Config::get('ecotone.headersInLogContext');
+        if ($headersInLogContext) {
+            $applicationConfiguration = $applicationConfiguration
+                ->withHeadersInLogContext($headersInLogContext);
+        }
+
         $retryTemplate = Config::get('ecotone.defaultConnectionExceptionRetry');
         if ($retryTemplate) {
             $applicationConfiguration = $applicationConfiguration

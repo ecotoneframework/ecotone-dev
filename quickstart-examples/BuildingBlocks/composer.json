@@ -28,7 +28,7 @@
     },
     "require": {
         "beberlei/assert": "^3.3.2",
-        "ecotone/ecotone": "~1.328.2",
+        "ecotone/ecotone": "~2.0.0-beta.2",
         "ecotone/lite-event-sourcing-starter": "^1.0",
         "moneyphp/money": "^4.1.0",
         "ramsey/uuid": "^4.0"

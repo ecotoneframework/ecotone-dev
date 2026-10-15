@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function class_exists;
+
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
-use ReflectionClass;
-use ReflectionMethod;
 
-use function class_exists;
 use function get_class;
 use function is_object;
+
+use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * licence Enterprise

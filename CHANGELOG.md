@@ -3,6 +3,16 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.2] - 2026-10-15
+
+## What's Changed
+* fix: release each tag from its own major-version branch by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/708
+* fix: keep releases green when announcements fail by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/709
+* feat: Ecotone 2.0 — Ecotone owns the event store, the public API is `Api`, and every failure names its way out by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/712
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.2...2.0.0-beta.2
+
 ## [1.328.2] - 2026-10-10
 
 **Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.328.1...1.328.2

@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AppendConditionTest extends TestCase
 {

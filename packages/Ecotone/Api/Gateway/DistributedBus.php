@@ -2,7 +2,6 @@
 
 namespace Ecotone\Api\Gateway;
 
-
 use Ecotone\Api\ExtensionObject\MediaType;
 
 /**

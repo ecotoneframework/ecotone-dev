@@ -10,7 +10,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -33,7 +33,7 @@ final class BatchMessageSendingTest extends TestCase
             ->append('second order', ['priority' => 5]);
 
         $ecotoneLite->getMessageChannel('orders')->send(
-            MessageBuilder::withPayload($batch)->build()
+            StaticMessageBuilder::withPayload($batch)->build()
         );
 
         $firstMessage = $ecotoneLite->receiveMessageFrom('orders');
@@ -103,7 +103,7 @@ final class BatchMessageSendingTest extends TestCase
         );
 
         $ecotoneLite->getMessageChannel('orders')->send(
-            MessageBuilder::withPayload(BatchMessage::constructEmpty())->build()
+            StaticMessageBuilder::withPayload(BatchMessage::constructEmpty())->build()
         );
 
         $this->assertNull($ecotoneLite->receiveMessageFrom('orders'));

@@ -9,7 +9,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use stdClass;
@@ -119,7 +119,7 @@ class RouterBuilderTest extends MessagingTestCase
 
         $messaging->sendMessageDirectToChannel(
             'inputChannel',
-            MessageBuilder::withPayload('some')
+            StaticMessageBuilder::withPayload('some')
                 ->setHeader($headerName, 'private')
                 ->build()
         );

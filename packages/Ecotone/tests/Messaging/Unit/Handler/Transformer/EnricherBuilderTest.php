@@ -25,6 +25,7 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use Test\Ecotone\Messaging\Fixture\Conversion\FakeConverterService;
@@ -71,7 +72,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload([]),
+            StaticMessageBuilder::withPayload([]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('token', '123'),
@@ -120,7 +121,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherWithConvertersAndHandle(
-            MessageBuilder::withPayload('{"name": "Franco"}')
+            StaticMessageBuilder::withPayload('{"name": "Franco"}')
                 ->setContentType(MediaType::createApplicationJson()),
             $outputChannel,
             [
@@ -181,7 +182,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherWithConvertersAndHandle(
-            MessageBuilder::withPayload(['name' => 'Franco'])
+            StaticMessageBuilder::withPayload(['name' => 'Franco'])
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('object')),
             $outputChannel,
             [
@@ -209,7 +210,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload([]),
+            StaticMessageBuilder::withPayload([]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith("'token'", '123'),
@@ -236,7 +237,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload([])
+            StaticMessageBuilder::withPayload([])
                 ->setHeader('user', 1),
             $outputChannel,
             [
@@ -256,7 +257,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_enriching_with_static_headers()
     {
         $outputChannel = QueueChannel::create();
-        $this->createEnricherAndHandle(MessageBuilder::withPayload('some'), $outputChannel, [
+        $this->createEnricherAndHandle(StaticMessageBuilder::withPayload('some'), $outputChannel, [
             EnrichHeaderWithValueBuilder::create('token', '123'),
         ]);
 
@@ -274,7 +275,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_enriching_with_expression_setter_from_external_message()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(['surname' => 'levis']);
+        $inputMessage = StaticMessageBuilder::withPayload(['surname' => 'levis']);
         $replyPayload = 'johny';
         $setterBuilders = [
             EnrichPayloadWithExpressionBuilder::createWith('name', 'payload'),
@@ -328,7 +329,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $buyerNameToSet = 'johny levis';
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(OrderExample::createFromId(100)),
+            StaticMessageBuilder::withPayload(OrderExample::createFromId(100)),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('buyerName', $buyerNameToSet),
@@ -349,7 +350,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $newOrderId = 999;
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(OrderExample::createFromId(100)),
+            StaticMessageBuilder::withPayload(OrderExample::createFromId(100)),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('orderId', $newOrderId),
@@ -371,7 +372,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $this->expectException(EnrichException::class);
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(OrderExample::createFromId(100)),
+            StaticMessageBuilder::withPayload(OrderExample::createFromId(100)),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('notExisting', 'some'),
@@ -390,7 +391,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $newWorkerId = 1000;
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(['workerId' => 123]),
+            StaticMessageBuilder::withPayload(['workerId' => 123]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('[workerId]', $newWorkerId),
@@ -416,7 +417,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $newWorkerId = 1000;
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload([['workerId' => 123]]),
+            StaticMessageBuilder::withPayload([['workerId' => 123]]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('[0][workerId]', $newWorkerId),
@@ -439,7 +440,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $buyerName = 'Johny';
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(['order' => OrderExample::createFromId(1)]),
+            StaticMessageBuilder::withPayload(['order' => OrderExample::createFromId(1)]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('[order][buyerName]', $buyerName),
@@ -463,7 +464,7 @@ class EnricherBuilderTest extends MessagingTestCase
             'surname' => 'franco',
         ];
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(
+            StaticMessageBuilder::withPayload(
                 [
                     [
                         'data' => [
@@ -497,7 +498,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $workerName = 'johny';
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(['worker' => []]),
+            StaticMessageBuilder::withPayload(['worker' => []]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('worker[name]', $workerName),
@@ -516,7 +517,7 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $workerName = 'johny';
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(['worker' => ['names' => ['Edward']]]),
+            StaticMessageBuilder::withPayload(['worker' => ['names' => ['Edward']]]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('worker[names][]', $workerName),
@@ -537,7 +538,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $this->expectException(EnrichException::class);
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload(['worker' => ['names' => 'Edward']]),
+            StaticMessageBuilder::withPayload(['worker' => ['names' => 'Edward']]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('worker[names][]', $workerName),
@@ -550,7 +551,7 @@ class EnricherBuilderTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $this->createEnricherAndHandle(
-            MessageBuilder::withPayload([]),
+            StaticMessageBuilder::withPayload([]),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('order.orderId', 'some'),
@@ -571,7 +572,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_enriching_array_with_multiple_values_at_once_by_mapping()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(
+        $inputMessage = StaticMessageBuilder::withPayload(
             [
                 'orders' => [
                     ['orderId' => 1, 'personId' => 1],
@@ -623,7 +624,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_if_no_request_channel_passed_then_evaluate_for_request_message()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(['surname' => 'levis']);
+        $inputMessage = StaticMessageBuilder::withPayload(['surname' => 'levis']);
         $setterBuilders = [
             EnrichPayloadWithExpressionBuilder::createWith('name', 'payload'),
             EnrichHeaderWithExpressionBuilder::createWith('toUpload', "request['payload']['surname']"),
@@ -647,7 +648,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_throwing_exception_if_enriching_multiple_values_but_there_was_no_enough_data_to_be_mapped()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(
+        $inputMessage = StaticMessageBuilder::withPayload(
             [
                 'orders' => [
                     ['orderId' => 1, 'personId' => 1],
@@ -667,7 +668,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_not_doing_mapping_when_context_is_empty()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(
+        $inputMessage = StaticMessageBuilder::withPayload(
             [
                 'orders' => [],
             ]
@@ -695,7 +696,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_using_null_expression_when_no_reply_available_on_payload_setter()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(['personId' => 1]);
+        $inputMessage = StaticMessageBuilder::withPayload(['personId' => 1]);
         $setterBuilders = [
             EnrichPayloadWithExpressionBuilder::createWith('name', 'payload')
                 ->withNullResultExpression("'unknown'"),
@@ -717,7 +718,7 @@ class EnricherBuilderTest extends MessagingTestCase
     public function test_using_null_expression_when_no_reply_available_on_header_setter()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(['personId' => 1]);
+        $inputMessage = StaticMessageBuilder::withPayload(['personId' => 1]);
         $setterBuilders = [
             EnrichHeaderWithExpressionBuilder::createWith('name', 'payload')
                 ->withNullResultExpression("'unknown'"),
@@ -769,12 +770,12 @@ class EnricherBuilderTest extends MessagingTestCase
     public function TODO_test_converting_reply_message_for_evaluation()
     {
         $outputChannel = QueueChannel::create();
-        $inputMessage = MessageBuilder::withPayload(
+        $inputMessage = StaticMessageBuilder::withPayload(
             [
                 'name' => 'Johny',
             ]
         );
-        $replyMessage = MessageBuilder::withPayload('{"surname": "Franco"}')
+        $replyMessage = StaticMessageBuilder::withPayload('{"surname": "Franco"}')
             ->setContentType(MediaType::createApplicationJson())
             ->build();
         $setterBuilders = [EnrichPayloadWithExpressionBuilder::createWith('surname', "payload['surname']")];

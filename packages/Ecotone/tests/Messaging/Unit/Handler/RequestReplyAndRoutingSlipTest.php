@@ -12,7 +12,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\MessageDeliveryException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -94,7 +94,7 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
 
         $ecotone->sendMessageDirectToChannel(
             RequestReplyHandler::NO_OUTPUT_CHANNEL,
-            MessageBuilder::fromMessage($firstHopMessage)->removeHeader(MessagingEntrypointService::ENTRYPOINT)->build()
+            StaticMessageBuilder::fromMessage($firstHopMessage)->removeHeader(MessagingEntrypointService::ENTRYPOINT)->build()
         );
 
         /** @var PollableChannel $finalChannel */

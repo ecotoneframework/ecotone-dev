@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Redis\RedisContext;
@@ -44,7 +44,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
 
         $caughtException = null;
         try {
-            $channel->send(MessageBuilder::withPayload(
+            $channel->send(StaticMessageBuilder::withPayload(
                 BatchMessage::constructEmpty()
                     ->append('delivered order')
                     ->append('order for broken delayed storage', [MessageHeaders::DELIVERY_DELAY => 60000])

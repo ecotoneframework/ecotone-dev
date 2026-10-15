@@ -15,7 +15,7 @@ use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
@@ -51,7 +51,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
         $this->expectException(PublishingFailedException::class);
 
         $messaging->getMessageChannel($queueName)->send(
-            MessageBuilder::withPayload(
+            StaticMessageBuilder::withPayload(
                 BatchMessage::constructEmpty()->append(str_repeat('x', 300_000))
             )->build()
         );

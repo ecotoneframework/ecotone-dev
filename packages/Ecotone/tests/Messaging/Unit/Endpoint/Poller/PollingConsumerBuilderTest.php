@@ -17,7 +17,7 @@ use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeCallba
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\StubLogger;
 use InvalidArgumentException;
@@ -43,7 +43,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_acking_message_when_ack_available_in_message_header()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -65,7 +65,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_requeing_message_on_gateway_failure()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -87,7 +87,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_throwing_exception_and_requeuing_when_stop_on_error_defined()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -111,7 +111,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_throwing_exception_and_rejecting_message()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -230,7 +230,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     ->withEnabledModulePackageNames([])
         );
 
-        $originalNessage = MessageBuilder::withPayload('some')->build();
+        $originalNessage = StaticMessageBuilder::withPayload('some')->build();
         $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
 
         $messaging->run($asyncChannelName);

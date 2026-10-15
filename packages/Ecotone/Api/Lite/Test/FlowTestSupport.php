@@ -474,7 +474,7 @@ final class FlowTestSupport
         Assert::isFalse($message->getHeaders()->containsKey(MessagingEntrypointService::ENTRYPOINT), 'Message must not contain entrypoint header. Make use of first argument in sendDirectToChannel method');
 
         return $this->messagingEntrypoint->sendMessage(
-            MessageBuilder::fromMessage($message)
+            $this->configuredMessagingSystem->getServiceFromContainer(MessageBuilder::class)->fromMessage($message)
                 ->setHeader(MessagingEntrypointService::ENTRYPOINT, $targetChannel)
                 ->build()
         );

@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Support;
 
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 
 use function json_decode;
 
@@ -31,7 +31,7 @@ class MessageBuilderTest extends MessagingTestCase
         $payload = 'somePayload';
         $headerName = 'token';
         $headerValue = 'abc';
-        $message = MessageBuilder::withPayload($payload)
+        $message = StaticMessageBuilder::withPayload($payload)
                     ->setHeader($headerName, $headerValue)
                     ->build();
 
@@ -49,7 +49,7 @@ class MessageBuilderTest extends MessagingTestCase
     {
         $headerName = 'new_header';
         $headerValue = '123';
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
             ->setHeaderIfAbsent($headerName, $headerValue)
             ->setHeaderIfAbsent($headerName, 'x')
             ->build();
@@ -63,7 +63,7 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_removing_header_if_exists()
     {
         $headerName = 'new_header';
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
             ->removeHeader($headerName)
             ->setHeaderIfAbsent($headerName, 'bla')
             ->removeHeader($headerName)
@@ -75,7 +75,7 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_setting_reply_channel_directly()
     {
         $replyChannel = QueueChannel::create();
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -88,7 +88,7 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_setting_error_channel_directly()
     {
         $errorChannel = QueueChannel::create();
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
             ->setErrorChannel($errorChannel)
             ->build();
 
@@ -101,7 +101,7 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_creating_message_with_header()
     {
         $headerName = 'some';
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
                     ->setHeader($headerName, new stdClass())
                     ->build();
 
@@ -113,14 +113,14 @@ class MessageBuilderTest extends MessagingTestCase
 
     public function test_creating_from_different_message()
     {
-        $message = MessageBuilder::withPayload('somePayload')
+        $message = StaticMessageBuilder::withPayload('somePayload')
             ->setHeader('some', new stdClass())
             ->setHeader('token', 'johny')
             ->setHeader(MessageHeaders::TIMESTAMP, 1587658787863)
             ->setReplyChannel(QueueChannel::create())
             ->build();
 
-        $messageToCompare = MessageBuilder::fromMessage($message)
+        $messageToCompare = StaticMessageBuilder::fromMessage($message)
             ->build();
         $this->assertMessages(
             $message,
@@ -139,7 +139,7 @@ class MessageBuilderTest extends MessagingTestCase
 
     public function test_creating_with_empty_array_as_payload()
     {
-        $message = MessageBuilder::withPayload([])
+        $message = StaticMessageBuilder::withPayload([])
                     ->build();
 
         $this->assertEquals([], $message->getPayload());
@@ -150,7 +150,7 @@ class MessageBuilderTest extends MessagingTestCase
         $this->assertEquals(
             'some',
             json_decode(
-                (string)MessageBuilder::withPayload('some')
+                (string)StaticMessageBuilder::withPayload('some')
                     ->build(),
                 true
             )['payload']
@@ -160,12 +160,12 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_allow_to_manually_message_header_id_and_timestamp()
     {
         $this->assertEquals(
-            MessageBuilder::withPayload('some')
+            StaticMessageBuilder::withPayload('some')
                 ->setHeader(MessageHeaders::MESSAGE_ID, 123)
                 ->setHeader(MessageHeaders::TIMESTAMP, 1587658787863)
                 ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, 1234)
                 ->build(),
-            MessageBuilder::withPayload('some')
+            StaticMessageBuilder::withPayload('some')
                 ->setMultipleHeaders([
                     MessageHeaders::MESSAGE_ID => 123,
                     MessageHeaders::TIMESTAMP => 1587658787863,
@@ -178,32 +178,32 @@ class MessageBuilderTest extends MessagingTestCase
     public function test_correlation_id_is_preserved()
     {
         $correlationId = 1587658787863;
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
             ->build();
 
         $this->assertEquals(
             $correlationId,
-            MessageBuilder::fromMessage($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
+            StaticMessageBuilder::fromMessage($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
         );
     }
 
     public function test_correlation_id_is_preserved_when_id_is_generated()
     {
         $correlationId = 1587658787863;
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
             ->build();
 
         $this->assertEquals(
             $correlationId,
-            MessageBuilder::fromParentMessage($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
+            StaticMessageBuilder::fromParentMessage($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
         );
     }
 
     public function test_correlation_auto_generated_if_missing()
     {
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->build();
 
         $this->assertNotNull($message->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID));

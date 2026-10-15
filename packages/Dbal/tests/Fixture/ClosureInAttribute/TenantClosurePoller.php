@@ -8,7 +8,7 @@ use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -31,7 +31,7 @@ final class TenantClosurePoller
 
         $event = array_shift($this->pending);
 
-        return MessageBuilder::withPayload($event['payload'])
+        return StaticMessageBuilder::withPayload($event['payload'])
             ->setHeader('source', $event['source'])
             ->build();
     }

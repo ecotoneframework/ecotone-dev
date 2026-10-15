@@ -27,7 +27,7 @@ class MessageHeadersTest extends TestCase
 {
     public function test_creating_with_generated_headers()
     {
-        $headers = MessageHeaders::createEmpty();
+        $headers = MessageHeaders::create([MessageHeaders::TIMESTAMP => 1700000000]);
 
         $this->assertEquals(3, $headers->size());
         $this->assertTrue(Uuid::isValid($headers->get(MessageHeaders::MESSAGE_ID)));
@@ -69,7 +69,7 @@ class MessageHeadersTest extends TestCase
 
     public function test_throwing_exception_when_asking_for_not_existing_header()
     {
-        $messageHeaders = MessageHeaders::createEmpty();
+        $messageHeaders = MessageHeaders::create([MessageHeaders::TIMESTAMP => 1700000000]);
 
         $this->expectException(MessageHeaderDoesNotExistsException::class);
 
@@ -78,15 +78,15 @@ class MessageHeadersTest extends TestCase
 
     public function test_if_contains_value()
     {
-        $messageHeaders = MessageHeaders::createEmpty();
+        $messageHeaders = MessageHeaders::create([MessageHeaders::TIMESTAMP => 1700000000]);
 
         $this->assertFalse($messageHeaders->containsValue('test'));
     }
 
     public function test_checking_equality()
     {
-        $messageHeaders = MessageHeaders::createEmpty();
-        $this->assertFalse(MessageHeaders::createEmpty()->equals($messageHeaders));
+        $messageHeaders = MessageHeaders::create([MessageHeaders::TIMESTAMP => 1700000000]);
+        $this->assertFalse(MessageHeaders::create([MessageHeaders::TIMESTAMP => 1700000000])->equals($messageHeaders));
         $this->assertTrue($messageHeaders->equals($messageHeaders));
     }
 

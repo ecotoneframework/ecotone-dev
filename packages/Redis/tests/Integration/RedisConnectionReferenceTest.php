@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisConnectionReference;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
@@ -39,7 +39,7 @@ final class RedisConnectionReferenceTest extends ConnectionTestCase
                 ])
         );
 
-        $ecotone->getMessageChannel($queue_name)->send(MessageBuilder::withPayload('milk')->build());
+        $ecotone->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());
 
         self::assertSame('milk', $ecotone->getMessageChannel($queue_name)->receive()->getPayload());
     }

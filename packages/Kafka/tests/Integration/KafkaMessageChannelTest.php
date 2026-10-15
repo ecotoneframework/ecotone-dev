@@ -18,7 +18,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -422,9 +422,9 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Send 3 messages to the Kafka topic
         $channel = $ecotoneLite->getMessageChannel($channelName);
-        $channel->send(MessageBuilder::withPayload('message1')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
-        $channel->send(MessageBuilder::withPayload('message2')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
-        $channel->send(MessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(StaticMessageBuilder::withPayload('message1')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(StaticMessageBuilder::withPayload('message2')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(StaticMessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
 
         // Consumer1 consumes first message
         $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));

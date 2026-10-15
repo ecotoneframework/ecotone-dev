@@ -18,7 +18,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -112,7 +112,7 @@ final class WithTenantResolverPlacementValidationTest extends TestCase
             #[WithTenantResolver(expression: "headers['source']")]
             public function poll(): ?Message
             {
-                return MessageBuilder::withPayload('payload')->setHeader('source', 'tenant_a')->build();
+                return StaticMessageBuilder::withPayload('payload')->setHeader('source', 'tenant_a')->build();
             }
         };
 

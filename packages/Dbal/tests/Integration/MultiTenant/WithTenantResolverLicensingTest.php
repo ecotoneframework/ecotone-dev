@@ -15,7 +15,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
@@ -55,7 +55,7 @@ final class WithTenantResolverLicensingTest extends TestCase
             #[WithTenantResolver(expression: "headers['source']")]
             public function poll(): ?Message
             {
-                return MessageBuilder::withPayload('payload')->setHeader('source', 'tenant_a')->build();
+                return StaticMessageBuilder::withPayload('payload')->setHeader('source', 'tenant_a')->build();
             }
         };
     }

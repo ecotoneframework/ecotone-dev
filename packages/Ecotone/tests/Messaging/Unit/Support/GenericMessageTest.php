@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Support;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\GenericMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
@@ -37,7 +38,7 @@ class GenericMessageTest extends MessagingTestCase
     public function test_creating_without_headers()
     {
         $payload = 'somePayload';
-        $message = GenericMessage::createWithEmptyHeaders($payload);
+        $message = GenericMessage::createWithArrayHeaders($payload, [MessageHeaders::TIMESTAMP => 1700000000]);
 
         $this->assertEquals(
             $message->getPayload(),
@@ -49,6 +50,6 @@ class GenericMessageTest extends MessagingTestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        GenericMessage::createWithEmptyHeaders(null);
+        GenericMessage::createWithArrayHeaders(null, [MessageHeaders::TIMESTAMP => 1700000000]);
     }
 }

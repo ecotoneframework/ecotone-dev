@@ -14,7 +14,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\StubLogger;
 use Symfony\Component\Uid\Uuid;
@@ -50,7 +50,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         /** @var PollableChannel $messageChannel */
         $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
 
-        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        $messageChannel->send(StaticMessageBuilder::withPayload($messagePayload)->build());
 
         $this->assertEquals(
             $messagePayload,

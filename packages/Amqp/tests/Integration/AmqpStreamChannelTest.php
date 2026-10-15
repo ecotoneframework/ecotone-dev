@@ -16,7 +16,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -1219,9 +1219,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Send 3 messages to the stream
         $channel = $ecotoneLite->getMessageChannelByName($channelName);
-        $channel->send(MessageBuilder::withPayload('message1')->build());
-        $channel->send(MessageBuilder::withPayload('message2')->build());
-        $channel->send(MessageBuilder::withPayload('message3')->build());
+        $channel->send(StaticMessageBuilder::withPayload('message1')->build());
+        $channel->send(StaticMessageBuilder::withPayload('message2')->build());
+        $channel->send(StaticMessageBuilder::withPayload('message3')->build());
 
         // Consumer1 consumes first message
         $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));

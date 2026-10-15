@@ -13,7 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\InMemoryHighThroughputPublishingChannelBuilder;
@@ -33,7 +33,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesContaining('poison', 'nacked by broker');
 
-        $ordersChannel->send(MessageBuilder::withPayload(
+        $ordersChannel->send(StaticMessageBuilder::withPayload(
             BatchMessage::constructEmpty()
                 ->append('first poison order')
                 ->append('delivered order')

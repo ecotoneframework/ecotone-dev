@@ -37,7 +37,7 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -75,11 +75,11 @@ class EventStreamingProjectionTest extends TestCase
 
         // When events are sent directly to the streaming channel (bypassing gateway to avoid serialization)
         $channel = $ecotone->getMessageChannel('streaming_channel');
-        $channel->send(MessageBuilder::withPayload(new UserCreated('user-1', 'John Doe'))
+        $channel->send(StaticMessageBuilder::withPayload(new UserCreated('user-1', 'John Doe'))
             ->setHeader(MessageHeaders::TYPE_ID, UserCreated::class)
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());
-        $channel->send(MessageBuilder::withPayload(new UserCreated('user-2', 'Jane Smith'))
+        $channel->send(StaticMessageBuilder::withPayload(new UserCreated('user-2', 'Jane Smith'))
             ->setHeader(MessageHeaders::TYPE_ID, UserCreated::class)
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());
@@ -132,15 +132,15 @@ class EventStreamingProjectionTest extends TestCase
 
         // When events are sent with different routing keys
         $channel = $ecotone->getMessageChannel('streaming_channel');
-        $channel->send(MessageBuilder::withPayload(['orderId' => 'order-1', 'amount' => 100])
+        $channel->send(StaticMessageBuilder::withPayload(['orderId' => 'order-1', 'amount' => 100])
             ->setHeader(MessageHeaders::TYPE_ID, 'order.created')
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());
-        $channel->send(MessageBuilder::withPayload(['orderId' => 'order-2', 'amount' => 200])
+        $channel->send(StaticMessageBuilder::withPayload(['orderId' => 'order-2', 'amount' => 200])
             ->setHeader(MessageHeaders::TYPE_ID, 'order.created')
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());
-        $channel->send(MessageBuilder::withPayload(['orderId' => 'order-1', 'completedAt' => '2024-01-01'])
+        $channel->send(StaticMessageBuilder::withPayload(['orderId' => 'order-1', 'completedAt' => '2024-01-01'])
             ->setHeader(MessageHeaders::TYPE_ID, 'order.completed')
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());

@@ -123,6 +123,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             new Definition(CachedConnectionFactory::class, [
                 new Definition(DbalReconnectableConnectionFactory::class, [
                     new Reference($inboundChannelAdapter->getConnectionReferenceName()),
+                    new Reference(EcotoneClockInterface::class),
                 ]),
             ], 'createFor'),
             $channelBuilder->getMessageChannelName(),

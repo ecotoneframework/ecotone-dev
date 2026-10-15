@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
@@ -49,7 +49,7 @@ class ServiceActivatorBuilderTest extends MessagingTestCase
      */
     public function test_handler_returns_message_with_no_reply_channel_and_making_use_of_requested_reply_channel()
     {
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
                     ->build();
 
         $objectToInvoke = ServiceReturningMessage::createWith($message);

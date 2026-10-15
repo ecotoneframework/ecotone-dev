@@ -23,8 +23,10 @@ The five that cost the most when they are wrong, because each one means throwing
 - **Exceptions drive the solution.** Name what was wrong, why it cannot work, and *every* way out — the exact API
   call, attribute, option or command. The message is the deliverable; assert it in a test
   ([rule 1](./docs/coding-conventions.md#1-exceptions-drive-the-solution))
-- **Never take a nullable service dependency.** Register unconditionally, decide at runtime. A `?Service = null` is
-  a mode switch in disguise ([rule 2](./docs/coding-conventions.md#2-never-take-a-nullable-service-dependency))
+- **Never take a nullable or defaulted service dependency.** Register unconditionally, decide at runtime. A
+  `?Service = null` is a mode switch in disguise, and `$clock = new NativeClock()` is the same switch with the
+  fallback spelled out ([rule 2](./docs/coding-conventions.md#2-never-take-a-nullable-service-dependency),
+  [rule 2a](./docs/coding-conventions.md#2a-never-default-a-dependency-either))
 - **Write the test first**, with `EcotoneLite::bootstrapFlowTesting()`: RED, then GREEN, then refactor, one
   increment per commit ([rule 11](./docs/coding-conventions.md#11-test-shape))
 - **Verify every name against the tree before you write it.** The API moved in 2.0 —
@@ -92,6 +94,7 @@ commit that evidences it. The summary:
 | 1a | A configuration mistake is **refused at bootstrap**, never at runtime, and never read as an empty result — the guard and the message test ship in the commit that states the rule | One worktree of 18 fix commits paid for the rules that shipped without one |
 | 1c | **A check that can run at compile time runs at compile time** — in a guard the module calls from `prepare()`, which is handed the `InterfaceToCallRegistry` for exactly that. Only message *content* is left to runtime | The compile-time guard removes the runtime branch entirely: there is no unresolvable case left to handle |
 | 2 | **Never take a nullable service dependency.** Register unconditionally, decide at runtime. Split the class, add a null-object factory, make the parameter required, or pick between two services in the container | A `?Service = null` is a mode switch in disguise, and the two modes drift |
+| 2a | **Never default a dependency either.** `$clock = new NativeClock()` is rule 2 with the null spelled out: every construction site that forgets the argument silently runs a second way. A dependency is a required parameter at every site, and the container passes it | The 2.0.0-beta.2 clock regression: two channel adapters passed the clock, six other sites took the default, and a DBAL consumer on real time hung a test on the pinned clock |
 | 3 | **Constructor-injected services are stateless** — no accumulating properties, no static caches, no per-message collectors. Mutable state goes in a function-scoped immutable value object carried on a message header | A container service is a singleton; anything it remembers leaks into the next message, transaction and retry |
 | 4 | **Do not mix queries with writes.** A read never runs DDL, a mutator returns `void`, and the name says which it is | `getRecordedEvents()` cleared its buffer and became `popRecordedEvents()` for exactly this reason |
 | 5 | **No interface with a single implementation.** An interface marks a real seam: open core vs Enterprise, in-memory vs storage-backed, or a dependency inverted across a package or layer boundary — core must not name an optional package's class, `Api` must not name a platform-specific one. The test for the third: would removing it force a reference the wrong way? | Otherwise it is a dispatch hop with no choice behind it |
@@ -143,6 +146,11 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`,
   `Ecotone\Api\EventSourcing\EventStore`) and drive the public API. This is the most-corrected rule in the
   repository; see conventions rule 10
+- **A message channel is never driven directly.** No `getMessageChannel()`, no `send()` or `receive()` on a
+  `PollableChannel` in a test. The application reaches a channel through an `#[Asynchronous]` handler, so the test
+  sends the command or event, calls `run('channel')`, and asserts on what that handler observed, through a query
+  handler or the fixture's state. A delayed message is proved the same way: `run()` before `advanceTimeBy()` shows
+  nothing handled, `run()` after it shows the handler ran (conventions rule 10)
 - **Fixtures live in the test file, as inline anonymous classes** — aggregates included, registered through
   `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the four cases
   that force one: a class used as a **type declaration** (every command, event and query), a class named inside

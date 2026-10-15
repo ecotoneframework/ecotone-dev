@@ -28,7 +28,7 @@ use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -123,7 +123,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         $this->expectException(ConfigurationException::class);
 
         $messaging->getMessageChannel($queueName)->send(
-            MessageBuilder::withPayload(BatchMessage::constructEmpty()->append('first order'))->build()
+            StaticMessageBuilder::withPayload(BatchMessage::constructEmpty()->append('first order'))->build()
         );
     }
 

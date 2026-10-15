@@ -24,7 +24,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -557,7 +557,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         $messageChannel = $ticketService->getMessageChannel($sharedQueueChannel->getMessageChannelName());
         $messageChannel->send(
-            MessageBuilder::withPayload('User changed billing address')
+            StaticMessageBuilder::withPayload('User changed billing address')
                 ->setHeader(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE)
                 ->setHeader(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY, TicketServiceReceiver::CREATE_TICKET_ENDPOINT)
                 ->setHeader(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'command')

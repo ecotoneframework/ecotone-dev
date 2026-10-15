@@ -17,7 +17,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -32,7 +32,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
         $channel = $this->createRecordingChannel();
         $interceptor = $this->createInterceptor();
 
-        $batchMessage = MessageBuilder::withPayload(
+        $batchMessage = StaticMessageBuilder::withPayload(
             BatchMessage::constructEmpty()
                 ->append('first delivered order')
                 ->append('poison order')
@@ -43,7 +43,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
             $batchMessage,
             $channel,
             PublishingFailedException::withFailedDeliveries([
-                new FailedDelivery(MessageBuilder::withPayload('poison order')->build(), 'nacked by broker', 'orders'),
+                new FailedDelivery(StaticMessageBuilder::withPayload('poison order')->build(), 'nacked by broker', 'orders'),
             ]),
         );
 
@@ -55,7 +55,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
         $channel = $this->createRecordingChannel();
         $interceptor = $this->createInterceptor();
 
-        $singleMessage = MessageBuilder::withPayload('failed order')->build();
+        $singleMessage = StaticMessageBuilder::withPayload('failed order')->build();
 
         $interceptor->afterSendCompletion(
             $singleMessage,

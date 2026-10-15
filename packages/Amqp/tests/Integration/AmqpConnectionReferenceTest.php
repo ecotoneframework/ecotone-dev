@@ -10,7 +10,7 @@ use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -36,7 +36,7 @@ final class AmqpConnectionReferenceTest extends AmqpMessagingTestCase
                 ]),
         );
 
-        $ecotone->getMessageChannel($queue_name)->send(MessageBuilder::withPayload('milk')->build());
+        $ecotone->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());
 
         self::assertSame('milk', $ecotone->getMessageChannel($queue_name)->receive()->getPayload());
     }

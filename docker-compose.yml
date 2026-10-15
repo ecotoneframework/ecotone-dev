@@ -92,6 +92,7 @@ services:
         condition: service_healthy
   database:
     image: simplycodedsoftware/postgres:16.1
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
     environment:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"
@@ -104,6 +105,7 @@ services:
       retries: 30
   database-mysql:
     image: mysql:8.0
+    command: --innodb-flush-log-at-trx-commit=0 --sync-binlog=0
     environment:
       MYSQL_ROOT_PASSWORD: "secret"
       MYSQL_USER: "ecotone"
@@ -118,6 +120,7 @@ services:
       retries: 30
   database-mariadb:
     image: mariadb:11.4
+    command: --innodb-flush-log-at-trx-commit=0 --sync-binlog=0
     environment:
       MARIADB_ROOT_PASSWORD: "secret"
       MARIADB_USER: "ecotone"

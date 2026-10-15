@@ -3,6 +3,16 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.3] - 2026-10-15
+
+## What's Changed
+* test: run the test suite in 15 minutes instead of 37, with database passes in parallel in CI by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/714
+* feat: log the tenant and chosen message headers with every message log (fixes #713) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/715
+* fix: let a time-limited consumer poll at least once, and cut the benchmark job's longest subjects to seconds by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/716
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.2...2.0.0-beta.3
+
 ## [2.0.0-beta.2] - 2026-10-15
 
 ## What's Changed

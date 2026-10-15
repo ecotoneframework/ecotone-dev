@@ -47,7 +47,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~2.0.0-beta.2",
+        "ecotone/ecotone": "~2.0.0-beta.3",
         "queue-interop/queue-interop": "^0.8",
         "enqueue/dsn": "^0.10.4"
     },
@@ -84,6 +84,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-15 05:30:04"
+        "release-time": "2026-10-15 19:58:13"
     }
 }

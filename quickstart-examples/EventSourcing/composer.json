@@ -22,8 +22,8 @@
         }
     },
     "require": {
-        "ecotone/jms-converter": "~2.0.0-beta.2",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.2"
+        "ecotone/jms-converter": "~2.0.0-beta.3",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.3"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

@@ -22,8 +22,8 @@
         }
     },
     "require": {
-        "ecotone/jms-converter": "~2.0.0-beta.2",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.2",
+        "ecotone/jms-converter": "~2.0.0-beta.3",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.3",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

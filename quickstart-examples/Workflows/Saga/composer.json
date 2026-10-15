@@ -27,8 +27,8 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.2",
-        "ecotone/jms-converter": "~2.0.0-beta.2",
+        "ecotone/dbal": "~2.0.0-beta.3",
+        "ecotone/jms-converter": "~2.0.0-beta.3",
         "intervention/image": "^3.5.1",
         "moneyphp/money": "^4.1.0",
         "ramsey/uuid": "^4.0",

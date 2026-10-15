@@ -110,6 +110,20 @@ jobs:
     - name: Check the root and per-package test suites run under the same configuration
       run: php bin/check-suite-parity.php
 
+    - name: Skip disk syncs on the test databases
+      run: |
+        # Test data is thrown away with the job, so waiting for each write to reach the disk only
+        # slows down the table drops and creates every database test runs. TCP is used so the
+        # settings land on the final server, not on the socket-only server of the image's init phase.
+        for i in {1..30}; do
+          if docker exec ${{ job.services.mysql.id }} mysql -h127.0.0.1 -uroot -psecret -e "SET GLOBAL innodb_flush_log_at_trx_commit=0; SET GLOBAL sync_binlog=0;" \
+            && docker exec -e PGPASSWORD=secret ${{ job.services.postgres.id }} psql -h 127.0.0.1 -U ecotone -d postgres -v ON_ERROR_STOP=1 -c "ALTER SYSTEM SET fsync=off" -c "ALTER SYSTEM SET synchronous_commit=off" -c "ALTER SYSTEM SET full_page_writes=off" -c "SELECT pg_reload_conf()"; then
+            exit 0
+          fi
+          sleep 2
+        done
+        exit 1
+
     - name: Wait for Kafka to be ready
       run: |
         echo "Waiting for Kafka to start..."

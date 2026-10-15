@@ -20,7 +20,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -200,25 +199,16 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeduplication(false),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
     }
 }

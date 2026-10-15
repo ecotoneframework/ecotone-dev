@@ -14,7 +14,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Database\MissingTableInstructions;
@@ -78,14 +77,13 @@ final class AggregateLoadMissingStreamTableDbalTest extends EventSourcingMessagi
                 self::getConnectionFactory(),
                 new ScreeningWithoutStreamTableConverter(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                    EventSourcingConfiguration::createWithDefaults(),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults(),
+                EventSourcingConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         $ecotone->getServiceFromContainer(DatabaseSetupManager::class)->drop(EventStreamTableManager::FEATURE_NAME);

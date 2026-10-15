@@ -6,7 +6,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -31,13 +30,12 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withEnvironment('test')
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                    SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createInMemory(),
+                SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            environment: 'test',
         );
 
         $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
@@ -53,12 +51,9 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withEnvironment('test')
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                ]),
+            extensionObjects: [EventSourcingConfiguration::createInMemory()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            environment: 'test',
         );
 
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
@@ -77,12 +72,9 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withEnvironment('test')
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                ]),
+            extensionObjects: [EventSourcingConfiguration::createInMemory()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            environment: 'test',
         );
 
         /** @var EventStore $eventStore */
@@ -112,10 +104,9 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withEnvironment('test')
-                ->withExtensionObjects([EventSourcingConfiguration::createInMemory()]),
+            extensionObjects: [EventSourcingConfiguration::createInMemory()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            environment: 'test',
         );
 
         /** @var EventStore $eventStore */
@@ -147,14 +138,11 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connection), DbalConnectionFactory::class => $connectionFactory],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withEnvironment('test')
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
+            environment: 'test',
         );
 
         $ecotoneTestSupport->initializeProjection('inProgressTicketList');

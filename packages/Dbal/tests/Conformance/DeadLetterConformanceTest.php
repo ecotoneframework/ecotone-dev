@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -252,16 +251,13 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
                 self::CUSTOM_GATEWAY_CONNECTION => $this->connectionOtherThanThePrimaryOne(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeadLetter(true, inMemory: match ($implementation) {
-                            'in-memory' => true,
-                            'dbal' => false,
-                        }),
-                    CustomDeadLetterGateway::createWith(self::CUSTOM_GATEWAY, self::CUSTOM_GATEWAY_CONNECTION),
-                ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory:match($implementation) {
+                    'in-memory' => true,'dbal' => false,
+                }),
+                CustomDeadLetterGateway::createWith(self::CUSTOM_GATEWAY, self::CUSTOM_GATEWAY_CONNECTION),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
         $this->customGateway = $ecotone->getGateway(self::CUSTOM_GATEWAY);
 

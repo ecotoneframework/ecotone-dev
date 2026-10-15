@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -215,14 +214,11 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
             containerOrAvailableServices: [
                 self::getConnection(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
-                ->withExtensionObjects([
-                    $config,
-                    SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
-                        ->withAutoDeclare($autoDeclare),
-                ]),
+            extensionObjects: [
+                $config,
+                SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)->withAutoDeclare($autoDeclare),
+            ],
+            enabledModules: [\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE, \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -233,14 +229,12 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
             containerOrAvailableServices: [
                 self::getConnection(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
-                ->withExtensionObjects([
-                    $config,
-                    SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
-                    SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_3)->withAutoDeclare(false),
-                ]),
+            extensionObjects: [
+                $config,
+                SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
+                SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_3)->withAutoDeclare(false),
+            ],
+            enabledModules: [\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE, \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

@@ -8,7 +8,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -29,14 +28,13 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
                 new EventConverter(),
                 DbalConnectionFactory::class => self::getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                    EventSourcingConfiguration::createWithDefaults(),
-                    SimpleMessageChannelBuilder::createQueueChannel('testAggregate'),
-                ])
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults(),
+                EventSourcingConfiguration::createWithDefaults(),
+                SimpleMessageChannelBuilder::createQueueChannel('testAggregate'),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            namespaces: ['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'],
         );
 
         $ecotone->sendCommand(command: new ActionCommand('123'), metadata: ['call' => 1]);

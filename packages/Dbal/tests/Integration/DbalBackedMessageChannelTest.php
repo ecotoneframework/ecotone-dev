@@ -45,12 +45,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         $payload = 'some';
@@ -79,12 +75,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 'managerRegistry' => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -113,11 +105,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -147,12 +136,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($queueName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -177,12 +162,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -208,12 +189,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
                 ClockInterface::class => $clock,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -240,12 +217,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -274,12 +247,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -311,11 +280,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -359,12 +325,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName)
-                        ->withAutoDeclare(false),
-                ]),
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($queueName)->withAutoDeclare(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
@@ -381,14 +343,11 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => 'pgsql://ecotone:secret@localhost:1000/ecotone']),
                 'logger' => $loggerExample,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
-                )
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ]),
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('async'),
+                ServiceConfiguration::createWithDefaults()->withConnectionRetryTemplate(RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 

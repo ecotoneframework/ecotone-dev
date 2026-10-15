@@ -18,7 +18,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
@@ -28,6 +27,7 @@ use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Enqueue\EnqueueMessageChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
@@ -204,7 +204,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     private function prepareMessaging(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): ComponentTestBuilder
     {
         $builder = ComponentTestBuilder::create(
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
+            configuration: BootstrapConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects(array_merge(
                     $amqpExchanges,
                     $amqpQueues,
@@ -618,11 +618,8 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             [
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -652,17 +649,14 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 new AmqpConsumerExample(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
-                    AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
-                    AmqpQueue::createWith($queueName)
-                        ->setDeadLetterForDefaultExchange($deadLetterQueue),
-                    $deadLetterQueue,
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName),
-                ])
+            extensionObjects: [
+                AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
+                AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
+                AmqpQueue::createWith($queueName)->setDeadLetterForDefaultExchange($deadLetterQueue),
+                $deadLetterQueue,
+                AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         $payload = 'random_payload';
@@ -762,12 +756,8 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $ecotoneLite = $this->bootstrapFlowTesting(
             [],
             array_merge($this->getConnectionFactoryReferences(), ['customDelayStrategy' => $customDelayStrategy]),
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withDelayStrategy('customDelayStrategy'),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)->withDelayStrategy('customDelayStrategy')],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */

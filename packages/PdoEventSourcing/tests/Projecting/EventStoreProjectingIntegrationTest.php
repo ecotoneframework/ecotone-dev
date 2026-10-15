@@ -27,7 +27,6 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
@@ -68,8 +67,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -104,8 +103,11 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL),
+                DbalConfiguration::createForTesting(),
+            ],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL))->addExtensionObject(DbalConfiguration::createForTesting())
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -142,8 +144,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -179,8 +181,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -213,8 +215,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -253,8 +255,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -297,8 +299,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone1 = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -319,8 +321,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone2 = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ticketId2 = Uuid::v7()->toRfc4122();
@@ -351,8 +353,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -389,8 +391,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         // Delete any existing data
@@ -436,8 +438,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -471,7 +473,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $this->bootstrapFlowTesting(
             [$basketProjection::class, Basket::class, BasketEventConverter::class, BasketWasCreated::class],
             [self::getConnectionFactory(), $basketProjection, new BasketEventConverter()],
-            ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )
             ->deleteEventStream(Basket::BASKET_STREAM)->setupDatabaseTables()
@@ -499,8 +501,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -525,8 +527,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -560,8 +562,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            extensionObjects: [DbalConfiguration::createForTesting()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DbalConfiguration::createForTesting()),
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)->setupDatabaseTables()
@@ -619,11 +621,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $ormConnectionFactory, $projection, new TicketEventConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    DbalConfiguration::createForTesting()
-                        ->withClearAndFlushObjectManagerOnProjectionBatch(true),
-                ]),
+            extensionObjects: [DbalConfiguration::createForTesting()->withClearAndFlushObjectManagerOnProjectionBatch(true)],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

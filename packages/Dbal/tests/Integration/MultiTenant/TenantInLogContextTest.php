@@ -11,7 +11,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -78,9 +77,8 @@ final class TenantInLogContextTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, 'logger' => $logger],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('tenant_log_async')]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('tenant_log_async')],
+            enabledModules: [],
         );
 
         $ecotone->sendCommandWithRouting('tenant_log.place', 'order-1', metadata: ['tenant' => 'tenant_a']);
@@ -100,21 +98,13 @@ final class TenantInLogContextTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: $tenantHeaderName,
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeduplication(false),
-                    SimpleMessageChannelBuilder::createQueueChannel('tenant_log_async'),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create(tenantHeaderName:$tenantHeaderName, tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDeduplication(false),
+                SimpleMessageChannelBuilder::createQueueChannel('tenant_log_async'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

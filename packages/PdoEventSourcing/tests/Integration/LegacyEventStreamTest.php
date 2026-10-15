@@ -12,7 +12,6 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -111,11 +110,10 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
                 new LegacyOrderConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            environment: 'prod',
         );
     }
 

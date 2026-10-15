@@ -18,10 +18,9 @@ $messagingSystem = EcotoneLite::bootstrap(
         'tenant_b_connection' => new DbalConnectionFactory(getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'),
         'logger' => new EchoLogger()
     ],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
-    /** Multi-tenancy is an Ecotone Enterprise feature, see README.md for how to get a key */
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    namespaces: ['App'],
 );
 runMigrationForTenants($messagingSystem);
 

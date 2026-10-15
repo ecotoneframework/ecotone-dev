@@ -15,7 +15,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
@@ -127,11 +126,8 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
         return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDisabledBoundaryDbalTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDisabledBoundaryDbalTest(), new HandlerInjectingRenamesForDisabledBoundaryDbalTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

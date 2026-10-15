@@ -12,6 +12,7 @@ use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -48,7 +49,7 @@ final class DbalDocumentStoreModule implements AnnotationModule
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $isDocumentStoreActive = $dbalConfiguration->enableDbalDocumentStore && ! $dbalConfiguration->inMemoryDocumentStore;
-        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
 
         $messagingConfiguration->registerServiceDefinition(
             DocumentStoreTableManager::class,

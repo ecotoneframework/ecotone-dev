@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +40,7 @@ final class ConsoleInvocationPrefixTest extends TestCase
     private function prefixFor(string ...$frameworkPackageNames): ?string
     {
         return ConsoleInvocationResolver::resolveConsolePrefix(
-            ServiceConfiguration::createWithDefaults()
+            BootstrapConfiguration::createWithDefaults()
                 ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ...$frameworkPackageNames])
         );
     }

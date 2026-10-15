@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -70,9 +69,8 @@ final class MessageBusTest extends TestCase
             [
                 new MerchantSubscriber(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([]),
-            allowGatewaysToBeRegisteredInContainer: true
+            enabledModules: [],
+            allowGatewaysToBeRegisteredInContainer: true,
         );
 
         $merchantId = '123';
@@ -90,7 +88,7 @@ final class MessageBusTest extends TestCase
             [
                 new SynchronousPriorityHandler(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $this->assertSame(
@@ -108,7 +106,7 @@ final class MessageBusTest extends TestCase
             [
                 new SynchronousPriorityHandlerWithInheritance(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $this->assertSame(
@@ -126,7 +124,7 @@ final class MessageBusTest extends TestCase
             [
                 new SynchronousPriorityHandler(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $this->assertSame(
@@ -149,7 +147,7 @@ final class MessageBusTest extends TestCase
             [
                 new SynchronousPriorityHandler(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $this->assertSame(
@@ -172,8 +170,7 @@ final class MessageBusTest extends TestCase
             [
                 new TestHandler(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $this->assertEquals(
@@ -189,7 +186,7 @@ final class MessageBusTest extends TestCase
             [
                 new OutboxWithMultipleChannels(),
             ],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $ecotoneLite->sendCommandWithRouting('outboxWithMultipleChannels', 1);
@@ -218,7 +215,7 @@ final class MessageBusTest extends TestCase
             [
                 new OutboxWithMultipleChannels(),
             ],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $ecotoneLite->sendCommandWithRouting('outboxWithCombinedChannels', 1);
@@ -245,8 +242,7 @@ final class MessageBusTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderDispatch::class],
             [],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $this->assertEquals(
@@ -263,11 +259,7 @@ final class MessageBusTest extends TestCase
 
     public function test_factory_method_of_event_sourced_aggregate_can_return_no_events(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [NoEventsAggregate::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-        );
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(classesToResolve: [NoEventsAggregate::class], enabledModules: []);
 
         self::assertEquals(
             [],
@@ -285,8 +277,7 @@ final class MessageBusTest extends TestCase
                 // GuestWasAddedToBook::class // Not necessary to resolve named event for aliasing
             ],
             containerOrAvailableServices: [new GuestViewer()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         self::assertEquals(
@@ -305,8 +296,11 @@ final class MessageBusTest extends TestCase
                 GuestNotifier::class,
             ],
             containerOrAvailableServices: [new GuestNotifier()],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('background'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                SimpleMessageChannelBuilder::createQueueChannel('background'),
+            ],
+            enabledModules: [],
         );
 
         $ecotoneLite
@@ -333,8 +327,7 @@ final class MessageBusTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Merchant::class, MerchantConversion::class],
             [new MerchantConversion()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $merchantId = '123';
@@ -359,7 +352,7 @@ final class MessageBusTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [EmailNotifier::class, ],
             containerOrAvailableServices: [$emailNotifier = new EmailNotifier()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $ecotoneLite->publishEvent($notification = new ANotification('john doe'));
@@ -376,8 +369,7 @@ final class MessageBusTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderEventService::class],
             [$service],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommand(new PlaceOrder('order-123'));
@@ -397,8 +389,7 @@ final class MessageBusTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [OrderEventServiceWithPrivateHandler::class],
             [new OrderEventServiceWithPrivateHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
     }
 
@@ -411,8 +402,7 @@ final class MessageBusTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ServiceWithPrivateCommandHandler::class],
             [new ServiceWithPrivateCommandHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
     }
 
@@ -425,8 +415,7 @@ final class MessageBusTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [ServiceWithPrivateQueryHandler::class],
             [new ServiceWithPrivateQueryHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
     }
 
@@ -436,8 +425,7 @@ final class MessageBusTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [EventHandlerForUnionType::class],
             [$handler],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $orderEvent = new UnionOrderWasPlaced();
@@ -487,8 +475,7 @@ final class MessageBusTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [$aggregate::class],
             [],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('aggregate.create', 'test-id');
@@ -541,8 +528,7 @@ final class MessageBusTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [$aggregate::class],
             [],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('aggregate.create', 'test-id');
@@ -579,8 +565,7 @@ final class MessageBusTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$aggregate::class],
             [],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
     }
 
@@ -601,8 +586,7 @@ final class MessageBusTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$aggregate::class],
             [],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
     }
 }

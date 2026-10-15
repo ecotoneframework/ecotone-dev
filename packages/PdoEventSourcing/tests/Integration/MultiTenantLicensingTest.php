@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -27,20 +26,13 @@ final class MultiTenantLicensingTest extends EventSourcingMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Ticket'])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket'],
         );
     }
 }

@@ -12,7 +12,6 @@ use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Handler\MethodInvocationException;
@@ -121,20 +120,12 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: 'tenant',
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeduplication(false),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create(tenantHeaderName:'tenant', tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

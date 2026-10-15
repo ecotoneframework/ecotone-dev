@@ -25,7 +25,6 @@ namespace Test\Ecotone\Projecting\BlueGreen;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -75,12 +74,9 @@ final class BlueGreenStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$v1::class, $v2::class, BlueGreenUserCreated::class],
             [$v1, $v2, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType: MediaType::createApplicationXPHP()),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $channel = $ecotone->getMessageChannel('streaming_channel');

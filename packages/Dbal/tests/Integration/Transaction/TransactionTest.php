@@ -14,7 +14,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
@@ -83,14 +82,11 @@ final class TransactionTest extends DbalMessagingTestCase
                     $connection
                 ),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\Transaction',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
+            environment: 'prod',
         );
 
         try {
@@ -178,10 +174,9 @@ final class TransactionTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$consoleCommands::class],
             [$consoleCommands, DbalConnectionFactory::class => $dbalConnectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         );
         $ecotone->sendCommandWithRouting('command.prepare');
         $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
@@ -267,10 +262,9 @@ final class TransactionTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [$classRoutedOrderService::class],
             [$classRoutedOrderService, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         );
 
         $ecotone->sendCommand(new PrepareOrdersByClassCommandForTransaction());
@@ -290,14 +284,11 @@ final class TransactionTest extends DbalMessagingTestCase
 
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\Transaction',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
+            environment: 'prod',
         );
     }
 
@@ -309,23 +300,12 @@ final class TransactionTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\Transaction',
-                ]),
+            extensionObjects: [MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ])],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\Transaction', ],
+            environment: 'prod',
         );
     }
 }

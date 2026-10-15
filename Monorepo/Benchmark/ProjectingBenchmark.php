@@ -40,18 +40,13 @@ class ProjectingBenchmark
                 DbalConnectionFactory::class => new DbalConnectionFactory($connectionString),
                 ...$container,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->doNotLoadCatalog()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
-                ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
-                ->withDefaultErrorChannel('errorChannel')
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ]),
+            extensionObjects: [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
             useCachedVersion: true,
             pathToRootCatalog: self::getProjectDir(),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Monorepo\\ExampleAppEventSourcing\\Common\\',...$namespaces],
+            cacheDirectoryPath: self::getProjectDir()."/var/cache/$name",
         );
     }
 

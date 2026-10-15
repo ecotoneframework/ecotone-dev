@@ -24,7 +24,6 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
@@ -154,8 +153,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classes, [MultiEventAggregate::class, FirstEvent::class, SecondEvent::class, Converters::class]),
             containerOrAvailableServices: array_merge($projections, [new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

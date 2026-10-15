@@ -9,7 +9,6 @@ use Doctrine\DBAL\Exception\NoActiveTransaction;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -36,18 +35,14 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                 new EventsConverter(),
                 'logger' => $logger,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled:true, retryTimes:1, retryExceptions:[ConcurrencyException::class]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         );
 
         $id = 'cust-1';
@@ -81,18 +76,14 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                 new CreateCustomerCaller(),
                 'logger' => $logger,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled:true, retryTimes:1, retryExceptions:[ConcurrencyException::class]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         );
 
         $id = 'cust-nested-1';
@@ -139,18 +130,14 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                 new ConnectionClosingInterceptor([true, false]),
                 'logger' => $logger,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled:true, retryTimes:1, retryExceptions:[ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         );
 
         $id = 'cust-reconnect-1';

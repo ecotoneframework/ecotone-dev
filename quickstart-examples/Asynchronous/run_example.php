@@ -12,8 +12,8 @@ $messagingSystem = EcotoneLite::bootstrap(
         new NotificationService(),
         AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 
 $messagingSystem->getEventBus()->publish(new OrderWasPlaced(1, "Milk"));

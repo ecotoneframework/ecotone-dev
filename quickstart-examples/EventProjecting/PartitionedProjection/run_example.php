@@ -63,10 +63,9 @@ $messagingSystem = EcotoneLite::bootstrap(
         new WalletBalanceProjection($connection),
         DbalConnectionFactory::class => $connectionFactory,
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withNamespaces(['App'])
-        ->withLicenceKey($licenseKey),
-    pathToRootCatalog: __DIR__
+    pathToRootCatalog: __DIR__,
+    licenceKey: $licenseKey,
+    namespaces: ['App'],
 );
 $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 

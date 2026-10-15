@@ -3,7 +3,6 @@
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping;
@@ -32,15 +31,10 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 new Converters(),
                 self::getConnectionFactory(),
             ],
-            configuration: (ServiceConfiguration::createWithDefaults()
-              ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
-              ->withNamespaces(
-                  [
-                      'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common',
-                      'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping',
-                  ]
-              ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('itemInventory')],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common', 'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping', ],
         );
 
         $ecotone->withEventsFor(
@@ -88,13 +82,10 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 new Converters(),
                 self::getConnectionFactory(),
             ],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common',
-                    'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping',
-                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('itemInventory')],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common', 'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping', ],
         );
 
         $ecotone->withEventsFor(

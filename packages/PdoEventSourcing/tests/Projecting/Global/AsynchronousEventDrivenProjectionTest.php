@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -145,10 +144,9 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true)),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -173,10 +171,9 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL)),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($projection::CHANNEL)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -304,10 +301,9 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_projection')),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_projection')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

@@ -17,7 +17,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
@@ -141,8 +140,10 @@ final class DecisionModelOnInMemoryEventStoreTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [UsernameAvailabilityOnInMemoryEventStore::class, UsernameClaimedOnInMemoryEventStore::class, UsernameReleasedOnInMemoryEventStore::class, $registration::class, $converter::class],
             containerOrAvailableServices: [$registration, $converter],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), EventSourcingConfiguration::createInMemory()]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                EventSourcingConfiguration::createInMemory(),
+            ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

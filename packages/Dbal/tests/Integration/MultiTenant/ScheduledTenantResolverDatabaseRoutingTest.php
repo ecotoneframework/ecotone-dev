@@ -16,7 +16,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
@@ -172,15 +171,9 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                     'tenant_b_connection' => $this->connectionForTenantB(),
                 ],
             ),
-            (ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects(
-                    $asynchronous
-                        ? [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]
-                        : $extensionObjects
-                )),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: $asynchronous ? [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('persons_processing')] : $extensionObjects,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

@@ -13,7 +13,6 @@ use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use Symfony\Component\Uid\Uuid;
@@ -43,29 +42,15 @@ final class DynamicStreamChannelRetryTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpQueue::createStreamQueue($queueTenantA),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'async_tenant_a',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queueTenantA,
-                    )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
-                    AmqpQueue::createStreamQueue($queueTenantB),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'async_tenant_b',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queueTenantB,
-                    )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
-                    DynamicMessageChannelBuilder::createRoundRobin(
-                        thisMessageChannelName: 'async',
-                        channelNames: ['async_tenant_a', 'async_tenant_b'],
-                    ),
-                ]),
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queueTenantA),
+                AmqpStreamChannelBuilder::create(channelName:'async_tenant_a', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueTenantA, )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
+                AmqpQueue::createStreamQueue($queueTenantB),
+                AmqpStreamChannelBuilder::create(channelName:'async_tenant_b', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueTenantB, )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
+                DynamicMessageChannelBuilder::createRoundRobin(thisMessageChannelName:'async', channelNames:['async_tenant_a', 'async_tenant_b'], ),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->getCommandBus()->sendWithRouting('execute.dynamic_stream', 'test_message');

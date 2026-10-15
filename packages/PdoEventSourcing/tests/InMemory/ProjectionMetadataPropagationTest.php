@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -26,14 +25,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
 {
     public function test_metadata_propagation_with_synchronous_projection(): void
     {
-        $ecotoneLite = $this->getBootstrapFlowTesting(
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
-                ])
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
-        );
+        $ecotoneLite = $this->getBootstrapFlowTesting();
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
         $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
@@ -53,14 +45,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
 
     public function test_metadata_propagation_with_async_projection_when_catching_up(): void
     {
-        $ecotoneLite = $this->getBootstrapFlowTesting(
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
-                ])
-        );
+        $ecotoneLite = $this->getBootstrapFlowTesting();
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
@@ -74,14 +59,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
 
     public function test_metadata_propagation_with_async_projection_when_populated_dynamically(): void
     {
-        $ecotoneLite = $this->getBootstrapFlowTesting(
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
-                ])
-        );
+        $ecotoneLite = $this->getBootstrapFlowTesting();
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar']);
         $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
@@ -102,7 +80,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
     }
 
-    private function getBootstrapFlowTesting(ServiceConfiguration $serviceConfiguration): FlowTestSupport
+    private function getBootstrapFlowTesting(): FlowTestSupport
     {
         /** @var DbalConnectionFactory $connectionFactory */
         $connectionFactory = $this->getConnectionFactory();
@@ -113,7 +91,9 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
 
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderProjection($connection), new OrderEventsConverter(), new NotificationService(), DbalConnectionFactory::class => $connectionFactory],
-            configuration: $serviceConfiguration,
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL)],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'],
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryEventSourcedRepository: false
         );

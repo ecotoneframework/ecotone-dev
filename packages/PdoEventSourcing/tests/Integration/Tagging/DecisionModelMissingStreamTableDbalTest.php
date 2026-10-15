@@ -18,7 +18,6 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Database\MissingTableInstructions;
@@ -118,16 +117,15 @@ final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagi
                 new EventsConverterForMissingStreamTableTest(),
                 new SeatReservationsForMissingStreamTableTest(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                    EventSourcingConfiguration::createWithDefaults(),
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults(),
+                EventSourcingConfiguration::createWithDefaults(),
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         $ecotone->getServiceFromContainer(DatabaseSetupManager::class)->drop(EventStreamTableManager::FEATURE_NAME);

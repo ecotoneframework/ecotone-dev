@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -94,14 +93,13 @@ EcotoneLite::bootstrapFlowTesting(
         $snapshotConverter,
         DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory(),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withEnvironment('prod')
-        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-        ->withExtensionObjects([
-            DbalConfiguration::createWithDefaults()->withDocumentStore(),
-            EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
-        ]),
+    extensionObjects: [
+        DbalConfiguration::createWithDefaults()->withDocumentStore(),
+        EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
+    ],
+    enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
     pathToRootCatalog: __DIR__ . '/../../../',
+    environment: 'prod',
 )
     ->setupDatabaseTables()
     ->sendCommandWithRouting('ticketFoldedAcrossDeployments.register', '1')

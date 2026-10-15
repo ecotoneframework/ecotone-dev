@@ -62,7 +62,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        if (($this->batchPublishing || $this->nonBlockingConfirmation) && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
+        if (($this->batchPublishing || $this->nonBlockingConfirmation) && ! $builder->getBootstrapConfiguration()->isRunningForEnterprise()) {
             throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 

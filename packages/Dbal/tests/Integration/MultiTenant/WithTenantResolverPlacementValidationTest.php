@@ -12,7 +12,6 @@ use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
@@ -130,22 +129,11 @@ final class WithTenantResolverPlacementValidationTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classes,
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::createWithDefaultConnection(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection'],
-                        'tenant_a_connection',
-                        DbalConnectionFactory::class,
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withDeduplication(false),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection'], 'tenant_a_connection', DbalConnectionFactory::class, ),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

@@ -52,20 +52,11 @@ class EncryptStoredEventsTest extends TestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->connectionFactory,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces(['Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents'])
-                ->withExtensionObjects(
-                    array_merge(
-                        [
-                            EventSourcingConfiguration::createWithDefaults(),
-                            DataProtectionConfiguration::create('primary', $encryptionKey),
-                            JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
-                        ],
-                    )
-                ),
+            extensionObjects: array_merge([EventSourcingConfiguration::createWithDefaults(),DataProtectionConfiguration::create('primary',$encryptionKey),JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),],),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE,ModulePackageList::EVENT_SOURCING_PACKAGE,ModulePackageList::DATA_PROTECTION_PACKAGE,ModulePackageList::JMS_CONVERTER_PACKAGE],
             addInMemoryEventSourcedRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents'],
         );
         $ecotone
             ->withEventsFor(

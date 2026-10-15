@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
@@ -107,23 +106,21 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
         $connection->close();
 
         $ecotone = $this->bootstrapFlowTesting(
-            containerOrAvailableServices:
-                array_merge(
-                    [
-                        new AddMetadataInterceptor(),
-                        new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
-                    ],
-                    [
-                        DbalConnectionFactory::class => DbalConnection::create(
-                            $connection
-                        ),
-                    ]
-                ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor']),
+            containerOrAvailableServices: array_merge(
+                [
+                    new AddMetadataInterceptor(),
+                    new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
+                ],
+                [
+                    DbalConnectionFactory::class => DbalConnection::create(
+                        $connection
+                    ),
+                ]
+            ),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor'],
+            environment: 'prod',
         );
 
         $ecotone->sendCommandWithRouting('order.register', 'milk');
@@ -139,12 +136,11 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
 
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withNamespaces($namespaces),
+            extensionObjects: [\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: $namespaces,
+            environment: 'prod',
         );
     }
 }

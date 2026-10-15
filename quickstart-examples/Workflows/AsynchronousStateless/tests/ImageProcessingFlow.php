@@ -21,15 +21,15 @@ final class ImageProcessingFlow extends TestCase
         $file = __DIR__ . '/../../S3Storage/ecotone_logo_resized.png';
         @unlink($file);
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(/** Testing only the Message Handlers registered in given classes */
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ImageProcessingWorkflow::class],
-            /** We could provide some Stub implementations */
             [
                 ImageProcessingWorkflow::class => new ImageProcessingWorkflow(),
                 ImageResizer::class => new ImageResizer(new ImageManager(new Driver())),
                 ImageUploader::class => new ImageUploader()
             ],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
+        );
 
         $ecotoneLite
             ->sendCommand(new ProcessImage(__DIR__ . '/../../ecotone_logo.png'))

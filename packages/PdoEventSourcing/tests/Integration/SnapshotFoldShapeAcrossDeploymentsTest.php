@@ -14,7 +14,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Conversion\Converter;
@@ -60,14 +59,13 @@ final class SnapshotFoldShapeAcrossDeploymentsTest extends EventSourcingMessagin
                 'logger' => $logger,
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDocumentStore(),
-                    EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
-                ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDocumentStore(),
+                EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(TicketFoldedAcrossDeployments::class, 1),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         );
 
         $this->assertSame('Lucas', $ecotone->sendQueryWithRouting('ticketFoldedAcrossDeployments.assignedPerson', metadata: ['aggregate.id' => '1']));

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DynamicChannel;
 
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -55,13 +54,13 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class],
             [$successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -79,19 +78,17 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $channelName = 'channel_one';
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [DynamicMessageChannelBuilder::createWithSendOnlyStrategy($sharedChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName))],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
-                $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName)
-            ))
-                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendDirectToChannel($channelName, ['test']);
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [$sharedChannel],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject($sharedChannel)
-                ->withEnabledModulePackageNames([])
         );
         $this->assertNotNull($ecotoneLite->getMessageChannel($channelName)->receive());
     }
@@ -100,11 +97,9 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $channelName = 'channel_one';
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [DynamicMessageChannelBuilder::createWithSendOnlyStrategy(SimpleMessageChannelBuilder::createQueueChannel($channelName))],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
-                SimpleMessageChannelBuilder::createQueueChannel($channelName)
-            ))
-                ->withEnabledModulePackageNames([])
         );
 
         $this->expectException(ConfigurationException::class);
@@ -118,13 +113,14 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class],
             [$successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames: ['channel_one'], receivingChannelNames: ['channel_two', 'channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames:['channel_one'], receivingChannelNames:['channel_two', 'channel_one']),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** Send to channel_one */
@@ -146,21 +142,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class],
             [$successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels(
-                    'async_channel',
-                    sendingChannelNames: ['channel_one'],
-                    receivingChannelNames: ['channel_two', 'channel_one'],
-                )
-                    ->withInternalChannels([
-                        SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
-                        SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames:['channel_one'], receivingChannelNames:['channel_two', 'channel_one'], )->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('channel_one'), SimpleMessageChannelBuilder::createQueueChannel('channel_two'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** Send to channel_one */
@@ -182,21 +169,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class],
             [$successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels(
-                    'async_channel',
-                    sendingChannelNames: ['x'],
-                    receivingChannelNames: ['x', 'y'],
-                )
-                    ->withInternalChannels([
-                        'x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
-                        'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames:['x'], receivingChannelNames:['x', 'y'], )->withInternalChannels(['x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'), 'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** Send to x */
@@ -223,21 +201,16 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class, SimpleConsumptionDecider::class],
             [$successServiceActivator, new SimpleConsumptionDecider(['channel_one' => false, 'channel_two' => true], 'async_channel')],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                    PollingMetadata::create('channel_one')
-                        ->withExecutionAmountLimit(1),
-                    PollingMetadata::create('channel_two')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createThrottlingStrategy(
-                    'async_channel',
-                    'dynamicChannel.decide',
-                    ['channel_one', 'channel_two']
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                PollingMetadata::create('channel_one')->withExecutionAmountLimit(1),
+                PollingMetadata::create('channel_two')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createThrottlingStrategy('async_channel', 'dynamicChannel.decide', ['channel_one', 'channel_two']),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -260,15 +233,13 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [$dynamicChannelResolver, $successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
-                    ->withCustomSendingStrategy('dynamicChannel.send')
-                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel')->withCustomSendingStrategy('dynamicChannel.send')->withCustomReceivingStrategy('dynamicChannel.receive'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -294,15 +265,15 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [$dynamicChannelResolver, $successServiceActivator],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
-                    ->withCustomSendingStrategy('dynamicChannel.send')
-                    ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel')->withCustomSendingStrategy('dynamicChannel.send')->withCustomReceivingStrategy('dynamicChannel.receive'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** Sending to channel one */
@@ -333,26 +304,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one', 'channel_two', 'channel_three'])
-                    ->withHeaderSendingStrategy(
-                        'tenant',
-                        [
-                            'tenant_a' => 'channel_one',
-                            'tenant_b' => 'channel_two',
-                            'tenant_c' => 'channel_three',
-                        ]
-                    )
-                    ->withInternalChannels([
-                        SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
-                        SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
-                        SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one', 'channel_two', 'channel_three'])->withHeaderSendingStrategy('tenant', ['tenant_a' => 'channel_one', 'tenant_b' => 'channel_two', 'tenant_c' => 'channel_three', ])->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('channel_one'), SimpleMessageChannelBuilder::createQueueChannel('channel_two'), SimpleMessageChannelBuilder::createQueueChannel('channel_three'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
@@ -381,21 +338,15 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
-                    'async_channel',
-                    'tenant',
-                    [
-                        'tenant_a' => 'channel_one',
-                        'tenant_b' => 'channel_two',
-                        'tenant_c' => 'channel_three',
-                    ]
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three'))
-                    ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createWithHeaderBasedStrategy('async_channel', 'tenant', ['tenant_a' => 'channel_one', 'tenant_b' => 'channel_two', 'tenant_c' => 'channel_three', ]),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
@@ -424,21 +375,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
-                    ->withHeaderSendingStrategy(
-                        'tenant',
-                    )
-                    ->withInternalChannels([
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_b'),
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_c'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])->withHeaderSendingStrategy('tenant', )->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('tenant_a'), SimpleMessageChannelBuilder::createQueueChannel('tenant_b'), SimpleMessageChannelBuilder::createQueueChannel('tenant_c'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
@@ -467,16 +409,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
-                    ->withHeaderSendingStrategy(
-                        'tenant',
-                    ))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])->withHeaderSendingStrategy('tenant', ),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $this->expectException(InvalidArgumentException::class);
@@ -489,21 +427,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])
-                    ->withHeaderSendingStrategy(
-                        'tenant',
-                        defaultChannelName: 'tenant_shared'
-                    )
-                    ->withInternalChannels([
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])->withHeaderSendingStrategy('tenant', defaultChannelName:'tenant_shared')->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('tenant_a'), SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -522,19 +451,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])
-                    ->withHeaderSendingStrategy(
-                        'tenant'
-                    )
-                    ->withInternalChannels([
-                        SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
-                    ]))
-                        ->withEnabledModulePackageNames([]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])->withHeaderSendingStrategy('tenant')->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('tenant_a'), ]),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $this->expectException(InvalidArgumentException::class);
@@ -549,16 +471,11 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         EcotoneLite::bootstrap(
             [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                    DynamicMessageChannelBuilder::createRoundRobin('dynamic_channel', ['async_channel'])
-                        ->withInternalChannels([
-                            SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                        ]),
-                ])
-                ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('dynamic_channel', ['async_channel'])->withInternalChannels([SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ]),
+            ],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -570,12 +487,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    PollingMetadata::create('async_channel')
-                        ->withExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
-                    ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                PollingMetadata::create('async_channel')->withExecutionAmountLimit(1),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']),
+                SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+            ],
+            enabledModules: [],
         );
     }
 

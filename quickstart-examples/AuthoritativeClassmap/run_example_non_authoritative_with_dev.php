@@ -12,9 +12,7 @@ require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(
     containerOrAvailableServices: [new ClassExcludedFromClassmapWithAttribute()],
     pathToRootCatalog: __DIR__,
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->doNotLoadCatalog()
-        ->withNamespaces(["App"]),
+    namespaces: ["App"],
 );
 
 $messagingSystem->getEventBus()->publish(new CustomerRegistered(1));

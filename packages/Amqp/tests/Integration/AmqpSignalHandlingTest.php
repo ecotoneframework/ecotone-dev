@@ -14,7 +14,6 @@ use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -37,14 +36,12 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 $signalHandler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName),
-                ])
+            extensionObjects: [
+                AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
+                AmqpQueue::createWith($queueName),
+                AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $messagePublisher = $ecotoneLite->getMessagePublisher();
@@ -72,14 +69,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 new AmqpAsyncCommandHandler(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create(
-                        'async_commands_unique',
-                        queueName: Uuid::v7()->toRfc4122()
-                    ),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create('async_commands_unique', queueName:Uuid::v7()->toRfc4122())],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $commandBus = $ecotoneLite->getCommandBus();
@@ -107,14 +98,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 new AmqpAsyncCommandHandler(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create(
-                        'async_commands_unique',
-                        queueName: Uuid::v7()->toRfc4122()
-                    ),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create('async_commands_unique', queueName:Uuid::v7()->toRfc4122())],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $commandBus = $ecotoneLite->getCommandBus();
@@ -142,11 +127,10 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
     //            [
     //                ...$this->getConnectionFactoryReferences(),
     //            ],
-    //            ServiceConfiguration::createWithDefaults()
-    //                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE,])
-    //                ->withExtensionObjects([
-    //                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::v7()->toRfc4122()),
-    //                ])
+    //            extensionObjects: [
+    //                AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::v7()->toRfc4122()),
+    //            ],
+    //            enabledModules: [ModulePackageList::AMQP_PACKAGE],
     //        );
     //
     //        $ecotoneLite->run(

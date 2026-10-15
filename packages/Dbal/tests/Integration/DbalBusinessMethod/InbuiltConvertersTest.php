@@ -6,7 +6,6 @@ namespace Integration\DbalBusinessMethod;
 
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
@@ -95,10 +94,9 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
                 ],
                 $services
             ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: false
+            addInMemoryStateStoredRepository: false,
         );
     }
 }

@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ContentType;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -39,8 +38,8 @@ final class ContentTypeAttributeTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
+            enabledModules: [],
         );
 
         $ecotoneLite->sendMessageDirectToChannel(
@@ -69,8 +68,8 @@ final class ContentTypeAttributeTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
+            enabledModules: [],
         );
 
         $ecotoneLite->sendMessageDirectToChannel(
@@ -101,8 +100,8 @@ final class ContentTypeAttributeTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
+            enabledModules: [],
         );
 
         $ecotoneLite->sendMessageDirectToChannel(

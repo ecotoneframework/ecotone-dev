@@ -6,7 +6,6 @@ namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
@@ -34,12 +33,11 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
                 new SqsConsumerExample(),
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsMessageConsumerConfiguration::create($endpointId, $queueName),
-                    SqsMessagePublisherConfiguration::create(queueName: $queueName),
-                ])
+            extensionObjects: [
+                SqsMessageConsumerConfiguration::create($endpointId, $queueName),
+                SqsMessagePublisherConfiguration::create(queueName:$queueName),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
         );
 
         $payload = 'random_payload';

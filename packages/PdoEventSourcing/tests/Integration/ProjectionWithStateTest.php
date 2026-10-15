@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
@@ -95,16 +94,11 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [TicketCounterProjection::class],
             containerOrAvailableServices: [new TicketEventConverter(), new StateAndEventConverter(), new NotificationService(), new TicketCounterProjection(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withFailFast($failFast)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState', ],
+            environment: 'prod',
         );
     }
 }

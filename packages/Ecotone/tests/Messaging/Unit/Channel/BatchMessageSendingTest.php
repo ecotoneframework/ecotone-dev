@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -23,9 +22,9 @@ final class BatchMessageSendingTest extends TestCase
     public function test_batch_message_sent_to_pollable_channel_is_delivered_as_individual_messages(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
         );
 
         $batch = BatchMessage::constructEmpty()
@@ -51,9 +50,9 @@ final class BatchMessageSendingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$orderProcessor::class],
             [$orderProcessor],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->sendCommandWithRouting('order.placeAll', ['espresso', 'latte']);
@@ -69,8 +68,8 @@ final class BatchMessageSendingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$orderProcessor::class],
             [$orderProcessor],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $this->expectException(LicensingException::class);
@@ -97,9 +96,9 @@ final class BatchMessageSendingTest extends TestCase
     public function test_empty_batch_message_delivers_nothing(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
         );
 
         $ecotoneLite->getMessageChannel('orders')->send(

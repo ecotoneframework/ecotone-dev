@@ -21,7 +21,6 @@ use Ecotone\Api\Attribute\TargetVersion;
 use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\WithEvents;
@@ -254,23 +253,14 @@ final class StateStoredRepositoryConformanceTest extends DbalMessagingTestCase
         $classesToResolve = [TicketForRepositoryConformance::class, OpenTicketForRepositoryConformance::class, RenameTicketForRepositoryConformance::class, NoteForRepositoryConformance::class, JournalForRepositoryConformance::class, JourneyForRepositoryConformance::class];
 
         if ($implementation === 'in-memory') {
-            return $this->bootstrapFlowTesting(
-                classesToResolve: $classesToResolve,
-                configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
-            );
+            return $this->bootstrapFlowTesting(classesToResolve: $classesToResolve, enabledModules: []);
         }
 
         return $this->bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDocumentStore(
-                        inMemoryDocumentStore: $implementation === 'document-store-in-memory',
-                        enableDocumentStoreStateStoredRepository: true,
-                    ),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDocumentStore(inMemoryDocumentStore:$implementation === 'document-store-in-memory', enableDocumentStoreStateStoredRepository:true, )],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             addInMemoryStateStoredRepository: false,
         );
     }

@@ -9,7 +9,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -40,24 +39,14 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant',
-                ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant', ],
         );
 
         $ecotone->sendCommand(
@@ -119,25 +108,15 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant',
-                ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    DbalConfiguration::createForTesting(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                DbalConfiguration::createForTesting(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant', ],
         );
 
         $ecotone->sendCommand(
@@ -190,24 +169,14 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection',
-                ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection', ],
         );
 
         $ecotone->sendCommand(

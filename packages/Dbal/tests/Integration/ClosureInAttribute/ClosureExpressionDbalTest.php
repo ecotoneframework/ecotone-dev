@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -57,9 +56,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -77,9 +74,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [PolicyDrivenDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -109,8 +104,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [new ClosureDeduplicatedHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 
@@ -123,8 +117,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 
@@ -168,29 +161,15 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TenantClosurePoller::class, $receiver::class],
             [$poller, $receiver, 'tenant_a_connection' => new FakeConnectionFactory()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    PollingMetadata::create('externalEventPoller')
-                        ->withExecutionAmountLimit(1)
-                        ->withHandledMessageLimit(1),
-                    PollingMetadata::create('external_processing')
-                        ->withExecutionAmountLimit(1)
-                        ->withHandledMessageLimit(1),
-                    MultiTenantConfiguration::createWithDefaultConnection(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'],
-                        'tenant_a_connection',
-                        DbalConnectionFactory::class,
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withDeduplication(false),
-                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('externalEventPoller')->withExecutionAmountLimit(1)->withHandledMessageLimit(1),
+                PollingMetadata::create('external_processing')->withExecutionAmountLimit(1)->withHandledMessageLimit(1),
+                MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'], 'tenant_a_connection', DbalConnectionFactory::class, ),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)->withDeduplication(false),
+                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 1000));
@@ -210,9 +189,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

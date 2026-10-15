@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -61,10 +60,10 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
                 new EventsConverters(),
                 $this->getConnectionFactory(),
             ],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cycle')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\StatefulWorkflow'],
         );
     }
 }

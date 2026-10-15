@@ -9,7 +9,6 @@ use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Exception;
@@ -262,14 +261,11 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    $config,
-                    AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
-                        ->withAutoDeclare($autoDeclare),
-                ]),
+            extensionObjects: [
+                $config,
+                AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)->withAutoDeclare($autoDeclare),
+            ],
+            enabledModules: [\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE, \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -278,14 +274,12 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    $config,
-                    AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
-                    AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_3)->withAutoDeclare(false),
-                ]),
+            extensionObjects: [
+                $config,
+                AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
+                AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_3)->withAutoDeclare(false),
+            ],
+            enabledModules: [\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE, \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -294,22 +288,14 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE,
-                ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    $config,
-                    AmqpQueue::createStreamQueue(self::TEST_STREAM_CHANNEL_NAME),
-                    AmqpStreamChannelBuilder::create(
-                        self::TEST_STREAM_CHANNEL_NAME,
-                        'first',
-                        AmqpLibConnection::class,
-                        self::TEST_STREAM_CHANNEL_NAME
-                    ),
-                ]),
+            extensionObjects: [
+                $config,
+                AmqpQueue::createStreamQueue(self::TEST_STREAM_CHANNEL_NAME),
+                AmqpStreamChannelBuilder::create(self::TEST_STREAM_CHANNEL_NAME, 'first', AmqpLibConnection::class, self::TEST_STREAM_CHANNEL_NAME),
+            ],
+            enabledModules: [\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE, \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

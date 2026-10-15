@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Store\Document\DocumentException;
@@ -97,10 +96,9 @@ final class DocumentStoreTest extends DbalMessagingTestCase
     {
         return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         ))->getGateway(DocumentStore::class)
         ;
     }
@@ -110,8 +108,7 @@ final class DocumentStoreTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [UnreadableDocumentForDocumentStore::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
         )->getGateway(DocumentStore::class);
     }
 

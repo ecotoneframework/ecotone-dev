@@ -27,7 +27,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -64,13 +63,10 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class, UserCreated::class],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Test\Ecotone\Projecting'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType: MediaType::createApplicationXPHP()),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Projecting'],
         );
 
         // When events are sent directly to the streaming channel (bypassing gateway to avoid serialization)
@@ -121,13 +117,10 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Test\Ecotone\Projecting'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType: MediaType::createApplicationXPHP()),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('streaming_channel', conversionMediaType:MediaType::createApplicationXPHP())],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Projecting'],
         );
 
         // When events are sent with different routing keys
@@ -184,19 +177,14 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Test\Ecotone\Projecting'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: 'product_stream'
-                    ),
-                    PollingMetadata::create('product_projection')->withTestingSetup(),
-                ])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:'product_stream'),
+                PollingMetadata::create('product_projection')->withTestingSetup(),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Projecting'],
         );
 
         // When events are appended to the stream source (simulating event sourcing aggregate)
@@ -255,20 +243,15 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Test\Ecotone\Projecting'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: 'product_stream'
-                    ),
-                    PollingMetadata::create('product_list_projection')->withTestingSetup(),
-                    PollingMetadata::create('product_price_projection')->withTestingSetup(),
-                ])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:'product_stream'),
+                PollingMetadata::create('product_list_projection')->withTestingSetup(),
+                PollingMetadata::create('product_price_projection')->withTestingSetup(),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Projecting'],
         );
 
         // When events are appended to the stream source
@@ -332,19 +315,14 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
             containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Test\Ecotone\Projecting'])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: 'product_stream'
-                    ),
-                    PollingMetadata::create('streaming_product_list')->withTestingSetup(),
-                ])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType:MediaType::createApplicationXPHP()),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:'product_stream'),
+                PollingMetadata::create('streaming_product_list')->withTestingSetup(),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Projecting'],
         );
 
         // When events are appended to the stream source

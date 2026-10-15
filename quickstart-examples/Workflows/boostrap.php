@@ -17,16 +17,13 @@ namespace Workflows {
     function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem
     {
         $messagingSystem = EcotoneLite::bootstrap(
-        /**
-         * In your application you will register Services inside your Dependency Container
-         */
             containerOrAvailableServices: array_merge([
                 'logger' => new EchoLogger(),
                 // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
                 DbalConnectionFactory::class => getConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ], $services),
-            configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
-            pathToRootCatalog: $rootDirectory
+            pathToRootCatalog: $rootDirectory,
+            namespaces: ['App'],
         );
         $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 

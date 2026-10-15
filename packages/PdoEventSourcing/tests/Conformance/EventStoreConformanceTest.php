@@ -19,7 +19,6 @@ use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -732,14 +731,10 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    match ($implementation) {
-                        'in-memory' => EventSourcingConfiguration::createInMemory(),
-                        'dbal' => EventSourcingConfiguration::createWithDefaults(),
-                    },
-                ]),
+            extensionObjects: [match($implementation) {
+                'in-memory' => EventSourcingConfiguration::createInMemory(),'dbal' => EventSourcingConfiguration::createWithDefaults(),
+            }],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
 
         return [$ecotone->getGateway(EventStore::class), fn () => $ecotone->setupDatabaseTables()];

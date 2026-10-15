@@ -16,7 +16,6 @@ use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -240,8 +239,7 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: array_map(static fn (object $class) => $class::class, $classes),
             containerOrAvailableServices: [...$classes, DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($setUpTablesOnBootstrap),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

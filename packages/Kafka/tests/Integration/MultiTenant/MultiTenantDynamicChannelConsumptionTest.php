@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -61,26 +60,12 @@ final class MultiTenantDynamicChannelConsumptionTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel_owner_creation_tenant_a',
-                        topicName: 'owner_creation_tenant_a_' . Uuid::v7()->toRfc4122(),
-                    ),
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel_owner_creation_tenant_b',
-                        topicName: 'owner_creation_tenant_b_' . Uuid::v7()->toRfc4122(),
-                    ),
-                    DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
-                        thisMessageChannelName: 'channel_owner_creation',
-                        headerName: 'tenant',
-                        headerMapping: [
-                            'tenant_a' => 'channel_owner_creation_tenant_a',
-                            'tenant_b' => 'channel_owner_creation_tenant_b',
-                        ],
-                    ),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'channel_owner_creation_tenant_a', topicName:'owner_creation_tenant_a_'.Uuid::v7()->toRfc4122(), ),
+                KafkaMessageChannelBuilder::create(channelName:'channel_owner_creation_tenant_b', topicName:'owner_creation_tenant_b_'.Uuid::v7()->toRfc4122(), ),
+                DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(thisMessageChannelName:'channel_owner_creation', headerName:'tenant', headerMapping:['tenant_a' => 'channel_owner_creation_tenant_a', 'tenant_b' => 'channel_owner_creation_tenant_b', ], ),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

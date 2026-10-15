@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\Dbal\Fixture\Calendar\CreateCalendar;
@@ -32,11 +31,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, Meeting::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate',
-                ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate', ],
         );
 
         $calendarId = 'calendar-1';
@@ -55,11 +51,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, MeetingWithEventSourcing::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate',
-                ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate', ],
         );
 
         $calendarId = 'calendar-1';
@@ -80,11 +73,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, Meeting::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate',
-                ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate', ],
         );
 
         $calendarId = 'calendar-1';
@@ -111,11 +101,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithInternalRecorder::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate',
-                ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate', ],
         );
 
         $calendarId = 'calendar-1';
@@ -145,11 +132,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate',
-                ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\CreateStateBasedAggregateByStateBasedAggregate', ],
         );
 
         $calendarId = 'calendar-1';

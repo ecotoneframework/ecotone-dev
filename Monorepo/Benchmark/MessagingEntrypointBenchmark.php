@@ -22,8 +22,7 @@ class MessagingEntrypointBenchmark
         $this->messagingSystem = EcotoneLite::bootstrap(
             [BenchmarkHandler::class],
             [new BenchmarkHandler()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
 
         $this->directEntrypoint = $this->messagingSystem->getServiceFromContainer(MessagingEntrypointService::class);

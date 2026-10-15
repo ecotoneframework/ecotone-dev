@@ -7,7 +7,6 @@ use Ecotone\Api\DataProtection\DataProtectionConfiguration;
 use Ecotone\Api\DataProtection\Key;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -431,19 +430,15 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test');
 
         EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DATA_PROTECTION_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\NonPollable'])
-                ->withExtensionObjects(
-                    [
-                        $channelProtectionConfiguration,
-                        DataProtectionConfiguration::create('primary', $this->primaryKey)
-                            ->withKey('secondary', $this->secondaryKey),
-                        SimpleMessageChannelBuilder::create('test', new DirectChannel('test')),
-                        JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
-                    ]
-                )
+            extensionObjects: [
+                $channelProtectionConfiguration,
+                DataProtectionConfiguration::create('primary', $this->primaryKey)->withKey('secondary', $this->secondaryKey),
+                SimpleMessageChannelBuilder::create('test', new DirectChannel('test')),
+                JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
+            ],
+            enabledModules: [ModulePackageList::DATA_PROTECTION_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\DataProtection\Fixture\NonPollable'],
         )
         ;
     }
@@ -517,17 +512,15 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
                 new TestCommandHandler(),
                 new TestEventHandler(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration'])
-                ->withExtensionObjects([
-                    $channelProtectionConfiguration,
-                    DataProtectionConfiguration::create('primary', $this->primaryKey)
-                        ->withKey('secondary', $this->secondaryKey),
-                    SimpleMessageChannelBuilder::create('test', $messageChannel),
-                    JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
-                ])
+            extensionObjects: [
+                $channelProtectionConfiguration,
+                DataProtectionConfiguration::create('primary', $this->primaryKey)->withKey('secondary', $this->secondaryKey),
+                SimpleMessageChannelBuilder::create('test', $messageChannel),
+                JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration'],
         );
     }
 }

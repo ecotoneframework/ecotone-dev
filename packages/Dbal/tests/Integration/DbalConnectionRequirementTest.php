@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\InMemoryPSRContainer;
@@ -26,11 +25,10 @@ final class DbalConnectionRequirementTest extends TestCase
 
         EcotoneLite::bootstrap(
             classesToResolve: [Meeting::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: [],
+            environment: 'prod',
         );
     }
 
@@ -41,11 +39,10 @@ final class DbalConnectionRequirementTest extends TestCase
         $ecotone = EcotoneLite::bootstrap(
             classesToResolve: [Meeting::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $connectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: [],
+            environment: 'prod',
         );
 
         self::assertNotNull($ecotone);
@@ -58,11 +55,10 @@ final class DbalConnectionRequirementTest extends TestCase
         $ecotone = EcotoneLite::bootstrap(
             classesToResolve: [Meeting::class],
             containerOrAvailableServices: InMemoryPSRContainer::createFromAssociativeArray([DbalConnectionFactory::class => $connectionFactory]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: [],
+            environment: 'prod',
         );
 
         self::assertNotNull($ecotone);

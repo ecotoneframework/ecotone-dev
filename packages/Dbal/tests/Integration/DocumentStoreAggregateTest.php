@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -40,14 +39,10 @@ final class DocumentStoreAggregateTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             [Person::class, PersonJsonConverter::class],
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, documentStoreRelatedAggregates: [Person::class]),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreStateStoredRepository:true, documentStoreRelatedAggregates:[Person::class])],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: true
+            addInMemoryStateStoredRepository: true,
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
@@ -62,13 +57,10 @@ final class DocumentStoreAggregateTest extends DbalMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: false
+            addInMemoryStateStoredRepository: false,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate', ],
         );
     }
 }

@@ -14,7 +14,6 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -183,15 +182,11 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, CouponIssuedForInvariantTest::class, IssueCouponForInvariantTest::class, EventsConverterForInvariantTest::class],
             containerOrAvailableServices: [...$services, self::getConnectionFactory(), new EventsConverterForInvariantTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
         $ecotone->setupDatabaseTables();
 

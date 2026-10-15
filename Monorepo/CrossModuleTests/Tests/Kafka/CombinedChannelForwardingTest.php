@@ -56,13 +56,12 @@ final class CombinedChannelForwardingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'kafkaOutbox', 'orderProcessing'),
-                    KafkaMessageChannelBuilder::create('kafkaOutbox', topicName: $uniqueId, messageGroupId: $uniqueId),
-                    SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders','kafkaOutbox','orderProcessing'),
+                KafkaMessageChannelBuilder::create('kafkaOutbox',topicName:$uniqueId,messageGroupId:$uniqueId),
+                SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

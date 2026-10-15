@@ -29,7 +29,6 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -297,14 +296,14 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withExtensionObjects([
-                    PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
-                ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))
-                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
+                DbalBackedMessageChannelBuilder::create($projection::CHANNEL),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->deleteProjection($projection::NAME)
@@ -328,11 +327,12 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
-                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create($channel),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

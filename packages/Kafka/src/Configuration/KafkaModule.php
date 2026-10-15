@@ -211,7 +211,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
         throw LicensingException::create(
             'Kafka is used here (' . implode(', ', $usages) . '), but the Kafka module is available only with Ecotone Enterprise licence. '
-            . "Pass the licence key - ServiceConfiguration::createWithDefaults()->withLicenceKey('...'), or EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...') in a test - "
+            . "Pass the licence key - licenceKey in your framework's Ecotone configuration, or EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...') in a test - "
             . 'or remove the Kafka configuration listed. See https://docs.ecotone.tech/enterprise for details.'
         );
     }

@@ -70,9 +70,8 @@ final class LiteFlowTestingBenchmark
         $this->executionSystem = EcotoneLite::bootstrap(
             [$handler::class],
             [$handler],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('execution'))
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('execution')],
+            enabledModules: [],
         );
         $this->executed = 0;
     }
@@ -115,10 +114,9 @@ final class LiteFlowTestingBenchmark
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
         Assert::assertSame([], $projection->events);
         $ecotone->withEvents([

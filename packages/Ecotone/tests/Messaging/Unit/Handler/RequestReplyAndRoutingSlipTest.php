@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -107,13 +106,12 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [RequestReplyHandler::class],
             [new RequestReplyHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::OUTPUT_CHANNEL),
-                    SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::NEXT_CHANNEL),
-                    SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::FINAL_CHANNEL),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::OUTPUT_CHANNEL),
+                SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::NEXT_CHANNEL),
+                SimpleMessageChannelBuilder::createQueueChannel(RequestReplyHandler::FINAL_CHANNEL),
+            ],
+            enabledModules: [],
         );
     }
 }

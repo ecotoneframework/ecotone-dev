@@ -215,13 +215,12 @@ final class TracingScopeCleanupTest extends TracingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$userService::class],
             [$userService, TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('error_channel')
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                    ExceptionalQueueChannel::createWithExceptionOnSend('error_channel'),
-                ])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('error_channel'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('error_channel'),
+            ],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         );
 
         $ecotoneLite->sendCommandWithRouting('user.register', '1');
@@ -238,13 +237,12 @@ final class TracingScopeCleanupTest extends TracingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName('user_service')
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    ExceptionalQueueChannel::createWithExceptionOnSend('distributed_channel'),
-                    DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_channel'),
-                ]),
+            extensionObjects: [
+                ExceptionalQueueChannel::createWithExceptionOnSend('distributed_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName:'ticket_service', channelName:'distributed_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+            ],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -281,9 +279,8 @@ final class TracingScopeCleanupTest extends TracingTestCase
                 [$userService, $userNotifier, TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
                 $servicesToRegister,
             ),
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects($channelsToRegister)
+            extensionObjects: $channelsToRegister,
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         );
     }
 

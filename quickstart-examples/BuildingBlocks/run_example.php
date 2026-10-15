@@ -32,8 +32,8 @@ $ecotoneLite = EcotoneLite::bootstrap(
         DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
         ProductReservationService::class => new ProductReservationService(true),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 $ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 $commandBus = $ecotoneLite->getCommandBus();

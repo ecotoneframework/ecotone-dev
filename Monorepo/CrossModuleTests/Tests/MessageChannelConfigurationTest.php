@@ -54,12 +54,11 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames($enabledModulePackageNames)
-                ->withExtensionObjects([
-                    $messageChannelBuilder,
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                $messageChannelBuilder,
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: $enabledModulePackageNames,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -86,13 +85,12 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames($enabledModulePackageNames)
-                ->withExtensionObjects([
-                    $messageChannelBuilder,
-                    SimpleMessageChannelBuilder::createQueueChannel(self::ERROR_CHANNEL)
-                ])
-                ->withDefaultErrorChannel(self::ERROR_CHANNEL),
+            extensionObjects: [
+                $messageChannelBuilder,
+                SimpleMessageChannelBuilder::createQueueChannel(self::ERROR_CHANNEL),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(self::ERROR_CHANNEL),
+            ],
+            enabledModules: $enabledModulePackageNames,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotoneLite->sendCommandWithRouting('handler.fail', ['command' => 0]);
@@ -115,12 +113,11 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withExtensionObjects([
-                    $messageChannelBuilder
-                ])
-                ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
+            extensionObjects: [
+                $messageChannelBuilder,
+                ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
+            ],
+            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -147,12 +144,8 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withExtensionObjects([
-                    $messageChannelBuilder
-                        ->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)
-                ]),
+            extensionObjects: [$messageChannelBuilder->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)],
+            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -177,11 +170,8 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withExtensionObjects([
-                    $messageChannelBuilder
-                ]),
+            extensionObjects: [$messageChannelBuilder],
+            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -210,12 +200,8 @@ final class MessageChannelConfigurationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withExtensionObjects([
-                    $messageChannelBuilder
-                        ->withHeaderMapping('token')
-                ]),
+            extensionObjects: [$messageChannelBuilder->withHeaderMapping('token')],
+            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

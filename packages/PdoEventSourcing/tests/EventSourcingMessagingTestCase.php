@@ -3,7 +3,6 @@
 namespace Test\Ecotone\EventSourcing;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -146,10 +145,18 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         return str_starts_with(getenv('DATABASE_DSN'), 'mysql');
     }
 
+    /**
+     * @param string[] $classesToResolve
+     * @param object[] $extensionObjects
+     * @param string[]|null $enabledModules
+     * @param array<string,mixed> $configurationVariables
+     * @param string[] $namespaces
+     */
     protected function bootstrapFlowTesting(
         array $classesToResolve = [],
         ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration $configuration = null,
+        array $extensionObjects = [],
+        ?array $enabledModules = null,
         array $configurationVariables = [],
         ?string $pathToRootCatalog = null,
         bool $allowGatewaysToBeRegisteredInContainer = false,
@@ -157,11 +164,15 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         bool $addInMemoryEventSourcedRepository = true,
         ?TestConfiguration $testConfiguration = null,
         ?string $licenceKey = null,
+        array $namespaces = [],
+        string $environment = 'dev',
+        ?string $cacheDirectoryPath = null,
     ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $containerOrAvailableServices,
-            $configuration,
+            $extensionObjects,
+            $enabledModules,
             $configurationVariables,
             $pathToRootCatalog,
             $allowGatewaysToBeRegisteredInContainer,
@@ -169,6 +180,9 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             $addInMemoryEventSourcedRepository,
             $testConfiguration,
             $licenceKey,
+            $namespaces,
+            $environment,
+            $cacheDirectoryPath,
         );
     }
 }

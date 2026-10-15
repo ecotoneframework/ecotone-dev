@@ -47,11 +47,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -76,12 +73,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withPublisherConfirms(false),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)->withPublisherConfirms(false)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -107,11 +100,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new OrderService(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         try {
@@ -143,14 +133,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new OrderService(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        queueName: $queueName,
-                    ),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create(channelName:$channelName, queueName:$queueName, )],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         try {
@@ -189,14 +173,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new OrderService(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        queueName: $queueName,
-                    ),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create(channelName:$channelName, queueName:$queueName, )],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -219,12 +197,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withAutoDeclare(false),
-                ])
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queueName)->withAutoDeclare(false)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -257,14 +231,11 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ]),
                 'logger' => $loggerExample,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
-                )
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create('correctOrders'),
-                ])
+            extensionObjects: [
+                AmqpBackedMessageChannelBuilder::create('correctOrders'),
+                ServiceConfiguration::createWithDefaults()->withConnectionRetryTemplate(RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $wasFinallyRethrown = false;
@@ -305,9 +276,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withFailFast(false),
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $ecotoneLite->run('incorrectOrdersEndpoint');

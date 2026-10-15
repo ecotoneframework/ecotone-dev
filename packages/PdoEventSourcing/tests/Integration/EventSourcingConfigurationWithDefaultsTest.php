@@ -10,7 +10,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -33,10 +32,9 @@ final class EventSourcingConfigurationWithDefaultsTest extends EventSourcingMess
         $ecotone = $this->bootstrapFlowTesting(
             [$configuration::class],
             [$configuration, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            environment: 'prod',
         );
 
         $eventStore = $ecotone->getGateway(EventStore::class);

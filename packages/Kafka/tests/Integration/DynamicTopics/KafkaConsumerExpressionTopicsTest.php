@@ -6,7 +6,6 @@ namespace Test\Ecotone\Kafka\Integration\DynamicTopics;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
@@ -56,11 +55,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 'topicsProvider' => new TopicsProvider(),
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
-                ]),
+            extensionObjects: [TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -90,12 +86,11 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 'topicsProvider' => new TopicsProvider(),
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    TopicConfiguration::createWithReferenceName('literalOrdersTopic', $literalTopicName),
-                    TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $dynamicTopicName),
-                ]),
+            extensionObjects: [
+                TopicConfiguration::createWithReferenceName('literalOrdersTopic', $literalTopicName),
+                TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $dynamicTopicName),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -127,11 +122,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 new ParameterTopicsKafkaConsumer(),
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
-                ]),
+            extensionObjects: [TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             configurationVariables: ['ordersTopicReferenceName' => 'dynamicOrdersTopic'],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

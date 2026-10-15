@@ -13,7 +13,6 @@ use Ecotone\Api\Amqp\RabbitConsumer;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -57,16 +56,14 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpExchange::createDirectExchange(self::CUSTOM_EXCHANGE),
-                    AmqpQueue::createWith(self::CUSTOM_EXCHANGE_QUEUE),
-                    AmqpBinding::createFromNames(self::CUSTOM_EXCHANGE, self::CUSTOM_EXCHANGE_QUEUE, self::CUSTOM_EXCHANGE_ROUTING_KEY),
-                    AmqpMessagePublisherConfiguration::create(exchangeName: self::CUSTOM_EXCHANGE)
-                        ->withDefaultRoutingKey(self::CUSTOM_EXCHANGE_ROUTING_KEY),
-                ])
+            extensionObjects: [
+                AmqpExchange::createDirectExchange(self::CUSTOM_EXCHANGE),
+                AmqpQueue::createWith(self::CUSTOM_EXCHANGE_QUEUE),
+                AmqpBinding::createFromNames(self::CUSTOM_EXCHANGE, self::CUSTOM_EXCHANGE_QUEUE, self::CUSTOM_EXCHANGE_ROUTING_KEY),
+                AmqpMessagePublisherConfiguration::create(exchangeName:self::CUSTOM_EXCHANGE)->withDefaultRoutingKey(self::CUSTOM_EXCHANGE_ROUTING_KEY),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->getMessagePublisher()->send('some');
@@ -85,18 +82,16 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpExchange::createTopicExchange(self::TOPIC_EXCHANGE),
-                    AmqpQueue::createWith(self::TOPIC_WHITE_QUEUE),
-                    AmqpQueue::createWith(self::TOPIC_BLACK_QUEUE),
-                    AmqpBinding::createFromNames(self::TOPIC_EXCHANGE, self::TOPIC_WHITE_QUEUE, '*.white'),
-                    AmqpBinding::createFromNames(self::TOPIC_EXCHANGE, self::TOPIC_BLACK_QUEUE, '*.black'),
-                    AmqpMessagePublisherConfiguration::create(exchangeName: self::TOPIC_EXCHANGE)
-                        ->withDefaultRoutingKey('color.white'),
-                ])
+            extensionObjects: [
+                AmqpExchange::createTopicExchange(self::TOPIC_EXCHANGE),
+                AmqpQueue::createWith(self::TOPIC_WHITE_QUEUE),
+                AmqpQueue::createWith(self::TOPIC_BLACK_QUEUE),
+                AmqpBinding::createFromNames(self::TOPIC_EXCHANGE, self::TOPIC_WHITE_QUEUE, '*.white'),
+                AmqpBinding::createFromNames(self::TOPIC_EXCHANGE, self::TOPIC_BLACK_QUEUE, '*.black'),
+                AmqpMessagePublisherConfiguration::create(exchangeName:self::TOPIC_EXCHANGE)->withDefaultRoutingKey('color.white'),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->getMessagePublisher()->send('some');
@@ -118,17 +113,16 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpExchange::createFanoutExchange(self::FANOUT_EXCHANGE),
-                    AmqpQueue::createWith(self::FANOUT_QUEUE_ONE),
-                    AmqpQueue::createWith(self::FANOUT_QUEUE_TWO),
-                    AmqpBinding::createFromNamesWithoutRoutingKey(self::FANOUT_EXCHANGE, self::FANOUT_QUEUE_ONE),
-                    AmqpBinding::createFromNamesWithoutRoutingKey(self::FANOUT_EXCHANGE, self::FANOUT_QUEUE_TWO),
-                    AmqpMessagePublisherConfiguration::create(exchangeName: self::FANOUT_EXCHANGE),
-                ])
+            extensionObjects: [
+                AmqpExchange::createFanoutExchange(self::FANOUT_EXCHANGE),
+                AmqpQueue::createWith(self::FANOUT_QUEUE_ONE),
+                AmqpQueue::createWith(self::FANOUT_QUEUE_TWO),
+                AmqpBinding::createFromNamesWithoutRoutingKey(self::FANOUT_EXCHANGE, self::FANOUT_QUEUE_ONE),
+                AmqpBinding::createFromNamesWithoutRoutingKey(self::FANOUT_EXCHANGE, self::FANOUT_QUEUE_TWO),
+                AmqpMessagePublisherConfiguration::create(exchangeName:self::FANOUT_EXCHANGE),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->getMessagePublisher()->send('some');

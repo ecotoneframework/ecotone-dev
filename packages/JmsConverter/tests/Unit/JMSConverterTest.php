@@ -7,7 +7,6 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\JMSConverter\ArrayObjectConverter;
@@ -534,9 +533,8 @@ class JMSConverterTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             array_map(fn (object $converter) => $converter::class, $converters),
             $converters,
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withExtensionObjects($configuration ? [$configuration] : [])
+            extensionObjects: $configuration ? [$configuration] : [],
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         )
             ->getServiceFromContainer(ConversionService::REFERENCE_NAME);
     }

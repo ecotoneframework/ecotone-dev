@@ -11,7 +11,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
@@ -61,20 +60,12 @@ final class MultiTenantDynamicChannelConsumptionTest extends DbalMessagingTestCa
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($tenantAChannel),
-                    DbalBackedMessageChannelBuilder::create($tenantBChannel),
-                    DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
-                        thisMessageChannelName: 'channel_owner_creation',
-                        headerName: 'tenant',
-                        headerMapping: [
-                            'tenant_a' => $tenantAChannel,
-                            'tenant_b' => $tenantBChannel,
-                        ],
-                    ),
-                ]),
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create($tenantAChannel),
+                DbalBackedMessageChannelBuilder::create($tenantBChannel),
+                DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(thisMessageChannelName:'channel_owner_creation', headerName:'tenant', headerMapping:['tenant_a' => $tenantAChannel, 'tenant_b' => $tenantBChannel, ], ),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

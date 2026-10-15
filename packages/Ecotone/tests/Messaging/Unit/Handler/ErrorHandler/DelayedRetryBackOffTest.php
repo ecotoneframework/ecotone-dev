@@ -42,15 +42,14 @@ final class DelayedRetryBackOffTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$sender::class],
             [$sender],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('errorChannel')
-                ->withExtensionObjects([
-                    ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3), 'deadLetter'),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                    SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
-                    SimpleMessageChannelBuilder::createQueueChannel('async'),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3), 'deadLetter'),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
+            ],
+            enabledModules: [],
         );
 
         $ecotone->publishEventWithRouting('order.completed', 'order-1');
@@ -112,17 +111,14 @@ final class DelayedRetryBackOffTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$sender::class],
             [$sender, 'logger' => $logger],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('errorChannel')
-                ->withExtensionObjects([
-                    $deadLetter
-                        ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries), 'deadLetter')
-                        : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries)),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                    SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
-                    SimpleMessageChannelBuilder::createQueueChannel('async'),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                $deadLetter ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries), 'deadLetter') : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries)),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
+            ],
+            enabledModules: [],
         );
     }
 }

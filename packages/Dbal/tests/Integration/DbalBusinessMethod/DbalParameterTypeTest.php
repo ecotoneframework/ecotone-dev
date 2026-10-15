@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Integration\DbalBusinessMethod;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -149,18 +148,11 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
                     DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
                 ],
             ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
-                    'Test\Ecotone\Dbal\Fixture\ORM\Person',
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withDoctrineORMRepositories(true, [Person::class]),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDoctrineORMRepositories(true, [Person::class])],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: false
+            addInMemoryStateStoredRepository: false,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\DbalBusinessInterface', 'Test\Ecotone\Dbal\Fixture\ORM\Person', ],
         );
     }
 }

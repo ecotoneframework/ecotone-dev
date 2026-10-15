@@ -27,12 +27,10 @@ $customerService = EcotoneLite::bootstrap(
         AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
         DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withServiceName(CUSTOMER_SERVICE)
-        ->withNamespaces(["App\Microservices\CustomerService"]),
+    extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName(CUSTOMER_SERVICE)],
     pathToRootCatalog: __DIR__,
-    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    namespaces: ["App\Microservices\CustomerService"],
 );
 
 $backofficeConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone');
@@ -42,12 +40,10 @@ $backofficeService = EcotoneLite::bootstrap(
         AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
         DbalConnectionFactory::class => $backofficeConnectionFactory,
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withServiceName(BACKOFFICE_SERVICE)
-        ->withNamespaces(["App\Microservices\BackofficeService"]),
+    extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName(BACKOFFICE_SERVICE)],
     pathToRootCatalog: __DIR__,
-    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    namespaces: ["App\Microservices\BackofficeService"],
 );
 /** Running consumer for first time in order to create the queue */
 $backofficeService->run(BACKOFFICE_SERVICE);

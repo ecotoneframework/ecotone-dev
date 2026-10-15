@@ -12,7 +12,6 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -93,11 +92,8 @@ final class LoadBatchSizeBoundaryDbalTest extends EventSourcingMessagingTestCase
                 self::getConnectionFactory(),
                 new BasketWithBatchedEventsConverter(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(self::LOAD_BATCH_SIZE),
-                ]),
+            extensionObjects: [EventSourcingConfiguration::createWithDefaults()->withLoadBatchSize(self::LOAD_BATCH_SIZE)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
 
         return $ecotone->setupDatabaseTables();

@@ -18,6 +18,7 @@ use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
@@ -55,7 +56,7 @@ final class DbalPublisherModule implements AnnotationModule
         $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $extensionObjects);
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
         $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
-        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($applicationConfiguration);
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
 
         $messagingConfiguration->registerServiceDefinition(
             EnqueueTableManager::class,

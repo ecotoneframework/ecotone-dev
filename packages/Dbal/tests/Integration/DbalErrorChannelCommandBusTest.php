@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -273,13 +272,12 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withNamespaces($namespaces),
+            extensionObjects: [\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: $namespaces,
+            environment: 'prod',
         ));
     }
 }

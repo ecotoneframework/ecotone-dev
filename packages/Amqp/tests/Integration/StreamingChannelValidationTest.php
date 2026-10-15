@@ -9,7 +9,6 @@ use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
@@ -70,27 +69,14 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpQueue::createStreamQueue($queue1),
-                    AmqpQueue::createStreamQueue($queue2),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'channel1',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queue1,
-                        messageGroupId: $sharedGroupId  // Same group ID
-                    ),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'channel2',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queue2,
-                        messageGroupId: $sharedGroupId  // Same group ID - should fail
-                    ),
-                ])
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queue1),
+                AmqpQueue::createStreamQueue($queue2),
+                AmqpStreamChannelBuilder::create(channelName:'channel1', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queue1, messageGroupId:$sharedGroupId),
+                AmqpStreamChannelBuilder::create(channelName:'channel2', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queue2, messageGroupId:$sharedGroupId),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
@@ -120,27 +106,14 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpQueue::createStreamQueue($queue1),
-                    AmqpQueue::createStreamQueue($queue2),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'channel1',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queue1,
-                        messageGroupId: $groupId1
-                    ),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: 'channel2',
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queue2,
-                        messageGroupId: $groupId2
-                    ),
-                ])
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queue1),
+                AmqpQueue::createStreamQueue($queue2),
+                AmqpStreamChannelBuilder::create(channelName:'channel1', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queue1, messageGroupId:$groupId1),
+                AmqpStreamChannelBuilder::create(channelName:'channel2', startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queue2, messageGroupId:$groupId2),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $this->assertNotNull($ecotoneLite);

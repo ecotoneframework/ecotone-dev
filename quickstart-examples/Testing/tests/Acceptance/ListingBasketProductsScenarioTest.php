@@ -87,14 +87,12 @@ final class ListingBasketProductsScenarioTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [User::class, Basket::class, VerificationProcess::class, Product::class, CurrentBasketProjection::class, VerificationSender::class, ProductService::class, UserService::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter(), TokenGenerator::class => new StubTokenGenerator([$emailToken, $phoneNumberToken]), new VerificationSender()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                // Loading converters, so they can be used for events
-                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
-                ]),
-            pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES,true),
+                PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+            ],
+            pathToRootCatalog: __DIR__,
+            namespaces: ["App\Testing\Infrastructure\Converter"],
         );
     }
 }

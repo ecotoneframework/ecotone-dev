@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -28,7 +27,11 @@ final class ScheduledEndpointTest extends TestCase
     public function test_scheduled_method_with_no_parameters_is_called_with_no_request_channel_needed(): void
     {
         $service = new NoArgScheduledService();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([NoArgScheduledService::class], [$service], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [NoArgScheduledService::class],
+            [$service],
+            enabledModules: [],
+        );
 
         $ecotone->run(NoArgScheduledService::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(1));
 
@@ -41,10 +44,8 @@ final class ScheduledEndpointTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ReturningScheduledService::class],
             [$service],
-            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL),
-            ])
-                ->withEnabledModulePackageNames([]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL)],
+            enabledModules: [],
         );
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(1));
@@ -58,14 +59,11 @@ final class ScheduledEndpointTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ReturningScheduledService::class],
             [$service],
-            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel(ReturningScheduledService::CHANNEL),
-                PollingMetadata::create(ReturningScheduledService::ENDPOINT_ID)
-                    ->withFixedRateInMilliseconds(1)
-                    ->withInitialDelayInMilliseconds(0)
-                    ->withExecutionTimeLimitInMilliseconds(100),
-            ])
-                ->withEnabledModulePackageNames([]),
+                PollingMetadata::create(ReturningScheduledService::ENDPOINT_ID)->withFixedRateInMilliseconds(1)->withInitialDelayInMilliseconds(0)->withExecutionTimeLimitInMilliseconds(100),
+            ],
+            enabledModules: [],
         );
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID);
@@ -97,7 +95,11 @@ final class ScheduledEndpointTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([UnresolvableParameterScheduledService::class], [new UnresolvableParameterScheduledService()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
+        EcotoneLite::bootstrapFlowTesting(
+            [UnresolvableParameterScheduledService::class],
+            [new UnresolvableParameterScheduledService()],
+            enabledModules: [],
+        );
     }
 
     /**
@@ -143,11 +145,11 @@ final class ScheduledEndpointTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$service::class],
             [$service, ClockInterface::class => $clock],
-            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 SimpleMessageChannelBuilder::createQueueChannel('countedTicks'),
                 PollingMetadata::create('countingScheduler')->withFixedRateInMilliseconds($fixedRateInMilliseconds),
-            ])
-                ->withEnabledModulePackageNames([]),
+            ],
+            enabledModules: [],
         );
 
         return [$ecotone, $clock, $service];

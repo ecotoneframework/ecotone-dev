@@ -230,17 +230,12 @@ class OutboxRelayBenchmark
                 ],
                 $targetServices,
             ),
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames(array_merge(
-                    [ModulePackageList::DBAL_PACKAGE],
-                    $targetPackage !== null ? [$targetPackage] : [],
-                ))
-                ->withExtensionObjects([
-                    $relayChannel,
-                    DbalBackedMessageChannelBuilder::create('benchmark_outbox')
-                        ->withReceiveTimeout(20),
-                    $targetChannel,
-                ]),
+            extensionObjects: [
+                $relayChannel,
+                DbalBackedMessageChannelBuilder::create('benchmark_outbox')->withReceiveTimeout(20),
+                $targetChannel,
+            ],
+            enabledModules: array_merge([ModulePackageList::DBAL_PACKAGE],$targetPackage!==null?[$targetPackage]:[],),
             licenceKey: $licenceKey,
         );
     }

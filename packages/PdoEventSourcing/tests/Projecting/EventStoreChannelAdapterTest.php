@@ -29,7 +29,6 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\EventStreamingChannelAdapter;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -78,19 +77,12 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 self::getConnectionFactory(),
                 ConsumerPositionTracker::class => $positionTracker,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
-                        aggregateType: Ticket::class
-                    ),
-                    PollingMetadata::create('stream_consumer')->withTestingSetup(),
-                ]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:StreamTableRegistry::DEFAULT_STREAM, aggregateType:Ticket::class),
+                PollingMetadata::create('stream_consumer')->withTestingSetup(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -144,18 +136,11 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 self::getConnectionFactory(),
                 ConsumerPositionTracker::class => $positionTracker,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
-                        aggregateType: Ticket::class
-                    )
-                        ->withEventNames(['*TicketWasRegistered']), // Only TicketWasRegistered events
-                    PollingMetadata::create('stream_consumer')->withTestingSetup(),
-                ]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:StreamTableRegistry::DEFAULT_STREAM, aggregateType:Ticket::class)->withEventNames(['*TicketWasRegistered']),
+                PollingMetadata::create('stream_consumer')->withTestingSetup(),
+            ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -233,19 +218,13 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 self::getConnectionFactory(),
                 ConsumerPositionTracker::class => $positionTracker,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStreamingChannelAdapter::create(
-                        streamChannelName: 'event_stream',
-                        endpointId: 'event_store_feeder',
-                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
-                        aggregateType: Ticket::class
-                    ),
-                    PollingMetadata::create('stream_consumer')->withTestingSetup(),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
+                EventStreamingChannelAdapter::create(streamChannelName:'event_stream', endpointId:'event_store_feeder', fromStream:StreamTableRegistry::DEFAULT_STREAM, aggregateType:Ticket::class),
+                PollingMetadata::create('stream_consumer')->withTestingSetup(),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

@@ -26,7 +26,6 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
@@ -102,11 +101,8 @@ final class MissingStreamTableProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

@@ -366,9 +366,8 @@ class HighThroughputPublishingBenchmark
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([$modulePackage])
-                ->withExtensionObjects([$channelBuilder]),
+            extensionObjects: [$channelBuilder],
+            enabledModules: [$modulePackage],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -394,9 +393,8 @@ class HighThroughputPublishingBenchmark
             [
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([$publisherConfiguration]),
+            extensionObjects: [$publisherConfiguration],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -410,9 +408,8 @@ class HighThroughputPublishingBenchmark
             [
                 DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalMessagePublisherConfiguration::create(MessagePublisher::class, uniqid('benchmark_orders_'))]),
+            extensionObjects: [DbalMessagePublisherConfiguration::create(MessagePublisher::class,uniqid('benchmark_orders_'))],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -426,9 +423,8 @@ class HighThroughputPublishingBenchmark
             [
                 RedisConnectionFactory::class => new RedisConnectionFactory(getenv('REDIS_DSN') ?: 'redis://localhost:6379'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([RedisMessagePublisherConfiguration::create(queueName: uniqid('benchmark_orders_'))]),
+            extensionObjects: [RedisMessagePublisherConfiguration::create(queueName:uniqid('benchmark_orders_'))],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -447,9 +443,8 @@ class HighThroughputPublishingBenchmark
             [
                 SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN') ?: 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4566&version=latest'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([$publisherConfiguration]),
+            extensionObjects: [$publisherConfiguration],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -468,9 +463,8 @@ class HighThroughputPublishingBenchmark
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094']),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([$publisherConfiguration]),
+            extensionObjects: [$publisherConfiguration],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

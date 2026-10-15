@@ -14,7 +14,6 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -196,9 +195,8 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$enrolments::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
             containerOrAvailableServices: [$enrolments, TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -227,9 +225,8 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$course::class, CourseCapacity::class, CourseDefined::class, StudentEnrolled::class],
             containerOrAvailableServices: [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -246,8 +243,7 @@ final class DynamicConsistencyBoundaryTracingTest extends TracingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$enrolmentsWithoutBoundary::class],
             containerOrAvailableServices: [$enrolmentsWithoutBoundary, TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

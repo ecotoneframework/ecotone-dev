@@ -52,17 +52,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
+                DbalBackedMessageChannelBuilder::create('async'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -106,20 +102,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                 //                "logger" => new EchoLogger()
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    // Configure to break connection on the third commit
-                    // First two commits should succeed, third should fail but recover
-                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, false, true]),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
+                DbalBackedMessageChannelBuilder::create('async'),
+                ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, false, true]),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send a command to ensure the deduplication table is created
@@ -155,18 +145,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 new MultipleInternalCommandsService(),
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withDefaultErrorChannel('dbal_dead_letter')
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
+                DbalBackedMessageChannelBuilder::create('async'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send a command to ensure the deduplication table is created
@@ -181,20 +167,15 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                 'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withDefaultErrorChannel('dbal_dead_letter')
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    // Configure to break connection during dead letter storage
-                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([true, false]),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
+                DbalBackedMessageChannelBuilder::create('async'),
+                ConnectionBreakingConfiguration::createWithBreakBeforeCommit([true, false]),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRouting('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
@@ -222,25 +203,16 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 new MultipleInternalCommandsService(),
                 'tenant_a_connection' => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                        ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection'],
-                    ),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('nullChannel'),
+                \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDocumentStore(true, enableDocumentStoreStateStoredRepository:true),
+                DbalBackedMessageChannelBuilder::create('async'),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection'], ),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            addInMemoryStateStoredRepository: false,
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -287,17 +259,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->connectionForTenantA()],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDocumentStore(true, enableDocumentStoreStateStoredRepository:true),
+                DbalBackedMessageChannelBuilder::create('async'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            addInMemoryStateStoredRepository: false,
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -345,25 +313,16 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                        ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
-                    ),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('nullChannel'),
+                \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false)->withDocumentStore(true, enableDocumentStoreStateStoredRepository:true),
+                DbalBackedMessageChannelBuilder::create('async'),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], ),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            addInMemoryStateStoredRepository: false,
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
@@ -433,17 +392,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withoutTransactionOnAsynchronousEndpoints(['async'])
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withoutTransactionOnAsynchronousEndpoints(['async'])->withTransactionOnCommandBus(false)->withDoctrineORMRepositories(true),
+                DbalBackedMessageChannelBuilder::create('async'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
@@ -489,18 +444,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 $handler,
                 DbalConnectionFactory::class => $connectionFactory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 3)
-                        ->withAsynchronousEndpointsRetry(false),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false),
+                DbalBackedMessageChannelBuilder::create('async'),
+                InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(isEnabled:true, retryTimes:3)->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');
@@ -532,17 +482,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 $handler,
                 DbalConnectionFactory::class => $connectionFactory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true)->withTransactionOnCommandBus(false),
+                DbalBackedMessageChannelBuilder::create('async'),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(isEnabled:true, retryTimes:3),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');

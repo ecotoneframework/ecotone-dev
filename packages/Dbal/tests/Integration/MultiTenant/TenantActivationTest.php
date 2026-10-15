@@ -12,7 +12,6 @@ use Ecotone\Api\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -81,18 +80,9 @@ final class TenantActivationTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: 'tenant',
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                ]),
+            extensionObjects: [MultiTenantConfiguration::create(tenantHeaderName:'tenant', tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], )],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         return [$ecotone, $tenantSwitch];

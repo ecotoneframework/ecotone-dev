@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -110,12 +109,11 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
                 DbalConnectionFactory::class => $this->connectionForTenantA(),
                 SecondaryOrder::CONNECTION_REFERENCE => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            environment: 'prod',
         );
     }
 

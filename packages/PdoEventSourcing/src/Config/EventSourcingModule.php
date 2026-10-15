@@ -53,6 +53,7 @@ use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
@@ -156,10 +157,10 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
         $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
 
-        DatabaseEventStoreDbalModuleGuard::assertDbalModuleIsEnabled($eventSourcingConfiguration, $serviceConfiguration);
+        DatabaseEventStoreDbalModuleGuard::assertDbalModuleIsEnabled($eventSourcingConfiguration, ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
 
         if ($dynamicConsistencyBoundary->isEnabled()) {
             CrossConnectionAggregateBoundaryGuard::assertEveryStateStoredAggregateSavesOnTheEventStoreConnection($this->stateStoredCountedAggregateClasses, $eventSourcingConfiguration, $dbalConfiguration);

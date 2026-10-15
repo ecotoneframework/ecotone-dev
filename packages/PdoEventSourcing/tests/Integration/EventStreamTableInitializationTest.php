@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -97,17 +96,12 @@ final class EventStreamTableInitializationTest extends EventSourcingMessagingTes
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Ticket::class],
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             testConfiguration: $testConfiguration,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
+            environment: 'prod',
         );
     }
 }

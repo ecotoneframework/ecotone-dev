@@ -8,12 +8,7 @@ echo "Running example with authoritative classmap (--no-dev)\n";
 exec("composer update --ignore-platform-reqs --classmap-authoritative --no-dev");
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLite::bootstrap(
-    pathToRootCatalog: __DIR__,
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->doNotLoadCatalog()
-        ->withNamespaces(["App"]),
-);
+$messagingSystem = EcotoneLite::bootstrap(pathToRootCatalog: __DIR__, namespaces: ["App"]);
 
 $messagingSystem->getEventBus()->publish(new CustomerRegistered(1));
 

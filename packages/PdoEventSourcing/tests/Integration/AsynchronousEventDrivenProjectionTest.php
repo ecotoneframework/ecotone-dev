@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -161,14 +160,11 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces($namespaces)
-                ->withExtensionObjects(array_merge([
-                    EventSourcingConfiguration::createWithDefaults(),
-                ], $extensionObjects)),
+            extensionObjects: array_merge([EventSourcingConfiguration::createWithDefaults(), ], $extensionObjects),
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: $namespaces,
+            environment: 'prod',
         )->setupDatabaseTables();
     }
 }

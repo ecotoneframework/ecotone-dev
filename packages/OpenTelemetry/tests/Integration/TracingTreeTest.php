@@ -7,7 +7,6 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use ArrayObject;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
@@ -51,8 +50,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -79,8 +77,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [ExampleMessageHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), ExampleMessageHandler::class => new ExampleMessageHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommandWithRouting('handleCommand');
 
@@ -111,8 +108,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [ScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), ScheduledHandler::class => new ScheduledHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
 
@@ -138,8 +134,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [WorkflowScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
 
@@ -175,8 +170,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [WorkflowScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->run('scheduled_handler_without_result', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
 
@@ -198,15 +192,8 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects(
-                    [
-                        TracingConfiguration::createWithDefaults()
-                            ->withForceFlushOnBusExecution(false)
-                            ->withForceFlushOnAsynchronousMessageHandled(false),
-                    ]
-                )
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -228,15 +215,8 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects(
-                    [
-                        TracingConfiguration::createWithDefaults()
-                            ->withForceFlushOnBusExecution(true)
-                            ->withForceFlushOnAsynchronousMessageHandled(true),
-                    ]
-                )
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -268,15 +248,8 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects(
-                    [
-                        TracingConfiguration::createWithDefaults()
-                            ->withForceFlushOnBusExecution(true)
-                            ->withForceFlushOnAsynchronousMessageHandled(true),
-                    ]
-                )
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
 
         $exceptionThrown = false;
@@ -315,8 +288,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'), ['flowId' => '1'])
             ->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
@@ -353,8 +325,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->publishEvent(new MerchantCreated('1'));
 
@@ -391,8 +362,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class, MerchantSubscriberTwo::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne(), new MerchantSubscriberTwo()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->publishEvent(new MerchantCreated('1'));
 
@@ -443,8 +413,7 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [Merchant::class, User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new CreateMerchant('1'));
 
@@ -491,11 +460,8 @@ final class TracingTreeTest extends TracingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -540,11 +506,8 @@ final class TracingTreeTest extends TracingTestCase
                 new UserNotifier(),
                 TracerProviderInterface::class => self::prepareTracer($exporter),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(new RegisterUser('1'))
             ->run('async_channel');
@@ -585,11 +548,8 @@ final class TracingTreeTest extends TracingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(new RegisterUser('1'), ['flowId' => '1'])
             ->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
@@ -649,11 +609,8 @@ final class TracingTreeTest extends TracingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(
                 new RegisterUser('1'),
@@ -709,11 +666,8 @@ final class TracingTreeTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(new RegisterUser('1'), [
                 'tokens' => ['123'],
@@ -783,13 +737,12 @@ final class TracingTreeTest extends TracingTestCase
                 new UserNotifier(),
                 TracerProviderInterface::class => $tracerProvider,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    TracingConfiguration::createWithDefaults(),
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ]),
-            allowGatewaysToBeRegisteredInContainer: true
+            extensionObjects: [
+                TracingConfiguration::createWithDefaults(),
+                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+            ],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
+            allowGatewaysToBeRegisteredInContainer: true,
         );
 
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);

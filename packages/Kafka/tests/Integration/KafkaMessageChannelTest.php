@@ -169,15 +169,8 @@ final class KafkaMessageChannelTest extends TestCase
                     'wronghost:9092',
                 ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = StubLogger::create(),
             ],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
-                        messageGroupId: $uniqueId
-                    ),
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create($channelName, topicName:$uniqueId = Uuid::v7()->toRfc4122(), messageGroupId:$uniqueId)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -328,16 +321,11 @@ final class KafkaMessageChannelTest extends TestCase
                 ]), new KafkaAsyncCommandHandler(), new MeetingHistory(),
                 //'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: ($topicName = $topicName ?: Uuid::v7()->toRfc4122()),
-                        messageGroupId: $topicName
-                    ),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create($channelName, topicName:($topicName = $topicName ?: Uuid::v7()->toRfc4122()), messageGroupId:$topicName),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -350,15 +338,8 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
                 //                'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
-                        messageGroupId: $uniqueId
-                    ),
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create($channelName, topicName:$uniqueId = Uuid::v7()->toRfc4122(), messageGroupId:$uniqueId)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -407,16 +388,8 @@ final class KafkaMessageChannelTest extends TestCase
                 $handler2,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        topicName: $topicName,
-                        messageGroupId: $messageGroupId = $topicName
-                    )
-                        ->withCommitInterval(1), // Commit after each message
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create(channelName:$channelName, topicName:$topicName, messageGroupId:$messageGroupId = $topicName)->withCommitInterval(1)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -473,14 +446,8 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                    )
-                        ->withCommitInterval(1), // Commit after each message
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create(channelName:$channelName, )->withCommitInterval(1)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -509,15 +476,8 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        messageGroupId: $messageGroupId = 'predefined_group_id',
-                    )
-                        ->withCommitInterval(1), // Commit after each message
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create(channelName:$channelName, messageGroupId:$messageGroupId = 'predefined_group_id', )->withCommitInterval(1)],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -599,18 +559,12 @@ final class KafkaMessageChannelTest extends TestCase
                 $publisher,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName('publisher-service')
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        topicName: $topicName,
-                    )
-                        ->withCommitInterval(1),
-                    \Ecotone\Api\ExtensionObject\DistributedServiceMap::initialize()
-                        ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:$channelName, topicName:$topicName, )->withCommitInterval(1),
+                \Ecotone\Api\ExtensionObject\DistributedServiceMap::initialize()->withEventMapping(channelName:$channelName, subscriptionKeys:['*']),
+                ServiceConfiguration::createWithDefaults()->withServiceName('publisher-service'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -621,17 +575,11 @@ final class KafkaMessageChannelTest extends TestCase
                 $consumer1,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName('service1')
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        topicName: $topicName,
-                        messageGroupId: 'consumer1' // Each consumer needs its own consumer group
-                    )
-                        ->withCommitInterval(1),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:$channelName, topicName:$topicName, messageGroupId:'consumer1')->withCommitInterval(1),
+                ServiceConfiguration::createWithDefaults()->withServiceName('service1'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -642,17 +590,11 @@ final class KafkaMessageChannelTest extends TestCase
                 $consumer2,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName('service2')
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: $channelName,
-                        topicName: $topicName,
-                        messageGroupId: 'consumer2' // Each consumer needs its own consumer group
-                    )
-                        ->withCommitInterval(1),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:$channelName, topicName:$topicName, messageGroupId:'consumer2')->withCommitInterval(1),
+                ServiceConfiguration::createWithDefaults()->withServiceName('service2'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

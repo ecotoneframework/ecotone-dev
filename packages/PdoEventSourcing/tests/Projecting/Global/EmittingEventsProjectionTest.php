@@ -29,7 +29,6 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
@@ -80,13 +79,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -115,13 +111,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
 
         $ecotone
@@ -147,13 +140,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
 
         $ecotone->deleteProjection('emitting_linked_projection');
@@ -190,13 +180,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
         (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($this->getConnection());
         (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($this->getConnection());
@@ -228,13 +215,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -268,13 +252,10 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', ],
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));

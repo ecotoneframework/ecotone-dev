@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
@@ -130,7 +129,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [UppercasingInterceptor::class, CapturingHandler::class],
             [new UppercasingInterceptor(), new CapturingHandler()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
     }
 
@@ -139,12 +138,9 @@ final class ChannelInterceptorAttributeTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(AsyncCapturingHandler::CHANNEL),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(AsyncCapturingHandler::CHANNEL)],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

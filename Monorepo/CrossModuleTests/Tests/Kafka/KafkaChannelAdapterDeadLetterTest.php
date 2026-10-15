@@ -85,17 +85,15 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
                 'managerRegistry' => $dbalConnectionFactory,
                 $consumer,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper('*'),
-                    TopicConfiguration::createWithReferenceName('testTopicDeadLetter', $topicName),
-                    KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
-                    DbalConfiguration::createWithDefaults(),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
+                TopicConfiguration::createWithReferenceName('testTopicDeadLetter',$topicName),
+                KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
+                DbalConfiguration::createWithDefaults(),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -160,17 +158,15 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
                 'managerRegistry' => $dbalConnectionFactory,
                 $handler,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper('*'),
-                    TopicConfiguration::createWithReferenceName('replayableKafkaTopic', $topicName),
-                    KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
-                    DbalConfiguration::createWithDefaults(),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
+                TopicConfiguration::createWithReferenceName('replayableKafkaTopic',$topicName),
+                KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
+                DbalConfiguration::createWithDefaults(),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

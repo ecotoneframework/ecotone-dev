@@ -55,12 +55,11 @@ final class VerificationAcceptanceTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [User::class, VerificationProcess::class, VerificationSender::class],
             [TokenGenerator::class => $tokenGenerator, new VerificationSender()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup()
-                ]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES,true),
+                PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+            ],
+            enabledModules: [],
         );
     }
 }

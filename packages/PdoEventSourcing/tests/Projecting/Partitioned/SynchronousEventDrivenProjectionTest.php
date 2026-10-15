@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -167,9 +166,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Order::class, EventsConverter::class],
             containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            extensionObjects: [DbalConfiguration::createForTesting()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -381,9 +379,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            extensionObjects: [DbalConfiguration::createForTesting()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -393,11 +390,13 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'))->addExtensionObject(DbalConfiguration::createForTesting()),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'),
+                DbalConfiguration::createForTesting(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel'),
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel')
         );
     }
 }

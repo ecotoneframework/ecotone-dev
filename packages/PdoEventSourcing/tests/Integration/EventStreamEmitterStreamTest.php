@@ -11,7 +11,6 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
@@ -240,11 +239,10 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -273,11 +271,10 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
                 new TicketListUpdatedConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: $licenceKey,
+            environment: 'prod',
         );
     }
 }

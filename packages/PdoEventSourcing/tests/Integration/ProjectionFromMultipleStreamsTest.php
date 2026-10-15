@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -28,18 +27,11 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
     {
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new MultipleStreamsProjection(), new BasketEventConverter(), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams',
-                    'Test\Ecotone\EventSourcing\Fixture\Basket',
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams', 'Test\Ecotone\EventSourcing\Fixture\Basket', 'Test\Ecotone\EventSourcing\Fixture\Ticket', ],
+            environment: 'prod',
         );
 
         $ecotone

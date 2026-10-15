@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -102,11 +101,13 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector(false)->withErrorChannel('failure_channel'),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('failure_channel'))
-                ->withEnabledModulePackageNames([])
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('failure_channel'),
+            ],
+            enabledModules: [],
         );
         $channel = $ecotoneLite->getMessageChannel('async_orders');
         assert($channel instanceof MessageChannelInterceptorAdapter);
@@ -131,11 +132,13 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector(false)->withErrorChannel('failure_channel'),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('failure_channel'))
-                ->withEnabledModulePackageNames([])
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('failure_channel'),
+            ],
+            enabledModules: [],
         );
         $channel = $ecotoneLite->getMessageChannel('async_orders');
         assert($channel instanceof MessageChannelInterceptorAdapter);
@@ -161,8 +164,11 @@ final class HighThroughputPublishingScenariosTest extends TestCase
                 new AsyncOrderForwarder($operationsLog),
                 OperationsLog::class => $operationsLog,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('incoming_orders'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('incoming_orders'),
+            ],
+            enabledModules: [],
         );
     }
 }

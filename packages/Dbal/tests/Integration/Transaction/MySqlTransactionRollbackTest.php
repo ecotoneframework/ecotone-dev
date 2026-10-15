@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -97,9 +96,8 @@ final class MySqlTransactionRollbackTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$orderService::class],
             containerOrAvailableServices: [$orderService, DbalConnectionFactory::class => $this->createConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            environment: 'prod',
         );
     }
 

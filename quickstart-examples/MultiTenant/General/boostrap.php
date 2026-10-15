@@ -12,19 +12,15 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem
 {
     return EcotoneLite::bootstrap(
-        /**
-         * In your application you will register Services inside your Dependency Container
-         */
         containerOrAvailableServices: array_merge([
             'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
             'tenant_a_factory' => getTenantAConnection(),
             'tenant_b_factory' => getTenantBConnection(),
         ], $services),
-        configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
         pathToRootCatalog: $rootDirectory,
-        /** Multi-tenancy is an Ecotone Enterprise feature, see README.md for how to get a key */
         licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+        namespaces: ['App'],
     );
 }
 

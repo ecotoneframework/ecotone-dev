@@ -171,18 +171,15 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone1 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService1, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory1],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(true)
-                        ->withDeduplication(true),
-                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withDeduplication(true),
+                DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
+                ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::createApplicationJson()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         // Bootstrap second Ecotone instance
@@ -190,18 +187,15 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone2 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService2, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory2],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(true)
-                        ->withDeduplication(true),
-                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withDeduplication(true),
+                DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
+                ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::createApplicationJson()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         $messageId = '3e84ff08-b755-4e16-b50d-94818bf9de99';
@@ -248,18 +242,15 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone1 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService1, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory1],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withDeduplication(true),
-                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withDeduplication(true),
+                DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
+                ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::createApplicationJson()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         // Bootstrap second Ecotone instance WITHOUT transactions
@@ -267,18 +258,15 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone2 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService2, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory2],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withDeduplication(true),
-                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withDeduplication(true),
+                DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
+                ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::createApplicationJson()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
 
         $messageId = '3e84ff08-b755-4e16-b50d-94818bf9de88';
@@ -310,15 +298,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\Deduplication',
-                ])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::createApplicationJson())],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Dbal\Fixture\Deduplication', ],
+            environment: 'prod',
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
     }
 }

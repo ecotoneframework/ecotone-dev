@@ -241,22 +241,10 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: $container,
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages'])
-                ->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)
-                ->withExtensionObjects(
-                    array_merge(
-                        [
-                            DataProtectionConfiguration::create('primary', $this->primaryKey)
-                                ->withKey('secondary', $this->secondaryKey),
-                            SimpleMessageChannelBuilder::create('test', $messageChannel),
-                            JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
-                        ],
-                        $extensionObjects,
-                    )
-                )
+            extensionObjects: array_merge(array_merge([DataProtectionConfiguration::create('primary', $this->primaryKey)->withKey('secondary', $this->secondaryKey), SimpleMessageChannelBuilder::create('test', $messageChannel), JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true), ], $extensionObjects, ), [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)]),
+            enabledModules: [ModulePackageList::CORE_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages'],
         );
     }
 

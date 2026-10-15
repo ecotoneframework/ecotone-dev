@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Conversion\Converter;
@@ -114,15 +113,14 @@ EcotoneLite::bootstrapFlowTesting(
         $snapshotConverter,
         DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory(),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withEnvironment('prod')
-        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-        ->withExtensionObjects([
-            DbalConfiguration::createWithDefaults()->withDocumentStore(),
-            DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),
-        ]),
+    extensionObjects: [
+        DbalConfiguration::createWithDefaults()->withDocumentStore(),
+        DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),
+    ],
+    enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
     pathToRootCatalog: __DIR__ . '/../../../',
     licenceKey: LicenceTesting::VALID_LICENCE,
+    environment: 'prod',
 )
     ->setupDatabaseTables()
     ->sendCommand(new CreateBasket('1'))

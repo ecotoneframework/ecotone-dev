@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\PollableChannel;
@@ -64,11 +63,11 @@ final class MessagingBasicsTest extends TestCase
             InMemoryPSRContainer::createFromObjects([
                 Booking::class => new Booking(),
             ]),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withEnvironment('prod')
-                ->withFailFast(false)
-                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Behat\Booking']),
-            pathToRootCatalog: __DIR__ . '/../../..'
+            extensionObjects: [\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [],
+            pathToRootCatalog: __DIR__ . '/../../..',
+            namespaces: ['Test\Ecotone\Messaging\Fixture\Behat\Booking'],
+            environment: 'prod',
         );
 
         $gateway = $messagingSystem->getGatewayByName(BookingService::class);
@@ -84,11 +83,11 @@ final class MessagingBasicsTest extends TestCase
                 \Test\Ecotone\Messaging\Fixture\Behat\Shopping\Bookshop::class => new \Test\Ecotone\Messaging\Fixture\Behat\Shopping\Bookshop(),
                 \Test\Ecotone\Messaging\Fixture\Behat\Shopping\ToReservationRequestTransformer::class => new \Test\Ecotone\Messaging\Fixture\Behat\Shopping\ToReservationRequestTransformer(),
             ]),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withEnvironment('prod')
-                ->withFailFast(false)
-                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Behat\Shopping']),
-            pathToRootCatalog: __DIR__ . '/../../..'
+            extensionObjects: [\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [],
+            pathToRootCatalog: __DIR__ . '/../../..',
+            namespaces: ['Test\Ecotone\Messaging\Fixture\Behat\Shopping'],
+            environment: 'prod',
         );
 
         $gateway = $messagingSystem->getGatewayByName(ShoppingService::class);
@@ -285,11 +284,11 @@ final class MessagingBasicsTest extends TestCase
         return EcotoneLite::bootstrap(
             [],
             InMemoryPSRContainer::createFromObjects($objects),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withEnvironment('prod')
-                ->withFailFast(false)
-                ->withNamespaces([$namespace]),
-            pathToRootCatalog: __DIR__ . '/../../..'
+            extensionObjects: [\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)],
+            enabledModules: [],
+            pathToRootCatalog: __DIR__ . '/../../..',
+            namespaces: [$namespace],
+            environment: 'prod',
         );
     }
 

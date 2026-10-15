@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionReference;
@@ -32,11 +31,8 @@ final class SqsConnectionReferenceTest extends ConnectionTestCase
             [
                 SqsConnectionReference::DEFAULT => $connection_factory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queue_name),
-                ])
+            extensionObjects: [SqsBackedMessageChannelBuilder::create($queue_name)],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
         );
 
         $ecotone->getMessageChannel($queue_name)->send(MessageBuilder::withPayload('milk')->build());

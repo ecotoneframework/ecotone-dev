@@ -18,12 +18,10 @@ $receiver = EcotoneLite::bootstrap(
         new OrderServiceReceiver(),
         AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withServiceName(MessagingConfiguration::SERVICE_NAME)
-        ->withNamespaces(["App\Microservices\Receiver"]),
+    extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName(MessagingConfiguration::SERVICE_NAME)],
     pathToRootCatalog: __DIR__,
-    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
     licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    namespaces: ["App\Microservices\Receiver"],
 );
 /** Running consumer for the first time, in order to create queue */
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
@@ -32,12 +30,10 @@ $queryBus = $receiver->getQueryBus();
 // Publisher
 $publisher = EcotoneLite::bootstrap(
     containerOrAvailableServices: [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    configuration: ServiceConfiguration::createWithDefaults()
-            ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
-            ->withNamespaces(["App\Microservices\Publisher"]),
-        pathToRootCatalog: __DIR__,
-        /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
-        licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)],
+    pathToRootCatalog: __DIR__,
+    licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
+    namespaces: ["App\Microservices\Publisher"],
 );
 $distributedBus = $publisher->getDistributedBus();
 

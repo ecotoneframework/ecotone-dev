@@ -9,7 +9,6 @@ use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
 use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
@@ -33,14 +32,12 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
                 new AmqpConsumerExample(),
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName),
-                ])
+            extensionObjects: [
+                AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
+                AmqpQueue::createWith($queueName),
+                AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $payload = 'random_payload';

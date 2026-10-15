@@ -16,7 +16,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -269,29 +268,15 @@ final class ScheduledTenantResolverTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classes,
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
-            (ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    PollingMetadata::create('externalEventPoller')
-                        ->withExecutionAmountLimit(1)
-                        ->withHandledMessageLimit(1),
-                    PollingMetadata::create('external_processing')
-                        ->withExecutionAmountLimit(1)
-                        ->withHandledMessageLimit(1),
-                    MultiTenantConfiguration::createWithDefaultConnection(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'],
-                        'tenant_a_connection',
-                        DbalConnectionFactory::class,
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withDeduplication(false),
-                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollingMetadata::create('externalEventPoller')->withExecutionAmountLimit(1)->withHandledMessageLimit(1),
+                PollingMetadata::create('external_processing')->withExecutionAmountLimit(1)->withHandledMessageLimit(1),
+                MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'], 'tenant_a_connection', DbalConnectionFactory::class, ),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)->withDeduplication(false),
+                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

@@ -18,7 +18,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromStream;
@@ -41,10 +40,9 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
                 AProjection::class => $projection = new AProjection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         )->sendCommandWithRouting('create', ['id' => 'aggregate-1']);
 
         // I append an unknown event to the same stream

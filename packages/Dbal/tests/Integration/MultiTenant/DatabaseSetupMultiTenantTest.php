@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -116,21 +115,13 @@ final class DatabaseSetupMultiTenantTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: 'tenant',
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDocumentStore(),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create(tenantHeaderName:'tenant', tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDocumentStore(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

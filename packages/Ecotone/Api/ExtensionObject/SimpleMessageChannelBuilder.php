@@ -157,7 +157,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
         if (
             ($this->messageChannel instanceof QueueChannel || $this->messageChannel instanceof DelayableQueueChannel)
-            && $builder->getServiceConfiguration()->isRunningForEnterprise()
+            && $builder->getBootstrapConfiguration()->isRunningForEnterprise()
         ) {
             $this->messageChannel->enableBatchMessagesSupport();
         }

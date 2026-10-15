@@ -33,7 +33,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
@@ -81,21 +80,12 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    DbalConfiguration::createForTesting(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                DbalConfiguration::createForTesting(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -153,24 +143,13 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                    SimpleMessageChannelBuilder::createQueueChannel('async_projection_channel'),
-                    PollingMetadata::create('async_projection_channel')
-                        ->withExecutionAmountLimit(3)
-                        ->withExecutionTimeLimitInMilliseconds(5000),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+                SimpleMessageChannelBuilder::createQueueChannel('async_projection_channel'),
+                PollingMetadata::create('async_projection_channel')->withExecutionAmountLimit(3)->withExecutionTimeLimitInMilliseconds(5000),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -231,20 +210,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ]),
+            extensionObjects: [
+                EventSourcingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -274,19 +244,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
         $this->bootstrapFlowTesting(
             [$projection::class],
             [$projection],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ])
+            extensionObjects: [
+                EventSourcingConfiguration::createInMemory(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ]),
+            ],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ],
         );
     }
 

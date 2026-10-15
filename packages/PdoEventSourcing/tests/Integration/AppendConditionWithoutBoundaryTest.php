@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -46,8 +45,7 @@ final class AppendConditionWithoutBoundaryTest extends EventSourcingMessagingTes
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [UntaggedEventForAppendConditionWithoutBoundaryTest::class, EventsConverterForAppendConditionWithoutBoundaryTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForAppendConditionWithoutBoundaryTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
         $ecotone->setupDatabaseTables();
 

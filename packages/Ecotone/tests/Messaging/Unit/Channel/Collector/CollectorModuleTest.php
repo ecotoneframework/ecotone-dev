@@ -8,7 +8,6 @@ use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -353,9 +352,9 @@ final class CollectorModuleTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects(array_merge($collectorConfigurations, $channelBuilders))->withEnabledModulePackageNames([]),
-            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
+            extensionObjects: array_merge($collectorConfigurations, $channelBuilders),
+            enabledModules: [],
+            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null,
         );
     }
 

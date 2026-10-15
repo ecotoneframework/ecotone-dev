@@ -53,11 +53,22 @@ In `config/packages/ecotone.yaml`:
 
 ```yaml
 ecotone:
-    serviceName: 'my_service'
     loadSrcNamespaces: true
-    failFast: true
-    defaultSerializationMediaType: 'application/json'
-    defaultErrorChannel: 'errorChannel'
+    namespaces: []
+    licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
+```
+
+Everything else is a `ServiceConfiguration` returned from a `#[ServiceContext]` method:
+
+```php
+#[ServiceContext]
+public function serviceConfiguration(): ServiceConfiguration
+{
+    return ServiceConfiguration::createWithDefaults()
+        ->withServiceName('my_service')
+        ->withDefaultSerializationMediaType('application/json')
+        ->withDefaultErrorChannel('errorChannel');
+}
 ```
 
 ## 4. Database Connection (DBAL)

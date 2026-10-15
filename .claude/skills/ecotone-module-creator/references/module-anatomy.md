@@ -65,7 +65,7 @@ final class ModulePackageList
 }
 ```
 
-`ModulePackageList` holds only the names an application passes to `ServiceConfiguration::withEnabledModulePackageNames()`. The
+`ModulePackageList` holds only the names an application passes to `EcotoneLite::bootstrap(..., enabledModules: [...])` or the framework's `enabledModulePackageNames` key. The
 lookups only the framework calls live in the internal `Ecotone\Messaging\Config\ModuleClassList`:
 `packageNames()` (every package, `TEST_PACKAGE` included) and `forPackage()` (a package's module classes). Exclusion
 is done by the caller, e.g. `array_diff(ModuleClassList::packageNames(), $skippedPackages)`.

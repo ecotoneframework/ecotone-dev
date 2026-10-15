@@ -94,8 +94,8 @@ throws `LicensingException` ("Multi-tenancy requires Ecotone Enterprise licence 
 the offending `MultiTenantConfiguration` or attribute placement. Laravel's tenant database switching is registered only when a
 Laravel-backed `MultiTenantConfiguration` exists and is licensed; Symfony and Tempest rely on the same core gate.
 
-**How to adapt:** Provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
-`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). The shipped Laravel
+**How to adapt:** Provide the licence key (`ecotone.licenceKey` in Symfony,
+`licenceKey` in `config/ecotone.php` in Laravel, `licenceKey` of `EcotoneConfig` in Tempest, `licenceKey:` argument of `EcotoneLite`). The shipped Laravel
 config sets `'licenceKey' => null` and reads no environment variable; to keep the key in `.env`, write
 `'licenceKey' => env('ECOTONE_LICENCE_KEY')` into your published `config/ecotone.php`. If you are not
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
@@ -1568,22 +1568,39 @@ name, which a `#[BusinessMethod]` gateway, an `outputChannelName` or a direct ch
 
 ## 12. Framework configuration: `ServiceContext` only
 
-> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
->
-> **TODO** — design and implementation plan: `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md`
-> (section "Implementation plan", 9 steps; research: `docs/superpowers/research/servicecontext-only-config/report.md`).
-> First part of the work: `ServiceConfiguration::mergeWith()` currently merges only the serialization media type and
-> error channel from `#[ServiceContext]`, so most values set there are ignored today. The final list of keys that stay
-> in framework config is decided in the plan and may differ from the list below. Awaiting maintainer answers to the
-> plan's open questions.
+**Before:** Symfony `config/packages/ecotone.yaml`, Laravel `config/ecotone.php` and Tempest `EcotoneConfig` each
+exposed most `ServiceConfiguration` options (`serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`,
+`defaultMemoryLimit`, `defaultConnectionExceptionRetry`, `headersInLogContext`, `failFast`, `cacheConfiguration`), and
+`ServiceConfiguration` also carried the discovery settings (`withNamespaces()`, `withEnvironment()`,
+`withEnabledModulePackageNames()`, `withLicenceKey()`, `withExtensionObjects()`, `withCacheDirectoryPath()`). A
+`ServiceConfiguration` returned from a `#[ServiceContext]` method was merged into the framework's one, and only its
+serialization media type and default error channel survived the merge; every other value set there was ignored.
 
-**Before:** Symfony `config/packages/ecotone.yaml` and Laravel `config/ecotone.php` exposed most `ServiceConfiguration` options
-(`serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`, `skippedModulePackageNames`, `loadAppNamespaces`, ...).
+**Now:** `ServiceConfiguration` is an extension object like `DbalConfiguration`: it holds the application settings
+only - `withServiceName()`, `withDefaultSerializationMediaType()`, `withDefaultErrorChannel()`,
+`withConsumerMemoryLimit()`, `withConnectionRetryTemplate()`, `withHeadersInLogContext()` - and is returned from exactly
+one `#[ServiceContext]` method (or passed once in `EcotoneLite`'s `extensionObjects:`). Nothing is merged: a second
+one is refused at bootstrap, naming both origins:
+`ConfigurationException: Ecotone was given more than one ServiceConfiguration: App\Billing::first() and
+App\Shipping::second() each return one. Ecotone reads exactly one ServiceConfiguration, so it cannot tell which
+serviceName, defaultSerializationMediaType, defaultErrorChannel, defaultMemoryLimit, connectionRetryTemplate or
+headersInLogContext to apply. Keep one #[ServiceContext] method returning ServiceConfiguration::createWithDefaults()
+and move every with*() call onto it.`
 
-**Now:** Framework config files keep only bootstrap keys that must be known before the container is built:
-`namespaces`, `cacheConfiguration`, `licenceKey`, `loadSrcNamespaces`, `failFast`, `test`, and — under this plan still to
-be decided — `enabledModulePackageNames` (§1). Every other option is set from a
-`#[ServiceContext]` method returning `ServiceConfiguration`.
+The framework configuration keeps only what has to be known before the `#[ServiceContext]` methods can be found:
+`namespaces`, `loadSrcNamespaces` / `loadAppNamespaces`, `enabledModulePackageNames`, `test` and `licenceKey`. The
+environment comes from the framework. `failFast` is gone (it was read nowhere) and `cacheConfiguration` is gone: the
+dumped container is reused as is in the production environment, or when the framework caches its own configuration
+(Laravel after `config:cache`, Tempest with `DISCOVERY_CACHE=true`), and rebuilt whenever a scanned file changes
+otherwise. Symfony's kernel cache always owned the Ecotone container, so nothing changes there. A removed key is
+refused with its replacement:
+`ConfigurationException: Ecotone does not recognise the \`defaultErrorChannel\` key in config/ecotone.php. Since Ecotone
+2.0 it is set on ServiceConfiguration, returned from a #[ServiceContext] method:
+ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'). Move it there and remove the key.
+The keys Ecotone reads in config/ecotone.php are: enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, test.`
+
+`EcotoneLite` takes the discovery settings as parameters instead of a `configuration:` object: `extensionObjects:`,
+`enabledModules:`, `licenceKey:`, `namespaces:`, `environment:` and `cacheDirectoryPath:`.
 
 **How to adapt:**
 
@@ -1601,7 +1618,33 @@ final class EcotoneConfiguration
 }
 ```
 
-Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bundle/provider rejects unknown keys.
+Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php` / `EcotoneConfig`. In tests, replace the
+`configuration:` argument:
+
+```php
+// Before
+EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService()],
+    ServiceConfiguration::createWithDefaults()
+        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+        ->withDefaultErrorChannel('errorChannel')
+        ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('orders')])
+        ->withLicenceKey($licenceKey),
+);
+
+// Now
+EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService()],
+    extensionObjects: [
+        ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
+        SimpleMessageChannelBuilder::createQueueChannel('orders'),
+    ],
+    enabledModules: [ModulePackageList::DBAL_PACKAGE],
+    licenceKey: $licenceKey,
+);
+```
 
 ## 13. Public API moved to `Api` namespaces, split into `Attribute` / `ExtensionObject` / `Gateway` / module sub-namespaces
 
@@ -2459,7 +2502,7 @@ query handler, an asynchronous handler, an aggregate or saga handler, a `#[Befor
 
 An application that runs open-core today with `#[Fetch]` on a handler nothing calls stops booting.
 
-**How to adapt:** provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
+**How to adapt:** provide the licence key (`licenceKey:` argument of `EcotoneLite`, `ecotone.licenceKey` in Symfony,
 `licenceKey` in `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`), or remove
 `#[Fetch]` and load the aggregate in the method body through its repository — a business interface method marked
 with `#[Repository]` that returns it. A handler nothing calls can simply be deleted.
@@ -2504,6 +2547,7 @@ with `initialDelay: 0` it was retried forever.
 attempts before the consumer gives up.
 
 **How to adapt:** check that the configured values describe the reconnection behaviour you want — they now take effect.
+The key itself has since moved to `ServiceConfiguration::withConnectionRetryTemplate()` in a `#[ServiceContext]` method (§12).
 
 ### `#[Partitioned]` with `#[ProjectionDeployment(manualKickOff: true)]` is refused at bootstrap
 
@@ -2821,8 +2865,9 @@ licence key, the enabled module packages, the consumer memory limit or the conne
 reaches the configuration Ecotone uses.
 
 **How to adapt:** assign the result, as the other `with*()` methods always required — chain the calls, or
-`$configuration = $configuration->withLicenceKey('...');`. Configuration returned from a `#[ServiceContext]` method
-or passed to `EcotoneLite` as a chained expression is unaffected.
+`$configuration = $configuration->withConsumerMemoryLimit(512);`. Configuration returned from a `#[ServiceContext]` method
+as a chained expression is unaffected. (`withLicenceKey()` and `withEnabledModulePackageNames()` have since left
+`ServiceConfiguration` for the framework configuration and the `EcotoneLite` parameters, §12.)
 
 ### `ServiceConfiguration`, `DbalConfiguration` and `DataProtectionConfiguration` are `final`
 
@@ -2938,7 +2983,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   tracing, which otherwise traces through OpenTelemetry's no-op provider. "Installed" means the package's module
   classes exist, so a test enables exactly what Composer installed. **How to adapt:** nothing, unless a test
   depended on a module *not* being loaded; such a test names the packages it wants with
-  `ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([...])`.
+  `EcotoneLite::bootstrapFlowTesting(..., enabledModules: [...])` (§12).
 - **A flow test given no connection keeps events in memory as the objects they were recorded as.** **Before:**
   `bootstrapFlowTestingWithEventStore()` kept events in a serializing in-memory store, so an event that could not be
   converted failed in the test, as it would in production. **Now:** with no connection and no
@@ -2949,7 +2994,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
 - **A flow test's queue channels serialize to JSON when the JMS converter is installed.** **Before:** a flow test
   that named no packages loaded only the core, so a pollable channel serialized its payloads with the default
   `application/x-php-serialized`, which needs no converter. **Now:** the flow test loads every installed package; with
-  `ecotone/jms-converter` installed, its `JMSDefaultSerialization` makes `application/json` the default serialization,
+  `ecotone/jms-converter` installed, its module makes `application/json` the default serialization unless the `ServiceConfiguration` chooses one,
   so a payload crossing a queue channel is serialized to JSON and rebuilt by JMS on the way back. A type JMS cannot
   rebuild - an interface such as `Ramsey\Uuid\UuidInterface` - then fails with a `ConversionException`, although
   the application declares a converter the test never registered. **How to adapt:** register the application's
@@ -2972,12 +3017,12 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `DbalConfiguration::createForTesting()` is unchanged and still turns both off.
 - **A `TestConfiguration` given as an extension object is refused.** **Before:**
   `EcotoneLite::bootstrapFlowTesting()` and the since-removed `bootstrapFlowTestingWithEventStore()` removed every `TestConfiguration`
-  found in the `ServiceConfiguration`'s extension objects and used the `testConfiguration:` parameter (or the defaults)
-  instead, so settings passed through `withExtensionObjects()` / `addExtensionObject()` were ignored without a word.
+  found in the extension objects and used the `testConfiguration:` parameter (or the defaults)
+  instead, so settings passed through the extension objects were ignored without a word.
   **Now:** bootstrap fails with `ConfigurationException`: `EcotoneLite::bootstrapFlowTesting() was given a
-  TestConfiguration as an extension object of the ServiceConfiguration. … pass it as
+  TestConfiguration in extensionObjects. … pass it as
   EcotoneLite::bootstrapFlowTesting(..., testConfiguration: $yourTestConfiguration) instead.` **How to adapt:** move the
-  `TestConfiguration` from the extension objects to the `testConfiguration:` argument.
+  `TestConfiguration` from `extensionObjects:` to the `testConfiguration:` argument.
 - **`DeadLetterGateway::list()` has a stated order.** Most recently failed first, by the failed message's timestamp;
   messages that failed in the same second by message id, ascending. Before, DBAL ordered by the timestamp alone, so
   messages that failed in the same second came back in an engine-chosen order and consecutive pages could repeat one
@@ -3084,7 +3129,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `bootstrapFlowTesting()` Ecotone now looks up the handler in your autoloaded (non-vendor) namespaces and says
   `Can't send command to App\Shipping\ReserveShippingSlot. It is handled by App\Shipping\ShippingSlotReservationHandler::reserve(),
   which is not registered in this Ecotone Lite bootstrap. Add App\Shipping\ShippingSlotReservationHandler to the classesToResolve of
-  EcotoneLite::bootstrapFlowTesting(), or load its namespace with ServiceConfiguration::withNamespaces(['App\Shipping']).`
+  EcotoneLite::bootstrapFlowTesting(), or load its namespace with EcotoneLite::bootstrapFlowTesting(..., namespaces: ['App\Shipping']).`
   When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
   the previous text. **How to adapt:** nothing.
 - **Handlers typed on an interface or abstract class receive the concrete message after serialisation.** A handler
@@ -3187,7 +3232,7 @@ normal section with "How to adapt" steps when it ships.
 2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
 3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
 4. Replace imports with the namespace map (§13), which also renames `#[EventSourcingHandler]` to `#[Apply]` (§7c). Fetch `ConfiguredMessagingSystem`, `MessagingTestSupport`, `ConsoleWriter` and `InMemoryConsoleWriter` by their new ids, and clear Ecotone's cache on deploy (§13e, §13f).
-5. Replace `withSkippedModulePackageNames` with `withEnabledModulePackageNames`, and the `skippedModulePackageNames` framework key with `enabledModulePackageNames`, inverting the list into the packages to load; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
+5. Replace `withSkippedModulePackageNames` with `EcotoneLite::bootstrap(..., enabledModules: [...])`, and the `skippedModulePackageNames` framework key with `enabledModulePackageNames`, inverting the list into the packages to load; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1). Move `serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`, `defaultMemoryLimit`, `defaultConnectionExceptionRetry` and `headersInLogContext` from the framework configuration to a `#[ServiceContext]` method returning `ServiceConfiguration`, drop `failFast` and `cacheConfiguration`, and replace `EcotoneLite`'s `configuration:` with `extensionObjects:` / `enabledModules:` / `namespaces:` / `licenceKey:` (§12).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
 8. Move v1 projections to `#[Projection]` + `#[FromAggregateStream]`/`#[FromStream]`, give `#[ProjectionState]` parameters a default, and run `ecotone:projection:rebuild` for former v1 projections (§3).

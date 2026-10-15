@@ -29,8 +29,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
         DbalConnectionReference::DEFAULT => $connectionFactory,
         new ProductConverter(),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+    enabledModules: [ModulePackageList::DBAL_PACKAGE],
 );
 
 /** @var ProductRepository $repository */

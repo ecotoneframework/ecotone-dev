@@ -110,9 +110,7 @@ final class EcotoneConfiguration
     public function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            serviceName: 'my-service',
             licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: '',
-            cacheConfiguration: true,
         );
     }
 }
@@ -125,21 +123,29 @@ Or simply bind `EcotoneConfig` in a Tempest config file:
 use Ecotone\Tempest\EcotoneConfig;
 
 return new EcotoneConfig(
-    serviceName: 'my-service',
     licenceKey: getenv('ECOTONE_LICENCE_KEY') ?: '',
 );
+```
+
+The service name, default serialization media type, default error channel and the other application settings are
+set on `ServiceConfiguration`, returned from exactly one `#[ServiceContext]` method:
+
+```php
+#[ServiceContext]
+public function serviceConfiguration(): ServiceConfiguration
+{
+    return ServiceConfiguration::createWithDefaults()
+        ->withServiceName('my_service')
+        ->withDefaultErrorChannel('errorChannel');
+}
 ```
 
 ### `EcotoneConfig` Reference
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `serviceName` | `string` | `''` (from `ECOTONE_SERVICE_NAME` env) | Identifies this service in distributed tracing and logs |
 | `namespaces` | `array` | `[]` | Explicit namespaces to scan. When empty and `loadAppNamespaces` is true, derived from `composer.json` |
 | `loadAppNamespaces` | `bool` | `true` | Auto-derive scan namespaces from your app's PSR-4 roots |
-| `cacheConfiguration` | `bool` | `false` (from `ECOTONE_CACHE_CONFIGURATION` env) | Cache the messaging system definition for production |
-| `defaultSerializationMediaType` | `string` | `''` | Override the default message serialization format |
-| `defaultErrorChannel` | `string` | `''` | Channel name for unhandled async exceptions |
 | `enabledModulePackageNames` | `?array` | `null` (every installed package) | Module packages to load in addition to Core, as `ModulePackageList` constants; `[]` loads Core alone |
 | `test` | `bool` | `false` | Load the test support module |
 | `licenceKey` | `string` | `''` | Enterprise licence key |
@@ -164,7 +170,7 @@ Ecotone registers Tempest console commands automatically:
 ./tempest ecotone:cache:clear
 ```
 
-The `ecotone:cache:clear` command removes the cached messaging system definition from `sys_get_temp_dir()/ecotone_tempest/`. Use it after deploying changes when `cacheConfiguration` is enabled.
+The `ecotone:cache:clear` command removes the cached messaging system definition from `sys_get_temp_dir()/ecotone_tempest/`. Use it after deploying changes when the production cache is in use.
 
 ## Database Integration (requires `ecotone/dbal`)
 
@@ -255,7 +261,7 @@ Route commands to the correct tenant by setting the header:
 $commandBus->sendWithRouting('order.place', $order, metadata: ['tenant' => 'tenant_a']);
 ```
 
-> **Security note:** When `cacheConfiguration` is enabled, the `DatabaseConfig` for each
+> **Security note:** When the production cache is in use, the `DatabaseConfig` for each
 > `TempestConnectionReference::create(name, config)` call is serialized into the on-disk cache
 > file. This means database credentials (username, password, DSN) are written to disk in
 > base64-encoded serialized form. Keep the cache directory (`sys_get_temp_dir()/ecotone_tempest/`)
@@ -264,21 +270,15 @@ $commandBus->sendWithRouting('order.place', $order, metadata: ['tenant' => 'tena
 
 ## Production Caching
 
-Enable the configuration cache for production to avoid re-scanning annotations on every request:
-
-```php
-new EcotoneConfig(
-    cacheConfiguration: true,
-);
-```
-
-Or set the `ECOTONE_CACHE_CONFIGURATION=1` environment variable. The cache is stored in `sys_get_temp_dir()/ecotone_tempest/`. Clear it after deployment:
+The container cache mode is derived, there is no setting for it. When `APP_ENV=prod` or `APP_ENV=production`, or when
+Tempest's own discovery cache is on (`DISCOVERY_CACHE=true`), the dumped messaging system is reused as is from
+`sys_get_temp_dir()/ecotone_tempest/`; clear it after deployment:
 
 ```bash
 ./tempest ecotone:cache:clear
 ```
 
-When `APP_ENV=prod` or `APP_ENV=production`, the production cache path is used automatically regardless of the `cacheConfiguration` setting.
+In every other case the dumped container is rebuilt whenever a scanned file changes.
 
 ## Expression Language
 

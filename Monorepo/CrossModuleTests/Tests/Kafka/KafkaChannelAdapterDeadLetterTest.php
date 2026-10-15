@@ -104,6 +104,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $messagePublisher->send($payload);
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000,
             stopOnError: false,
         ));
@@ -178,6 +179,7 @@ final class KafkaChannelAdapterDeadLetterTest extends TestCase
         $messagePublisher->send($payload);
 
         $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000,
             stopOnError: false,
         ));

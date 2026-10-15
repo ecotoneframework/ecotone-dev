@@ -69,6 +69,7 @@ final class EnvPlaceholderKafkaConsumerTest extends TestCase
 
         $container->get(ConfiguredMessagingSystem::class)
             ->run('ordersKafkaConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+                handledMessageLimit: 1,
                 executionTimeLimitInMilliseconds: 30000,
             ));
 

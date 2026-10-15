@@ -120,7 +120,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
-        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
 
         $messaging->run('orderProcessing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
@@ -534,7 +534,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
     }
 
     public function test_drained_message_with_stop_failure_strategy_stops_consumer_without_message_loss(): void
@@ -863,7 +863,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
             $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-            $this->assertNull($messaging->getMessageChannel('customErrorChannel')->receive());
+            $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('customErrorChannel')));
             $this->assertSame(['espresso'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
             $expectedRemainingOnOutbox = $finalFailureStrategy === FinalFailureStrategy::RELEASE ? 1 : 0;
             $this->assertCount($expectedRemainingOnOutbox, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
@@ -912,7 +912,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         }
 
         $this->assertTrue($consumerStopped);
-        $this->assertNull($messaging->getMessageChannel('customErrorChannel')->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('customErrorChannel')));
         $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
     }
 
@@ -951,7 +951,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
-        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
     }
 
     private function claimSingleOutboxRowAsAnotherProcess(string $channelName, int $claimValidForSeconds): void
@@ -987,7 +987,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
     }
 
     public function test_connection_failure_during_delivery_is_recovered_without_duplicates(): void
@@ -1079,7 +1079,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
     private function receiveAllFrom(PollableChannel $channel): array
     {
         $messages = [];
-        while ($message = $channel->receive()) {
+        while ($message = $this->receiveImmediatelyFrom($channel)) {
             $messages[] = $message;
         }
 

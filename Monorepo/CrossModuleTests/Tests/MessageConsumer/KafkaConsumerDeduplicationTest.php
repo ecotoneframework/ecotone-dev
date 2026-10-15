@@ -82,7 +82,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata);
+        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata->withHandledMessageLimit(1));
         
         // Verify message processed
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
@@ -108,7 +108,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
 
         // Run consumer
-        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata);
+        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata->withHandledMessageLimit(1));
         
         // Verify new message IS processed
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
@@ -150,7 +150,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000));
+        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000)->withHandledMessageLimit(1));
         
         // Verify message processed
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getDefaultProcessedMessages'));
@@ -176,7 +176,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000));
+        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000)->withHandledMessageLimit(1));
         
         // Verify new message IS processed
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getDefaultProcessedMessages'));

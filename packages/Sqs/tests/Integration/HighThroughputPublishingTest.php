@@ -11,13 +11,16 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
@@ -89,7 +92,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         }
 
         $this->assertTrue($publishFailed);
-        $this->assertNull($messaging->getMessageChannel($queueName)->receive());
+        $this->assertNull($this->receiveWithinOneSecond($messaging->getMessageChannel($queueName)));
     }
 
     public function test_publish_deferred_confirms_delivery_on_future_resolve(): void
@@ -109,7 +112,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $this->assertNull($batchFuture->resolve());
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -146,7 +149,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -167,7 +170,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $this->assertNull($publisher->publishDeferred($batch)->resolve());
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         $this->assertCount(25, $receivedPayloads);
@@ -264,5 +267,10 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function receiveWithinOneSecond(PollableChannel $channel): ?Message
+    {
+        return $channel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(1000));
     }
 }

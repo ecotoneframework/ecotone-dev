@@ -75,6 +75,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         ));
 
@@ -101,6 +102,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', $metadata);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         ));
 
@@ -327,6 +329,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaAdmin->getProducer($publisherReferenceName. '.handler')->flush(8000);
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         )->withStopOnError(false));
 
@@ -362,6 +365,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->convertAndSend($stdClass);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         ));
 
@@ -458,6 +462,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         ));
 
@@ -492,6 +497,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            handledMessageLimit: 1,
             executionTimeLimitInMilliseconds: 30000
         ));
 

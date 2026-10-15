@@ -118,12 +118,27 @@ jobs:
         if: steps.baseline_cache.outputs.cache-hit != 'true'
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --ignore-platform-reqs
 
+      # The base branch's event-sourcing benchmarks need their tables too. Without them those subjects
+      # error, the baseline holds no timings for them, and comparing the PR against it crashes the report.
+      - name: Set up baseline database tables
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
+        run: |
+          if [ -f Monorepo/Benchmark/setup-database.php ]; then
+            php Monorepo/Benchmark/setup-database.php
+          fi
+
       - name: Benchmark base branch as baseline
         id: baseline
         if: steps.baseline_cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
           vendor/bin/phpbench run --tag=baseline --report=github-report --profile=opcache_enabled
+
+      # A baseline with failed subjects cannot be compared against, so the PR is benchmarked on its own
+      # and nothing is left for the cache to keep for the next run
+      - name: Discard a failed baseline
+        if: steps.baseline.outcome == 'failure'
+        run: rm -rf .phpbench
 
       - uses: actions/checkout@v3
         with:

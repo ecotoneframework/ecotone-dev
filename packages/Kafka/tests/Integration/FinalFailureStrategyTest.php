@@ -102,7 +102,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            handledMessageLimit: 10,
+            handledMessageLimit: 4,
             executionTimeLimitInMilliseconds: 20000,
             stopOnError: false
         ));
@@ -142,7 +142,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            handledMessageLimit: 10,
+            handledMessageLimit: 4,
             executionTimeLimitInMilliseconds: 20000,
             stopOnError: false
         ));

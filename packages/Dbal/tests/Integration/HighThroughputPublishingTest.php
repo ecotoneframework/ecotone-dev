@@ -108,7 +108,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveImmediatelyFrom($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -168,7 +168,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+        while ($message = $this->receiveImmediatelyFrom($messaging->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -210,7 +210,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
         $channel = $messaging->getMessageChannel($queueName);
         $this->assertSame('kept order', $channel->receive()->getPayload());
-        $this->assertNull($channel->receive());
+        $this->assertNull($this->receiveImmediatelyFrom($channel));
     }
 
     public function test_publishing_after_queue_table_is_dropped_names_the_message_queue_setup_command(): void

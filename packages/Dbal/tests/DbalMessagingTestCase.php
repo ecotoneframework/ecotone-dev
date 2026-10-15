@@ -3,10 +3,13 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DbalHandledMessages;
@@ -142,6 +145,11 @@ abstract class DbalMessagingTestCase extends TestCase
                     )
                 SQL);
         }
+    }
+
+    protected function receiveImmediatelyFrom(PollableChannel $channel): ?Message
+    {
+        return $channel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(100));
     }
 
     protected function connectionForTenantB(): ConnectionFactory

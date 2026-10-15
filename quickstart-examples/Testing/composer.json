@@ -29,7 +29,6 @@
     "require": {
         "beberlei/assert": "^3.3.2",
         "ecotone/jms-converter": "~2.0.0-beta.2",
-        "ecotone/lite-event-sourcing-starter": "^1.0",
         "ecotone/pdo-event-sourcing": "~2.0.0-beta.2",
         "ramsey/uuid": "^4.0"
     },

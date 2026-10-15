@@ -1,36 +1,54 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 use function get_class;
 
-use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
@@ -40,7 +58,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
- * Multi-tenant projection tests using the new ProjectionV2 system.
+ * Multi-tenant projection tests using the new Projection system.
  * This test uses the tenant header as the partition key.
  *
  * @internal
@@ -49,9 +67,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 {
     public function test_building_synchronous_partitioned_projection_with_multi_tenancy(): void
     {
+        $this->initializeMultiTenantDefaultStream();
+
         $projection = $this->createMultiTenantProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -60,12 +80,12 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
+                    DbalConfiguration::createForTesting(),
                     MultiTenantConfiguration::create(
                         'tenant',
                         [
@@ -74,7 +94,6 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                         ]
                     ),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -120,9 +139,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     public function test_building_asynchronous_partitioned_projection_with_multi_tenancy(): void
     {
+        $this->initializeMultiTenantDefaultStream();
+
         $projection = $this->createAsyncMultiTenantProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -131,11 +152,9 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
@@ -147,10 +166,9 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                     ),
                     SimpleMessageChannelBuilder::createQueueChannel('async_projection_channel'),
                     PollingMetadata::create('async_projection_channel')
-                        ->setExecutionAmountLimit(3)
-                        ->setExecutionTimeLimitInMilliseconds(5000),
+                        ->withExecutionAmountLimit(3)
+                        ->withExecutionTimeLimitInMilliseconds(5000),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -199,7 +217,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createMultiTenantProjection(): object
     {
-        return new #[ProjectionV2('multi_tenant_partitioned_projection'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[Projection('multi_tenant_partitioned_projection'), Partitioned, FromAggregateStream(Ticket::class)] class () {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
@@ -260,7 +278,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createAsyncMultiTenantProjection(): object
     {
-        return new #[Asynchronous('async_projection_channel'), ProjectionV2('async_multi_tenant_partitioned_projection'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[Asynchronous('async_projection_channel'), Projection('async_multi_tenant_partitioned_projection'), Partitioned, FromAggregateStream(Ticket::class)] class () {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
@@ -317,5 +335,14 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 return $connectionFactory->createContext()->getDbalConnection();
             }
         };
+    }
+
+    private function initializeMultiTenantDefaultStream(): void
+    {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($connection);
+            (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+        }
     }
 }

@@ -26,9 +26,6 @@ trait ConnectsToDatabase
      * Create a new database connection.
      *
      * @param mixed[] $params
-     * @param string|null $username
-     * @param string|null $password
-     * @param mixed[] $driverOptions
      * @return Connection
      *
      * @throws InvalidArgumentException

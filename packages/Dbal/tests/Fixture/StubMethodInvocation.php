@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Dbal\Fixture;
 
+use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use stdClass;
 
 /**
@@ -79,14 +79,5 @@ class StubMethodInvocation implements MethodInvocation
     public function getMethodName(): string
     {
         return 'getInterceptedInterface';
-    }
-
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'getInterceptedInterface');
-    }
-
-    public function replaceArgument(string $parameterName, $value): void
-    {
     }
 }

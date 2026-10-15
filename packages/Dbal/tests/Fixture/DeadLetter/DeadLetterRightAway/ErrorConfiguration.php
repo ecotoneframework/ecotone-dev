@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\DeadLetterRightAway;
 
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 /**
  * licence Apache-2.0
@@ -15,8 +15,8 @@ final class ErrorConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create('orderService')
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(1)
-            ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(1)
+            ->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
     }
 }

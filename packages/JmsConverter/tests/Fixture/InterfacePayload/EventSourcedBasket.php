@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\JMSConverter\Fixture\InterfacePayload;
+
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+
+/**
+ * licence Apache-2.0
+ */
+#[EventSourcingAggregate]
+final class EventSourcedBasket
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    public string $basketId;
+
+    #[CommandHandler('eventSourcedBasket.addProduct')]
+    public static function addProduct(array $payload): array
+    {
+        return [new ProductAddedToBasket($payload['basketId'], $payload['productId'])];
+    }
+
+    #[Apply]
+    public function applyProductAdded(ProductAddedToBasket $event): void
+    {
+        $this->basketId = $event->basketId;
+    }
+}

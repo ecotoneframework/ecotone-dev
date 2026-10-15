@@ -3,14 +3,20 @@
 use App\Workflow\Saga\Application\Order\Command\PlaceOrder;
 use App\Workflow\Saga\Application\Order\Item;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use App\Workflow\Saga\Application\Payment\PaymentProcessor;
+use App\Workflow\Saga\Application\Payment\PaymentService;
+use App\Workflow\Saga\Infrastructure\Converter;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 
-$messagingSystem = Workflows\bootstrapEcotone(__DIR__);
+$messagingSystem = Workflows\bootstrapEcotone(__DIR__, [
+    new PaymentService(new PaymentProcessor()),
+    new Converter(),
+]);
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();
 

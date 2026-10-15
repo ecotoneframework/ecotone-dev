@@ -1,13 +1,28 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\App\ConsoleProcessTrait;
 
@@ -22,7 +37,21 @@ class ProjectingConcurrencyTest extends TestCase
 
     public function setUp(): void
     {
+        if (str_starts_with(getenv('DATABASE_DSN') ?: '', 'sqlite')) {
+            self::markTestSkipped('SQLite serialises writers with no lock-wait timeout, so the two-process gap-interleaving scenario this test drives cannot be proven the way it can on Postgres/MySQL/MariaDB.');
+        }
+
         self::$ecotone = self::bootEcotone();
+        self::$ecotone->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager')->initializeAll();
+        self::$ecotone->getServiceFromContainer('Ecotone\Dbal\Connection\DbalConnectionFactory')->establishConnection()->executeStatement(<<<SQL
+            CREATE TABLE IF NOT EXISTS order_list_projection (
+                order_id VARCHAR(255) PRIMARY KEY,
+                product VARCHAR(255) NOT NULL,
+                quantity INT NOT NULL,
+                status VARCHAR(32) NOT NULL,
+                reason VARCHAR(255)
+            )
+            SQL);
     }
 
     public function test_it_can_place_order(): void

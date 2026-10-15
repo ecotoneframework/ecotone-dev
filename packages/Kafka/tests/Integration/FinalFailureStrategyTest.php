@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -39,23 +40,24 @@ final class FinalFailureStrategyTest extends TestCase
             [SingleMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
                         ->withReceiveTimeout(3000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send a message
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.single', new TestCommand('test_message'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.single', new TestCommand('test_message'));
 
         // First run - should fail and trigger release (offset reset)
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called once (and failed)
@@ -64,9 +66,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called twice (first failed, second succeeded)
@@ -83,25 +85,26 @@ final class FinalFailureStrategyTest extends TestCase
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -122,25 +125,26 @@ final class FinalFailureStrategyTest extends TestCase
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -162,23 +166,24 @@ final class FinalFailureStrategyTest extends TestCase
             [TwoApplicationHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send a message
-        $ecotoneApp->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
+        $ecotoneApp->sendCommandWithRouting('execute.two_app', new TestCommand('app_test'));
 
         // First application run - should fail and reset offset
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify first handler was called once
@@ -187,9 +192,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify second handler was called once
@@ -208,7 +213,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
@@ -217,19 +222,20 @@ final class FinalFailureStrategyTest extends TestCase
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -241,9 +247,9 @@ final class FinalFailureStrategyTest extends TestCase
         $this->assertEquals(['message_2'], $handler->getSuccessfulMessages()); // Only message_2 succeeded
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged
@@ -263,7 +269,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
@@ -272,19 +278,20 @@ final class FinalFailureStrategyTest extends TestCase
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -300,7 +307,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
@@ -309,14 +316,15 @@ final class FinalFailureStrategyTest extends TestCase
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged

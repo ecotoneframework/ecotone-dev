@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\PollableChannel;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -25,12 +24,12 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(200),
@@ -44,7 +43,7 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
 
         $receivedMessage = $messageChannel->receiveWithTimeout(
             PollingMetadata::create('consumer')
-                ->setExecutionTimeLimitInMilliseconds(5000)
+                ->withExecutionTimeLimitInMilliseconds(5000)
         );
 
         $elapsedInMilliseconds = (microtime(true) - $startedAt) * 1000;

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Laravel\Config\LaravelConnectionReference;
-use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Laravel\LaravelConnectionReference;
+use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

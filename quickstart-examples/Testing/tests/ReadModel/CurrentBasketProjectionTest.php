@@ -12,12 +12,15 @@ use App\Testing\Infrastructure\Converter\EmailConverter;
 use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
 use App\Testing\ReadModel\CurrentBasketProjection;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * @internal
+ */
 final class CurrentBasketProjectionTest extends TestCase
 {
     public function test_listing_basket_products_for_user()
@@ -33,7 +36,7 @@ final class CurrentBasketProjectionTest extends TestCase
                 ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                 ])
-                ->triggerProjection("current_basket")
+                ->triggerProjection('current_basket')
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }
@@ -49,9 +52,9 @@ final class CurrentBasketProjectionTest extends TestCase
             $this->getTestSupport()
                 ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
-                    new ProductWasRemovedFromBasket($userId, $productId)
+                    new ProductWasRemovedFromBasket($userId, $productId),
                 ])
-                ->triggerProjection("current_basket")
+                ->triggerProjection('current_basket')
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }
@@ -66,13 +69,13 @@ final class CurrentBasketProjectionTest extends TestCase
             [],
             $this->getTestSupport()
                 ->withEventsFor($userId, Basket::class, [
-                    new ProductWasAddedToBasket($userId, $productId, $productPrice)
+                    new ProductWasAddedToBasket($userId, $productId, $productPrice),
                 ])
-                ->triggerProjection("current_basket")
+                ->triggerProjection('current_basket')
                 ->withEventsFor($userId, Basket::class, [
-                    new ProductWasRemovedFromBasket($userId, $productId)
+                    new ProductWasRemovedFromBasket($userId, $productId),
                 ], 1)
-                ->triggerProjection("current_basket")
+                ->triggerProjection('current_basket')
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }
@@ -88,16 +91,16 @@ final class CurrentBasketProjectionTest extends TestCase
             $this->getTestSupport()
                 ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
-                    new OrderWasPlaced($userId, [$productId])
+                    new OrderWasPlaced($userId, [$productId]),
                 ])
-                ->triggerProjection("current_basket")
+                ->triggerProjection('current_basket')
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }
 
     private function getTestSupport(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             [CurrentBasketProjection::class, Basket::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
             configuration: ServiceConfiguration::createWithDefaults()

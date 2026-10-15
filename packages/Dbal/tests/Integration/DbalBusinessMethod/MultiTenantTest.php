@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Integration\DbalBusinessMethod;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
@@ -60,7 +60,7 @@ final class MultiTenantTest extends DbalMessagingTestCase
         $this->setupUserTable($this->connectionForTenantA()->createContext()->getDbalConnection());
         $this->setupUserTable($this->connectionForTenantB()->createContext()->getDbalConnection());
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices:
                 [
                     'tenant_a_connection' => $this->connectionForTenantA(),
@@ -72,7 +72,8 @@ final class MultiTenantTest extends DbalMessagingTestCase
                     PersonCommandService::class => new PersonCommandService(),
                 ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Domain\Order;
 
-use Ecotone\Modelling\Attribute\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ramsey\Uuid\UuidInterface;
 
 interface OrderRepository

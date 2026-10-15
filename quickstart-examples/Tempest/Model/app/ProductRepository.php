@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Domain\Product;
-use Ecotone\Modelling\Attribute\Repository;
+use Ecotone\Api\Attribute\Repository;
 
 interface ProductRepository
 {

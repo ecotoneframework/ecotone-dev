@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Application;
 
-use Ecotone\Dbal\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
 
 /**
  * licence Apache-2.0

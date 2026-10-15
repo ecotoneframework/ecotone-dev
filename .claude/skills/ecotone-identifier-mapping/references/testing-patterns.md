@@ -31,7 +31,7 @@ public function test_aggregate_with_aggregate_id_metadata(): void
 
     $ecotone
         ->sendCommand(new PlaceOrder('order-1'))
-        ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => 'order-1']);
+        ->sendCommandWithRouting('order.cancel', metadata: ['aggregate.id' => 'order-1']);
 
     $this->assertTrue(
         $ecotone->getAggregate(Order::class, 'order-1')->isCancelled()
@@ -87,7 +87,7 @@ public function test_identifier_mapping_from_headers(): void
     $this->assertEquals(
         'ongoing',
         $ecotone
-            ->sendCommandWithRoutingKey('startOrder', '123')
+            ->sendCommandWithRouting('startOrder', '123')
             ->publishEvent(
                 new OrderStarted('', 'ongoing'),
                 metadata: ['orderId' => '123']

@@ -2,7 +2,7 @@
 
 ## `#[Before]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Before`
+Source: `Ecotone\Api\Attribute\Before`
 
 Runs before the handler executes. Can modify the payload, validate, or throw to abort.
 
@@ -25,9 +25,11 @@ class Before
 
 ## `#[After]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\After`
+Source: `Ecotone\Api\Attribute\After`
 
-Runs after the handler completes. Receives the handler's return value as first parameter.
+Runs after the handler completes. Receives the handler's return value as first parameter. **Only runs when the
+handler actually returns a value** -- verified against `EcotoneLite`: on a `void` handler, `#[After]` (with or
+without `changeHeaders`) never executes, while `#[Before]` on the same pointcut still does.
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -45,7 +47,7 @@ class After
 
 ## `#[Around]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Around`
+Source: `Ecotone\Api\Attribute\Around`
 
 Wraps handler execution. Must call `MethodInvocation::proceed()` to continue the chain.
 
@@ -68,7 +70,7 @@ Note: `#[Around]` does NOT support `changeHeaders`.
 
 ## `#[Presend]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Presend`
+Source: `Ecotone\Api\Attribute\Presend`
 
 Runs before the message enters the channel (before `#[Before]`). Useful for authorization or enrichment before async dispatch.
 
@@ -86,9 +88,34 @@ class Presend
 
 **Parameters:** Same as `#[Before]`.
 
+## `#[ChannelInterceptor]` (Enterprise)
+
+Source: `Ecotone\Api\Attribute\ChannelInterceptor`
+
+Runs before a message is sent to the named channel — targets a channel by name instead of a pointcut against handlers, so it applies to every message sent to that channel regardless of which handler(s) receive it, including before a message is enqueued to an asynchronous channel. Requires an Ecotone Enterprise licence.
+
+```php
+#[Attribute(Attribute::TARGET_METHOD)]
+final class ChannelInterceptor
+{
+    public function __construct(
+        string $channelName,
+        bool $changeHeaders = false,
+        int $precedence = Precedence::DEFAULT_PRECEDENCE
+    )
+}
+```
+
+**Parameters:**
+- `channelName` (string, required) — Exact name of the channel this interceptor runs for.
+- `changeHeaders` (bool, default `false`) — When `true`, the interceptor must return an `array` that gets merged into message headers.
+- `precedence` (int, default `Precedence::DEFAULT_PRECEDENCE` = 1) — Execution order among multiple interceptors on the same channel. Lower runs earlier.
+
+No `pointcut` parameter — matching is by exact channel name only, not by handler pointcut expression.
+
 ## `MethodInvocation` Interface
 
-Source: `Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation`
+Source: `Ecotone\Api\Interceptor\MethodInvocation`
 
 Used exclusively in `#[Around]` interceptors to control handler execution.
 
@@ -96,22 +123,26 @@ Used exclusively in `#[Around]` interceptors to control handler execution.
 interface MethodInvocation
 {
     public function proceed(): mixed;
+    public function cloneCurrentState(): self;
+    public function getObjectToInvokeOn(): string|object;
+    public function getMethodName(): string;
+    public function getName(): string;
     public function getArguments(): array;
-    public function replaceArgument(string $parameterName, mixed $value): void;
-    public function getObjectToInvokeOn(): object;
 }
 ```
 
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `proceed()` | `mixed` | Continue to next interceptor or handler. **Must be called.** |
-| `getArguments()` | `array` | Get handler method arguments as named array |
-| `replaceArgument(string $name, $value)` | `void` | Replace a handler argument before proceeding |
-| `getObjectToInvokeOn()` | `object` | Get the handler instance being invoked |
+| `cloneCurrentState()` | `self` | Snapshot the invocation to inspect/replay without mutating the original |
+| `getObjectToInvokeOn()` | `string\|object` | The handler instance being invoked, or its class name for a static method |
+| `getMethodName()` | `string` | Name of the method being invoked |
+| `getName()` | `string` | `"{ClassName}::{methodName}"` of the intercepted handler |
+| `getArguments()` | `mixed[]` | Handler method arguments, indexed positionally (`$invocation->getArguments()[0]`), not by parameter name |
 
 ## Precedence Constants
 
-Source: `Ecotone\Messaging\Precedence`
+Source: `Ecotone\Api\Interceptor\Precedence`
 
 | Constant | Value | Purpose |
 |----------|-------|---------|

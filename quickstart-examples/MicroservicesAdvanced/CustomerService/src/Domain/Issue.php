@@ -5,11 +5,10 @@ namespace App\Microservices\CustomerService\Domain;
 use App\Microservices\CustomerService\Domain\Command\ReportIssue;
 use App\Microservices\CustomerService\Domain\Event\IssueWasClosed;
 use App\Microservices\CustomerService\Domain\Event\IssueWasReported;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -17,7 +16,7 @@ use Ramsey\Uuid\UuidInterface;
 #[Aggregate]
 final class Issue
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     const REPORT_ISSUE = "issue.report";
     const CLOSE_ISSUE = "issue.close";

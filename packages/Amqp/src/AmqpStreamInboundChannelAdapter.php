@@ -7,6 +7,9 @@ namespace Ecotone\Amqp;
 use AMQPChannelException;
 use AMQPConnectionException;
 use AMQPException;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
@@ -14,11 +17,8 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpLib\AmqpContext;
@@ -38,8 +38,23 @@ use Throwable;
  * Handles stream-specific consumption using direct basic_consume with stream offset support
  *
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
-class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
+class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
     private bool $initialized = false;
@@ -146,8 +161,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $this->startStreamConsuming($context, $pollingMetadata->getEndpointId());
 
             // Wait for messages with the specified timeout
-            $timeout = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
-                ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+            $timeout = $pollingMetadata->executionTimeLimitInMilliseconds > 0
+                ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
                 : $this->receiveTimeoutInMilliseconds;
             $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 

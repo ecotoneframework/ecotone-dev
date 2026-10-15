@@ -11,10 +11,10 @@ use App\Testing\Domain\User\User;
 use App\Testing\Infrastructure\Converter\EmailConverter;
 use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -23,22 +23,18 @@ final class UserIntegrationTest extends TestCase
     public function test_sending_command_as_json()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            // classes to resolve
             [User::class],
-            // available services, you may inject container instead
             [new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                                // resolve all classes from Converter namespace
-                                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                                ->withExtensionObjects([
-                                    // register in memory repository for User
-                                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates()
-                                ]),
-            pathToRootCatalog: __DIR__ // can be ignored, needed for running inside ecotone-dev monorepo
+            ServiceConfiguration::createWithDefaults()
+                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
+                ]),
+            pathToRootCatalog: __DIR__,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey("user.register", \json_encode([
+        $ecotoneLite->sendCommandWithRouting("user.register", \json_encode([
             "userId" => "7dd60feb-c23c-4ddb-9d53-5354349becaa",
             "name" => "johny",
             "email" => "test@wp.pl",
@@ -53,7 +49,7 @@ final class UserIntegrationTest extends TestCase
                 PhoneNumber::create("148518518518")
             )],
             // Make use of Test Support Gateway to find published events
-            $ecotoneLite->getRecordedEvents()
+            $ecotoneLite->popRecordedEvents()
         );
     }
 }

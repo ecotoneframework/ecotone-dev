@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Generator;
 use Symfony\Component\Messenger\Envelope;
@@ -63,5 +63,10 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     public function onConsumerStop(): void
     {
         // No cleanup needed for Symfony messenger channels
+    }
+
+    public function __toString(): string
+    {
+        return 'symfony messenger: ' . $this->symfonyTransport::class;
     }
 }

@@ -1,0 +1,116 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Monorepo\CrossModuleTests\Tests\Laravel;
+
+use App\DcbSmoke\Laravel\Application\IssueCoupon;
+use App\DcbSmoke\Laravel\Application\RedeemCoupon;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\LicenceTesting;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Http\Kernel;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ * @internal
+ */
+final class DcbSmokeTest extends TestCase
+{
+    private Application $app;
+
+    public function setUp(): void
+    {
+        putenv('LARAVEL_DCB_SMOKE_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
+
+        $app = require __DIR__ . '/../../Fixture/Laravel/DcbSmoke/bootstrap/app.php';
+        $app->make(Kernel::class)->bootstrap();
+        EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
+
+        $this->app = $app;
+
+        $connection = $app->make(DbalConnectionFactory::class)->createContext()->getDbalConnection();
+        foreach (['ecotone_tagged_events', 'ecotone_tag_versions', 'ecotone_event_stream'] as $tableName) {
+            if ($connection->createSchemaManager()->tablesExist([$tableName])) {
+                $connection->executeStatement('DROP TABLE ' . $tableName);
+            }
+        }
+
+        $app->make(ConsoleKernel::class)->call('ecotone:migration:database:setup', ['--initialize' => true]);
+    }
+
+    protected function tearDown(): void
+    {
+        putenv('LARAVEL_DCB_SMOKE_LICENCE_KEY');
+        restore_exception_handler();
+    }
+
+    public function test_a_tagged_event_is_appended_and_a_decision_model_is_injected_into_a_handler(): void
+    {
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->app->make(CommandBus::class);
+
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+
+        $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
+    public function test_a_missing_table_names_the_artisan_setup_command(): void
+    {
+        $this->dropEcotoneTables();
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->app->make(CommandBus::class);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('php artisan ecotone:migration:database:setup --initialize --feature=');
+
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+    }
+
+    public function test_the_bare_initialize_flag_the_missing_table_message_names_creates_the_tables(): void
+    {
+        $this->dropEcotoneTables();
+
+        $this->app->make(ConsoleKernel::class)->call('ecotone:migration:database:setup --initialize');
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->app->make(CommandBus::class);
+        $commandBus->send(new IssueCoupon('SUMMER24', 1));
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+
+        $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
+        $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
+    private function dropEcotoneTables(): void
+    {
+        $connection = $this->app->make(DbalConnectionFactory::class)->createContext()->getDbalConnection();
+        foreach (['ecotone_tagged_events', 'ecotone_tag_versions', 'ecotone_event_stream'] as $tableName) {
+            if ($connection->createSchemaManager()->tablesExist([$tableName])) {
+                $connection->executeStatement('DROP TABLE ' . $tableName);
+            }
+        }
+    }
+}

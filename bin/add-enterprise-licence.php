@@ -9,19 +9,14 @@ $finder = new \Symfony\Component\Finder\Finder();
 
 $files = $finder->files()->in(__DIR__ . "/../packages/*/src")->name("*.php");
 
-function addLicenceToFile(string $file)
+$enterpriseNotice = require __DIR__ . "/enterprise-licence-notice.php";
+
+function addLicenceToFile(string $file, string $enterpriseNotice)
 {
     $lines = file($file);
     foreach ($lines as $index => $line) {
         if (preg_match('/^\s*(abstract class|final class|class|interface|trait)\s+/', $line)) {
-            array_splice($lines, $index, 0, [
-                <<<LICENCE
-                /**
-                 * licence Enterprise
-                 */
-                
-                LICENCE
-            ]);
+            array_splice($lines, $index, 0, [$enterpriseNotice]);
             break;
         }
     }
@@ -32,6 +27,8 @@ foreach ($files as $file) {
     $fileContent = file_get_contents($file->getRealPath());
 
     if (! preg_match('/\*\s*(@licence|licence)\s+(Enterprise|MIT|Apache\-2\.0)\s*/', $fileContent, $matches)) {
-        addLicenceToFile($file);
+        addLicenceToFile($file, $enterpriseNotice);
     }
 }
+
+(require __DIR__ . "/enterprise-licence-notice-completion.php")(dirname(__DIR__));

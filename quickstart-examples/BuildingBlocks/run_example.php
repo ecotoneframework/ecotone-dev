@@ -4,24 +4,38 @@ use App\Domain\Customer\Command\ChangeEmail;
 use App\Domain\Customer\Command\RegisterCustomer;
 use App\Domain\Customer\Email;
 use App\Domain\Customer\FullName;
+use App\Domain\Customer\IsOwnerVerificator;
 use App\Domain\Order\Command\PlaceOrder;
 use App\Domain\Order\OrderStatus;
 use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
+use App\Infrastructure\Converter\OrderStatusConverter;
+use App\Infrastructure\Converter\UuidConverter;
+use App\ReadModel\UnapprovedProductList;
 use Assert\Assert;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 
 /** This is production usage, which stores everything in the database */
 
 require __DIR__ . "/vendor/autoload.php";
-$ecotoneLite = EcotoneLiteApplication::bootstrap([
-    DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
-    ProductReservationService::class => new ProductReservationService(true)
-], pathToRootCatalog: __DIR__);
+$ecotoneLite = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new IsOwnerVerificator(),
+        new UnapprovedProductList(),
+        new OrderStatusConverter(),
+        new UuidConverter(),
+        DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+        ProductReservationService::class => new ProductReservationService(true),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
+    pathToRootCatalog: __DIR__,
+);
+$ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 $commandBus = $ecotoneLite->getCommandBus();
 $queryBus = $ecotoneLite->getQueryBus();
 
@@ -48,7 +62,7 @@ $commandBus->send(new PlaceOrder(
     [$productId]
 ), metadata: ['executorId' => $customerId->toString()]);
 
-$ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 100));
+$ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 100));
 
 /** @var OrderStatus $orderStatus */
 $orderStatus = $queryBus->sendWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId]);

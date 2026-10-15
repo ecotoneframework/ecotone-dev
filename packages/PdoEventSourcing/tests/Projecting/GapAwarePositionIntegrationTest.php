@@ -1,34 +1,48 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\ProjectingManager;
-use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
-
-use function sha1;
-
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
@@ -43,29 +57,25 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     private static DbalConnectionFactory $connectionFactory;
     private static StubUTCClock $clock;
     private static FlowTestSupport $ecotone;
-    private static DbalTicketProjection $projection;
     private static EventStore $eventStore;
-    private static ProjectingManager $projectionManager;
-    private static string $proophTicketTable;
-    private static PdoStreamTableNameProvider $tableNameProvider;
+    private static string $ticketStreamTable;
+    private ?Connection $lateWriterConnection = null;
+
+    private static function streamTableRegistry(): StreamTableRegistry
+    {
+        return StreamTableRegistry::createWith([
+            Ticket::STREAM_NAME => ['table' => Ticket::STREAM_NAME, 'connection' => DbalConnectionFactory::class],
+        ], DbalConnectionFactory::class);
+    }
 
     protected function setUp(): void
     {
         self::$connectionFactory = self::getConnectionFactory();
         self::$clock = new StubUTCClock();
 
-        // Create a stub table name provider
-        self::$tableNameProvider = new class () implements PdoStreamTableNameProvider {
-            public function generateTableNameForStream(string $streamName): string
-            {
-                return '_' . sha1($streamName);
-            }
+        $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
-
-        $projection = new #[ProjectionV2(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
-        };
-        self::$projection = $projection;
-        self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        self::$ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [
                 $projection,
@@ -76,26 +86,35 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
-        self::$proophTicketTable = self::$tableNameProvider->generateTableNameForStream(Ticket::STREAM_NAME);
+        self::$ticketStreamTable = Ticket::STREAM_NAME;
         self::$eventStore = self::$ecotone->getGateway(EventStore::class);
-        self::$projectionManager = self::$ecotone->getGateway(ProjectionRegistry::class)->get(DbalTicketProjection::NAME);
         if (self::$eventStore->hasStream(Ticket::STREAM_NAME)) {
             self::$eventStore->delete(Ticket::STREAM_NAME);
         }
-        self::$eventStore->create(Ticket::STREAM_NAME);
-        self::$projectionManager->delete();
+        self::$ecotone->setupDatabaseTables();
+        self::$ecotone->deleteProjection(DbalTicketProjection::NAME);
     }
 
-    public function test_gaps_are_added_to_position(): void
+    protected function tearDown(): void
     {
+        if ($this->lateWriterConnection?->isTransactionActive()) {
+            $this->lateWriterConnection->rollBack();
+        }
+        $this->lateWriterConnection?->close();
+        parent::tearDown();
+    }
+
+    public function test_events_appended_after_rolled_back_appends_are_all_projected(): void
+    {
+        $this->skipIfNoAutoIncrementGaps();
+
         for ($i = 1; $i <= 6; $i++) {
             $this->insertGaps(Ticket::STREAM_NAME);
             self::$ecotone->sendCommand(new CreateTicketCommand('ticket-' . $i));
@@ -103,10 +122,56 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
         self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
 
-        self::assertSame(6, self::$projection->getTicketsCount());
-        $position = self::extractStreamPosition(self::$projectionManager->loadState()->lastPosition, Ticket::STREAM_NAME);
-        self::assertSame(12, $position->getPosition());
-        self::assertSame([1, 3, 5, 7, 9, 11], $position->getGaps());
+        self::assertSame(6, self::$ecotone->sendQueryWithRouting('getTicketsCount'));
+        for ($i = 1; $i <= 6; $i++) {
+            self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-' . $i));
+        }
+    }
+
+    public function test_event_committed_into_a_gap_after_later_events_were_projected_is_projected_with_the_next_event(): void
+    {
+        $this->skipIfWritersAreSerialised();
+        $lateWriter = $this->bootstrapLateWriter();
+        self::$ecotone->sendCommand(new CreateTicketCommand('ticket-before-gap'));
+
+        $this->lateWriterConnection->beginTransaction();
+        $lateWriter->sendCommand(new CreateTicketCommand('ticket-committed-late'));
+        self::$ecotone->sendCommand(new CreateTicketCommand('ticket-after-gap'));
+
+        self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-after-gap'));
+        self::assertNull(self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-committed-late'));
+
+        $this->lateWriterConnection->commit();
+        self::$ecotone->sendCommand(new CreateTicketCommand('ticket-after-gap-filled'));
+
+        self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-committed-late'));
+        self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-after-gap-filled'));
+        self::assertSame(4, self::$ecotone->sendQueryWithRouting('getTicketsCount'));
+
+        self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
+
+        self::assertSame(4, self::$ecotone->sendQueryWithRouting('getTicketsCount'));
+    }
+
+    public function test_event_committed_into_a_gap_after_later_events_were_projected_is_projected_when_the_projection_is_triggered(): void
+    {
+        $this->skipIfWritersAreSerialised();
+        $lateWriter = $this->bootstrapLateWriter();
+        self::$ecotone->sendCommand(new CreateTicketCommand('ticket-before-gap'));
+
+        $this->lateWriterConnection->beginTransaction();
+        $lateWriter->sendCommand(new CreateTicketCommand('ticket-committed-late'));
+        self::$ecotone->sendCommand(new CreateTicketCommand('ticket-after-gap'));
+        self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
+
+        self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-after-gap'));
+        self::assertNull(self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-committed-late'));
+
+        $this->lateWriterConnection->commit();
+        self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
+
+        self::assertSame('created', self::$ecotone->sendQueryWithRouting('getTicketStatus', 'ticket-committed-late'));
+        self::assertSame(3, self::$ecotone->sendQueryWithRouting('getTicketsCount'));
     }
 
     public function test_max_gap_offset_cleaning(): void
@@ -120,8 +185,9 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
@@ -140,6 +206,8 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gap_timeout_cleaning(): void
     {
+        $this->skipIfNoAutoIncrementGaps();
+
         $projectionName = 'test_projection';
         $streamFilterRegistry = new StreamFilterRegistry([
             $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
@@ -164,8 +232,9 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             gapTimeout: Duration::seconds(5)
         );
@@ -204,8 +273,9 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
@@ -232,8 +302,9 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: null // No timeout
@@ -268,6 +339,42 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             }
         }
         self::fail("Stream {$streamName} not found in position: {$multiStreamPosition}");
+    }
+
+    private function bootstrapLateWriter(): FlowTestSupport
+    {
+        $lateWriterConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone');
+        $this->lateWriterConnection = $lateWriterConnectionFactory->establishConnection();
+
+        return EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                new TicketEventConverter(),
+                DbalConnectionFactory::class => $lateWriterConnectionFactory,
+                ClockInterface::class => self::$clock,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
+        );
+    }
+
+    private function skipIfWritersAreSerialised(): void
+    {
+        if (self::$connectionFactory->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite admits one writer at a time, so no append can commit while another is still open and no event can be committed into a gap.');
+        }
+    }
+
+    private function skipIfNoAutoIncrementGaps(): void
+    {
+        if (self::$connectionFactory->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite "no" is INTEGER PRIMARY KEY without AUTOINCREMENT, so a rolled-back insert frees its row id instead of leaving a gap.');
+        }
     }
 
     private function insertGaps(string $stream, int $count = 1): void

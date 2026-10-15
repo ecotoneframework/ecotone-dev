@@ -1,22 +1,36 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 use function get_class;
 
@@ -39,7 +53,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123', 'second_event:123'],
@@ -54,7 +68,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123'],
@@ -69,7 +83,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             [['id' => '123', 'type' => 'first'], ['id' => '123', 'type' => 'second']],
@@ -84,7 +98,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertCount(
             2,
@@ -99,7 +113,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123'],
@@ -114,7 +128,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['union:123', 'union:123'],
@@ -137,19 +151,21 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
     {
         $classes = array_map(fn ($p) => get_class($p), $projections);
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classes, [MultiEventAggregate::class, FirstEvent::class, SecondEvent::class, Converters::class]),
             containerOrAvailableServices: array_merge($projections, [new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
     }
 
     private function getProjectionHandlingAllEvents(): object
     {
-        return new #[ProjectionV2('projection_all_events'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_all_events'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -168,7 +184,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionHandlingOnlyOneEvent(): object
     {
-        return new #[ProjectionV2('projection_one_event'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_one_event'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -181,7 +197,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionWithCatchAllPattern(): object
     {
-        return new #[ProjectionV2('projection_catch_all'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_catch_all'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler('*')]
@@ -194,7 +210,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionWithObjectType(): object
     {
-        return new #[ProjectionV2('projection_object_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_object_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -207,7 +223,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionWithClassTypeResolvingToNamedEvent(): object
     {
-        return new #[ProjectionV2('projection_class_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_class_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -220,7 +236,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionWithUnionType(): object
     {
-        return new #[ProjectionV2('projection_union_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_union_type'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -233,7 +249,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
     private function getProjectionWithGlobPattern(): object
     {
-        return new #[ProjectionV2('projection_glob_pattern'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
+        return new #[Projection('projection_glob_pattern'), Partitioned, FromStream(stream: MultiEventAggregate::STREAM_NAME, aggregateType: MultiEventAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler('order.*')]

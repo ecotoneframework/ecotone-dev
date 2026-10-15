@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Ecotone\Dbal\Attribute\DbalParameter;
-use Ecotone\Dbal\Attribute\DbalWrite;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 /**
  * licence Apache-2.0

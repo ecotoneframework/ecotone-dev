@@ -3,22 +3,20 @@
 namespace Monorepo\Benchmark;
 
 use Closure;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\ProjectionManager;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
 use Monorepo\ExampleAppEventSourcing\Common\Product;
 use Monorepo\ExampleAppEventSourcing\EcotoneProjection\PriceChangeOverTimeProjectionWithEcotoneProjection;
 use Monorepo\ExampleAppEventSourcing\ExampleAppEventSourcingCaseTrait;
-use Monorepo\ExampleAppEventSourcing\ProophProjection\PriceChangeOverTimeProjection;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -31,8 +29,6 @@ class ProjectingBenchmark
 {
     use ExampleAppEventSourcingCaseTrait;
 
-
-    private static ConfiguredMessagingSystem $prooph;
     private static ConfiguredMessagingSystem $ecotone;
     private static array $expectedProductIds = [];
 
@@ -50,10 +46,10 @@ class ProjectingBenchmark
                 ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
                 ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
                 ->withDefaultErrorChannel('errorChannel')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
-                ])),
+                ]),
             useCachedVersion: true,
             pathToRootCatalog: self::getProjectDir(),
         );
@@ -61,24 +57,17 @@ class ProjectingBenchmark
 
     public function setUp(): void
     {
-        self::$prooph = self::bootEcotone(
-            name: 'prooph',
-            container: [PriceChangeOverTimeProjection::class => new PriceChangeOverTimeProjection()],
-            namespaces: ['Monorepo\\ExampleAppEventSourcing\\ProophProjection\\']
-        );
-
         self::$ecotone = self::bootEcotone(
             name: 'ecotone',
             container: [PriceChangeOverTimeProjectionWithEcotoneProjection::class => new PriceChangeOverTimeProjectionWithEcotoneProjection()],
             namespaces: ['Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\']
         );
 
-        $eventStore = self::$prooph->getGatewayByName(EventStore::class);
+        $eventStore = self::$ecotone->getGatewayByName(EventStore::class);
         if ($eventStore->hasStream(Product::class)) {
             $eventStore->delete(Product::class);
         }
         self::deleteEcotoneProjection();
-        self::deleteProophProjection();
     }
 
     #[BeforeMethods('setUp')]
@@ -88,33 +77,15 @@ class ProjectingBenchmark
     }
 
     #[BeforeMethods('setUp')]
-    public function bench_prooph_projection(): void
-    {
-        self::execute(self::$prooph);
-    }
-
-    #[BeforeMethods('setUp')]
     public function bench_ecotone_projection_with_deletion(): void
     {
         self::executeWithDeletion(self::$ecotone, self::deleteEcotoneProjection(...));
-    }
-
-    #[BeforeMethods('setUp')]
-    public function bench_prooph_projection_with_deletion(): void
-    {
-        self::executeWithDeletion(self::$prooph, self::deleteProophProjection(...));
     }
 
     public static function deleteEcotoneProjection(): void
     {
         $registry = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class);
         $registry->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME)->delete();
-    }
-
-    public static function deleteProophProjection(): void
-    {
-        $projectionManager = self::$prooph->getServiceFromContainer(ProjectionManager::class);
-        $projectionManager->deleteProjection(PriceChangeOverTimeProjection::NAME);
     }
 
     public static function execute(ConfiguredMessagingSystem $messagingSystem): void
@@ -184,27 +155,6 @@ class ProjectingBenchmark
                 new PriceChange(130, 10),
             ],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
-        );
-    }
-
-    #[BeforeMethods(['setUp', 'fill'])]
-    #[Iterations(1), Warmup(0)]
-    public function bench_prooph_projection_backfill(): void
-    {
-        $projectionManager = self::$prooph->getServiceFromContainer(ProjectionManager::class);
-        $projectionManager->deleteProjection(PriceChangeOverTimeProjection::NAME);
-        Assert::assertEquals(
-            [],
-            self::$prooph->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
-        );
-        $projectionManager->triggerProjection(PriceChangeOverTimeProjection::NAME);
-        Assert::assertEquals(
-            [
-                new PriceChange(100, 0),
-                new PriceChange(120, 20),
-                new PriceChange(130, 10),
-            ],
-            self::$prooph->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
     }
 }

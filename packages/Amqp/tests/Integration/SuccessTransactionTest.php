@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
@@ -24,7 +24,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\SuccessTransaction']),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -32,7 +32,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
         self::assertEquals(
             'window',
             $ecotone
-                ->sendCommandWithRoutingKey('order.register', 'window')
+                ->sendCommandWithRouting('order.register', 'window')
                 ->run('placeOrderEndpoint')
                 ->sendQueryWithRouting('order.getOrder')
         );

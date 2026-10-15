@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Consumer;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -23,7 +23,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  * licence Apache-2.0
  */
 #[ModuleAnnotation]
-class DbalConsumerPositionModule extends NoExternalConfigurationModule implements AnnotationModule
+final class DbalConsumerPositionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -38,19 +38,14 @@ class DbalConsumerPositionModule extends NoExternalConfigurationModule implement
             DbalConfiguration::createWithDefaults()
         );
 
-        if ($dbalConfiguration->isConsumerPositionTrackingEnabled()) {
+        if ($dbalConfiguration->consumerPositionTrackingEnabled) {
             $messagingConfiguration->registerServiceDefinition(
                 ConsumerPositionTracker::class,
                 new Definition(DbalConsumerPositionTracker::class, [
-                    new Reference($dbalConfiguration->getDbalDocumentStoreReference()),
+                    new Reference($dbalConfiguration->dbalDocumentStoreReference),
                 ])
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DbalConfiguration;
     }
 
     public function getModulePackageName(): string

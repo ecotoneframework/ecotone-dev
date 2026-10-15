@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
 use Interop\Queue\Exception\InvalidMessageException;
@@ -37,7 +37,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         private PendingDeliveryRegistry $pendingDeliveryRegistry,
         private bool $batchPublishing = false,
         private bool $nonBlockingConfirmation = false,
-        private int $confirmationTimeout = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
+        private int $confirmationTimeoutInMilliseconds = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
     ) {
         $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
@@ -70,7 +70,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $payload = $message->getPayload();
         $messagesToPublish = $payload instanceof BatchMessage
-            ? array_map(fn (array $entry): Message => $this->convertBatchEntryToMessage($entry), $payload->getEntries())
+            ? array_map(fn (array $entry): Message => $this->convertBatchEntryToMessage($entry), $payload->entries)
             : [$message];
 
         if ($messagesToPublish === []) {
@@ -181,8 +181,13 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             'Entries' => $entries,
         ];
 
-        $arguments['@http'] = ['timeout' => $this->confirmationTimeout / 1000];
+        $arguments['@http'] = ['timeout' => $this->confirmationTimeoutInMilliseconds / 1000];
 
         return ['arguments' => $arguments, 'trackedMessages' => $trackedMessages];
+    }
+
+    public function __toString(): string
+    {
+        return "sqs outbound: {$this->queueName}";
     }
 }

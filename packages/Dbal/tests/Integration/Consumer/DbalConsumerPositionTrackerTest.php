@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -27,15 +27,14 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
     {
         parent::setUp();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
         );
 
@@ -118,15 +117,14 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $this->tracker->savePosition($consumerId, $position);
 
         // Create new EcotoneLite instance (simulates reconnection)
-        $newEcotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $newEcotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ])
         );
 
@@ -161,8 +159,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
 
     public function tearDown(): void
     {
-        // Clean up consumer positions collection
-        $this->documentStore->dropCollection('consumer_positions');
+        $this->documentStore->dropCollection('ecotone_consumer_positions');
 
         parent::tearDown();
     }

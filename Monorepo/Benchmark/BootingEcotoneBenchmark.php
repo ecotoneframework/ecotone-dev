@@ -2,7 +2,7 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use PhpBench\Attributes\Iterations;
@@ -27,10 +27,6 @@ class BootingEcotoneBenchmark extends Assert
         $container->get(ConfiguredMessagingSystem::class)->list();
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $container->get(ConfiguredMessagingSystem::class)->list();
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

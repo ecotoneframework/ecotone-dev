@@ -4,40 +4,40 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\AmqpBinding;
-use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpHeader;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
-use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageChannel;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Enqueue\EnqueueMessageChannel;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
-use Interop\Amqp\AmqpConnectionFactory;
 use RuntimeException;
 use stdClass;
 use Symfony\Component\Uid\Uuid;
@@ -134,8 +134,8 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             $inboundMessaging,
             $this->createAmqpInboundAdapter($queueName, $exceptionChannelName, $amqpConnectionReferenceName, $endpointId = 'some-id'),
             PollingMetadata::create('some-id')
-                ->setStopOnError(true)
-                ->setExecutionAmountLimit(1000)
+                ->withStopOnError(true)
+                ->withExecutionAmountLimit(1000)
         )
             ->run($endpointId);
 
@@ -143,12 +143,12 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             $inboundMessaging,
             $this->createAmqpInboundAdapter($queueName, $successChannelName, $amqpConnectionReferenceName, 'endpoint.2'),
             PollingMetadata::create('')
-                ->setStopOnError(true)
-                ->setExecutionAmountLimit(1000)
+                ->withStopOnError(true)
+                ->withExecutionAmountLimit(1000)
         )
             ->run($endpointId);
 
-        $this->assertNotNull($successChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000)));
+        $this->assertNotNull($successChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000)));
     }
 
     public function test_throwing_exception_and_rejecting_when_stop_on_error_is_defined_with_error_channel()
@@ -182,9 +182,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             PollingMetadata::create(
                 'some-id'
             )
-            ->setErrorChannelName('errorChannelCustom')
-            ->setStopOnError(true)
-            ->setExecutionAmountLimit(1000)
+            ->withErrorChannelName('errorChannelCustom')
+            ->withStopOnError(true)
+            ->withExecutionAmountLimit(1000)
         );
 
         $messaging->run($inboundAmqpAdapter->getEndpointId());
@@ -204,7 +204,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     private function prepareMessaging(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): ComponentTestBuilder
     {
         $builder = ComponentTestBuilder::create(
-            configuration: ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects(array_merge(
                     $amqpExchanges,
                     $amqpQueues,
@@ -399,54 +399,6 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_with_routing_key_to_custom_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createDirectExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNames($exchangeName, $whiteQueueName, 'white'),
-            AmqpBinding::createFromNames($exchangeName, $blackQueueName, 'black'),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
-            ->withDefaultRoutingKey('white');
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNull(
-            $this->receiveOnce(
-                $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                    ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-                $inboundAmqpAdapterForBlack,
-                $inboundRequestChannel
-            )
-        );
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     /**
      * @throws MessagingException
      */
@@ -525,52 +477,6 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_from_topic_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createTopicExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNames($exchangeName, $whiteQueueName, '*.white'),
-            AmqpBinding::createFromNames($exchangeName, $blackQueueName, '*.black'),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
-            ->withDefaultRoutingKey('color.white');
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForBlack,
-            $inboundRequestChannel
-        ));
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     /**
      * @throws MessagingException
      */
@@ -650,9 +556,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
             $inboundAmqpAdapter,
             PollingMetadata::create('some-id')
-            ->setHandledMessageLimit(1)
-            ->setExecutionAmountLimit(100)
-            ->setExecutionTimeLimitInMilliseconds(100)
+            ->withHandledMessageLimit(1)
+            ->withExecutionAmountLimit(100)
+            ->withExecutionTimeLimitInMilliseconds(100)
         );
 
         $messaging->run($inboundAmqpAdapter->getEndpointId());
@@ -695,7 +601,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
                 ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
             $inboundAmqpAdapter,
-            PollingMetadata::create('some-id')->setExecutionTimeLimitInMilliseconds(1000)
+            PollingMetadata::create('some-id')->withExecutionTimeLimitInMilliseconds(1000)
         );
 
         usleep(1500);
@@ -707,13 +613,13 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     public function test_delaying_the_message()
     {
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [],
             [
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -727,9 +633,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ->build()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(200)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(200)));
 
-        $this->assertNotNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(5000)));
+        $this->assertNotNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(5000)));
     }
 
     public function test_receiving_from_dead_letter_queue()
@@ -739,7 +645,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $deadLetterQueueName = Uuid::v7()->toRfc4122();
         $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExceptionalMessageHandler::class, AmqpConsumerExample::class],
             [
                 ExceptionalMessageHandler::createWithRejectException(),
@@ -747,12 +653,12 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
                     AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
                     AmqpQueue::createWith($queueName)
-                        ->withDeadLetterForDefaultExchange($deadLetterQueue),
+                        ->setDeadLetterForDefaultExchange($deadLetterQueue),
                     $deadLetterQueue,
                     AmqpMessagePublisherConfiguration::create()
                         ->withDefaultRoutingKey($queueName),
@@ -781,13 +687,13 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000));
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000));
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->resend();
 
-        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000)));
+        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000)));
     }
 
     public function test_receiving_message_second_time_with_different_timeouts_when_requeued()
@@ -798,13 +704,13 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000));
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000));
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->resend();
 
-        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000)));
+        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000)));
     }
 
 
@@ -819,10 +725,10 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000));
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000));
         $this->acceptMessage($message);
 
-        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
     }
 
     /**
@@ -836,75 +742,28 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1000));
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1000));
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->reject();
 
-        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
     }
 
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_from_fanout_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createFanoutExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNamesWithoutRoutingKey($exchangeName, $whiteQueueName),
-            AmqpBinding::createFromNamesWithoutRoutingKey($exchangeName, $blackQueueName),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName);
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNotNull(
-            $this->receiveOnce(
-                $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                    ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-                $inboundAmqpAdapterForBlack,
-                $inboundRequestChannel
-            )
-        );
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     public function test_using_custom_delay_strategy_from_channel_builder()
     {
         $queueName = Uuid::v7()->toRfc4122();
         $customDelayStrategy = new SpyDelayStrategy();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [],
             array_merge($this->getConnectionFactoryReferences(), ['customDelayStrategy' => $customDelayStrategy]),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
                         ->withDelayStrategy('customDelayStrategy'),

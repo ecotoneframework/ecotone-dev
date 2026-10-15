@@ -2,350 +2,462 @@
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\PropagateHeaders;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Dbal\Configuration\FlowTestingDbalConnections;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
-use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
-use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionExecutorBuilder;
+use Ecotone\EventSourcing\Console\TagBackfillConsoleCommand;
+use Ecotone\EventSourcing\Console\TagVerifySchemaConsoleCommand;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
+use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\EnterpriseDbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\OpenCoreDbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
+use Ecotone\EventSourcing\DeserializingEventStore;
+use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AsGivenRecordedEventFormat;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\RecordedEventFormat;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
-use Ecotone\EventSourcing\ProjectionLifeCycleConfiguration;
-use Ecotone\EventSourcing\ProjectionManager;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\EventSourcing\ProjectionSetupConfiguration;
-use Ecotone\EventSourcing\ProjectionStreamSource;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\EventSourcing\ProophEventMapper;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\PropagateHeaders;
-use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
+use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
+use Ecotone\EventSourcing\SerializedRecordedEventFormat;
+use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
+use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
+use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
+use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
-use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
-use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
-use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Config\Routing\BusRouteSelector;
-use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
-use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\ProjectingHeaders;
 use Symfony\Component\Uid\Uuid;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-class EventSourcingModule extends NoExternalConfigurationModule
+final class EventSourcingModule extends NoExternalConfigurationModule implements ResolvesExtensionObjectsForFlowTesting
 {
-    public const ECOTONE_ES_STOP_PROJECTION = 'ecotone:es:stop-projection';
-    public const ECOTONE_ES_RESET_PROJECTION = 'ecotone:es:reset-projection';
-    public const ECOTONE_ES_DELETE_PROJECTION = 'ecotone:es:delete-projection';
-    public const ECOTONE_ES_INITIALIZE_PROJECTION = 'ecotone:es:initialize-projection';
-    public const ECOTONE_ES_TRIGGER_PROJECTION = 'ecotone:es:trigger-projection';
-
     /**
-     * @param ProjectionSetupConfiguration[] $projectionSetupConfigurations
-     * @param AnnotatedDefinition[] $projectionEventHandlers
-     * @param array<string, string> $namedEvents key is class name, value is event name
-     * @param ServiceActivatorBuilder[] $projectionLifeCycleServiceActivators
-     * @param GatewayProxyBuilder[] $projectionStateGateways
+     * @param array<class-string, Stream> $streamAttributes
+     * @param array<string, string> $projectionStreamMapping
+     * @param array<string, string[]> $projectionSourceStreams
+     * @param class-string[] $stateStoredCountedAggregateClasses
      */
-    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $namedEvents, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
-    {
+    private function __construct(
+        private AggregateStreamMapping $aggregateToStreamMapping,
+        private AggregateTypeMapping $aggregateTypeMapping,
+        private array $streamAttributes,
+        private array $projectionStreamMapping,
+        private array $projectionSourceStreams,
+        private bool $declaresEventTagsOrCountedAggregates,
+        private array $stateStoredCountedAggregateClasses,
+    ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $aggregateToStreamMapping = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(Stream::class) as $aggregateWithCustomStream) {
+        $streamAttributes = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Stream::class) as $classWithCustomStream) {
             /** @var Stream $attribute */
-            $attribute = $annotationRegistrationService->getAttributeForClass($aggregateWithCustomStream, Stream::class);
+            $attribute = $annotationRegistrationService->getAttributeForClass($classWithCustomStream, Stream::class);
 
-            $aggregateToStreamMapping[$aggregateWithCustomStream] = $attribute->getName();
+            $aggregateToStreamMapping[$classWithCustomStream] = $attribute->getName();
+            $streamAttributes[$classWithCustomStream] = $attribute;
         }
 
         $aggregateTypeMapping = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(AggregateType::class) as $aggregateWithCustomType) {
-            /** @var Stream $attribute */
             $attribute = $annotationRegistrationService->getAttributeForClass($aggregateWithCustomType, AggregateType::class);
 
             $aggregateTypeMapping[$aggregateWithCustomType] = $attribute->getName();
         }
 
-        $v2ProjectionNames = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $className) {
-            $v2ProjectionNames[] = $annotationRegistrationService->getAttributeForClass($className, ProjectionV2::class)->name;
+        $projectionStreamMapping = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
+
+            $projectionStreamMapping[$projectionAttribute->name] = $aggregateToStreamMapping[$projectionClassName] ?? StreamTableRegistry::DEFAULT_STREAM;
         }
 
-        $projectionStateGateways = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(ProjectionStateGateway::class) as $projectionStateGatewayConfiguration) {
-            /** @var ProjectionStateGateway $attribute */
-            $attribute = $projectionStateGatewayConfiguration->getAnnotationForMethod();
-
-            if (in_array($attribute->getProjectionName(), $v2ProjectionNames, true)) {
-                continue;
-            }
-
-            $projectionStateGateways[] = GatewayProxyBuilder::create(
-                $projectionStateGatewayConfiguration->getClassName(),
-                $projectionStateGatewayConfiguration->getClassName(),
-                $projectionStateGatewayConfiguration->getMethodName(),
-                ProjectionManagerBuilder::getProjectionManagerActionChannel(
-                    $attribute->getProjectioManagerReference(),
-                    'getProjectionState'
-                )
-            )->withParameterConverters([
-                GatewayHeaderValueBuilder::create('ecotone.eventSourcing.manager.name', $attribute->getProjectionName()),
-            ]);
-        }
-
-        $projectionClassNames = $annotationRegistrationService->findAnnotatedClasses(Projection::class);
-        $projectionEventHandlers = $annotationRegistrationService->findCombined(Projection::class, EventHandler::class);
-        $projectionSetupConfigurations = [];
-        $projectionLifeCyclesServiceActivators = [];
-
-        foreach ($projectionClassNames as $projectionClassName) {
-            $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
-            /** @var Projection $projectionAttribute */
-            $projectionAttribute = null;
-            /** @var Asynchronous|null $asynchronousChannelName */
-            $asynchronousChannelName = null;
-            foreach ($attributes as $attribute) {
-                if ($attribute instanceof Projection) {
-                    $projectionAttribute = $attribute;
-                }
-                if ($attribute instanceof Asynchronous) {
-                    $asynchronousChannelName = $attribute->getChannelName();
-                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
-                    $asynchronousChannelName = array_pop($asynchronousChannelName);
+        $projectionSourceStreams = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
+            foreach ($annotationRegistrationService->getAnnotationsForClass($projectionClassName, FromStream::class) as $fromStream) {
+                if ($fromStream->eventStoreReferenceName === EventStore::class) {
+                    $projectionSourceStreams[$projectionAttribute->name][] = $fromStream->stream;
                 }
             }
-
-            Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
-
-            $referenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $projectionClassName);
-
-            $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
-
-            $classDefinition = ClassDefinition::createUsingAnnotationParser(Type::object($projectionClassName), $annotationRegistrationService);
-            $projectionInitialization = Type::attribute(ProjectionInitialization::class);
-            $projectionDelete = Type::attribute(ProjectionDelete::class);
-            $projectionReset = Type::attribute(ProjectionReset::class);
-            $parameterConverterFactory = ParameterConverterAnnotationFactory::create();
-            foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
-                foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
-                    $attributeType = Type::createFromVariable($attribute);
-                    $interfaceToCall = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName);
-                    if ($attributeType->equals($projectionInitialization)) {
-                        $requestChannel = Uuid::v7()->toRfc4122();
-                        $projectionLifeCycle = $projectionLifeCycle->withInitializationRequestChannel($requestChannel);
-                        $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
-                            $referenceName,
-                            $interfaceToCall
-                        )
-                            ->withInputChannelName($requestChannel)
-                            ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
-                            );
-                    }
-                    if ($attributeType->equals($projectionDelete)) {
-                        $requestChannel = Uuid::v7()->toRfc4122();
-                        $projectionLifeCycle = $projectionLifeCycle->withDeleteRequestChannel($requestChannel);
-                        $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
-                            $referenceName,
-                            $interfaceToCall
-                        )
-                            ->withInputChannelName($requestChannel)
-                            ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
-                            );
-                    }
-                    if ($attributeType->equals($projectionReset)) {
-                        $requestChannel = Uuid::v7()->toRfc4122();
-                        $projectionLifeCycle = $projectionLifeCycle->withResetRequestChannel($requestChannel);
-                        $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
-                            $referenceName,
-                            $interfaceToCall
-                        )
-                            ->withInputChannelName($requestChannel)
-                            ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
-                            );
-                    }
-                }
-            }
-
-            if ($projectionAttribute->isFromAll()) {
-                $projectionConfiguration = ProjectionSetupConfiguration::create(
-                    $projectionAttribute->getName(),
-                    $projectionLifeCycle,
-                    $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::forAllStreams(),
-                    $asynchronousChannelName
-                );
-            } elseif ($projectionAttribute->getFromStreams()) {
-                $projectionConfiguration = ProjectionSetupConfiguration::create(
-                    $projectionAttribute->getName(),
-                    $projectionLifeCycle,
-                    $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::fromStreams($projectionAttribute->getFromStreams()),
-                    $asynchronousChannelName
-                );
-            } else {
-                $projectionConfiguration = ProjectionSetupConfiguration::create(
-                    $projectionAttribute->getName(),
-                    $projectionLifeCycle,
-                    $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::fromCategories($projectionAttribute->getFromCategories()),
-                    $asynchronousChannelName
-                );
-            }
-
-            $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration;
-        }
-        $namedEvents = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $className) {
-            $attribute = $annotationRegistrationService->getAttributeForClass($className, NamedEvent::class);
-            $namedEvents[$className] = $attribute->getName();
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, $namedEvents, $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
+        $countedAggregateClasses = array_keys(AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService));
+
+        return new self(
+            AggregateStreamMapping::createWith($aggregateToStreamMapping),
+            AggregateTypeMapping::createWith($aggregateTypeMapping),
+            $streamAttributes,
+            $projectionStreamMapping,
+            $projectionSourceStreams,
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [] || $countedAggregateClasses !== [],
+            array_values(array_diff($countedAggregateClasses, $annotationRegistrationService->findAnnotatedClasses(EventSourcingAggregate::class))),
+        );
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
+        $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
+
+        DatabaseEventStoreDbalModuleGuard::assertDbalModuleIsEnabled($eventSourcingConfiguration, $serviceConfiguration);
+
+        if ($dynamicConsistencyBoundary->isEnabled()) {
+            CrossConnectionAggregateBoundaryGuard::assertEveryStateStoredAggregateSavesOnTheEventStoreConnection($this->stateStoredCountedAggregateClasses, $eventSourcingConfiguration, $dbalConfiguration);
+        }
 
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
-        $messagingConfiguration->registerServiceDefinition(
-            EventStreamTableManager::class,
-            new Definition(EventStreamTableManager::class, [
-                $eventSourcingConfiguration->getEventStreamTableName(),
-                true,
-                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
-            ])
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            LegacyProjectionsTableManager::class,
-            new Definition(LegacyProjectionsTableManager::class, [
-                $eventSourcingConfiguration->getProjectionsTable(),
-                $this->projectionSetupConfigurations !== [],
-                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
-            ])
-        );
 
-        $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
-            new Reference(EventSourcingConfiguration::class),
-            new Reference(ProophEventMapper::class),
-            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-            Reference::to(EventStreamTableManager::class),
-            Reference::to(LegacyProjectionsTableManager::class),
-        ]));
-
-        // Register PdoStreamTableNameProvider as an alias to LazyProophEventStore
-        $messagingConfiguration->registerServiceDefinition(
-            PdoStreamTableNameProvider::class,
-            Reference::to(LazyProophEventStore::class)
-        );
-
-        $messagingConfiguration->registerServiceDefinition(
-            LazyProophProjectionManager::class,
-            new Definition(LazyProophProjectionManager::class, [
-                Reference::to(EventSourcingConfiguration::class),
-                $this->projectionSetupConfigurations,
-                Reference::to(MessagingEntrypointService::class),
-                Reference::to(ConversionService::class),
-                Reference::to(LazyProophEventStore::class),
-            ]),
-        );
-
-        $this->registerProjections($serviceConfiguration, $interfaceToCallRegistry, $moduleReferenceSearchService, $messagingConfiguration, $extensionObjects, $eventSourcingConfiguration);
-        foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
-            $messagingConfiguration->registerMessageHandler($serviceActivator);
+        $streamTableRegistry = $this->buildStreamTableRegistry($eventSourcingConfiguration);
+        if (! $eventSourcingConfiguration->isInMemory()) {
+            $this->refuseProjectionsReadingUndeclaredStreams($streamTableRegistry, new MissingEventStreamTable($consoleInvocationPrefix));
         }
+        $messagingConfiguration->registerServiceDefinition(StreamTableRegistry::class, $streamTableRegistry->getDefinition());
+
+        foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
+            $tableNames = $streamTableRegistry->tablesFor($connectionReferenceName);
+            if ($tableNames === []) {
+                continue;
+            }
+
+            $messagingConfiguration->registerServiceDefinition(
+                self::eventStreamTableManagerReferenceName($connectionReferenceName, $eventSourcingConfiguration),
+                new Definition(EventStreamTableManager::class, [
+                    $tableNames,
+                    ! $eventSourcingConfiguration->isInMemory(),
+                    $consoleInvocationPrefix,
+                    $connectionReferenceName,
+                ])
+            );
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            MissingEventStreamTable::class,
+            new Definition(MissingEventStreamTable::class, [$consoleInvocationPrefix])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            TagTableManager::class,
+            new Definition(TagTableManager::class, [
+                $this->declaresEventTagsOrCountedAggregates && $dynamicConsistencyBoundary->isEnabled() && ! $eventSourcingConfiguration->isInMemory(),
+                $consoleInvocationPrefix,
+            ])
+        );
+
+        $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
+        $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
+
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundary, ExtensionObjectResolver::contains(InMemoryEventsKeptAsGiven::class, $extensionObjects));
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
-        $this->registerProjectionManager($messagingConfiguration, $eventSourcingConfiguration);
     }
 
-    public function canHandle($extensionObject): bool
+    private function refuseProjectionsReadingUndeclaredStreams(StreamTableRegistry $streamTableRegistry, MissingEventStreamTable $missingEventStreamTable): void
     {
-        return
-            $extensionObject instanceof EventSourcingConfiguration
-            || $extensionObject instanceof ProjectionRunningConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
+        foreach ($this->projectionSourceStreams as $projectionName => $streamNames) {
+            foreach ($streamNames as $streamName) {
+                if (! $streamTableRegistry->isDeclared($streamName)) {
+                    throw $missingEventStreamTable->undeclaredStreamReadByProjectionException($projectionName, $streamName, $streamTableRegistry->declaredStreamNames());
+                }
+            }
+        }
+    }
+
+    private function buildStreamTableRegistry(EventSourcingConfiguration $eventSourcingConfiguration): StreamTableRegistry
+    {
+        $streams = [
+            StreamTableRegistry::DEFAULT_STREAM => [
+                'table' => $eventSourcingConfiguration->getDefaultEventStreamTableName(),
+                'connection' => $eventSourcingConfiguration->getConnectionReferenceName(),
+            ],
+        ];
+
+        foreach ($this->streamAttributes as $attribute) {
+            $streams[$attribute->getName()] = [
+                'table' => $attribute->getTableName(),
+                'connection' => $attribute->getConnectionReferenceName(),
+            ];
+        }
+
+        return StreamTableRegistry::createWith($streams, $eventSourcingConfiguration->getConnectionReferenceName());
+    }
+
+    private function registerEventStoreInstance(
+        Configuration $messagingConfiguration,
+        EventSourcingConfiguration $eventSourcingConfiguration,
+        StreamTableRegistry $streamTableRegistry,
+        ?string $consoleInvocationPrefix,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        DynamicConsistencyBoundary $dynamicConsistencyBoundary,
+        bool $inMemoryEventsKeptAsGiven,
+    ): void {
+        $messagingConfiguration->registerServiceDefinition(
+            EventSerializer::class,
+            new Definition(EventSerializer::class, [
+                new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(EventMapper::class),
+            ])
+        );
+
+        $dynamicConsistencyBoundary->registerServicesForInMemoryStore($messagingConfiguration);
+        $this->registerDbalTagCollaborator($messagingConfiguration, $dynamicConsistencyBoundary);
+
+        if ($eventSourcingConfiguration->isInMemory()) {
+            $messagingConfiguration->registerServiceDefinition(
+                RecordedEventFormat::class,
+                $inMemoryEventsKeptAsGiven
+                    ? new Definition(AsGivenRecordedEventFormat::class, [new Reference(ConversionService::REFERENCE_NAME)])
+                    : new Definition(SerializedRecordedEventFormat::class, [new Reference(EventSerializer::class)])
+            );
+            $messagingConfiguration->registerServiceDefinition(
+                InMemoryEventStore::class,
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class)])
+            );
+            $messagingConfiguration->registerServiceDefinition(
+                EventStoreReference::EVENT_STORE_INSTANCE,
+                $inMemoryEventsKeptAsGiven
+                    ? new Reference(InMemoryEventStore::class)
+                    : new Definition(DeserializingEventStore::class, [
+                        new Reference(InMemoryEventStore::class),
+                        new Reference(EventSerializer::class),
+                    ])
+            );
+            $messagingConfiguration->registerServiceDefinition(
+                GuardedTagBump::class,
+                new Reference(InMemoryEventStore::class),
+            );
+
+            return;
+        }
+
+        $connectionFactories = [];
+        foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
+            $connectionFactories[$connectionReferenceName] = new Reference($connectionReferenceName, ContainerImplementation::NULL_ON_INVALID_REFERENCE);
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            DbalEventStore::class,
+            new Definition(DbalEventStore::class, [
+                new Reference(StreamTableRegistry::class),
+                $connectionFactories,
+                new Reference(EventSerializer::class),
+                $eventSourcingConfiguration->getLoadBatchSize(),
+                new Reference(DbalTagCollaborator::class),
+                new Reference(ProjectionInvariantGuard::class),
+                new Reference(AppendStrategy::class),
+                new Reference(MissingEventStreamTable::class),
+                $consoleInvocationPrefix,
+            ])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EventStoreReference::EVENT_STORE_INSTANCE,
+            new Reference(DbalEventStore::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            GuardedTagBump::class,
+            new Reference(DbalEventStore::class)
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            TagBackfillConsoleCommand::class,
+            new Definition(TagBackfillConsoleCommand::class, [new Reference(DbalEventStore::class)])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TagSchemaVerifier::class,
+            new Definition(TagSchemaVerifier::class, [])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TagVerifySchemaConsoleCommand::class,
+            new Definition(TagVerifySchemaConsoleCommand::class, [
+                new Reference($eventSourcingConfiguration->getConnectionReferenceName()),
+                new Reference(TagSchemaVerifier::class),
+                $dynamicConsistencyBoundary->isEnabled(),
+            ])
+        );
+
+        $this->registerConsoleCommand(
+            'backfill',
+            'ecotone:event-store:backfill-tags',
+            TagBackfillConsoleCommand::class,
+            $messagingConfiguration,
+            $interfaceToCallRegistry,
+            'Indexes #[EventTag] rows for events recorded before their class declared its current tags'
+        );
+        $this->registerConsoleCommand(
+            'verify',
+            'ecotone:event-store:verify-schema',
+            TagVerifySchemaConsoleCommand::class,
+            $messagingConfiguration,
+            $interfaceToCallRegistry,
+            'Checks the tag tables\' primary keys/collation and given legacy streams\' aggregate NOT NULL constraints'
+        );
+    }
+
+    private function registerDbalTagCollaborator(Configuration $messagingConfiguration, DynamicConsistencyBoundary $dynamicConsistencyBoundary): void
+    {
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreDbalTagCollaborator::class,
+            new Definition(OpenCoreDbalTagCollaborator::class),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EnterpriseDbalTagCollaborator::class,
+            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(TagResolver::class), Reference::to(LoggingGateway::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            DbalTagCollaborator::class,
+            $dynamicConsistencyBoundary->definitionFor(DbalTagCollaborator::class, OpenCoreDbalTagCollaborator::class, EnterpriseDbalTagCollaborator::class),
+        );
+    }
+
+    private function registerConsoleCommand(
+        string $methodName,
+        string $commandName,
+        string $className,
+        Configuration $configuration,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        string $description = ''
+    ): void {
+        [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
+            new Reference($className),
+            new InterfaceToCallReference($className, $methodName),
+            $commandName,
+            true,
+            $interfaceToCallRegistry,
+            $description
+        );
+
+        $configuration
+            ->registerMessageHandler($messageHandlerBuilder)
+            ->registerConsoleCommand($oneTimeCommandConfiguration);
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function connectionReferenceNames(StreamTableRegistry $streamTableRegistry, EventSourcingConfiguration $eventSourcingConfiguration): array
+    {
+        $connectionReferenceNames = [$eventSourcingConfiguration->getConnectionReferenceName()];
+        foreach ($streamTableRegistry->declaredStreamNames() as $streamName) {
+            $connectionReferenceName = $streamTableRegistry->connectionReferenceFor($streamName);
+            if (! in_array($connectionReferenceName, $connectionReferenceNames, true)) {
+                $connectionReferenceNames[] = $connectionReferenceName;
+            }
+        }
+
+        return $connectionReferenceNames;
+    }
+
+    private static function eventStreamTableManagerReferenceName(string $connectionReferenceName, EventSourcingConfiguration $eventSourcingConfiguration): string
+    {
+        if ($connectionReferenceName === $eventSourcingConfiguration->getConnectionReferenceName()) {
+            return EventStreamTableManager::class;
+        }
+
+        return EventStreamTableManager::class . '.' . $connectionReferenceName;
+    }
+
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        $connections = new FlowTestingDbalConnections($providedReferences, $extensionObjects);
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolve(EventSourcingConfiguration::class, $extensionObjects)[0] ?? null;
+
+        if ($eventSourcingConfiguration === null) {
+            return $connections->has(DbalConnectionReference::DEFAULT)
+                ? [...$extensionObjects, EventSourcingConfiguration::createWithDefaults()]
+                : [...$extensionObjects, EventSourcingConfiguration::createInMemory(), new InMemoryEventsKeptAsGiven()];
+        }
+
+        if (! $eventSourcingConfiguration->isInMemory() && ! $connections->has($eventSourcingConfiguration->getConnectionReferenceName())) {
+            throw ConfigurationException::create(
+                "The event store is configured on connection `{$eventSourcingConfiguration->getConnectionReferenceName()}` through EventSourcingConfiguration, but this flow test was given no such connection, so the events would have nowhere to be stored. "
+                . "Either pass the connection: EcotoneLite::bootstrapFlowTesting(containerOrAvailableServices: ['{$eventSourcingConfiguration->getConnectionReferenceName()}' => new DbalConnectionFactory(\$dsn)]), "
+                . 'or leave the EventSourcingConfiguration out of this flow test, which then keeps its events in memory.'
+            );
+        }
+
+        return $extensionObjects;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $pollingProjectionNames = [];
-        foreach ($serviceExtensions as $extensionObject) {
-            if ($extensionObject instanceof ProjectionRunningConfiguration) {
-                if ($extensionObject->isPolling()) {
-                    $pollingProjectionNames[] = $extensionObject->getProjectionName();
-                }
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
+        $streamTableRegistry = $this->buildStreamTableRegistry($eventSourcingConfiguration);
+
+        $tableManagerReferences = [];
+        foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
+            if ($streamTableRegistry->tablesFor($connectionReferenceName) === []) {
+                continue;
             }
+
+            $tableManagerReferences[] = new DbalTableManagerReference(
+                self::eventStreamTableManagerReferenceName($connectionReferenceName, $eventSourcingConfiguration),
+                $connectionReferenceName
+            );
         }
 
         return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
-            new EventSourcingModuleRoutingExtension($pollingProjectionNames),
-            new DbalTableManagerReference(EventStreamTableManager::class),
-            new DbalTableManagerReference(LegacyProjectionsTableManager::class),
+            ...$tableManagerReferences,
+            new DbalTableManagerReference(TagTableManager::class),
         ];
     }
 
@@ -370,17 +482,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
         $this->registerEventStoreAction(
-            'create',
-            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::create('streamMetadata', 'ecotone.eventSourcing.eventStore.streamMetadata')],
-            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents'), GatewayHeaderBuilder::create('streamMetadata', 'ecotone.eventSourcing.eventStore.streamMetadata')],
-            $eventSourcingConfiguration,
-            $configuration
-        );
-
-        $this->registerEventStoreAction(
             'appendTo',
-            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')],
-            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')],
+            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::createOptional('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],
+            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents'), GatewayHeaderBuilder::create('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],
             $eventSourcingConfiguration,
             $configuration
         );
@@ -409,153 +513,53 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $configuration
         );
 
-        foreach ($this->projectionStateGateways as $projectionStateGateway) {
-            $configuration->registerGatewayBuilder($projectionStateGateway);
-        }
-    }
-
-    private function registerProjectionManager(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
-    {
-        $this->registerProjectionManagerAction(
-            'deleteProjection',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'), HeaderBuilder::create('deleteEmittedEvents', 'ecotone.eventSourcing.manager.deleteEmittedEvents')],
+        $this->registerEventStoreAction(
+            'loadAggregateEvents',
             [
-                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeaderValueBuilder::create('ecotone.eventSourcing.manager.deleteEmittedEvents', true),
-                GatewayHeadersBuilder::create('metadata'),
+                HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'),
+                HeaderBuilder::createOptional('aggregateType', 'ecotone.eventSourcing.eventStore.aggregateType'),
+                HeaderBuilder::create('aggregateId', 'ecotone.eventSourcing.eventStore.aggregateId'),
+                HeaderBuilder::create('fromVersion', 'ecotone.eventSourcing.eventStore.fromVersion'),
+                HeaderBuilder::createOptional('count', 'ecotone.eventSourcing.eventStore.count'),
+                HeaderBuilder::create('eventNames', 'ecotone.eventSourcing.eventStore.eventNames'),
+                HeaderBuilder::create('deserialize', 'ecotone.eventSourcing.eventStore.deserialize'),
             ],
-            $eventSourcingConfiguration,
-            $configuration,
-            self::ECOTONE_ES_DELETE_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false), ConsoleCommandParameter::createWithDefaultValue('deleteEmittedEvents', 'ecotone.eventSourcing.manager.deleteEmittedEvents', true, false, true)],
-            'Deletes given event sourcing projection'
-        );
-
-        $this->registerProjectionManagerAction(
-            'resetProjection',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
             [
-                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata'),
+                GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'),
+                GatewayHeaderBuilder::create('aggregateType', 'ecotone.eventSourcing.eventStore.aggregateType'),
+                GatewayHeaderBuilder::create('aggregateId', 'ecotone.eventSourcing.eventStore.aggregateId'),
+                GatewayHeaderBuilder::create('fromVersion', 'ecotone.eventSourcing.eventStore.fromVersion'),
+                GatewayHeaderBuilder::create('count', 'ecotone.eventSourcing.eventStore.count'),
+                GatewayHeaderBuilder::create('eventNames', 'ecotone.eventSourcing.eventStore.eventNames'),
+                GatewayHeaderBuilder::create('deserialize', 'ecotone.eventSourcing.eventStore.deserialize'),
             ],
-            $eventSourcingConfiguration,
-            $configuration,
-            self::ECOTONE_ES_RESET_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
-            'Resets given event sourcing projection to be rebuilt from scratch'
-        );
-
-        $this->registerProjectionManagerAction(
-            'stopProjection',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            $eventSourcingConfiguration,
-            $configuration,
-            self::ECOTONE_ES_STOP_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
-            'Stops given event sourcing projection'
-        );
-
-        $this->registerProjectionManagerAction(
-            'initializeProjection',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [
-                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata'),
-            ],
-            $eventSourcingConfiguration,
-            $configuration,
-            self::ECOTONE_ES_INITIALIZE_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
-            'Initializes given event sourcing projection'
-        );
-
-        $this->registerProjectionManagerAction(
-            'triggerProjection',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [
-                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata'),
-            ],
-            $eventSourcingConfiguration,
-            $configuration,
-            self::ECOTONE_ES_TRIGGER_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
-            'Triggers given event sourcing projection to process events'
-        );
-
-        $this->registerProjectionManagerAction(
-            'hasInitializedProjectionWithName',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
             $eventSourcingConfiguration,
             $configuration
         );
 
-        $this->registerProjectionManagerAction(
-            'getProjectionStatus',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+        $this->registerEventStoreAction(
+            'loadByCriteria',
+            [PayloadBuilder::create('criteria')],
+            [GatewayPayloadBuilder::create('criteria')],
             $eventSourcingConfiguration,
             $configuration
         );
-
-        $this->registerProjectionManagerAction(
-            'getProjectionState',
-            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            $eventSourcingConfiguration,
-            $configuration
-        );
-    }
-
-    private function registerProjectionManagerAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration, ?string $consoleCommandName = null, array $consoleCommandParameters = [], string $consoleCommandDescription = ''): void
-    {
-        $messageHandlerBuilder = ProjectionManagerBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration);
-        $configuration->registerMessageHandler($messageHandlerBuilder);
-        $configuration->registerGatewayBuilder(
-            GatewayProxyBuilder::create($eventSourcingConfiguration->getProjectManagerReferenceName(), ProjectionManager::class, $methodName, $messageHandlerBuilder->getInputMessageChannelName())
-                ->withParameterConverters($gatewayConverters)
-        );
-
-        if ($consoleCommandName) {
-            $configuration->registerConsoleCommand(
-                ConsoleCommandConfiguration::create(
-                    $messageHandlerBuilder->getInputMessageChannelName(),
-                    $consoleCommandName,
-                    $consoleCommandParameters,
-                    $consoleCommandDescription
-                )
-            );
-        }
     }
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void
     {
-        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, Reference::to(LazyProophEventStore::class));
+        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, new Reference(EventStoreReference::EVENT_STORE_INSTANCE));
         $configuration->registerMessageHandler($messageHandlerBuilder);
 
         $configuration->registerGatewayBuilder(
-            GatewayProxyBuilder::create($eventSourcingConfiguration->getEventStoreReferenceName(), EventStore::class, $methodName, $messageHandlerBuilder->getInputMessageChannelName())
+            GatewayProxyBuilder::create($eventSourcingConfiguration->eventStoreReferenceName, EventStore::class, $methodName, $messageHandlerBuilder->getInputMessageChannelName())
                 ->withParameterConverters($gatewayConverters)
         );
     }
 
     private function registerEventStreamEmitter(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
-        $eventSourcingConfiguration = (clone $eventSourcingConfiguration)->withSimpleStreamPersistenceStrategy();
-        $eventSourcingConfigurationReference = new Reference(EventSourcingConfiguration::class.'.eventStreamEmitter');
-        $configuration->registerServiceDefinition($eventSourcingConfigurationReference->getId(), DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
-        $eventStoreReference = new Reference(LazyProophEventStore::class.'.eventStreamEmitter');
-        $configuration->registerServiceDefinition($eventStoreReference->getId(), new Definition(LazyProophEventStore::class, [
-            $eventSourcingConfigurationReference,
-            new Reference(ProophEventMapper::class),
-            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-            Reference::to(EventStreamTableManager::class),
-            Reference::to(LegacyProjectionsTableManager::class),
-        ]));
-
-        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)
+        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::createOptional('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')], $eventSourcingConfiguration, new Reference(EventStoreReference::EVENT_STORE_INSTANCE))
             ->withInputChannelName(Uuid::v7()->toRfc4122())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);
@@ -570,7 +574,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $linkingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
-                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE, false))
+                ->chain(new Definition(DeclaredStreamValidator::class, [new Reference(StreamTableRegistry::class)]))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE, false))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
@@ -583,12 +588,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')], )
         );
 
-
         $emittingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
-                ->chain(new Definition(StreamNameMapper::class))
-                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE))
+                ->chain(new Definition(RunningProjectionValidator::class))
+                ->chain(new Definition(StreamNameMapper::class, [$this->projectionStreamMapping]))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
@@ -605,90 +610,5 @@ class EventSourcingModule extends NoExternalConfigurationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::EVENT_SOURCING_PACKAGE;
-    }
-
-    private function registerProjections(ServiceConfiguration $serviceConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, ModuleReferenceSearchService $moduleReferenceSearchService, Configuration $messagingConfiguration, array $extensionObjects, EventSourcingConfiguration $eventSourcingConfiguration): void
-    {
-        $projectionRunningConfigurations = [];
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ProjectionRunningConfiguration) {
-                $projectionRunningConfigurations[$extensionObject->getProjectionName()] = $extensionObject;
-            }
-        }
-        /** @var array<string, AnnotatedDefinition[]> $eventHandlersByProjectionName */
-        $eventHandlersByProjectionName = [];
-        foreach ($this->projectionEventHandlers as $projectionEventHandler) {
-            /** @var Projection $projectionAttribute */
-            $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            $eventHandlersByProjectionName[$projectionAttribute->getName()][] = $projectionEventHandler;
-        }
-
-        $messagingConfiguration->registerServiceDefinition(ProophEventMapper::class, Definition::createFor(ProophEventMapper::class, [Reference::to(EventMapper::class)]));
-        $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
-        $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
-
-        foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
-            if (array_key_exists($projectionSetupConfiguration->getProjectionName(), $projectionRunningConfigurations)) {
-                $projectionRunningConfiguration = $projectionRunningConfigurations[$projectionSetupConfiguration->getProjectionName()];
-            } else {
-                $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());
-            }
-
-            $projectionSetupConfiguration = $projectionSetupConfiguration
-                ->withPolling($projectionRunningConfiguration->isPolling())
-                ->withOptions(
-                    array_merge(
-                        $projectionSetupConfiguration->getProjectionOptions(),
-                        $projectionRunningConfiguration->getOptions()
-                    )
-                );
-
-            /** Our main entrypoint for projection execution */
-            $messagingConfiguration->registerMessageHandler(
-                (new ProjectionExecutorBuilder($projectionSetupConfiguration, 'execute'))
-                    ->withEndpointId($projectionSetupConfiguration->getProjectionEndpointId())
-                    ->withInputChannelName($projectionSetupConfiguration->getProjectionInputChannel())
-            );
-
-            /**  Router for executing events */
-            $eventHandlers = $eventHandlersByProjectionName[$projectionSetupConfiguration->getProjectionName()];
-            $routerMap = new BusRoutingMapBuilder();
-            foreach ($eventHandlers as $eventHandler) {
-                $routerMap->addRoutesFromAnnotatedFinding($eventHandler, $interfaceToCallRegistry);
-            }
-            foreach ($this->namedEvents as $className => $eventName) {
-                $routerMap->addObjectAlias($className, $eventName);
-            }
-            $messagingConfiguration->registerMessageHandler(
-                MessageProcessorActivatorBuilder::create()
-                    ->withInputChannelName($projectionSetupConfiguration->getActionRouterChannel())
-                    ->chain(new Definition(RouterProcessor::class, [
-                        new Definition(BusRouteSelector::class, [
-                            $routerMap->compile(),
-                            new Definition(BusRoutingKeyResolver::class, [ProjectionEventHandler::PROJECTION_EVENT_NAME]),
-                        ]),
-                        new Definition(RouteToChannelResolver::class, [new Reference(ChannelResolver::class)]),
-                        false,
-                    ]))
-            );
-
-            if ($projectionRunningConfiguration->isPolling()) {
-                $messagingConfiguration->registerConsumer(
-                    InboundChannelAdapterBuilder::createWithDirectObject(
-                        $projectionSetupConfiguration->getProjectionInputChannel(),
-                        new ProjectionChannelAdapter(),
-                        $interfaceToCallRegistry->getFor(ProjectionChannelAdapter::class, 'run')
-                    )
-                        ->withEndpointId($projectionSetupConfiguration->getProjectionName())
-                );
-            }
-
-            if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {
-                $messagingConfiguration->registerAsynchronousEndpoint(
-                    $projectionSetupConfiguration->getAsynchronousChannelName(),
-                    $projectionSetupConfiguration->getProjectionEndpointId()
-                );
-            }
-        }
     }
 }

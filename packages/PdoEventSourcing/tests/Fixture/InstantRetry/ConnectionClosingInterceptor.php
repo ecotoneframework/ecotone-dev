@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Message;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 
 /**
  * Around interceptor that closes DB connection after handler execution
@@ -23,15 +22,14 @@ final class ConnectionClosingInterceptor
     private int $callIndex = 0;
 
     /**
-     * @param ConnectionFactory[] $connectionFactories
-     * @param bool[]              $closeOnCall e.g. [true, false] means close after first call only
+     * @param bool[] $closeOnCall e.g. [true, false] means close after first call only
      */
     public function __construct(array $closeOnCall = [true])
     {
         $this->closeOnCall = $closeOnCall;
     }
 
-    #[Around(pointcut: \Ecotone\Modelling\CommandBus::class)]
+    #[Around(pointcut: \Ecotone\Api\Gateway\CommandBus::class)]
     public function closeAfter(
         MethodInvocation $methodInvocation,
         Message $message,

@@ -3,17 +3,24 @@
 use App\EventSourcing\Command\ChangePrice;
 use App\EventSourcing\Command\RegisterProduct;
 use App\EventSourcing\PriceChange;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Enqueue\Dbal\DbalConnectionFactory;
+use App\EventSourcing\PriceChangeOverTimeProjection;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
+$messagingSystem = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new PriceChangeOverTimeProjection(),
+        DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
+    pathToRootCatalog: __DIR__,
+);
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
-/** If you do not do it manually, then projection will be created automatically for you */
-$messagingSystem->runConsoleCommand("ecotone:es:initialize-projection", ["name" => "price_change_over_time"]);
-
-$productId = 1;
+$productId = random_int(1, PHP_INT_MAX);
 $messagingSystem->getCommandBus()->send(new RegisterProduct($productId, 100));
 
 Assert::assertEquals([new PriceChange(100, 0)], $messagingSystem->getQueryBus()->sendWithRouting("product.getPriceChange", $productId), "Price change should equal to 0 after registration");

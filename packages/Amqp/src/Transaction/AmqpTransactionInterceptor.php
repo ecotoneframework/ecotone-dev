@@ -5,12 +5,12 @@ namespace Ecotone\Amqp\Transaction;
 use AMQPChannel;
 use AMQPConnectionException;
 use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpConnectionFactory;
@@ -58,8 +58,8 @@ class AmqpTransactionInterceptor
         try {
             $this->isRunningTransaction = true;
             foreach ($connectionFactories as $connectionFactory) {
-                $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
-                    ->maxRetryAttempts(2)
+                $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 10, 1000)
+                    ->maxRetries(2)
                     ->build();
 
                 $this->retryRunner->runWithRetry(function () use ($connectionFactory) {

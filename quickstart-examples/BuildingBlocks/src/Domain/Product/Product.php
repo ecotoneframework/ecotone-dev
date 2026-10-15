@@ -10,12 +10,12 @@ use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Event\ProductPriceWasChanged;
 use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 
@@ -71,7 +71,7 @@ final class Product
         return $this->price;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductWasAdded(ProductWasAdded $event): void
     {
         $this->productId = $event->productId;

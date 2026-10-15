@@ -4,21 +4,20 @@ namespace Ecotone\JMSConverter\Configuration;
 
 use ArrayObject;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
-use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
-use Ecotone\Messaging\Attribute\Converter;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 
@@ -26,7 +25,7 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Apache-2.0
  */
-class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
+final class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
      * @param JMSHandlerAdapterBuilder[] $jmsHandlerAdapters
@@ -95,12 +94,6 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
         }
 
         $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration));
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ServiceConfiguration
-               || $extensionObject instanceof JMSConverterConfiguration;
     }
 
     public function getModulePackageName(): string

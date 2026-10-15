@@ -45,10 +45,10 @@ This creates `config/ecotone.php`.
 Ecotone automatically registers `EloquentRepository` -- Eloquent models extending `Model` are auto-detected as aggregates.
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 
 #[Aggregate]
@@ -77,7 +77,7 @@ class Order extends Model
         $this->save();
     }
 
-    #[AggregateIdentifierMethod('id')]
+    #[IdentifierMethod('id')]
     public function getId(): int
     {
         return $this->id;
@@ -87,7 +87,7 @@ class Order extends Model
 
 Key differences from regular aggregates:
 - Extends `Illuminate\Database\Eloquent\Model`
-- Use `#[AggregateIdentifierMethod('id')]` instead of `#[Identifier]` on properties
+- Use `#[IdentifierMethod('id')]` instead of `#[Identifier]` on properties
 - Call `$this->save()` in action handlers
 - Factory methods use `self::create([...])`
 - Use `WithEvents` trait for recording domain events
@@ -144,7 +144,7 @@ public function multiTenant(): MultiTenantConfiguration
 
 - `LaravelConnectionReference::defaultConnection()` takes the key from `config/database.php` `connections` array
 - `LaravelQueueMessageChannelBuilder::create()` channel name must match an Ecotone async routing, optionally takes a queue connection name as second parameter
-- Eloquent aggregates use `#[AggregateIdentifierMethod]` instead of `#[Identifier]` on properties
+- Eloquent aggregates use `#[IdentifierMethod]` instead of `#[Identifier]` on properties
 - Always use `#[ServiceContext]` methods in a class registered as a service for configuration
 
 ## Additional resources

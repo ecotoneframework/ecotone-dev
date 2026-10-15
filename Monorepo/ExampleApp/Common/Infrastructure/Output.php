@@ -2,7 +2,7 @@
 
 namespace Monorepo\ExampleApp\Common\Infrastructure;
 
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 class Output
 {

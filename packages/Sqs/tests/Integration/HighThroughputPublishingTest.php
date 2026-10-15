@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Sqs\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\HighThroughputPublishing\OrderWasPlaced;
@@ -39,11 +39,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $orderService = $this->createOrderService();
         $messaging = $this->bootstrapEcotoneWithChannel($orderService, LicenceTesting::VALID_LICENCE);
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 20000));
+        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 20000));
 
         $receivedEvents = $messaging->sendQueryWithRouting('order.getReceived');
         sort($receivedEvents);
@@ -67,7 +67,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -134,7 +134,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$commandHandler::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: $queueName)
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000),
@@ -143,7 +143,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+        $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
         while ($message = $messaging->getMessageChannel($queueName)->receive()) {
@@ -237,7 +237,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$orderService::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')
                         ->withHighThroughputPublishing(),
@@ -257,7 +257,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     $publisherConfiguration,
                     SqsBackedMessageChannelBuilder::create($queueName),

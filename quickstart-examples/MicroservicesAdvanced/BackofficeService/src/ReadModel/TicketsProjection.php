@@ -7,18 +7,19 @@ use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasPrepared;
 use App\Microservices\BackofficeService\Domain\Ticket\Ticket;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
-#[Projection("tickets_projection", Ticket::class)]
+#[Projection("tickets_projection")]
+#[FromAggregateStream(Ticket::class)]
 class TicketsProjection
 {
     const TABLE_NAME = "last_prepared_tickets";
@@ -70,7 +71,9 @@ SQL
     #[ProjectionInitialization]
     public function initializeProjection() : void
     {
-        if (SchemaManagerCompatibility::tableExists($this->getConnection(), 'last_prepared_tickets')) {
+        $schemaManager = $this->getConnection()->createSchemaManager();
+
+        if ($schemaManager->tableExists('last_prepared_tickets')) {
             return;
         }
 
@@ -82,7 +85,7 @@ SQL
         $table->addColumn('status', 'string', ['length' => 255]);
         $table->addColumn('prepared_at', 'string', ['length' => 255]);
 
-        SchemaManagerCompatibility::getSchemaManager($this->getConnection())->createTable($table);
+        $schemaManager->createTable($table);
     }
 
     #[ProjectionReset]

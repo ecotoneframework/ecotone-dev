@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalDestination;
+use Ecotone\Dbal\Connection\DbalProducer;
 use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalContext;
-use Enqueue\Dbal\DbalDestination;
-use Enqueue\Dbal\DbalProducer;
 use Interop\Queue\Context;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -42,17 +43,17 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         );
     }
 
+    public function handle(Message $message): void
+    {
+        try {
+            parent::handle($message);
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
+        }
+    }
+
     public function initialize(): void
     {
-        /** @var DbalContext $context */
-        $context = $this->connectionFactory->createContext();
-
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            return;
-        }
-
-        $this->tableManager->createTable($context->getDbalConnection());
-        $context->createQueue($this->queueName);
     }
 
     protected function sendSingleMessage(Message $message, Context $context): void
@@ -66,7 +67,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     protected function handleBatch(BatchMessage $batchMessage, Context $context): void
     {
         $messagesToSend = [];
-        foreach ($batchMessage->getEntries() as $entry) {
+        foreach ($batchMessage->entries as $entry) {
             $outboundMessage = $this->prepareOutboundMessageFromBatchEntry($entry);
             $headers = $outboundMessage->getHeaders();
             $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
@@ -81,5 +82,10 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         /** @var DbalProducer $producer */
         $producer = $context->createProducer();
         $producer->sendBatch($this->destination, $messagesToSend);
+    }
+
+    public function __toString(): string
+    {
+        return "dbal outbound: {$this->queueName}";
     }
 }

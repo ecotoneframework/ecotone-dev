@@ -1,10 +1,10 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 return [
     'namespaces' => ['Monorepo\\ExampleApp\\Common\\'],
-    'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
+    'enabledModulePackageNames' => \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? [],
     'cacheConfiguration' => \getenv('APP_ENV') === 'prod',
     'defaultErrorChannel' => 'errorChannel',
 ];

@@ -4,17 +4,18 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Console\ConsoleWriter;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\SymfonyConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Illuminate\Console\Events\CommandFinished;
@@ -31,6 +32,7 @@ class EcotoneProvider extends ServiceProvider
 {
     public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
     public const PRODUCTION_CACHE_KEY = 'ecotone.cache.name';
+    private const SHIPPED_CONFIGURATION_PATH = __DIR__ . '/../config/ecotone.php';
 
     /**
      * Register services.
@@ -40,8 +42,13 @@ class EcotoneProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/ecotone.php',
+            self::SHIPPED_CONFIGURATION_PATH,
             'ecotone'
+        );
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            givenKeys: array_keys(Config::get('ecotone', [])),
+            recognisedKeys: array_keys(require self::SHIPPED_CONFIGURATION_PATH),
+            configurationLocation: 'config/ecotone.php',
         );
 
         $environment            = App::environment();
@@ -52,15 +59,18 @@ class EcotoneProvider extends ServiceProvider
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
-        $skippedModules = Config::get('ecotone.skippedModulePackageNames') ?? [];
+        $enabledModulePackageNames = Config::get('ecotone.' . FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES);
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
-            ->withSkippedModulePackageNames($skippedModules)
             ->withCacheDirectoryPath($cacheDirectory);
+
+        if ($enabledModulePackageNames !== null) {
+            $applicationConfiguration = $applicationConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
+        }
 
         if (Config::get('ecotone.licenceKey') !== null) {
             $applicationConfiguration = $applicationConfiguration->withLicenceKey(Config::get('ecotone.licenceKey'));
@@ -86,11 +96,7 @@ class EcotoneProvider extends ServiceProvider
         if ($retryTemplate) {
             $applicationConfiguration = $applicationConfiguration
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoffWithMaxDelay(
-                        $retryTemplate['initialDelay'],
-                        $retryTemplate['maxAttempts'],
-                        $retryTemplate['multiplier']
-                    )
+                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
                 );
         }
 
@@ -130,6 +136,8 @@ class EcotoneProvider extends ServiceProvider
 
                     if ($parameter->isArray()) {
                         $commandName .= '=*';
+                    } elseif (! $parameter->isOption() && $parameter->hasDefaultValue() && $parameter->getDefaultValue() === null) {
+                        $commandName .= '?';
                     } elseif ($parameter->hasDefaultValue()) {
                         $commandName .= '=' . $parameter->getDefaultValue();
                     }
@@ -163,6 +171,11 @@ class EcotoneProvider extends ServiceProvider
                     }
                 );
                 $artisanCommand->purpose($oneTimeCommandConfiguration->getDescription());
+                foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {
+                    if ($parameter->isOption() && is_bool($parameter->getDefaultValue())) {
+                        $artisanCommand->getDefinition()->getOption($parameter->getName())->setDefault($parameter->getDefaultValue());
+                    }
+                }
             }
         }
     }

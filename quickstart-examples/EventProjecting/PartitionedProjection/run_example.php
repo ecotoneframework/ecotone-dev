@@ -6,9 +6,9 @@ use App\EventProjecting\PartitionedProjection\Domain\Command\CreateWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Command\DebitWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Command\CreditWallet;
 use App\EventProjecting\PartitionedProjection\ReadModel\WalletBalanceProjection;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 
@@ -58,14 +58,17 @@ $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'
 $connectionFactory = new DbalConnectionFactory($dsn);
 $connection = $connectionFactory->establishConnection();
 
-$messagingSystem = EcotoneLiteApplication::bootstrap(
-    objectsToRegister: [
+$messagingSystem = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new WalletBalanceProjection($connection),
         DbalConnectionFactory::class => $connectionFactory,
-        \Doctrine\DBAL\Connection::class => $connection
     ],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()->withLicenceKey($licenseKey),
+    configuration: ServiceConfiguration::createWithDefaults()
+        ->withNamespaces(['App'])
+        ->withLicenceKey($licenseKey),
     pathToRootCatalog: __DIR__
 );
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 echo "=== Partitioned Projection Example ===\n\n";
 

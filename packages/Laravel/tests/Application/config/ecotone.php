@@ -1,11 +1,19 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 return [
     'namespaces' => [
         'Test\Ecotone\Laravel\Fixture',
     ],
-    'skippedModulePackageNames' => ModulePackageList::allPackages(),
+    'enabledModulePackageNames' => [
+        ModulePackageList::LARAVEL_PACKAGE,
+        ModulePackageList::JMS_CONVERTER_PACKAGE,
+    ],
     'test' => true,
+    'defaultConnectionExceptionRetry' => [
+        'initialDelay' => 1,
+        'maxAttempts' => 4,
+        'multiplier' => 2,
+    ],
 ];

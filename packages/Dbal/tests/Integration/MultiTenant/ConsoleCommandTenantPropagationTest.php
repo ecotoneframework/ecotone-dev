@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\ConsoleCommand;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Handler\MethodInvocationException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -114,7 +114,7 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
     {
         $recorder = $this->newTenantMarkerRecorder();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [$recorder::class],
             [
                 $recorder,
@@ -122,7 +122,8 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         tenantHeaderName: 'tenant',

@@ -18,25 +18,25 @@ Ecotone's resiliency features handle message processing failures gracefully thro
 ## 1. RetryTemplateBuilder
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 // Fixed backoff: 1 second between retries, max 3 attempts
 $retry = RetryTemplateBuilder::fixedBackOff(1000)
-    ->maxRetryAttempts(3);
+    ->maxRetries(3);
 
 // Exponential backoff: 1s -> 10s -> 100s...
-$retry = RetryTemplateBuilder::exponentialBackoff(1000, 10)
-    ->maxRetryAttempts(5);
+$retry = RetryTemplateBuilder::exponentialBackOff(1000, 10)
+    ->maxRetries(5);
 
 // Exponential with max delay cap: 1s -> 2s -> 4s -> ... -> 60s -> 60s
-$retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 60000)
-    ->maxRetryAttempts(10);
+$retry = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(1000, 2, 60000)
+    ->maxRetries(10);
 ```
 
 ## 2. ErrorHandlerConfiguration
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 
 class ErrorConfig
 {
@@ -45,7 +45,7 @@ class ErrorConfig
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
-            RetryTemplateBuilder::fixedBackOff(1000)->maxRetryAttempts(3),
+            RetryTemplateBuilder::fixedBackOff(1000)->maxRetries(3),
             'dead_letter'
         );
     }
@@ -86,7 +86,7 @@ class OutboxConfig
 ## 5. #[InstantRetry] (Enterprise)
 
 ```php
-use Ecotone\Modelling\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 #[InstantRetry(retryTimes: 3)]
 class OrderService
@@ -101,9 +101,11 @@ class OrderService
 
 ## Key Rules
 
+- `ErrorHandlerConfiguration` only runs once its `errorChannelName` actually receives failures -- wire that with
+  `ServiceConfiguration::withDefaultErrorChannel()` or a per-endpoint `PollingMetadata::withErrorChannelName()`
 - Use `RetryTemplateBuilder` to define retry strategies (fixed, exponential, exponential with cap)
 - Use `ErrorHandlerConfiguration` for global error handling with optional dead letter
-- Use `PollingMetadata::setErrorChannelName()` for per-endpoint error routing
+- Use `PollingMetadata::withErrorChannelName()` for per-endpoint error routing
 - Use `DbalBackedMessageChannelBuilder` for outbox pattern (atomic event storage)
 - Use `FinalFailureStrategy` to control behavior when all recovery options are exhausted
 
@@ -119,5 +121,5 @@ class OrderService
 ## Additional resources
 
 - [API reference](references/api-reference.md) — Constructor signatures for `RetryTemplateBuilder` (all three factory methods with parameter types), `ErrorHandlerConfiguration` (with and without dead letter), `FinalFailureStrategy` enum values with transport-specific behavior, `#[InstantRetry]` and `#[ErrorChannel]` attributes, and `ErrorMessage` API. Load when you need exact parameter names, types, or method signatures.
-- [Usage examples](references/usage-examples.md) — Complete code examples for dead letter channel setup, outbox pattern with DBAL, per-endpoint error routing with `PollingMetadata`, custom error processing with `ServiceActivator`, retry-only configuration, and multi-service resiliency wiring. Load when implementing specific error handling patterns beyond the basics.
+- [Usage examples](references/usage-examples.md) — Complete code examples for dead letter channel setup, outbox pattern with DBAL, per-endpoint error routing with `PollingMetadata`, custom error processing with `InternalHandler`, retry-only configuration, and multi-service resiliency wiring. Load when implementing specific error handling patterns beyond the basics.
 - [Testing patterns](references/testing-patterns.md) — How to test retry behavior, error handler routing to dead letter channels, and failure assertions using `EcotoneLite::bootstrapFlowTesting` with in-memory channels. Load when writing tests for error handling or retry logic.

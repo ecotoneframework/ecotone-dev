@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Dbal\OutboxForwardingMessageChannel;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -26,6 +26,11 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
 {
     public function test_each_run_publishes_batch_from_next_tenant_outbox_in_round_robin(): void
     {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, null))
+                ->createTable($connectionFactory->createContext()->getDbalConnection());
+        }
+
         $orderService = new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
@@ -34,7 +39,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 $orderService,
@@ -42,7 +47,8 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -55,20 +61,20 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
+        $messaging->sendCommandWithRouting('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
 
         $this->assertSame(2, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
@@ -85,7 +91,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
     }
 
     /**
-     * @param \Ecotone\Messaging\Message[] $messages
+     * @param \Ecotone\Api\Messaging\Message[] $messages
      * @return string[]
      */
     private function payloadsOf(array $messages): array
@@ -93,7 +99,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
         return array_map(fn ($message) => $message->getPayload(), $messages);
     }
 
-    private function receiveAllFrom(\Ecotone\Messaging\PollableChannel $channel): array
+    private function receiveAllFrom(\Ecotone\Api\Messaging\PollableChannel $channel): array
     {
         $messages = [];
         while ($message = $channel->receive()) {

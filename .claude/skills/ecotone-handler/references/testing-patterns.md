@@ -5,7 +5,7 @@ All handler tests use `EcotoneLite::bootstrapFlowTesting()` to bootstrap the fra
 ## Testing a Command Handler
 
 ```php
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 
 public function test_command_handler(): void
 {
@@ -33,7 +33,7 @@ public function test_command_handler_with_routing_key(): void
         [new OrderService()],
     );
 
-    $ecotone->sendCommandWithRoutingKey('order.place', ['orderId' => '123']);
+    $ecotone->sendCommandWithRouting('order.place', ['orderId' => '123']);
 
     $this->assertEquals('123', $ecotone->sendQueryWithRouting('order.get', metadata: ['aggregate.id' => '123']));
 }
@@ -66,7 +66,7 @@ public function test_recorded_events(): void
 
     $events = $ecotone
         ->sendCommand(new PlaceOrder('order-1', 'product-1'))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertEquals([new OrderWasPlaced('order-1')], $events);
 }

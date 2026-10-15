@@ -6,14 +6,14 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\Container\Definition;
 
 use function is_array;
 
 /**
- * Table manager for the ProjectionV2 state table.
+ * Table manager for the Projection state table.
  *
  * licence Apache-2.0
  */
@@ -25,7 +25,7 @@ final class ProjectionStateTableManager implements DbalTableManager
     public function __construct(
         private string $tableName,
         private bool   $isUsed,
-        private bool   $shouldAutoInitialize,
+        private ?string $consoleInvocationPrefix = null,
     ) {
     }
 
@@ -81,17 +81,17 @@ final class ProjectionStateTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
+        return $connection->createSchemaManager()->tableExists($this->tableName);
     }
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]);
+        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix]);
     }
 
-    public function shouldBeInitializedAutomatically(): bool
+    public function getMissingTableInstructions(): string
     {
-        return $this->shouldAutoInitialize;
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     private function getPostgresCreateSql(): string

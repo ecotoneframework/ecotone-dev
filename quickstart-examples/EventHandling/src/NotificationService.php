@@ -2,7 +2,7 @@
 
 namespace App\EventHandling;
 
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 class NotificationService
 {

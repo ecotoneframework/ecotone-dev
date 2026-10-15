@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\Transaction\Nested;
 
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\CommandBus;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 
 final class NestedDbalHandlers
 {
     #[CommandHandler('nested.prepare')]
+    #[WithoutDatabaseTransaction]
     public function prepare(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();

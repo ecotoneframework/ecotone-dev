@@ -1,17 +1,27 @@
 <?php
 
+use App\BusinessInterface\InMemoryCache;
 use App\WorkingWithAggregateDirectly\Command\ChangePrice;
 use App\WorkingWithAggregateDirectly\Command\RegisterProduct;
 use App\WorkingWithAggregateDirectly\Product;
 use App\WorkingWithAggregateDirectly\ProductRepository;
 use App\WorkingWithAggregateDirectly\ProductService;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
+$messagingSystem = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new InMemoryCache(),
+        DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
+    pathToRootCatalog: __DIR__,
+);
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 $cacheService = $messagingSystem->getGatewayByName(\App\BusinessInterface\CacheService::class);
 

@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
 /**
@@ -22,7 +25,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
  *
  * licence Apache-2.0
  */
-class DbalConnectionModule implements AnnotationModule
+final class DbalConnectionModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
     private function __construct()
     {
@@ -41,7 +44,7 @@ class DbalConnectionModule implements AnnotationModule
             DbalConfiguration::createWithDefaults()
         );
 
-        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+        $connectionFactories = $dbalConfiguration->defaultConnectionReferenceNames ?: [DbalConnectionReference::DEFAULT];
 
         foreach ($connectionFactories as $connectionFactory) {
             $messagingConfiguration->requireReference(
@@ -57,14 +60,14 @@ class DbalConnectionModule implements AnnotationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DbalConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];
+    }
+
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
+    {
+        return (new FlowTestingDbalConnections($providedReferences, $extensionObjects))->resolveExtensionObjects();
     }
 
     public function getModulePackageName(): string

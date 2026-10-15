@@ -2,11 +2,11 @@
 
 namespace App\Schedule\Messaging\PeriodSchedules;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\EventBus;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
 
 #[Asynchronous("invoicing")]
 class InvoiceGenerator

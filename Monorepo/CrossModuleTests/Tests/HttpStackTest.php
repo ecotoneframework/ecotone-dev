@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
+use Illuminate\Http\Request as LaravelRequest;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
@@ -17,11 +19,17 @@ use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
-use Illuminate\Http\Request as LaravelRequest;
 
 final class HttpStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
+
+    public static function enabledModulePackageNames(): array
+    {
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
+    }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
@@ -68,24 +76,6 @@ final class HttpStackTest extends FullAppTestCase
         Assert::assertSame(200, $response->getStatusCode(), $response->getContent());
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $orderController = $container->get(OrderController::class);
-        $configuration = $container->get(Configuration::class);
-
-        $orderController->placeOrder(new SymfonyRequest(content: json_encode([
-            'orderId' => Uuid::uuid4()->toString(),
-            'address' => [
-                'street' => 'Washington',
-                'houseNumber' => '15',
-                'postCode' => '81-221',
-                'country' => 'Netherlands'
-            ],
-            'productId' => $configuration->productId(),
-        ])));
-
-        $this->assertTrue(true);
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

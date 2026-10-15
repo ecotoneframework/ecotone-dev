@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Fixture\Deduplication;
 
-use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Messaging\Attribute\Deduplicated;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Amqp\RabbitConsumer;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Enterprise

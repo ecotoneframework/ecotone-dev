@@ -9,7 +9,7 @@ use Interop\Queue\ConnectionFactory;
 /**
  * licence Apache-2.0
  */
-interface MultiTenantConnectionFactory extends ConnectionFactory
+interface MultiTenantConnectionFactory extends \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * To be used for Dbal based Manager Registry connections only
@@ -27,4 +27,9 @@ interface MultiTenantConnectionFactory extends ConnectionFactory
     public function currentActiveTenant(): string;
 
     public function hasActiveTenant(): bool;
+
+    /**
+     * @return array<string, Connection>
+     */
+    public function databaseConnectionsOfEveryTenant(): array;
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
+use Ecotone\Api\Amqp\AmqpQueue;
 use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpDestination;
@@ -41,8 +44,8 @@ class HeadersExchangeDelayStrategy implements DelayStrategy
         $exchange = AmqpExchange::createHeadersExchange('ecotone_delay');
 
         $queue = AmqpQueue::createWith('ecotone_' . $delay . '_delay');
-        $queue->withArgument('x-message-ttl', $delay);
-        $queue->withArgument('x-dead-letter-exchange', $afterDelayDestination);
+        $queue->setArgument('x-message-ttl', $delay);
+        $queue->setArgument('x-dead-letter-exchange', $afterDelayDestination);
 
         $binding = AmqpBinding::createHeadersBinding($exchange, $queue, ['ecotone_delay' => $delay]);
 
@@ -50,7 +53,7 @@ class HeadersExchangeDelayStrategy implements DelayStrategy
         $context->declareTopic($enqueueExchange);
 
         $context->declareQueue($queue->toEnqueueQueue());
-        $context->bind($binding->toEnqueueBinding());
+        $context->bind($binding->enqueueBinding);
 
         $context->createProducer()->send($enqueueExchange, $delayMessage);
     }

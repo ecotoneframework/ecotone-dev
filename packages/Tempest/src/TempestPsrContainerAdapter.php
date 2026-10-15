@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Tempest;
 
 use ArrayIterator;
+
+use function assert;
+
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -75,7 +78,7 @@ final class TempestPsrContainerAdapter implements ContainerInterface
         foreach ($this->dynamicInitializerClasses() as $initializerClass) {
             try {
                 $initializer = $this->container->get($initializerClass);
-                \assert($initializer instanceof DynamicInitializer);
+                assert($initializer instanceof DynamicInitializer);
 
                 if ($initializer->canInitialize(new ClassReflector($id), null)) {
                     return true;

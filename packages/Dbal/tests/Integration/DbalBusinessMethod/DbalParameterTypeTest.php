@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\DbalBusinessMethod;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\Pagination;
@@ -141,7 +140,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge(
                 [
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
@@ -151,7 +150,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',

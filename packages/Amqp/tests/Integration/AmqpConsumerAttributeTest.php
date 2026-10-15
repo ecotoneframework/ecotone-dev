@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Messaging\Attribute\MediaTypeConverter;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\RabbitConsumer;
+use Ecotone\Api\Attribute\MediaTypeConverter;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -32,6 +32,22 @@ use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithInstantRetryExample;
  */
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 #[CoversClass(RabbitConsumer::class)]
@@ -48,7 +64,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
         );
     }
 
@@ -63,7 +79,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE])),
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
         $ecotoneLitePublisher = $this->bootstrapFlowTesting(
@@ -72,8 +88,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -106,8 +123,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -140,8 +158,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -155,11 +174,11 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
     }
 
@@ -175,8 +194,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -190,11 +210,11 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
     }
 
@@ -210,8 +230,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -226,11 +247,11 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
@@ -248,8 +269,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -285,8 +307,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)

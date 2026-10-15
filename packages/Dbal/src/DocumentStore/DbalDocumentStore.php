@@ -4,20 +4,31 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Exception\InvalidFieldNameException;
+use Doctrine\DBAL\Exception\TableNotFoundException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Messaging\ConcurrencyException;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Enqueue\Dbal\DbalContext;
 
-use function spl_object_id;
+use function is_string;
+use function json_decode;
+
+use JsonException;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -30,48 +41,27 @@ final class DbalDocumentStore implements DocumentStore
         private CachedConnectionFactory $cachedConnectionFactory,
         private ConversionService $conversionService,
         private DocumentStoreTableManager $tableManager,
-        private array $initialized = [],
     ) {
     }
 
     public function dropCollection(string $collectionName): void
     {
-        if (! $this->doesTableExists()) {
-            return;
-        }
-
-        $this->getConnection()->delete(
+        $this->onTable(fn () => $this->getConnection()->delete(
             $this->getTableName(),
             [
                 'collection' => $collectionName,
             ]
-        );
+        ));
     }
 
     public function addDocument(string $collectionName, string $documentId, object|array|string $document): void
     {
-        $this->createDataBaseTable();
-
         try {
-            $type = Type::createFromVariable($document);
-
-            $rowsAffected = $this->getConnection()->insert(
-                $this->getTableName(),
-                [
-                    'collection' => $collectionName,
-                    'document_id' => $documentId,
-                    'document_type' => $type->toString(),
-                    'document' => $this->convertToJSONDocument($type, $document),
-                    'updated_at' => hrtime(true),
-                ],
-                [
-                    'collection' => Types::STRING,
-                    'document_id' => Types::STRING,
-                    'document_type' => Types::STRING,
-                    'document' => Types::TEXT,
-                    'updated_at' => Types::FLOAT,
-                ]
-            );
+            $rowsAffected = $this->insertDocument($collectionName, $documentId, $document);
+        } catch (InvalidFieldNameException $missingVersionColumn) {
+            throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be added to collection %s. The cause: %s', $documentId, $collectionName, $driverException->getMessage()), $driverException);
         }
@@ -81,51 +71,81 @@ final class DbalDocumentStore implements DocumentStore
         }
     }
 
-    public function updateDocument(string $collectionName, string $documentId, object|array|string $document): void
+    public function updateDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
     {
-        $this->createDataBaseTable();
+        if ($this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
+            return;
+        }
 
-        $rowsAffected = $this->updateDocumentInternally($document, $documentId, $collectionName);
-
-        if (1 !== $rowsAffected) {
+        $currentVersion = $this->getDocumentVersion($collectionName, $documentId);
+        if ($currentVersion === 0) {
             throw DocumentNotFound::create(sprintf('There is no document with id %s in collection %s to update.', $documentId, $collectionName));
+        }
+
+        throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, $currentVersion);
+    }
+
+    public function upsertDocument(string $collectionName, string $documentId, object|array|string $document, int $expectedVersion): void
+    {
+        if ($expectedVersion !== 0 && $this->updateDocumentInternally($document, $documentId, $collectionName, $expectedVersion) === 1) {
+            return;
+        }
+
+        $currentVersion = $this->getDocumentVersion($collectionName, $documentId);
+        if ($expectedVersion !== self::LAST_WRITE_WINS && $expectedVersion !== $currentVersion) {
+            throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, $currentVersion);
+        }
+
+        try {
+            $this->insertDocument($collectionName, $documentId, $document);
+        } catch (UniqueConstraintViolationException) {
+            throw ConcurrencyException::forStaleDocument($collectionName, $documentId, $expectedVersion, 1);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
+        } catch (DriverException $driverException) {
+            throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be added to collection %s. The cause: %s', $documentId, $collectionName, $driverException->getMessage()), $driverException);
         }
     }
 
-    public function upsertDocument(string $collectionName, string $documentId, object|array|string $document): void
+    public function getDocumentVersion(string $collectionName, string $documentId): int
     {
-        $this->createDataBaseTable();
+        try {
+            return (int) $this->getConnection()->createQueryBuilder()
+                ->select('version')
+                ->from($this->getTableName())
+                ->andWhere('collection = :collection')
+                ->andWhere('document_id = :documentId')
+                ->setParameter('collection', $collectionName, Types::TEXT)
+                ->setParameter('documentId', $documentId, Types::TEXT)
+                ->fetchOne();
+        } catch (InvalidFieldNameException $missingVersionColumn) {
+            throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
+        } catch (DriverException $driverException) {
+            if (! $this->getConnection()->createSchemaManager()->introspectTable($this->getTableName())->hasColumn('version')) {
+                throw $this->missingVersionColumnException($driverException);
+            }
 
-        $rowsAffected = $this->updateDocumentInternally($document, $documentId, $collectionName);
-
-        if ($rowsAffected === 0) {
-            $this->addDocument($collectionName, $documentId, $document);
+            throw $driverException;
         }
     }
 
     public function deleteDocument(string $collectionName, string $documentId): void
     {
-        if (! $this->doesTableExists()) {
-            return;
-        }
-
-        $this->getConnection()->delete(
+        $this->onTable(fn () => $this->getConnection()->delete(
             $this->getTableName(),
             [
                 'collection' => $collectionName,
                 'document_id' => $documentId,
             ]
-        );
+        ));
     }
 
     public function getAllDocuments(string $collectionName): array
     {
-        if (! $this->doesTableExists()) {
-            return [];
-        }
-
-        $select = $this->getDocumentsFor($collectionName)
-            ->fetchAllAssociative();
+        $select = $this->onTable(fn () => $this->getDocumentsFor($collectionName)
+            ->fetchAllAssociative());
 
         $documents = [];
         foreach ($select as $documentRecord) {
@@ -148,15 +168,11 @@ final class DbalDocumentStore implements DocumentStore
 
     public function findDocument(string $collectionName, string $documentId): array|object|string|null
     {
-        if (! $this->doesTableExists()) {
-            return null;
-        }
-
-        $select = $this->getDocumentsFor($collectionName)
+        $select = $this->onTable(fn () => $this->getDocumentsFor($collectionName)
             ->andWhere('document_id = :documentId')
             ->setParameter('documentId', $documentId, Types::TEXT)
             ->setMaxResults(1)
-            ->fetchAllAssociative();
+            ->fetchAllAssociative());
 
         if (! $select) {
             return null;
@@ -168,17 +184,13 @@ final class DbalDocumentStore implements DocumentStore
 
     public function countDocuments(string $collectionName): int
     {
-        if (! $this->doesTableExists()) {
-            return 0;
-        }
-
-        $select = (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        $select = $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
             ->select('COUNT(document_id)')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
             ->setParameter('collection', $collectionName, Types::TEXT)
             ->setMaxResults(1)
-            ->fetchFirstColumn();
+            ->fetchFirstColumn());
 
         if ($select) {
             return $select[0];
@@ -192,13 +204,13 @@ final class DbalDocumentStore implements DocumentStore
         return $this->tableManager->getTableName();
     }
 
-    private function createDataBaseTable(): void
+    private function onTable(callable $statement): mixed
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            return;
+        try {
+            return $statement();
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
-
-        $this->tableManager->createTable($this->getConnection());
     }
 
     private function getConnection(): Connection
@@ -209,25 +221,17 @@ final class DbalDocumentStore implements DocumentStore
         return $context->getDbalConnection();
     }
 
-    private function doesTableExists(): bool
+    private function refuseStringThatIsNotJson(string $collectionName, string $documentId, object|array|string $document): void
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            return true;
-        }
-        $connection = $this->getConnection();
-
-        if (isset($this->initialized[spl_object_id($connection)])) {
-            return true;
+        if (! is_string($document)) {
+            return;
         }
 
-        $schemaManager = $connection->createSchemaManager();
-        $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
-
-        if ($tableExists) {
-            $this->initialized[spl_object_id($connection)] = true;
+        try {
+            json_decode($document, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $notJson) {
+            throw DocumentException::forStringThatIsNotJson($collectionName, $documentId, $notJson);
         }
-
-        return $tableExists;
     }
 
     private function convertToJSONDocument(Type $type, object|array|string $document): mixed
@@ -244,41 +248,85 @@ final class DbalDocumentStore implements DocumentStore
         return $document;
     }
 
-    private function updateDocumentInternally(object|array|string $document, string $documentId, string $collectionName): int
+    private function insertDocument(string $collectionName, string $documentId, object|array|string $document): int
     {
-        try {
-            $type = Type::createFromVariable($document);
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
+        $type = Type::createFromVariable($document);
 
-            $rowsAffected = $this->getConnection()->update(
-                $this->getTableName(),
-                [
-                    'document_type' => $type->toString(),
-                    'document' => $this->convertToJSONDocument($type, $document),
-                    'updated_at' => hrtime(true),
-                ],
-                [
-                    'document_id' => $documentId,
-                    'collection' => $collectionName,
-                ],
-                [
-                    'collection' => Types::STRING,
-                    'document_id' => Types::STRING,
-                    'document_type' => Types::STRING,
-                    'document' => Types::STRING,
-                    'updated_at' => Types::FLOAT,
-                ]
-            );
+        return $this->getConnection()->insert(
+            $this->getTableName(),
+            [
+                'collection' => $collectionName,
+                'document_id' => $documentId,
+                'document_type' => $type->toString(),
+                'document' => $this->convertToJSONDocument($type, $document),
+                'updated_at' => hrtime(true),
+                'version' => 1,
+            ],
+            [
+                'collection' => Types::STRING,
+                'document_id' => Types::STRING,
+                'document_type' => Types::STRING,
+                'document' => Types::TEXT,
+                'updated_at' => Types::FLOAT,
+                'version' => Types::INTEGER,
+            ]
+        );
+    }
+
+    private function updateDocumentInternally(object|array|string $document, string $documentId, string $collectionName, int $expectedVersion): int
+    {
+        $this->refuseStringThatIsNotJson($collectionName, $documentId, $document);
+        $type = Type::createFromVariable($document);
+        $update = $this->getConnection()->createQueryBuilder()
+            ->update($this->getTableName())
+            ->set('document_type', ':documentType')
+            ->set('document', ':document')
+            ->set('updated_at', ':updatedAt')
+            ->set('version', 'version + 1')
+            ->where('collection = :collection')
+            ->andWhere('document_id = :documentId')
+            ->setParameter('documentType', $type->toString(), Types::STRING)
+            ->setParameter('document', $this->convertToJSONDocument($type, $document), Types::STRING)
+            ->setParameter('updatedAt', hrtime(true), Types::FLOAT)
+            ->setParameter('collection', $collectionName, Types::STRING)
+            ->setParameter('documentId', $documentId, Types::STRING);
+
+        if ($expectedVersion !== self::LAST_WRITE_WINS) {
+            $update
+                ->andWhere('version = :expectedVersion')
+                ->setParameter('expectedVersion', $expectedVersion, Types::INTEGER);
+        }
+
+        try {
+            return (int) $update->executeStatement();
+        } catch (InvalidFieldNameException $missingVersionColumn) {
+            throw $this->missingVersionColumnException($missingVersionColumn);
+        } catch (TableNotFoundException $missingTable) {
+            throw MissingTableFailure::explained($missingTable, $this->tableManager);
         } catch (DriverException $driverException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be updated in collection %s', $documentId, $collectionName), $driverException);
         }
-
-        return $rowsAffected;
     }
 
-    private function getDocumentsFor(string $collectionName): mixed
+    private function missingVersionColumnException(DriverException $missingVersionColumn): ConfigurationException
     {
-        return (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
-            ->select('document', 'document_type')
+        $tableName = $this->getTableName();
+
+        return ConfigurationException::create(
+            "The document store table '{$tableName}' has no 'version' column: it was created by Ecotone 1.x, "
+            . 'and since 2.0 every write checks the version of the document it replaces (DocumentStore::updateDocument() and DocumentStore::upsertDocument() take the version the caller read). '
+            . "Add the column: ALTER TABLE {$tableName} ADD COLUMN version INTEGER NOT NULL DEFAULT 1; "
+            . 'It is safe to run on a populated table: every stored document starts at version 1, which is the version DocumentStore::getDocumentVersion() then reports. '
+            . 'Only if the stored documents can be discarded, drop the table instead and let ecotone:migration:database:setup create it again. '
+            . "(Driver message: {$missingVersionColumn->getMessage()})"
+        );
+    }
+
+    private function getDocumentsFor(string $collectionName): QueryBuilder
+    {
+        return $this->getConnection()->createQueryBuilder()
+            ->select('document_id', 'collection', 'document', 'document_type')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
             ->setParameter('collection', $collectionName, Types::TEXT);
@@ -296,13 +344,43 @@ final class DbalDocumentStore implements DocumentStore
                 $select['document'],
                 Type::string(),
                 MediaType::createApplicationJson(),
-                $documentType,
+                $this->typeToReadBackAs($documentType),
                 MediaType::createApplicationXPHP()
             );
         } catch (ConversionException $conversionException) {
-            throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be converted from JSON to PHP object', $select['document_id']), $conversionException);
+            throw DocumentException::createFromPreviousException(sprintf(
+                "Document with id '%s' in collection '%s' can not be converted from JSON to PHP object of type %s: %s Make the type readable by your converter again, or rewrite or delete the document with DocumentStore::upsertDocument() or DocumentStore::deleteDocument().",
+                $select['document_id'],
+                $select['collection'],
+                $select['document_type'],
+                $conversionException->getMessage(),
+            ), $conversionException);
         }
 
         return $data;
+    }
+
+    private function typeToReadBackAs(Type $recordedType): Type
+    {
+        if ($recordedType->isIterable() && $this->namesNoClass($recordedType)) {
+            return Type::array();
+        }
+
+        return $recordedType;
+    }
+
+    private function namesNoClass(Type $type): bool
+    {
+        if (! $type instanceof GenericType) {
+            return ! $type->isClassOrInterface();
+        }
+
+        foreach ([$type->type, ...$type->genericTypes] as $genericType) {
+            if (! $this->namesNoClass($genericType)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

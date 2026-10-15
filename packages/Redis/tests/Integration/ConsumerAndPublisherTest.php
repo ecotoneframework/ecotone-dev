@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
-use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
-use Enqueue\Redis\RedisConnectionFactory;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;
@@ -28,14 +28,14 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
     {
         $endpointId = 'redis_consumer';
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RedisConsumerExample::class],
             [
                 new RedisConsumerExample(),
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessageConsumerConfiguration::create($endpointId, $queueName),
                     RedisMessagePublisherConfiguration::create(queueName: $queueName),

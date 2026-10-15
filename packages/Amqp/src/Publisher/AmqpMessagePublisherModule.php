@@ -4,29 +4,30 @@ namespace Ecotone\Amqp\Publisher;
 
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-class AmqpMessagePublisherModule implements AnnotationModule
+final class AmqpMessagePublisherModule implements AnnotationModule
 {
     /**
      * @inheritDoc
@@ -46,7 +47,7 @@ class AmqpMessagePublisherModule implements AnnotationModule
 
         /** @var AmqpMessagePublisherConfiguration $amqpPublisher */
         foreach (ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $extensionObjects) as $amqpPublisher) {
-            $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->getDefaultSerializationMediaType();
+            $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->defaultSerializationMediaType;
 
             $messagingConfiguration = $messagingConfiguration
                 ->registerGatewayBuilder(
@@ -100,13 +101,6 @@ class AmqpMessagePublisherModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof AmqpMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];

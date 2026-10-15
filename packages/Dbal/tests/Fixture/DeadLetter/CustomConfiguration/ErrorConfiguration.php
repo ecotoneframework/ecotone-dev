@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\CustomConfiguration;
 
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 /**
  * licence Apache-2.0
@@ -20,8 +20,8 @@ final class ErrorConfiguration
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(1),
+            RetryTemplateBuilder::exponentialBackOff(1, 1)
+                ->maxRetries(1),
             DbalDeadLetterBuilder::STORE_CHANNEL
         );
     }
@@ -30,8 +30,8 @@ final class ErrorConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create('orderService')
-            ->setExecutionTimeLimitInMilliseconds(1000)
-            ->setHandledMessageLimit(1)
-            ->setErrorChannelName(self::ERROR_CHANNEL);
+            ->withExecutionTimeLimitInMilliseconds(1000)
+            ->withHandledMessageLimit(1)
+            ->withErrorChannelName(self::ERROR_CHANNEL);
     }
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalConnectionFactory;
-use PHPUnit\Framework\TestCase;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
@@ -20,20 +20,20 @@ use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasP
  * licence Apache-2.0
  * @internal
  */
-final class HeaderPropagationTest extends TestCase
+final class HeaderPropagationTest extends EventSourcingMessagingTestCase
 {
     public function test_will_provide_propagate_correlation_and_parent_id_header_for_aggregate()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class, OrderWasPlacedConverter::class],
-            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
+            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
         $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 Uuid::v7()->toRfc4122(),
                 metadata: [
@@ -43,13 +43,13 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(Order::class)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->metadata;
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
 
         /** From Event Bus */
-        $headers = $flowTestSupport->getRecordedEventHeaders()[0];
+        $headers = $flowTestSupport->popRecordedEventHeaders()[0];
         $this->assertNotSame($messageId, $headers->getMessageId());
         $this->assertSame($messageId, $headers->getParentId());
         $this->assertSame($correlationId, $headers->getCorrelationId());
@@ -57,16 +57,16 @@ final class HeaderPropagationTest extends TestCase
 
     public function test_will_propagate_userland_correlation_and_parent_id_header_when_defined()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class, OrderWasPlacedConverter::class],
-            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
+            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
         $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrderAndPropagateMetadata',
                 Uuid::v7()->toRfc4122(),
                 metadata: [
@@ -76,13 +76,13 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(Order::class)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->metadata;
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
 
         /** From Event Bus */
-        $headers = $flowTestSupport->getRecordedEventHeaders()[0]->headers();
+        $headers = $flowTestSupport->popRecordedEventHeaders()[0]->headers();
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);

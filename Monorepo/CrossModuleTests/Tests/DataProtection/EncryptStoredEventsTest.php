@@ -1,0 +1,106 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Monorepo\CrossModuleTests\Tests\DataProtection;
+
+use Doctrine\DBAL\Connection;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\DataProtection\Encryption\Crypto;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\TestCase;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\AggregateEvent;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\SomeAggregate;
+use Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents\SomeCommand;
+use Test\Ecotone\DataProtection\Fixture\TestClass;
+use Test\Ecotone\DataProtection\Fixture\TestEnum;
+
+/**
+ * @internal
+ */
+class EncryptStoredEventsTest extends TestCase
+{
+    private DbalConnectionFactory $connectionFactory;
+    private Connection $connection;
+    private string $streamName;
+
+    protected function setUp(): void
+    {
+        $this->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone');
+        $this->connection = $this->connectionFactory->establishConnection();
+
+        self::clearDataTables($this->connection);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->connection->close();
+    }
+
+    public function test_sensitive_events_will_be_stored_encrypted(): void
+    {
+        $encryptionKey = Key::createNewRandomKey();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->connectionFactory,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withNamespaces(['Monorepo\CrossModuleTests\Fixture\DataProtection\PersistingSensitiveEvents'])
+                ->withExtensionObjects(
+                    array_merge(
+                        [
+                            EventSourcingConfiguration::createWithDefaults(),
+                            DataProtectionConfiguration::create('primary', $encryptionKey),
+                            JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
+                        ],
+                    )
+                ),
+            addInMemoryEventSourcedRepository: false,
+        );
+        $ecotone
+            ->withEventsFor(
+                '123',
+                SomeAggregate::class,
+                [
+                    new AggregateEvent('123', 'sensitive', TestEnum::FIRST, new TestClass('sensitive', TestEnum::FIRST)),
+                ]
+            )
+        ;
+
+        $this->streamName = StreamTableRegistry::DEFAULT_STREAM;
+        $ecotone
+            ->sendCommand(new SomeCommand('123', 'another sensitive', TestEnum::FIRST, new TestClass('another sensitive', TestEnum::FIRST)))
+        ;
+
+        $storedPayloads = $this->connection->fetchFirstColumn(sprintf('select payload from %s order by no', $this->streamName));
+        foreach ($storedPayloads as $payload) {
+            $payload = json_decode($payload, true);
+
+            // decryption should not throw any exception
+            $payload['sensitiveValue'] = Crypto::decrypt($payload['sensitiveValue'], $encryptionKey);
+            $payload['sensitiveEnum'] = Crypto::decrypt($payload['sensitiveEnum'], $encryptionKey);
+            $payload['sensitiveObject'] = Crypto::decrypt($payload['sensitiveObject'], $encryptionKey);
+        }
+
+        self::assertTrue(true);
+    }
+
+    private static function clearDataTables(Connection $connection): void
+    {
+        foreach ($connection->createSchemaManager()->listTableNames() as $tableName) {
+            $sql = 'DROP TABLE ' . $tableName;
+
+            $connection->executeQuery($sql);
+        }
+    }
+}

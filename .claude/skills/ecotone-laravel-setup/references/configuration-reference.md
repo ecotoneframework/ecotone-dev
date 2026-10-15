@@ -25,8 +25,9 @@ return [
     // Connection retry on failure
     'defaultConnectionExceptionRetry' => null,
 
-    // Skip specific module packages
-    'skippedModulePackageNames' => [],
+    // Module packages to load (e.g. ModulePackageList::DBAL_PACKAGE); null loads every
+    // installed package, an empty list loads Core (which includes Asynchronous) alone
+    'enabledModulePackageNames' => null,
 
     // Enable test mode
     'test' => false,
@@ -47,9 +48,13 @@ return [
 | `defaultSerializationMediaType` | `null` | Media type for async serialization |
 | `defaultErrorChannel` | `null` | Error channel name |
 | `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
+| `enabledModulePackageNames` | `null` (every installed package) | Explicit list of module packages to load, besides Core |
 | `test` | `false` | Enable test mode |
 | `licenceKey` | `null` | Enterprise licence key |
+
+Any other key is refused at bootstrap with a `ConfigurationException` naming the keys Ecotone reads. The 1.x
+`skippedModulePackageNames` key and the earlier 2.0 `modulePackages` key are refused with their replacement:
+`skippedModulePackageNames` listed packages to skip, `enabledModulePackageNames` lists packages to load.
 
 ## LaravelConnectionReference API
 

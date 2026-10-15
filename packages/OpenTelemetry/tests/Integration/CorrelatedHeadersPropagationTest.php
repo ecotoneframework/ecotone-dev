@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\MessageHeaders;
 use InvalidArgumentException;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -45,7 +45,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommand(new RegisterUser('1'), metadata: [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -74,7 +74,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
             [User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
         )
             ->publishEvent(new MerchantCreated('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -106,7 +106,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
             [Merchant::class, User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommand(new CreateMerchant('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -141,7 +141,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -197,7 +197,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
                 [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
                 [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
                 ServiceConfiguration::createWithDefaults()
-                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                    ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
             )
                 ->sendCommand(new RegisterUser('1'), metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,

@@ -3,8 +3,8 @@
 ## Async-Tested-Synchronously Pattern
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 public function test_async_event_processing(): void
 {
@@ -22,9 +22,6 @@ public function test_async_event_processing(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
@@ -32,8 +29,8 @@ public function test_async_event_processing(): void
     // Not yet processed
     $this->assertEquals(0, $handler->processedCount);
 
-    // Run the consumer
-    $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+    // Run the consumer (the in-memory 'notifications' channel is provided by flow testing)
+    $ecotone->run('notifications');
 
     // Now processed
     $this->assertEquals(1, $handler->processedCount);
@@ -45,7 +42,7 @@ public function test_async_event_processing(): void
 ```php
 public function test_projection_builds_read_model(): void
 {
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [TicketListProjection::class, Ticket::class],
         containerOrAvailableServices: [new TicketListProjection()],
     );
@@ -72,20 +69,18 @@ $ecotone->deleteProjection('name');      // Cleanup
 ## ServiceConfiguration with ModulePackageList
 
 ```php
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 public function test_with_dbal_module(): void
 {
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [MyProjection::class],
         configuration: ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                ])
-            ),
+            ->withEnabledModulePackageNames([
+                ModulePackageList::DBAL_PACKAGE,
+                ModulePackageList::EVENT_SOURCING_PACKAGE,
+            ]),
     );
 }
 ```
@@ -96,16 +91,19 @@ public function test_with_dbal_module(): void
 |---------|-------|-----|
 | "No handler found for message" | Handler class not in `classesToResolve` | Add class to first argument |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
-| "Channel not found" | Async channel not configured | Add channel to `enableAsynchronousProcessing` |
+| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler class not in `classesToResolve` | Add the named class or load its namespace |
+| "Cannot move time backwards" | `changeTimeTo()` earlier than the test clock | Use a later time or `advanceTimeBy()` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
-| "Module not found" | Wrong `ModulePackageList` config | Check `allPackagesExcept()` includes needed modules |
+| "Module not found" | Wrong `ModulePackageList` config | Check `withEnabledModulePackageNames([...])` lists the needed packages |
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
 | Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
 
 ## Common Mistakes
 
 - **Don't** use raw PHPUnit mocking instead of EcotoneLite -- use the framework's test support
-- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes
+- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes, aggregates
+  included. `docs/coding-conventions.md` rule 11 is the single statement of this rule, including the two cases where
+  PHP forces a named class below the `TestCase`
 - **Don't** test implementation details -- test behavior from the end-user perspective
 - **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
-- **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` -- pick the right one
+- **Don't** reach for in-memory switches to keep a test off the database -- leave the connection out instead

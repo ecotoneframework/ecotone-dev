@@ -5,26 +5,25 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -143,8 +142,8 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
     {
         $extensionObjects = [
             PollingMetadata::create('externalPersonPoller')
-                ->setExecutionAmountLimit(1)
-                ->setHandledMessageLimit(1),
+                ->withExecutionAmountLimit(1)
+                ->withHandledMessageLimit(1),
             MultiTenantConfiguration::create(
                 tenantHeaderName: 'tenant',
                 tenantToConnectionMapping: [
@@ -160,11 +159,11 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
         ];
         if ($asynchronous) {
             $extensionObjects[] = PollingMetadata::create('persons_processing')
-                ->setExecutionAmountLimit(1)
-                ->setHandledMessageLimit(1);
+                ->withExecutionAmountLimit(1)
+                ->withHandledMessageLimit(1);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             array_map(static fn (object $service): string => $service::class, $services),
             array_merge(
                 $services,
@@ -173,13 +172,15 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                     'tenant_b_connection' => $this->connectionForTenantB(),
                 ],
             ),
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects($extensionObjects),
-            enableAsynchronousProcessing: $asynchronous
-                ? [SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]
-                : true,
-            licenceKey: LicenceTesting::VALID_LICENCE,
+            (ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects(
+                    $asynchronous
+                        ? [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]
+                        : $extensionObjects
+                )),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
     }
 

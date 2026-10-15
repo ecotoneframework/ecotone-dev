@@ -2,7 +2,7 @@
 
 ## Aggregate Attribute
 
-Source: `Ecotone\Modelling\Attribute\Aggregate`
+Source: `Ecotone\Api\Attribute\Aggregate`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -13,59 +13,62 @@ Class-level attribute. Marks a class as a state-stored aggregate.
 
 ## EventSourcingAggregate Attribute
 
-Source: `Ecotone\Modelling\Attribute\EventSourcingAggregate`
+Source: `Ecotone\Api\Attribute\EventSourcingAggregate`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
 class EventSourcingAggregate {}
 ```
 
-Class-level attribute. Marks a class as an event-sourced aggregate. State is rebuilt from events via `#[EventSourcingHandler]` methods.
+Class-level attribute. Marks a class as an event-sourced aggregate. State is rebuilt from events via `#[Apply]` methods.
 
 ## Identifier Attribute
 
-Source: `Ecotone\Modelling\Attribute\Identifier`
+Source: `Ecotone\Api\Attribute\Identifier`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class Identifier
+class Identifier extends Header
 {
-    public function __construct(public string $identifierPropertyName = '') {}
+    public function __construct() {}
 }
 ```
 
-Parameters:
-- `identifierPropertyName` (string) -- optional custom name for the identifier property. If empty, uses the property name.
+Takes no arguments. Can be applied to properties or (promoted) constructor parameters. Multiple `#[Identifier]`
+properties create a composite identifier. To resolve the identifier from a command/event property with a
+different name, use `#[TargetIdentifier]` on that property, or `identifierMapping`/`identifierMetadataMapping` on
+the handler attribute -- not a parameter on `#[Identifier]` itself.
 
-Can be applied to properties or constructor parameters. Multiple `#[Identifier]` properties create a composite identifier.
+## Apply Attribute
 
-## EventSourcingHandler Attribute
-
-Source: `Ecotone\Modelling\Attribute\EventSourcingHandler`
+Source: `Ecotone\Api\Attribute\Apply`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
-class EventSourcingHandler {}
+class Apply {}
 ```
 
 Method-level attribute. Marks a method that applies an event to rebuild aggregate state. These methods must have NO side effects -- only state assignment.
 
-## AggregateVersion Attribute
+## Version Attribute
 
-Source: `Ecotone\Modelling\Attribute\AggregateVersion`
+Source: `Ecotone\Api\Attribute\Version`
 
 ```php
-#[Attribute(Attribute::TARGET_PROPERTY)]
-class AggregateVersion {}
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
+class Version
+{
+    public function __construct(bool $autoIncrease = true) {}
+}
 ```
 
 Property-level attribute. Marks the version property used for optimistic concurrency control. Typically used via the `WithAggregateVersioning` trait instead.
 
 ## WithAggregateVersioning Trait
 
-Source: `Ecotone\Modelling\WithAggregateVersioning`
+Source: `Ecotone\Api\Modelling\WithAggregateVersioning`
 
-Provides automatic version tracking for event-sourced aggregates. Adds a version property with `#[AggregateVersion]`.
+Provides automatic version tracking for event-sourced aggregates. Adds a version property with `#[Version]`.
 
 ```php
 #[EventSourcingAggregate]
@@ -77,7 +80,7 @@ class MyAggregate
 
 ## WithEvents Trait
 
-Source: `Ecotone\Modelling\WithEvents`
+Source: `Ecotone\Api\Modelling\WithEvents`
 
 Allows state-stored aggregates to publish domain events.
 
@@ -100,11 +103,16 @@ Methods:
 
 ## TargetIdentifier Attribute
 
-Source: `Ecotone\Modelling\Attribute\TargetIdentifier`
+Source: `Ecotone\Api\Attribute\TargetIdentifier`
 
 ```php
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class TargetIdentifier {}
+#[Attribute(Attribute::TARGET_PROPERTY)]
+class TargetIdentifier
+{
+    public function __construct(public string $identifierName = '') {}
+}
 ```
 
-Applied to command/event properties to explicitly mark which property maps to the aggregate identifier.
+Applied to command/event properties (including promoted constructor parameters) to explicitly mark which
+property maps to the aggregate identifier. `identifierName` overrides which aggregate `#[Identifier]` it targets
+when the names differ; empty matches the property name.

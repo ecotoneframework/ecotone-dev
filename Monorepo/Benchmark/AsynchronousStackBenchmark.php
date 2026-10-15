@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use PhpBench\Attributes\Iterations;
+use PhpBench\Attributes\Revs;
+use PhpBench\Attributes\Warmup;
 use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
@@ -54,22 +57,6 @@ final class AsynchronousStackBenchmark extends Assert
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $configuration = $container->get(Configuration::class);
-        /** @var QueryBus $queryBus */
-        $queryBus = $container->get(QueryBus::class);
-        /** @var ConfiguredMessagingSystem $messagingSystem */
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-
-        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
-        self::runConsumerForMessaging('notifications', $messagingSystem);
-
-        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

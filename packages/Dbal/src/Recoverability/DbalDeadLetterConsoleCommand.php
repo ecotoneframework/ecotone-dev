@@ -2,9 +2,10 @@
 
 namespace Ecotone\Dbal\Recoverability;
 
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\MessageHeaders;
 
 /**
  * licence Apache-2.0
@@ -37,8 +38,8 @@ class DbalDeadLetterConsoleCommand
             array_map(function (ErrorContext $errorContext) {
                 return [
                     $errorContext->getMessageId(),
-                    $this->convertTimestampToReadableFormat($errorContext->getFailedTimestamp()),
-                    $this->getReadableStacktrace($errorContext->getStackTrace(), false),
+                    $this->convertTimestampToReadableFormat($errorContext->failedTimestamp),
+                    $this->getReadableStacktrace($errorContext->stackTrace, false),
                 ];
             }, $deadLetterGateway->list($limit, $offset))
         );
@@ -64,9 +65,9 @@ class DbalDeadLetterConsoleCommand
         );
     }
 
-    public function reply(DeadLetterGateway $deadLetterGateway, string $messageId): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId): void
     {
-        $deadLetterGateway->reply($messageId);
+        $deadLetterGateway->replay($messageId);
     }
 
     public function delete(DeadLetterGateway $deadLetterGateway, string $messageId): void
@@ -74,9 +75,9 @@ class DbalDeadLetterConsoleCommand
         $deadLetterGateway->delete($messageId);
     }
 
-    public function replyAll(DeadLetterGateway $deadLetterGateway): void
+    public function replayAll(DeadLetterGateway $deadLetterGateway): void
     {
-        $deadLetterGateway->replyAll();
+        $deadLetterGateway->replayAll();
     }
 
     private function convertTimestampToReadableFormat(int $timestamp)

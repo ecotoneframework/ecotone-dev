@@ -2,37 +2,42 @@
 
 use App\Microservices\Receiver\MessagingConfiguration;
 use App\Microservices\Receiver\OrderServiceReceiver;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\DistributedBus;
-use Ecotone\Modelling\QueryBus;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
-$receiver = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+$receiver = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new OrderServiceReceiver(),
+        AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
-        ->withNamespaces(["App\Microservices\Receiver"])
-        ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+        ->withNamespaces(["App\Microservices\Receiver"]),
+    pathToRootCatalog: __DIR__,
+    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+    licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 /** Running consumer for the first time, in order to create queue */
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
 $queryBus = $receiver->getQueryBus();
 
 // Publisher
-$publisher = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+$publisher = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
+    configuration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
-            ->withNamespaces(["App\Microservices\Publisher"])
-            ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+            ->withNamespaces(["App\Microservices\Publisher"]),
+        pathToRootCatalog: __DIR__,
+        /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+        licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 $distributedBus = $publisher->getDistributedBus();
 

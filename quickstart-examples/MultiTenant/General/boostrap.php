@@ -3,24 +3,28 @@
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 
 /** Setup */
-function bootstrapEcotone(string $rootDirectory): ConfiguredMessagingSystem
+function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem
 {
-    return EcotoneLiteApplication::bootstrap(
+    return EcotoneLite::bootstrap(
         /**
          * In your application you will register Services inside your Dependency Container
          */
-        objectsToRegister: [
+        containerOrAvailableServices: array_merge([
             'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
             'tenant_a_factory' => getTenantAConnection(),
             'tenant_b_factory' => getTenantBConnection(),
-        ],
-        pathToRootCatalog: $rootDirectory
+        ], $services),
+        configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
+        pathToRootCatalog: $rootDirectory,
+        /** Multi-tenancy is an Ecotone Enterprise feature, see README.md for how to get a key */
+        licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
     );
 }
 
@@ -43,10 +47,13 @@ function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFact
     return ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
 }
 
-function runMigrationForTenants(): void
+function runMigrationForTenants(ConfiguredMessagingSystem $messagingSystem): void
 {
     migrate(getTenantAConnection()->getConnection());
     migrate(getTenantBConnection()->getConnection());
+
+    /** Creates Ecotone's own tables in the database of every tenant */
+    $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 }
 
 function migrate(Connection $connection): void
@@ -65,7 +72,5 @@ SQL);
 
 function checkIfTableExists(Connection $connection, string $table): bool
 {
-    $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
-
-    return $schemaManager->tablesExist([$table]);
+    return $connection->createSchemaManager()->tableExists($table);
 }

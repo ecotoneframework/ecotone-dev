@@ -2,9 +2,9 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
@@ -60,21 +60,6 @@ trait FullAppBenchmarkCaseTrait
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    public function bench_lite_application_prod()
-    {
-        self::productionEnvironments();
-        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
-        $messagingSystem =  $bootstrap(true);
-        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
-    }
-
-    public function bench_lite_application_dev()
-    {
-        self::developmentEnvironments();
-        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
-        $messagingSystem =  $bootstrap(false);
-        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
-    }
 
     public function bench_lite_prod()
     {
@@ -96,7 +81,6 @@ trait FullAppBenchmarkCaseTrait
     {
         self::clearLaravelCache();
         self::clearSymfonyCache();
-        self::clearLiteApplicationCache();
         self::clearLiteCache();
     }
 
@@ -108,13 +92,6 @@ trait FullAppBenchmarkCaseTrait
         );
     }
 
-    public static function clearLiteApplicationCache(): void
-    {
-        self::deleteFiles(
-            static::getProjectDir() . '/LiteApplication/var/cache',
-            false
-        );
-    }
 
     /**
      * Calling config:cache always dumps the cache,
@@ -161,7 +138,7 @@ trait FullAppBenchmarkCaseTrait
                 rmdir($target);
             }
         } elseif (is_file($target)) {
-            Assert::isTrue(
+            Assert::assertTrue(
                 is_writable($target),
                 "Not enough permissions to delete cache file {$target}"
             );
@@ -179,10 +156,6 @@ trait FullAppBenchmarkCaseTrait
         LaravelKernel $kernel
     ): void;
 
-    abstract public function executeForLiteApplication(
-        ContainerInterface $container
-    ): void;
-
     abstract public function executeForLite(
         ConfiguredMessagingSystem $messagingSystem
     ): void;
@@ -194,19 +167,19 @@ trait FullAppBenchmarkCaseTrait
     {
         putenv('APP_ENV=prod');
         putenv('APP_DEBUG=false');
-        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_ENABLED_MODULE_PACKAGE_NAMES=%s', json_encode(static::enabledModulePackageNames(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
         putenv('APP_ENV=dev');
         putenv('APP_DEBUG=true');
-        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_ENABLED_MODULE_PACKAGE_NAMES=%s', json_encode(static::enabledModulePackageNames(), JSON_THROW_ON_ERROR)));
     }
 
-    public static function skippedPackages(): array
+    public static function enabledModulePackageNames(): array
     {
-        return ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]);
+        return [];
     }
 
     private static function createLaravelApplication(): Application

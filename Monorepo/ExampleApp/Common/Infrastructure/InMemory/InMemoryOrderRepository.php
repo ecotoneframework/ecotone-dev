@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\InMemory;
 
-use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Modelling\StateStoredRepository;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
 use Ramsey\Uuid\UuidInterface;
 
 #[Repository]
-final class InMemoryOrderRepository implements StandardRepository
+final class InMemoryOrderRepository implements StateStoredRepository
 {
     /** @var Order[] */
     private array $orders;

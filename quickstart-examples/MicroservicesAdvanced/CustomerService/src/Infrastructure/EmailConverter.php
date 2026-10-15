@@ -3,7 +3,7 @@
 namespace App\Microservices\CustomerService\Infrastructure;
 
 use App\Microservices\CustomerService\Domain\Email;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class EmailConverter
 {

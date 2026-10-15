@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StubLogger;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -39,9 +44,9 @@ final class DeadLetterTest extends DbalMessagingTestCase
             'Test\Ecotone\Dbal\Fixture\DeadLetter\Example',
         ], extensionObjects: [
             PollingMetadata::create('orderService')
-                ->setExecutionTimeLimitInMilliseconds(1000)
-                ->setHandledMessageLimit(1)
-                ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL),
+                ->withExecutionTimeLimitInMilliseconds(1000)
+                ->withHandledMessageLimit(1)
+                ->withErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL),
         ], orderService: new OrderService(1));
 
         $gateway = $ecotone->getGateway(OrderGateway::class);
@@ -54,7 +59,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -84,7 +89,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -114,7 +119,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 2, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessagesById($ecotone);
+        $this->replayAllErrorMessagesById($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -170,7 +175,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 2);
         self::assertEquals(0, $doubleEventHandler->successfulCalls);
 
-        $this->replyAllErrorMessagesById($ecotone);
+        $this->replayAllErrorMessagesById($ecotone);
         $this->assertErrorMessageCount($ecotone, 0);
 
         $ecotone->run('async');
@@ -217,8 +222,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             public array $processedPayloads = [];
             private bool $hasEmitted = false;
 
-            #[\Ecotone\Messaging\Attribute\Scheduled(self::REQUEST_CHANNEL, self::ENDPOINT_ID)]
-            #[\Ecotone\Messaging\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
+            #[\Ecotone\Api\Attribute\Scheduled(self::REQUEST_CHANNEL, self::ENDPOINT_ID)]
+            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
             public function emit(): ?string
             {
                 if ($this->hasEmitted) {
@@ -229,7 +234,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 return 'first-payload';
             }
 
-            #[\Ecotone\Messaging\Attribute\ServiceActivator(self::REQUEST_CHANNEL)]
+            #[\Ecotone\Api\Attribute\InternalHandler(self::REQUEST_CHANNEL)]
             public function handle(string $payload): void
             {
                 $this->invocations++;
@@ -241,7 +246,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         };
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 $handler,
                 DbalConnectionFactory::class => $connectionFactory,
@@ -249,15 +254,16 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
+                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             classesToResolve: [$handler::class],
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
         $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertErrorMessageCount($ecotone, 1);
@@ -265,15 +271,15 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertSame([], $handler->processedPayloads);
 
         $handler->shouldFail = false;
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
+        $this->assertSame(2, $handler->invocations, 'replayAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
         $this->assertSame(['first-payload'], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
 
         $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertSame(2, $handler->invocations, 'Subsequent polls must not re-process the replayed Message (emit() returns null after the first emission)');
@@ -301,23 +307,51 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessagesById(FlowTestSupport $ecotone): void
+    public function test_storing_a_dead_letter_reconnects_and_retries_when_the_connection_is_lost(): void
+    {
+        $connection = $this->getConnection();
+        $platform = $connection->getDatabasePlatform();
+        if (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof AbstractMySQLPlatform) {
+            self::markTestSkipped('Ending another session needs a server, which SQLite has no notion of');
+        }
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), 'logger' => $logger],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+        );
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+        $deadLetter->deleteAll();
+
+        $sessionId = $connection->fetchOne($platform instanceof PostgreSQLPlatform ? 'SELECT pg_backend_pid()' : 'SELECT CONNECTION_ID()');
+        $otherSession = DriverManager::getConnection($connection->getParams());
+        $otherSession->executeStatement($platform instanceof PostgreSQLPlatform ? "SELECT pg_terminate_backend({$sessionId})" : "KILL {$sessionId}");
+        $otherSession->close();
+
+        $deadLetter->store(MessageBuilder::withPayload('failed')->build());
+
+        self::assertSame(1, $deadLetter->count());
+        self::assertSame(['Storing Error Message in dead letter failed. Trying to self-heal and retry.'], $logger->getInfo());
+    }
+
+    private function replayAllErrorMessagesById(FlowTestSupport $ecotone): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $gateway->reply(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->replay(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessages(FlowTestSupport $ecotone): void
+    private function replayAllErrorMessages(FlowTestSupport $ecotone): void
     {
-        $ecotone->getGateway(DeadLetterGateway::class)->replyAll();
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
     }
 
     private function bootstrapEcotone(array $namespaces, array $services = [], array $extensionObjects = [], ?OrderService $orderService = null): FlowTestSupport
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [
                 $orderService ?? new OrderService(),
                 DbalConnectionFactory::class => $connectionFactory,
@@ -325,8 +359,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects($extensionObjects)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects(array_merge([\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], $extensionObjects))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         ));

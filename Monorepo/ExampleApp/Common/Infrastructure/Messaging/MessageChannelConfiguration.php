@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\Messaging;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
 
 final class MessageChannelConfiguration
@@ -26,13 +26,14 @@ final class MessageChannelConfiguration
             InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
             SimpleMessageChannelBuilder::createQueueChannel(
                 'notifications',
-                conversionMediaType: MediaType::createApplicationXPHP()
+                conversionMediaType: MediaType::createApplicationXPHP(),
+                delayable: false
             ),
             // 3 retries for notifications
             ErrorHandlerConfiguration::createWithDeadLetterChannel(
                 'errorChannel',
-                RetryTemplateBuilder::exponentialBackoff(1000, 10)
-                    ->maxRetryAttempts(3),
+                RetryTemplateBuilder::exponentialBackOff(1000, 10)
+                    ->maxRetries(3),
                 'default_dead_letter'
             ),
             SimpleMessageChannelBuilder::createQueueChannel(
@@ -41,7 +42,7 @@ final class MessageChannelConfiguration
             ),
             // No retries push directly
             PollingMetadata::create('delivery')
-                ->setErrorChannelName('custom_dead_letter'),
+                ->withErrorChannelName('custom_dead_letter'),
         ];
     }
 }

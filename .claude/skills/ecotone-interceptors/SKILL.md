@@ -2,11 +2,12 @@
 name: ecotone-interceptors
 description: >-
   Implements Ecotone interceptors and middleware: #[Before], #[After],
-  #[Around], #[Presend] attributes with pointcut targeting, precedence
-  ordering, header modification, and MethodInvocation. Use when adding
-  interceptors, middleware, cross-cutting concerns like transactions/
-  logging/authorization, hooking into handler execution, or modifying
-  messages before/after handling.
+  #[Around], #[Presend], #[ChannelInterceptor] attributes with pointcut
+  targeting, precedence ordering, header modification, and
+  MethodInvocation. Use when adding interceptors, middleware,
+  cross-cutting concerns like transactions/logging/authorization, hooking
+  into handler execution, or modifying messages before/after handling or
+  on a specific channel.
 ---
 
 # Ecotone Interceptors
@@ -17,17 +18,24 @@ Interceptors are cross-cutting middleware that hook into handler execution. Use 
 
 | Attribute | When | Flow Control | changeHeaders |
 |-----------|------|-------------|---------------|
-| `#[Presend]` | Before message enters channel | No | Yes |
+| `#[Presend]` | Before message enters channel, matched by pointcut against handlers | No | Yes |
 | `#[Before]` | Before handler executes | No | Yes |
 | `#[Around]` | Wraps handler execution | `MethodInvocation::proceed()` | No |
 | `#[After]` | After handler completes | No | Yes |
+| `#[ChannelInterceptor]` (Enterprise) | Before a message is sent to a named channel | No | Yes |
 
 Execution order: Presend -> Before -> Around -> handler -> Around end -> After
+
+**`#[After]` only runs when the intercepted handler actually returns a value.** A `void` handler produces no
+reply for `#[After]` to post-process, so it is skipped entirely -- verified against `EcotoneLite`: identical
+`#[Before]`/`#[After]` interceptors on the same pointcut fire `before` either way, but `after` only when the
+handler's return type is non-`void`. Target `#[QueryHandler]`s, or handlers with a return type, when using
+`#[After]`.
 
 ## Before Interceptor
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Before;
 
 class ValidationInterceptor
 {
@@ -41,15 +49,18 @@ class ValidationInterceptor
 
 ## After Interceptor
 
+Only fires for a handler that returns a value -- pointing this at `CommandHandler::class` broadly is a no-op for
+every `void` command handler.
+
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\After;
+use Ecotone\Api\Attribute\After;
 
 class AuditInterceptor
 {
-    #[After(pointcut: CommandHandler::class)]
-    public function audit(object $command): void
+    #[After(pointcut: QueryHandler::class)]
+    public function audit(mixed $result): void
     {
-        // Log after handler completes
+        // Receives the handler's return value as the first parameter; log after handler completes
     }
 }
 ```
@@ -57,8 +68,8 @@ class AuditInterceptor
 ## Around Interceptor
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 class TransactionInterceptor
 {
@@ -83,7 +94,7 @@ class TransactionInterceptor
 ## Presend Interceptor
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
+use Ecotone\Api\Attribute\Presend;
 
 class AuthorizationInterceptor
 {
@@ -96,6 +107,26 @@ class AuthorizationInterceptor
     }
 }
 ```
+
+## Channel Interceptor (Enterprise)
+
+`#[ChannelInterceptor]` targets a channel by **name** instead of a pointcut against handlers — it runs for every message sent to that channel, regardless of which handler(s) receive it, including before a message is enqueued to an asynchronous channel.
+
+```php
+use Ecotone\Api\Attribute\ChannelInterceptor;
+
+class OrdersChannelInterceptor
+{
+    #[ChannelInterceptor('orders', changeHeaders: true, precedence: Precedence::DEFAULT_PRECEDENCE)]
+    public function intercept(#[Headers] array $headers): array
+    {
+        $headers['tenantId'] = $this->resolveTenantId();
+        return $headers;
+    }
+}
+```
+
+Requires an Ecotone Enterprise licence — bootstrapping with a `#[ChannelInterceptor]` present and no licence key throws `LicensingException` naming the offending class and method. Method parameters use the same converters as `#[Before]`/`#[Presend]` (`Message`, `#[Payload]`, `#[Header]`, `#[Headers]`, `#[Reference]`); `changeHeaders` and `precedence` mean the same thing as elsewhere in this table.
 
 ## Pointcut System
 
@@ -116,7 +147,7 @@ Pointcuts target which handlers an interceptor applies to:
 
 // AND / OR / NOT
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Auto-Inference
@@ -140,7 +171,7 @@ public function addHeaders(#[Headers] array $headers): array
 }
 ```
 
-Only available on `#[Before]`, `#[After]`, `#[Presend]` (not `#[Around]`).
+Only available on `#[Before]`, `#[After]`, `#[Presend]`, `#[ChannelInterceptor]` (not `#[Around]`).
 
 ## Key Rules
 

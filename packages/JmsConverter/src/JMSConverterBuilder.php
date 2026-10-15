@@ -2,6 +2,7 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

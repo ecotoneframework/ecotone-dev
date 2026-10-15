@@ -4,12 +4,12 @@ namespace Test\Ecotone\DataProtection\Unit\Encryption;
 
 use function chr;
 
+use Ecotone\Api\DataProtection\Key;
 use Ecotone\DataProtection\Encryption\Core;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Exception\CryptoException;
 use Ecotone\DataProtection\Encryption\Exception\EnvironmentIsBrokenException;
 use Ecotone\DataProtection\Encryption\Exception\WrongKeyOrModifiedCiphertextException;
-use Ecotone\DataProtection\Encryption\Key;
 
 use function ord;
 

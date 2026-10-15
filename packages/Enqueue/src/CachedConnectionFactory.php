@@ -12,7 +12,7 @@ use Interop\Queue\Producer;
 /**
  * licence Apache-2.0
  */
-class CachedConnectionFactory implements ConnectionFactory
+class CachedConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     private static $instances = [];
 

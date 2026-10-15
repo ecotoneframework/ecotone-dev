@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection\NotificationService;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection\OrderEventsConverter;
@@ -30,19 +28,25 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
+                ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
     }
@@ -51,18 +55,18 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
 
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 15, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 15, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
@@ -72,27 +76,27 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
     {
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar']);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar']);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 2);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
-        $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz']);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz']);
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
@@ -103,11 +107,11 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         /** @var DbalConnectionFactory $connectionFactory */
         $connectionFactory = $this->getConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
-        if (SchemaManagerCompatibility::tableExists($connection, OrderProjection::TABLE)) {
+        if ($connection->createSchemaManager()->tableExists(OrderProjection::TABLE)) {
             $connection->delete(OrderProjection::TABLE, ['1' => '1']);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderProjection($connection), new OrderEventsConverter(), new NotificationService(), DbalConnectionFactory::class => $connectionFactory],
             configuration: $serviceConfiguration,
             pathToRootCatalog: __DIR__ . '/../../',

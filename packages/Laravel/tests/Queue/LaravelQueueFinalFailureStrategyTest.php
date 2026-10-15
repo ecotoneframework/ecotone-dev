@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Queue;
 
 use DateTimeImmutable;
-use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -55,16 +55,16 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.failing_command', new FailingCommand('some_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.failing_command', new FailingCommand('some_2'));
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_2'));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         // For Laravel Queue, resend uses job->release() which puts message back in queue
@@ -79,7 +79,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
@@ -96,17 +96,16 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [DelayedService::class],
             $container,
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create('async', 'database'),
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
             MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
         ]);
-        sleep(2);
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertEquals(['test_1'], $delayedService->getMessages());
     }

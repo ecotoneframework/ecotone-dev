@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
@@ -19,6 +20,13 @@ use Ramsey\Uuid\Uuid;
 final class AsynchronousStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
+
+    public static function enabledModulePackageNames(): array
+    {
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
+    }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
@@ -52,22 +60,6 @@ final class AsynchronousStackTest extends FullAppTestCase
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $configuration = $container->get(Configuration::class);
-        /** @var QueryBus $queryBus */
-        $queryBus = $container->get(QueryBus::class);
-        /** @var ConfiguredMessagingSystem $messagingSystem */
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-
-        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
-        self::runConsumerForMessaging('notifications', $messagingSystem);
-
-        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

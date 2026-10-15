@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
@@ -65,8 +65,8 @@ final class WithTenantResolverLicensingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$service::class],
             [$service, 'tenant_a_connection' => new FakeConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',
@@ -79,11 +79,8 @@ final class WithTenantResolverLicensingTest extends TestCase
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
-                ]),
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
-            ],
-            licenceKey: $licenceKey,
+                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
+            licenceKey: $licenceKey
         );
     }
 }

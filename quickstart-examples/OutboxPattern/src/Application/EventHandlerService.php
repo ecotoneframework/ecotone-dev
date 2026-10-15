@@ -4,8 +4,8 @@ namespace App\OutboxPattern\Application;
 
 use App\OutboxPattern\Domain\OrderWasPlaced;
 use App\OutboxPattern\Infrastructure\Configuration;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 
 class EventHandlerService
 {

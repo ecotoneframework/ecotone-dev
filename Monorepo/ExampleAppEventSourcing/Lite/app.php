@@ -1,24 +1,24 @@
 <?php
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Monorepo\ExampleAppEventSourcing\ProophProjection\PriceChangeOverTimeProjection;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Monorepo\ExampleAppEventSourcing\EcotoneProjection\PriceChangeOverTimeProjectionWithEcotoneProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $connectionString = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
     return EcotoneLite::bootstrap(
         containerOrAvailableServices: [
-            PriceChangeOverTimeProjection::class => new PriceChangeOverTimeProjection(),
+            PriceChangeOverTimeProjectionWithEcotoneProjection::class => new PriceChangeOverTimeProjectionWithEcotoneProjection(),
             DbalConnectionFactory::class => new DbalConnectionFactory($connectionString),
         ],
         configuration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
-            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'])
+            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'])
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withDefaultErrorChannel('errorChannel')
-            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
+            ->withEnabledModulePackageNames(\json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? []),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__,
     );

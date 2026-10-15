@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Testing\Infrastructure;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 
 final class MessagingConfiguration
 {
@@ -22,6 +22,6 @@ final class MessagingConfiguration
     #[ServiceContext]
     public function registerDocumentStoreRepository(): DbalConfiguration
     {
-        return DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreStandardRepository: true);
+        return DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreStateStoredRepository: true);
     }
 }

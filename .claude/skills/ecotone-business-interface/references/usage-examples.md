@@ -5,31 +5,31 @@
 ### Basic Queries with Different FetchModes
 
 ```php
-use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\FetchMode;
 
 interface ProductRepository
 {
     // Returns array of associative arrays
-    #[DbalQueryBusinessMethod('SELECT * FROM products')]
+    #[DbalQuery('SELECT * FROM products')]
     public function findAll(): array;
 
     // Returns single row or null
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM products WHERE id = :productId',
         fetchMode: FetchMode::FIRST_ROW
     )]
     public function findById(string $productId): ?array;
 
     // Returns scalar value
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT COUNT(*) FROM products WHERE category = :category',
         fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW
     )]
     public function countByCategory(string $category): int;
 
     // Returns array of single column values
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT name FROM products WHERE active = :active',
         fetchMode: FetchMode::FIRST_COLUMN
     )]
@@ -40,21 +40,21 @@ interface ProductRepository
 ### Write Operations
 
 ```php
-use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
 
 interface ProductWriter
 {
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'INSERT INTO products (id, name, price, category) VALUES (:id, :name, :price, :category)'
     )]
     public function insert(string $id, string $name, int $price, string $category): void;
 
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'UPDATE products SET price = :price WHERE id = :id'
     )]
     public function updatePrice(string $id, int $price): void;
 
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'DELETE FROM products WHERE id = :id'
     )]
     public function delete(string $id): void;
@@ -63,24 +63,28 @@ interface ProductWriter
 
 ### Parameter Type Conversion
 
+`type` takes a Doctrine `ParameterType`/`ArrayParameterType` case (how the value is bound), not a string; converting a
+PHP value before binding (e.g. an array to JSON) is `convertToMediaType`. A `\DateTimeInterface` parameter needs
+no `#[DbalParameter]` at all -- it converts automatically.
+
 ```php
-use Ecotone\Dbal\Attribute\DbalParameter;
+use Doctrine\DBAL\ArrayParameterType;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface AdvancedQueries
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM events WHERE tags @> :tags')]
+    #[DbalQuery('SELECT * FROM events WHERE tags @> :tags')]
     public function findByTags(
-        #[DbalParameter(type: 'json')] array $tags
+        #[DbalParameter(convertToMediaType: MediaType::APPLICATION_JSON)] array $tags
     ): array;
 
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE created_at > :since')]
-    public function findRecent(
-        #[DbalParameter(type: 'datetime')] \DateTimeInterface $since
-    ): array;
+    #[DbalQuery('SELECT * FROM orders WHERE created_at > :since')]
+    public function findRecent(\DateTimeInterface $since): array;
 
-    #[DbalQueryBusinessMethod('SELECT * FROM items WHERE id = ANY(:ids)')]
+    #[DbalQuery('SELECT * FROM items WHERE id = ANY(:ids)')]
     public function findByIds(
-        #[DbalParameter(type: 'json')] array $ids
+        #[DbalParameter(type: ArrayParameterType::STRING)] array $ids
     ): array;
 }
 ```
@@ -90,7 +94,7 @@ interface AdvancedQueries
 ```php
 interface OrderQueries
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE user_id = :userId')]
+    #[DbalQuery('SELECT * FROM orders WHERE user_id = :userId')]
     public function findForUser(
         #[DbalParameter(expression: "headers['userId']")] string $userId
     ): array;
@@ -102,7 +106,7 @@ interface OrderQueries
 ```php
 interface SecondaryDbQueries
 {
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM legacy_orders',
         connectionReferenceName: 'secondary_connection'
     )]
@@ -115,7 +119,7 @@ interface SecondaryDbQueries
 ### JSON Converter
 
 ```php
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class JsonConverter
 {
@@ -140,7 +144,7 @@ class JsonConverter
 ### DTO Converter
 
 ```php
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class ProductConverter
 {
@@ -168,10 +172,10 @@ class ProductConverter
 
 ## BusinessMethod Examples
 
-### BusinessMethod with ServiceActivator
+### BusinessMethod with InternalHandler
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface CacheService
 {
@@ -182,19 +186,19 @@ interface CacheService
     public function get(string $key): ?string;
 }
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class InMemoryCache
 {
     private array $items;
 
-    #[ServiceActivator('cache.set')]
+    #[InternalHandler('cache.set')]
     public function set(CachedItem $item): void
     {
         $this->items[$item->key] = $item->value;
     }
 
-    #[ServiceActivator('cache.get')]
+    #[InternalHandler('cache.get')]
     public function get(string $key): ?string
     {
         return $this->items[$key] ?? null;
@@ -205,8 +209,8 @@ class InMemoryCache
 ### BusinessMethod with Aggregate
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 
 interface ProductService
 {
@@ -220,10 +224,10 @@ interface ProductService
     public function getPrice(#[Identifier] string $productId): float;
 }
 
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Identifier;
 
 #[EventSourcingAggregate]
 class Product
@@ -255,8 +259,8 @@ class Product
 ### BusinessMethod with Headers and Routing
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Header;
 
 interface CacheService
 {
@@ -267,8 +271,8 @@ interface CacheService
     public function get(string $key, #[Header('cache.type')] CacheType $type): ?string;
 }
 
-use Ecotone\Messaging\Attribute\Router;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Attribute\Header;
 
 class CachingRouter
 {
@@ -288,8 +292,8 @@ class CachingRouter
 BusinessMethod interfaces can be injected as parameters into handler methods. Ecotone resolves the auto-generated proxy and passes it in.
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 use Ramsey\Uuid\UuidInterface;
 
 interface ProductService
@@ -304,9 +308,9 @@ interface UserService
     public function isUserVerified(#[Identifier] UuidInterface $userId): bool;
 }
 
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
 
 #[EventSourcingAggregate]
 class Basket

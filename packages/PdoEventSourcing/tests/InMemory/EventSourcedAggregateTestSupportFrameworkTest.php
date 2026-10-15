@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Lite\EcotoneLite;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
@@ -38,7 +40,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [new TicketWasRegistered($ticketId, 'johny', 'alert')],
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -54,7 +56,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
                 ->sendCommand(new CloseTicket($ticketId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -72,7 +74,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
                 ->discardRecordedMessages()
                 ->sendCommand(new CloseTicket($ticketId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -129,7 +131,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
                     new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ])
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -148,17 +150,16 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->withEventsFor($ticketId, Ticket::class, [
                     new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ], 1)
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
     public function test_providing_initial_state_in_form_of_events_with_event_store()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class],
             [new TicketEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
-            runForProductionEventStore: true,
-        );
+        )->setupDatabaseTables();
 
         $ticketId = Uuid::v7()->toRfc4122();
 
@@ -178,15 +179,20 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_registering_in_memory_event_sourcing_repository()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
+                ]),
         );
 
         $this->assertCount(
             1,
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket('1', 'johny', 'alert'))
+                ->run('asynchronous_projections')
                 ->discardRecordedMessages()
                 ->sendQueryWithRouting('getInProgressTickets')
         );

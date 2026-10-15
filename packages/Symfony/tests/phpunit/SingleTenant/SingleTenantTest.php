@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\SingleTenant;
 
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -101,11 +101,9 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE,
-                ])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
+                [ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE, ]
             ),
             addInMemoryStateStoredRepository: false
         );
@@ -128,11 +126,9 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE,
-                ])
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
+                [ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE, ]
             ),
             addInMemoryStateStoredRepository: false
         );
@@ -210,7 +206,7 @@ final class SingleTenantTest extends TestCase
 
         self::assertCount(1, $this->deadLetterGateway->list(100, 0));
 
-        $this->deadLetterGateway->reply(array_values($this->deadLetterGateway->list(100, 0))[0]->getMessageId());
+        $this->deadLetterGateway->replay(array_values($this->deadLetterGateway->list(100, 0))[0]->getMessageId());
 
         $this->assertSame(
             0,

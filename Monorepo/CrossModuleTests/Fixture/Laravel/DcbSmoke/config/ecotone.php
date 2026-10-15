@@ -1,0 +1,14 @@
+<?php
+
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+
+return [
+    'namespaces' => [],
+    'enabledModulePackageNames' => [
+        ModulePackageList::LARAVEL_PACKAGE,
+        ModulePackageList::DBAL_PACKAGE,
+        ModulePackageList::EVENT_SOURCING_PACKAGE,
+    ],
+    'licenceKey' => env('LARAVEL_DCB_SMOKE_LICENCE_KEY'),
+    'test' => false,
+];

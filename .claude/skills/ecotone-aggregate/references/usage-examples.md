@@ -7,10 +7,10 @@ Complete, runnable code examples for Ecotone aggregates.
 A full state-stored aggregate with multiple command handlers and a query handler.
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Aggregate]
 class Customer
@@ -58,14 +58,14 @@ class Customer
 
 ## Event-Sourced Aggregate: Product
 
-A full event-sourced aggregate with multiple commands and event sourcing handlers.
+A full event-sourced aggregate with multiple commands and `#[Apply]` methods.
 
 ```php
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 class Product
@@ -106,7 +106,7 @@ class Product
         return [new ProductWasPublished($this->productId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyRegistered(ProductWasRegistered $event): void
     {
         $this->productId = $event->productId;
@@ -114,13 +114,13 @@ class Product
         $this->price = $event->price;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyPriceChanged(ProductPriceWasChanged $event): void
     {
         $this->price = $event->newPrice;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyPublished(ProductWasPublished $event): void
     {
         $this->published = true;
@@ -168,10 +168,10 @@ class AddShelfItem
 State-stored aggregates that also publish domain events using the `WithEvents` trait.
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Aggregate]
 class Order

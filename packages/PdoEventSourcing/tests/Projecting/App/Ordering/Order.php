@@ -1,19 +1,34 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering;
 
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\CancelOrder;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\PlaceOrder;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\ShipOrder;
@@ -71,7 +86,7 @@ class Order
         return $events;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasPlaced(OrderWasPlaced $event): void
     {
         $this->orderId = $event->orderId;
@@ -79,19 +94,19 @@ class Order
         $this->quantity = $event->quantity;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasShipped(OrderWasShipped $event): void
     {
         $this->shipped = true;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasReturned(OrderWasReturned $event): void
     {
         $this->shipped = false;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onOrderWasCancelled(OrderWasCancelled $event): void
     {
         $this->cancelled = true;

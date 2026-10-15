@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 
@@ -209,17 +209,15 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
     }
 
-    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 self::getConnection(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -229,17 +227,15 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         );
     }
 
-    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 self::getConnection(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
-use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +26,7 @@ class RequirementsCheckTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withExtensionObjects([
                     DataProtectionConfiguration::create('primary', Key::createNewRandomKey()),
                 ])
@@ -41,7 +41,7 @@ class RequirementsCheckTest extends TestCase
             classesToResolve: [AnnotatedClassWithAnnotatedProperty::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withExtensionObjects([
                     DataProtectionConfiguration::create('primary', Key::createNewRandomKey()),
                 ])

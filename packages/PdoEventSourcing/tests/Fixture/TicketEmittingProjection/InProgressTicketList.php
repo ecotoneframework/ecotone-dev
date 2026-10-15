@@ -3,25 +3,29 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
-#[Projection(self::NAME, Ticket::class)]
+#[Projection(self::NAME)]
+#[Stream(self::EMITTED_STREAM)]
+#[FromAggregateStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */
 class InProgressTicketList
 {
     public const NAME = 'inProgressTicketList';
+    public const EMITTED_STREAM = 'projection_inProgressTicketList';
     private Connection $connection;
 
     public function __construct(Connection $connection)
@@ -41,7 +45,7 @@ class InProgressTicketList
     #[EventHandler(endpointId: 'inProgressTicketList.addTicket')]
     public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
     {
-        $eventStreamEmitter->linkTo(LazyProophProjectionManager::getProjectionStreamName(self::NAME), [new TicketListUpdated($event->getTicketId())]);
+        $eventStreamEmitter->linkTo(self::EMITTED_STREAM, [new TicketListUpdated($event->getTicketId())]);
 
         $this->connection->executeStatement(<<<SQL
                 INSERT INTO in_progress_tickets VALUES (?,?)

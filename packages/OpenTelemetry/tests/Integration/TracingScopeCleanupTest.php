@@ -6,23 +6,23 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use const E_USER_NOTICE;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\EventBus;
 use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -44,7 +44,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             ],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -73,7 +73,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             servicesToRegister: ['throwingChannelInterceptor' => $throwingChannelInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -102,7 +102,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             servicesToRegister: ['filteringChannelInterceptor' => $filteringChannelInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -134,7 +134,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             servicesToRegister: ['throwingCleanupInterceptor' => $throwingCleanupInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -162,7 +162,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             servicesToRegister: ['throwingPostSendInterceptor' => $throwingPostSendInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -191,7 +191,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             servicesToRegister: ['rebuildingChannelInterceptor' => $rebuildingChannelInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [$caughtException, $scopeNotices] = $this->invokeCapturingScopeNotices(
             fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup())
@@ -217,17 +217,17 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [$userService, TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('error_channel')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                     ExceptionalQueueChannel::createWithExceptionOnSend('error_channel'),
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('user.register', '1');
+        $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [, $scopeNotices] = $this->invokeCapturingScopeNotices(
-            fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false))
+            fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))
         );
 
         $this->assertSame([], $scopeNotices);
@@ -240,7 +240,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('user_service')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     ExceptionalQueueChannel::createWithExceptionOnSend('distributed_channel'),
                     DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_channel'),
@@ -282,7 +282,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
                 $servicesToRegister,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects($channelsToRegister)
         );
     }

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandBus\CustomHeaderDeduplicatedCommandBus;
@@ -26,20 +25,36 @@ use Test\Ecotone\Dbal\Fixture\DeduplicationCommandBus\OrderService;
  */
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_commands_with_default_message_id_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, DeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -60,14 +75,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplicating_commands_with_custom_header_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, CustomHeaderDeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -88,14 +103,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplicating_commands_with_expression_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -116,14 +131,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_allowing_different_commands_with_different_deduplication_values()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -144,14 +159,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_works_across_different_command_types()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -172,14 +187,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_using_deduplication_in_multiple_command_buses()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class, CustomHeaderDeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -203,14 +218,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
         $this->expectException(LicensingException::class);
         $this->expectExceptionMessage('Deduplicated attribute on interfaces/gateways');
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [OrderService::class, DeduplicatedCommandBus::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ])
@@ -220,14 +235,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_isolation_with_tracking_names()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, IsolatedCommandBusOne::class, IsolatedCommandBusTwo::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),
@@ -249,14 +264,14 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_within_same_tracking_name()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, IsolatedCommandBusOne::class],
             [
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                 ]),

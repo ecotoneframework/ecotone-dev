@@ -2,11 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\AsyncCycle;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\AsyncCycleGateway;
@@ -33,7 +32,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
             [
                 new AuditConducted('foo', '123'),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(['123'], $cycleGateway->conductedAudits('foo'));
@@ -43,7 +42,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
             [
                 new CertificateIssued('foo', '234'),
             ],
-            $ecotone->run('cycle')->getRecordedEvents()
+            $ecotone->run('cycle')->popRecordedEvents()
         );
 
         self::assertEquals(['123'], $cycleGateway->conductedAudits('foo'));
@@ -52,7 +51,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,
@@ -62,11 +61,10 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
                 new EventsConverters(),
                 $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']),
-            pathToRootCatalog: __DIR__ . '/../../',
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('cycle')]
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
     }
 }

@@ -7,8 +7,8 @@ namespace Monorepo\ExampleApp\Common\Domain\Shipping;
 use Monorepo\ExampleApp\Common\Domain\Order\Event\OrderWasPlaced;
 use Monorepo\ExampleApp\Common\Domain\Order\OrderRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Messaging\MessageChannelConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 
 final class ShippingSubscriber
 {

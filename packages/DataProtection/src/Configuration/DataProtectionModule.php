@@ -2,14 +2,35 @@
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\DataProtection\Attribute\Sensitive;
-use Ecotone\DataProtection\Attribute\WithEncryptionKey;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\DataProtection\ChannelProtectionConfiguration;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
+use Ecotone\Api\DataProtection\Sensitive;
+use Ecotone\Api\DataProtection\WithEncryptionKey;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\DataProtection\Channel\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;
@@ -19,9 +40,6 @@ use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
-use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -29,7 +47,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Handler\ClassPropertyDefinition;
@@ -74,7 +91,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         $dataProtectionConfiguration = ExtensionObjectResolver::resolveUnique(DataProtectionConfiguration::class, $extensionObjects, new stdClass());
         $channelProtectionConfigurations = ExtensionObjectResolver::resolve(ChannelProtectionConfiguration::class, $extensionObjects);
 
-        foreach ($dataProtectionConfiguration->keys() as $encryptionKeyName => $key) {
+        foreach ($dataProtectionConfiguration->keys as $encryptionKeyName => $key) {
             $messagingConfiguration->registerServiceDefinition(
                 id: sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionKeyName),
                 definition: new Definition(
@@ -144,16 +161,6 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof DataProtectionConfiguration
-            || $extensionObject instanceof ChannelProtectionConfiguration
-            || $extensionObject instanceof JMSConverterConfiguration
-            || ($extensionObject instanceof MessageChannelWithSerializationBuilder && $extensionObject->isPollable())
-        ;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
@@ -204,6 +211,6 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             return;
         }
 
-        throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence.');
+        throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence. See https://docs.ecotone.tech/enterprise for details.');
     }
 }

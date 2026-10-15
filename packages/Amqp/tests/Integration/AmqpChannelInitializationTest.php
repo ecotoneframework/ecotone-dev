@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Exception;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -258,15 +258,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         self::assertEquals([self::TEST_STREAM_CHANNEL_NAME, 'Deleted'], $rows[0]);
     }
 
-    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -276,15 +274,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         );
     }
 
-    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
@@ -294,16 +290,14 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         );
     }
 
-    private function bootstrapEcotoneWithStreamChannel(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    private function bootstrapEcotoneWithStreamChannel(ChannelInitializationConfiguration $config): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([\Ecotone\Api\ExtensionObject\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Api\ExtensionObject\ModulePackageList::AMQP_PACKAGE,
+                ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     $config,

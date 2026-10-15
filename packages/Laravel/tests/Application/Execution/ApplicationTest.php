@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Lite\Test\MessagingTestSupport;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;
 use Test\Ecotone\Laravel\Fixture\User\User;

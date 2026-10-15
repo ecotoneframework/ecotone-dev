@@ -1,20 +1,35 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalBlueGreenTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
@@ -32,8 +47,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 
@@ -64,8 +79,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 
@@ -91,8 +106,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 
@@ -117,17 +132,16 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
     }
 }

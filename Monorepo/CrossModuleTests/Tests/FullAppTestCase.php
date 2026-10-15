@@ -33,17 +33,6 @@ abstract class FullAppTestCase extends FullAppBenchmarkCase
         $this->bench_laravel_dev();
     }
 
-    public function test_lite_application_prod()
-    {
-        self::clearLiteApplicationCache();
-        $this->bench_lite_application_prod();
-    }
-
-    public function test_lite_application_dev()
-    {
-        self::clearLiteApplicationCache();
-        $this->bench_lite_application_dev();
-    }
 
     public function test_lite_prod()
     {

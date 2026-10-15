@@ -4,11 +4,11 @@ namespace Ecotone\Amqp;
 
 use AMQPBasicProperties;
 use AMQPConnection;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Exception;
 use Interop\Amqp\AmqpConnectionFactory;

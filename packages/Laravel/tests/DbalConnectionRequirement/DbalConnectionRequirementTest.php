@@ -34,7 +34,7 @@ final class DbalConnectionRequirementTest extends TestCase
 
         self::assertTrue($exceptionThrown, 'Expected ConfigurationException to be thrown');
         self::assertStringContainsString(
-            "Dbal module requires 'Enqueue\Dbal\DbalConnectionFactory' to be configured",
+            "Dbal module requires 'Ecotone\Dbal\Connection\DbalConnectionFactory' to be configured",
             $exceptionMessage
         );
     }

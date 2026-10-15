@@ -1,5 +1,8 @@
+includes:
+	- phpstan-baseline.neon
+
 parameters:
-	level: 1
+	level: 3
 	paths:
 		- packages/Ecotone/src
 		- packages/Enqueue/src
@@ -8,11 +11,27 @@ parameters:
 		- packages/JmsConverter/src
 		- packages/PdoEventSourcing/src
 		- packages/Laravel/src
-		- packages/LiteApplication/src
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
 		- packages/Kafka/src
+		- packages/Amqp/Api
+		- packages/DataProtection/Api
+		- packages/Dbal/Api
+		- packages/Ecotone/Api
+		- packages/JmsConverter/Api
+		- packages/Kafka/Api
+		- packages/Laravel/Api
+		- packages/PdoEventSourcing/Api
+		- packages/Redis/Api
+		- packages/Sqs/Api
+		- packages/Symfony/Api
+		- packages/Tempest/Api
+		- Monorepo
 	excludePaths:
 		- packages/Laravel/src/Config/PDO/Connection.php
 		- packages/Laravel/src/Config/PDO/SqlServerConnection.php
 		- packages/OpenTelemetry/src/Support/OTelTracer.php
+		- Monorepo/*/Symfony/var/*
+		- Monorepo/*/Laravel/storage/*
+		- Monorepo/*/*/var/*
+		- Monorepo/*/*/storage/*

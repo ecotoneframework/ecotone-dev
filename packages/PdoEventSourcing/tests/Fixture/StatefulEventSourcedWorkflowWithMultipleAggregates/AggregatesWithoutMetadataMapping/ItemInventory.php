@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common\InventoryStockIncreased;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common\ItemInventoryCreated;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common\ItemReservation;
@@ -33,13 +33,13 @@ class ItemInventory
         $this->recordThat(new ItemReserved($this->itemId, $itemReservation->quantity));
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyItemInventoryCreated(ItemInventoryCreated $event): void
     {
         $this->itemId = $event->itemId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyInventoryStockIncreased(InventoryStockIncreased $event): void
     {
         $this->quantity += $event->quantity;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Throwable;
 
@@ -27,12 +27,12 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
         );
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Throwable) {
         }
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Throwable) {
         }
 
@@ -52,7 +52,7 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
 
         self::assertNull(
             $ecotone
-                ->sendCommandWithRoutingKey('order.register', 'window')
+                ->sendCommandWithRouting('order.register', 'window')
                 ->run('placeOrder')
                 ->run('placeOrder')
                 ->sendQueryWithRouting('order.getOrder')
@@ -65,7 +65,7 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

@@ -2,19 +2,18 @@
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\ErrorMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Handler\MessageHandlingException;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
@@ -116,16 +115,15 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withAutomaticTableInitialization(true),
+                    DbalConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../../',
         );
@@ -134,8 +132,8 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
     private function cleanUpTables(): void
     {
         $connection = $this->getConnection();
-        if (self::checkIfTableExists($connection, DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE)) {
-            $connection->executeStatement('DROP TABLE ' . DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE);
+        if (self::checkIfTableExists($connection, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE)) {
+            $connection->executeStatement('DROP TABLE ' . DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE);
         }
     }
 }

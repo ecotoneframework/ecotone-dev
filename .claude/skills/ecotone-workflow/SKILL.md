@@ -83,8 +83,8 @@ class OrderProcess
 Chain handlers using `outputChannelName` and `#[InternalHandler]` for multi-step stateless processing:
 
 ```php
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Messaging\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 
 final readonly class ImageProcessingWorkflow
 {
@@ -117,8 +117,8 @@ final readonly class ImageProcessingWorkflow
 Orchestrators define a routing slip -- an ordered list of steps to execute. Each step is an `#[InternalHandler]`. Requires Enterprise licence.
 
 ```php
-use Ecotone\Messaging\Attribute\Orchestrator;
-use Ecotone\Messaging\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class AuthorizationOrchestrator
 {
@@ -139,18 +139,38 @@ class AuthorizationOrchestrator
 }
 ```
 
-### OrchestratorGateway
+### Invoking a Fixed Orchestrator via a Business Interface
 
-Provide a business interface for invoking orchestrators:
+A fixed orchestrator is invoked like any other endpoint, through `#[BusinessMethod]` targeting its
+`#[Orchestrator]` input channel:
 
 ```php
-use Ecotone\Messaging\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface AuthorizationProcess
 {
-    #[OrchestratorGateway('start.authorization')]
+    #[BusinessMethod('start.authorization')]
     public function start(string $data): string;
 }
+```
+
+### OrchestratorGateway (Dynamic Routing Slip)
+
+`#[OrchestratorGateway]` takes no arguments -- unlike `#[BusinessMethod]`, it lets the *caller* supply the routing
+slip itself instead of a fixed `#[Orchestrator]` method, useful when the sequence of steps is decided at runtime:
+
+```php
+use Ecotone\Api\Attribute\OrchestratorGateway;
+
+interface DynamicAuthorizationProcess
+{
+    #[OrchestratorGateway]
+    public function start(array $routingSlip, mixed $data, array $metadata): string;
+}
+```
+
+```php
+$gateway->start(['validate', 'process', 'sendEmail'], 'test-data', []);
 ```
 
 ## Key Rules
@@ -173,4 +193,4 @@ interface AuthorizationProcess
 
 - [API Reference](references/api-reference.md) -- Attribute definitions and constructor signatures for `#[Saga]`, `#[EventSourcingSaga]`, `#[InternalHandler]`, `#[Orchestrator]`, `#[OrchestratorGateway]`, and `WithEvents` trait. Load when you need exact parameter names, types, or attribute targets.
 - [Usage Examples](references/usage-examples.md) -- Complete implementations: full `OrderFulfillmentProcess` saga with multi-event coordination, full `OrderProcess` saga with `outputChannelName`/`#[Delayed]` retry logic, saga identifier mapping patterns, saga with `dropMessageOnNotFound`, saga starting from command, stateless workflow chains (sync and mixed async), and orchestrator patterns with business interfaces. Load when you need a full implementation reference to copy from.
-- [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test patterns for all workflow types: saga state testing with `getSaga()`, saga event testing with `getRecordedEvents()`, async saga testing with `releaseAwaitingMessagesAndRunConsumer()`, saga `outputChannelName` testing, stateless workflow chain testing, async workflow testing, and orchestrator test setup (Enterprise). Load when writing tests for sagas, workflows, or orchestrators.
+- [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test patterns for all workflow types: saga state testing with `getSaga()`, saga event testing with `popRecordedEvents()`, async saga testing with `run()`, saga `outputChannelName` testing, stateless workflow chain testing, async workflow testing, and orchestrator test setup (Enterprise). Load when writing tests for sagas, workflows, or orchestrators.

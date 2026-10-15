@@ -3,10 +3,10 @@
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Application\Command\RegisterProduct;
 use App\MultiTenant\Application\Command\UnregisterProduct;
-use Ecotone\EventSourcing\ProjectionManager;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
@@ -14,8 +14,17 @@ use Ramsey\Uuid\Uuid;
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 $app = require __DIR__.'/bootstrap/app.php';
-$app->make(Kernel::class)->bootstrap();
+try {
+    $app->make(Kernel::class)->bootstrap();
+} finally {
+    /** Laravel's exception handler renders an error and lets the script exit 0; PHP's own handler exits non-zero */
+    restore_exception_handler();
+}
 runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
+/** Initializes the projection up front in each tenant's database: on MySQL, its DDL inside the first command's transaction would end that transaction with an implicit commit */
+foreach (['tenant_a', 'tenant_b'] as $tenant) {
+    Artisan::call('ecotone:projection:init', ['name' => 'registered_products', '--header' => ["tenant:{$tenant}"]]);
+}
 
 /** @var CommandBus $commandBus */
 $commandBus = $app->get(CommandBus::class);

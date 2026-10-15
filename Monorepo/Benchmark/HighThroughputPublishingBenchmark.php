@@ -4,30 +4,30 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Dbal\Configuration\DbalMessagePublisherConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalMessagePublisherConfiguration;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
-use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Redis\RedisConnectionFactory;
-use Enqueue\Sqs\SqsConnectionFactory;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -367,7 +367,7 @@ class HighThroughputPublishingBenchmark
             [],
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, $modulePackage]))
+                ->withEnabledModulePackageNames([$modulePackage])
                 ->withExtensionObjects([$channelBuilder]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -395,7 +395,7 @@ class HighThroughputPublishingBenchmark
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -411,7 +411,7 @@ class HighThroughputPublishingBenchmark
                 DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalMessagePublisherConfiguration::create(MessagePublisher::class, uniqid('benchmark_orders_'))]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -427,7 +427,7 @@ class HighThroughputPublishingBenchmark
                 RedisConnectionFactory::class => new RedisConnectionFactory(getenv('REDIS_DSN') ?: 'redis://localhost:6379'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([RedisMessagePublisherConfiguration::create(queueName: uniqid('benchmark_orders_'))]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -448,7 +448,7 @@ class HighThroughputPublishingBenchmark
                 SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN') ?: 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4566&version=latest'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -469,7 +469,7 @@ class HighThroughputPublishingBenchmark
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094']),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

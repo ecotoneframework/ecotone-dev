@@ -1,12 +1,12 @@
 # Event Sourcing API Reference
 
-## ProjectionV2 Attribute
+## Projection Attribute
 
-Source: `Ecotone\Projecting\Attribute\ProjectionV2`
+Source: `Ecotone\Api\Projecting\Projection`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionV2
+class Projection
 {
     public function __construct(
         public readonly string $name,
@@ -16,29 +16,58 @@ class ProjectionV2
 
 ## FromStream Attribute
 
-Source: `Ecotone\Projecting\Attribute\FromStream`
+Source: `Ecotone\Api\Projecting\FromStream`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
-class FromStream
+readonly class FromStream
 {
     public function __construct(
-        public readonly string $stream,
-        public readonly ?string $aggregateType = null,
+        public string $stream,
+        public ?string $aggregateType = null,
+        public string $eventStoreReferenceName = EventStore::class,
     )
 }
 ```
 
-## FromAggregateStream Attribute
+`$stream` is a stream name, which is also the name of its table. Only needed when the stream is not the
+default `ecotone_event_stream`. Passing an event-sourced aggregate class is a configuration error -- use
+`#[FromAggregateStream]`, which also supplies the aggregate-type filter that a shared table needs.
 
-Source: `Ecotone\Projecting\Attribute\FromAggregateStream`
+## Stream Attribute
+
+Source: `Ecotone\Api\EventSourcing\Stream`
 
 ```php
-#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
-class FromAggregateStream
+#[Attribute(Attribute::TARGET_CLASS)]
+class Stream
 {
     public function __construct(
-        public readonly string $aggregateClass,
+        private ?string $name = null,
+        private ?string $legacyStreamName = null,
+        private string $connectionReferenceName = DbalConnectionReference::DEFAULT,
+    )
+}
+```
+
+Placed on an event-sourced aggregate, it chooses the stream table that aggregate's events live in; placed on a
+class that uses `EventStreamEmitter::emit()`, it chooses where emitted events go. Without it, both use
+`ecotone_event_stream`.
+
+`legacyStreamName` addresses a table created by Ecotone 1.x (`_<sha1(streamName)>`) so 1.x data can be read and
+appended to without migrating it.
+
+## FromAggregateStream Attribute
+
+Source: `Ecotone\Api\Projecting\FromAggregateStream`
+
+```php
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
+readonly class FromAggregateStream
+{
+    public function __construct(
+        public string $aggregateClass,
+        public string $eventStoreReferenceName = EventStore::class,
     )
 }
 ```
@@ -47,14 +76,14 @@ Requires the referenced class to be an `#[EventSourcingAggregate]`.
 
 ## Partitioned Attribute
 
-Source: `Ecotone\Projecting\Attribute\Partitioned`
+Source: `Ecotone\Api\Projecting\Partitioned`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
 class Partitioned
 {
     public function __construct(
-        public readonly ?string $headerName = null,
+        public readonly ?string $partitionHeaderName = null,
     )
 }
 ```
@@ -64,7 +93,7 @@ class Partitioned
 
 ## Polling Attribute
 
-Source: `Ecotone\Projecting\Attribute\Polling`
+Source: `Ecotone\Api\Attribute\Polling`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -78,7 +107,7 @@ class Polling
 
 ## Streaming Attribute
 
-Source: `Ecotone\Projecting\Attribute\Streaming`
+Source: `Ecotone\Api\Projecting\Streaming`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -94,10 +123,10 @@ class Streaming
 
 | Attribute | Source | When Called |
 |-----------|--------|-----------|
-| `#[ProjectionInitialization]` | `Ecotone\EventSourcing\Attribute\ProjectionInitialization` | On first run / initialization |
-| `#[ProjectionDelete]` | `Ecotone\EventSourcing\Attribute\ProjectionDelete` | When projection is deleted |
-| `#[ProjectionReset]` | `Ecotone\EventSourcing\Attribute\ProjectionReset` | When projection is reset |
-| `#[ProjectionFlush]` | `Ecotone\EventSourcing\Attribute\ProjectionFlush` | After each batch of events |
+| `#[ProjectionInitialization]` | `Ecotone\Api\Projecting\ProjectionInitialization` | On first run / initialization |
+| `#[ProjectionDelete]` | `Ecotone\Api\Projecting\ProjectionDelete` | When projection is deleted |
+| `#[ProjectionReset]` | `Ecotone\Api\Projecting\ProjectionReset` | When projection is reset |
+| `#[ProjectionFlush]` | `Ecotone\Api\Projecting\ProjectionFlush` | After each batch of events |
 
 All are `#[Attribute(Attribute::TARGET_METHOD)]` with no constructor parameters.
 
@@ -105,21 +134,23 @@ All are `#[Attribute(Attribute::TARGET_METHOD)]` with no constructor parameters.
 
 ### ProjectionExecution
 
-Source: `Ecotone\Projecting\Attribute\ProjectionExecution`
+Source: `Ecotone\Api\Projecting\ProjectionExecution`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
 class ProjectionExecution
 {
     public function __construct(
-        public readonly int $eventLoadingBatchSize = 1000,
+        public readonly int $eventLoadingBatchSize,
     )
 }
 ```
 
+`eventLoadingBatchSize` has no default -- it is required.
+
 ### ProjectionBackfill
 
-Source: `Ecotone\Projecting\Attribute\ProjectionBackfill`
+Source: `Ecotone\Api\Projecting\ProjectionBackfill`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -134,22 +165,22 @@ class ProjectionBackfill
 
 ### ProjectionDeployment
 
-Source: `Ecotone\Projecting\Attribute\ProjectionDeployment`
+Source: `Ecotone\Api\Projecting\ProjectionDeployment`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
 class ProjectionDeployment
 {
     public function __construct(
-        public readonly bool $live = true,
         public readonly bool $manualKickOff = false,
+        public readonly bool $live = true,
     )
 }
 ```
 
 ## ProjectionState Parameter Attribute
 
-Source: `Ecotone\EventSourcing\Attribute\ProjectionState`
+Source: `Ecotone\Api\Projecting\ProjectionState`
 
 ```php
 #[Attribute(Attribute::TARGET_PARAMETER)]
@@ -171,7 +202,7 @@ public function onEvent(SomeEvent $event, #[ProjectionState] array $state = []):
 
 ## Revision Attribute
 
-Source: `Ecotone\Modelling\Attribute\Revision`
+Source: `Ecotone\Api\Attribute\Revision`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -188,7 +219,7 @@ class Revision
 
 ## NamedEvent Attribute
 
-Source: `Ecotone\Modelling\Attribute\NamedEvent`
+Source: `Ecotone\Api\Attribute\NamedEvent`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -202,22 +233,27 @@ class NamedEvent
 
 ## EventStore Interface
 
-Source: `Ecotone\EventSourcing\EventStore`
+Source: `Ecotone\Api\EventSourcing\EventStore`
 
 ```php
 interface EventStore
 {
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
-    public function appendTo(string $streamName, array $streamEvents): void;
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
     public function delete(string $streamName): void;
     public function hasStream(string $streamName): bool;
-    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ...): iterable;
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): iterable;
+    public function loadAggregateEvents(string $streamName, ?string $aggregateType, string $aggregateId, int $fromVersion = 1, ?int $count = null, array $eventNames = [], bool $deserialize = true): iterable;
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }
 ```
 
+`AggregateEventStore` and `TaggedEventStore` no longer exist -- `loadAggregateEvents()` and `loadByCriteria()`
+(Enterprise) are part of this one interface.
+
 ## EventStreamEmitter
 
-Source: `Ecotone\EventSourcing\EventStreamEmitter`
+Source: `Ecotone\Api\EventSourcing\EventStreamEmitter`
 
 Available in projection event handler methods:
 

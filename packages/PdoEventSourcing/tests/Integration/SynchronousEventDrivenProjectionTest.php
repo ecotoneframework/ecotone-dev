@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\ServiceEventHandler\TicketNotificationEventHandler;
@@ -34,20 +32,19 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 {
     public function test_building_synchronous_event_driven_projection(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
             ->withExtensionObjects([
                 EventSourcingConfiguration::createWithDefaults(),
-            ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -67,20 +64,19 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
     public function test_synchronous_projection_uses_the_current_transaction_after_reconnecting(): void
     {
         $connection = $this->getConnection();
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
-                    'Test\\Ecotone\\EventSourcing\\Fixture\\Ticket',
-                    'Test\\Ecotone\\EventSourcing\\Fixture\\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                    'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -108,7 +104,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
     public function test_synchronous_event_driven_projection_should_be_called_before_standard_event_handlers(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new InProgressTicketList($this->getConnection()),
                 new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -116,7 +112,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
@@ -124,9 +120,8 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -140,24 +135,22 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
     public function test_operations_on_synchronous_event_driven_projection(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
             ->withExtensionObjects([
                 EventSourcingConfiguration::createWithDefaults(),
-            ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Marcus', 'alert'));
-        $ecotone->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->sendCommand(new RegisterTicket('124', 'Andrew', 'alert'));
 
         self::assertEquals([
@@ -178,20 +171,20 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
     public function test_building_projection_from_event_sourced_when_snapshots_are_enabled(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), new TicketMediaTypeConverter(), new BasketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\Snapshots',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withSnapshots([Ticket::class, Basket::class], 1),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                        ->withSnapshotsFor([Ticket::class, Basket::class], 1),
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -211,17 +204,16 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
     public function test_building_synchronous_event_driven_projection_using_in_memory_event_store(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -240,23 +232,19 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
     public function test_catching_up_events_after_reset_synchronous_event_driven_projection(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-                        ->withTestingSetup()
-                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 100),
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+                ])->addExtensionObject(DbalConfiguration::createForTesting()),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));

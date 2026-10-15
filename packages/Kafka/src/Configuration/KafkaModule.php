@@ -6,11 +6,17 @@ namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaConsumer;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -20,8 +26,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -30,12 +34,25 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderV
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  *
  * @link https://www.confluent.io/blog/how-to-send-messages-with-librdkafka/  Details about producing messages
  * @link https://github.com/confluentinc/librdkafka/wiki/FAQ#why-is-there-no-sync-produce-interface general faq on librdkafka
@@ -70,9 +87,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence.');
-        }
+        $this->refuseKafkaUsedWithoutLicence($messagingConfiguration, $extensionObjects);
 
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
@@ -134,7 +149,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             $kafkaBrokerConfigurations[$consumerConfiguration->getBrokerConfigurationReference()] = Reference::to($consumerConfiguration->getBrokerConfigurationReference());
         }
         foreach ($publisherConfigurations as $publisherConfiguration) {
-            $kafkaBrokerConfigurations[$publisherConfiguration->getBrokerConfigurationReference()] = Reference::to($publisherConfiguration->getBrokerConfigurationReference());
+            $kafkaBrokerConfigurations[$publisherConfiguration->brokerConfigurationReference] = Reference::to($publisherConfiguration->brokerConfigurationReference);
         }
         if ($kafkaConsumers !== [] && ! array_key_exists(KafkaBrokerConfiguration::class, $kafkaBrokerConfigurations)) {
             $kafkaBrokerConfigurations[KafkaBrokerConfiguration::class] = Reference::to(KafkaBrokerConfiguration::class);
@@ -150,7 +165,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
                     ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
-                    ->withCommitInterval($kafkaConsumer->getCommitIntervalInMessages())
+                    ->withCommitInterval($kafkaConsumer->commitIntervalInMessages)
                     ->withEndpointAnnotations($kafkaConsumerAnnotatedMethod->getAllAnnotationDefinitions())
             );
         }
@@ -170,14 +185,35 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         );
     }
 
-    public function canHandle($extensionObject): bool
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function refuseKafkaUsedWithoutLicence(Configuration $messagingConfiguration, array $extensionObjects): void
     {
-        return
-            $extensionObject instanceof KafkaConsumerConfiguration
-            || $extensionObject instanceof TopicConfiguration
-            || $extensionObject instanceof KafkaPublisherConfiguration
-            || $extensionObject instanceof KafkaMessageChannelBuilder
-            || $extensionObject instanceof ServiceConfiguration;
+        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
+            return;
+        }
+
+        $usages = array_map(fn (KafkaConsumer $kafkaConsumer) => "#[KafkaConsumer] `{$kafkaConsumer->getEndpointId()}`", array_values($this->kafkaConsumers));
+        foreach ($extensionObjects as $extensionObject) {
+            $usages[] = match (true) {
+                $extensionObject instanceof KafkaMessageChannelBuilder => "KafkaMessageChannelBuilder for channel `{$extensionObject->getMessageChannelName()}`",
+                $extensionObject instanceof KafkaConsumerConfiguration => "KafkaConsumerConfiguration for `{$extensionObject->getEndpointId()}`",
+                $extensionObject instanceof TopicConfiguration => "TopicConfiguration for topic `{$extensionObject->getTopicName()}`",
+                $extensionObject instanceof KafkaPublisherConfiguration => "KafkaPublisherConfiguration `{$extensionObject->getReferenceName()}`",
+                default => null,
+            };
+        }
+        $usages = array_filter($usages);
+        if ($usages === []) {
+            return;
+        }
+
+        throw LicensingException::create(
+            'Kafka is used here (' . implode(', ', $usages) . '), but the Kafka module is available only with Ecotone Enterprise licence. '
+            . "Pass the licence key - ServiceConfiguration::createWithDefaults()->withLicenceKey('...'), or EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...') in a test - "
+            . 'or remove the Kafka configuration listed. See https://docs.ecotone.tech/enterprise for details.'
+        );
     }
 
     public function getModulePackageName(): string
@@ -187,7 +223,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     private function registerMessagePublisher(Configuration $messagingConfiguration, KafkaPublisherConfiguration $extensionObject, ServiceConfiguration $applicationConfiguration): void
     {
-        $mediaType = $extensionObject->getOutputDefaultConversionMediaType() ?? $applicationConfiguration->getDefaultSerializationMediaType();
+        $mediaType = $extensionObject->getOutputDefaultConversionMediaType() ?? $applicationConfiguration->defaultSerializationMediaType;
 
         $messagingConfiguration
             ->registerGatewayBuilder(

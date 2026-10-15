@@ -7,20 +7,20 @@ namespace App\ReactiveSystem\Stage_3\Domain\Shipping;
 use App\ReactiveSystem\Stage_3\Domain\Order\Event\OrderWasPlaced;
 use App\ReactiveSystem\Stage_3\Domain\Order\OrderRepository;
 use App\ReactiveSystem\Stage_3\Infrastructure\Messaging\MessageChannelConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 
 final class ShippingSubscriber
 {
-    public function __construct(private readonly OrderRepository $orderRepository, public readonly ShippingService $shippingService)
+    public function __construct(public readonly ShippingService $shippingService)
     {
     }
 
     #[Asynchronous(MessageChannelConfiguration::ASYNCHRONOUS_CHANNEL)]
     #[EventHandler(endpointId: "shipWhenOrderWasPlaced")]
-    public function when(OrderWasPlaced $event): void
+    public function when(OrderWasPlaced $event, OrderRepository $orderRepository): void
     {
-        $order = $this->orderRepository->getBy($event->orderId);
+        $order = $orderRepository->getBy($event->orderId);
 
         $this->shippingService->shipOrderFor(
             $order->getUserId(), $order->getOrderId(),

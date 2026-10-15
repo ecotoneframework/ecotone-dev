@@ -28,7 +28,7 @@
         "messaging",
         "eip"
     ],
-    "description": "Ecotone for Tempest \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox via PHP attributes.",
+    "description": "Ecotone for Tempest — CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox via PHP attributes.",
     "repositories": [
         {
             "type": "path",
@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Tempest\\": "Api/",
             "Ecotone\\Tempest\\": "src"
         }
     },
@@ -55,12 +56,11 @@
         "tempest/framework": "^3.11"
     },
     "suggest": {
-        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via TempestConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases.",
-        "enqueue/dbal": "DBAL-backed message queue transport; required if you want durable async messaging over a relational database using ecotone/dbal."
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via TempestConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases."
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0|^12.0",
-        "phpstan/phpstan": "^1.8|^2.0",
+        "phpstan/phpstan": "^2.1",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
         "ecotone/dbal": "~1.328.2",
         "doctrine/dbal": "^4.0"
@@ -96,6 +96,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 17:33:51"
     }
 }

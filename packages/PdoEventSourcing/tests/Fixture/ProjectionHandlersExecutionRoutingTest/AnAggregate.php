@@ -7,12 +7,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest;
 
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate, Stream(self::STREAM_NAME)]
 class AnAggregate
@@ -29,7 +29,7 @@ class AnAggregate
         return [new AnEvent($id)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onEvent(AnEvent $event): void
     {
         $this->id = $event->id;

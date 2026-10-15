@@ -3,14 +3,12 @@
 namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
-use Ecotone\Amqp\Distribution\AmqpDistributionModule;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpExtConnection;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\ErrorChannel\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError\ChannelConfiguration;
 use Test\Ecotone\Amqp\Fixture\Shop\MessagingConfiguration;
@@ -45,11 +43,7 @@ abstract class AmqpMessagingTestCase extends TestCase
     {
         $connectionFactory = $this->getCachedConnectionFactory($config);
 
-        // Provide both the interface and both concrete implementations
-        // Even though only AmqpExt is installed, some modules (like AmqpTransactionModule)
-        // default to AmqpLib, so we need to provide it as well
         return [
-            AmqpConnectionFactory::class => $connectionFactory,
             AmqpExtConnection::class => $connectionFactory,
             AmqpLibConnection::class => $connectionFactory,
         ];
@@ -93,8 +87,7 @@ abstract class AmqpMessagingTestCase extends TestCase
         $this->deleteQueue(new AmqpQueue(ErrorConfigurationContext::INPUT_CHANNEL));
         $this->deleteQueue(new AmqpQueue(Fixture\DeadLetter\ErrorConfigurationContext::INPUT_CHANNEL));
         $this->deleteQueue(new AmqpQueue(Fixture\DeadLetter\ErrorConfigurationContext::DEAD_LETTER_CHANNEL));
-        $this->deleteQueue(new AmqpQueue('distributed_ticket_service'));
-        $this->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . TicketServiceMessagingConfiguration::SERVICE_NAME));
+        $this->deleteQueue(new AmqpQueue('ticket_service'));
         $this->deleteQueue(new AmqpQueue('ecotone_1_delay'));
         $this->deleteQueue(new AmqpQueue('async'));
         $this->deleteQueue(new AmqpQueue('notification_channel'));
@@ -116,21 +109,20 @@ abstract class AmqpMessagingTestCase extends TestCase
     protected function bootstrapFlowTesting(
         array $classesToResolve = [],
         array $containerOrAvailableServices = [],
-        ?\Ecotone\Messaging\Config\ServiceConfiguration $configuration = null,
+        ?\Ecotone\Api\ExtensionObject\ServiceConfiguration $configuration = null,
         array $configurationVariables = [],
         ?string $pathToRootCatalog = null,
         bool $allowGatewaysToBeRegisteredInContainer = false,
         bool $addInMemoryStateStoredRepository = true,
         bool $addInMemoryEventSourcedRepository = true,
-        array|bool|null $enableAsynchronousProcessing = null,
-        ?\Ecotone\Lite\Test\TestConfiguration $testConfiguration = null,
+        ?\Ecotone\Api\ExtensionObject\TestConfiguration $testConfiguration = null,
         ?string $licenceKey = null
-    ): \Ecotone\Lite\Test\FlowTestSupport {
+    ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         if ($configuration === null) {
-            $configuration = \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults();
+            $configuration = \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults();
         }
 
-        return \Ecotone\Lite\EcotoneLite::bootstrapFlowTesting(
+        return \Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $containerOrAvailableServices,
             $configuration,
@@ -139,35 +131,9 @@ abstract class AmqpMessagingTestCase extends TestCase
             $allowGatewaysToBeRegisteredInContainer,
             $addInMemoryStateStoredRepository,
             $addInMemoryEventSourcedRepository,
-            $enableAsynchronousProcessing,
             $testConfiguration,
             $licenceKey
         );
     }
 
-    /**
-     * Bootstrap Ecotone for testing with writable cache directory
-     * This is a wrapper around EcotoneLite::bootstrapForTesting that automatically sets the cache directory
-     */
-    protected function bootstrapForTesting(
-        array $classesToResolve = [],
-        array $containerOrAvailableServices = [],
-        ?\Ecotone\Messaging\Config\ServiceConfiguration $configuration = null,
-        array $configurationVariables = [],
-        string $pathToRootCatalog = '',
-        bool $useCachedVersion = false
-    ): \Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport {
-        if ($configuration === null) {
-            $configuration = \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults();
-        }
-
-        return \Ecotone\Lite\EcotoneLite::bootstrapForTesting(
-            $classesToResolve,
-            $containerOrAvailableServices,
-            $configuration,
-            $configurationVariables,
-            $pathToRootCatalog,
-            $useCachedVersion
-        );
-    }
 }

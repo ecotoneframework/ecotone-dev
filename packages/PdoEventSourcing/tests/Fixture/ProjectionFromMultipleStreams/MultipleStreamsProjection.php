@@ -2,15 +2,19 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams;
 
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
-#[Projection('multiple_stream_projections', [Ticket::class, Basket::BASKET_STREAM])]
+#[Projection('multiple_stream_projections')]
+#[FromAggregateStream(Ticket::class)]
+#[FromStream(Basket::BASKET_STREAM)]
 /**
  * licence Apache-2.0
  */

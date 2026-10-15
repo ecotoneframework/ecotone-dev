@@ -140,6 +140,13 @@ jobs:
         id: baseline_check
         run: echo "available=$([ -d .phpbench/storage ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
+      # 2.0 never creates a table on the message path, so the event-sourcing benchmarks need
+      # their tables beforehand. The baseline step used to leave them behind as a side effect of
+      # 1.x lazy creation, but it is skipped on a cache hit, which made the job pass or fail on
+      # whatever the previous run happened to leave in the database.
+      - name: Set up benchmark database tables
+        run: php Monorepo/Benchmark/setup-database.php
+
       - name: Benchmark PR
         shell: bash
         env:

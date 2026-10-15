@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Workflow\Saga\Infrastructure;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
 
 final readonly class EcotoneConfiguration
 {
@@ -20,6 +20,6 @@ final readonly class EcotoneConfiguration
     public function documentStoreRepository()
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreStandardRepository: true);
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true);
     }
 }

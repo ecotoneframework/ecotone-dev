@@ -3,30 +3,38 @@
 namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-class DbalDeadLetterModule implements AnnotationModule
+final class DbalDeadLetterModule implements AnnotationModule
 {
     public const HELP_COMMAND_NAME = 'ecotone:deadletter:help';
     public const LIST_COMMAND_NAME            = 'ecotone:deadletter:list';
@@ -49,17 +57,19 @@ class DbalDeadLetterModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
-        $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $isDeadLetterEnabled = $dbalConfiguration->deadLetterEnabled;
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
             DeadLetterTableManager::class,
             new Definition(DeadLetterTableManager::class, [
-                DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
-                $isDeadLetterEnabled,
-                $shouldAutoInitialize,
+                DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE,
+                $isDeadLetterEnabled && ! $dbalConfiguration->deadLetterInMemory,
+                $consoleInvocationPrefix,
+                $connectionFactoryReference,
             ])
         );
 
@@ -70,30 +80,34 @@ class DbalDeadLetterModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(DbalDeadLetterConsoleCommand::class, new Definition(DbalDeadLetterConsoleCommand::class));
         $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Lists dead letter messages');
         $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows details of given dead letter message');
-        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays given dead letter message');
-        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
+        $this->registerOneTimeCommand('replay', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays given dead letter message');
+        $this->registerOneTimeCommand('replayAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
 
-        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration);
+        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
-            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $messagingConfiguration);
+            $referenceName = $customDeadLetterGateway->getGatewayReferenceName();
+            $this->registerGateway($referenceName, $customDeadLetterGateway->getConnectionReferenceName(), DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::STORE_CHANNEL), $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         }
     }
 
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DbalConfiguration || $extensionObject instanceof CustomDeadLetterGateway;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [
-            new DbalTableManagerReference(DeadLetterTableManager::class),
-        ];
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
+
+        $connectionReferences = [$dbalConfiguration->getDeadLetterConnectionReference()];
+        foreach (ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $serviceExtensions) as $customDeadLetterGateway) {
+            $connectionReferences[] = $customDeadLetterGateway->getConnectionReferenceName();
+        }
+
+        return array_map(
+            fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
+            array_values(array_unique($connectionReferences)),
+        );
     }
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, string $description = ''): void
@@ -116,26 +130,43 @@ class DbalDeadLetterModule implements AnnotationModule
         return ModulePackageList::DBAL_PACKAGE;
     }
 
-    private function registerGateway(string $referenceName, string $connectionFactoryReference, bool $isCustomGateway, Configuration $configuration): void
+    private function registerGateway(string $referenceName, string $connectionFactoryReference, string $storeChannelName, bool $isInMemory, Configuration $configuration): void
     {
-        if (! $isCustomGateway) {
-            $configuration->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactoryReference));
-        }
+        $configuration->registerServiceDefinition(
+            DbalDeadLetterBuilder::storeReferenceFor($referenceName),
+            $isInMemory
+                ? new Definition(InMemoryDeadLetterStore::class, [
+                    DefaultHeaderMapper::createAllHeadersMapping(),
+                    Reference::to(ConversionService::REFERENCE_NAME),
+                ])
+                : new Definition(DbalDeadLetterStore::class, [
+                    new Definition(CachedConnectionFactory::class, [
+                        new Definition(DbalReconnectableConnectionFactory::class, [
+                            new Reference($connectionFactoryReference),
+                        ]),
+                    ], 'createFor'),
+                    DefaultHeaderMapper::createAllHeadersMapping(),
+                    Reference::to(ConversionService::REFERENCE_NAME),
+                    Reference::to(RetryRunner::class),
+                    Reference::to(DeadLetterTableManager::class),
+                ])
+        );
 
         $configuration
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDeleteAll($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createStore($referenceName, $storeChannelName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDeleteAll($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplay($referenceName))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplayAll($referenceName))
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
                     'store',
-                    DbalDeadLetterBuilder::STORE_CHANNEL
+                    $storeChannelName
                 )
             )
             ->registerGatewayBuilder(
@@ -170,7 +201,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
-                    'reply',
+                    'replay',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_CHANNEL)
                 )
             )
@@ -178,7 +209,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
-                    'replyAll',
+                    'replayAll',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
                 )
             )

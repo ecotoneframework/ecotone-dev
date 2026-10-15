@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
@@ -27,14 +27,14 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
     {
         $endpointId = 'asynchronous_endpoint';
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerExample::class],
             [
                 new AmqpConsumerExample(),
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),

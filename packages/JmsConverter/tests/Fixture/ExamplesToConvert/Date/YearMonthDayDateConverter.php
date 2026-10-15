@@ -6,7 +6,7 @@ namespace Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Date;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 final class YearMonthDayDateConverter
 {

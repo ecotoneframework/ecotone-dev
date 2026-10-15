@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
@@ -69,7 +68,7 @@ final class RealBootTest extends TestCase
         $kernel->container->singleton(
             EcotoneConfig::class,
             new EcotoneConfig(
-                skippedModulePackageNames: ModulePackageList::allPackages(),
+                enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
                 test: true,
             ),
         );
@@ -113,7 +112,7 @@ final class RealBootTest extends TestCase
         $this->injectDiscoveryConfig($kernel, $ecotoneLocation, $appLocation);
 
         $kernel->container->config(new EcotoneConfig(
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         ));
 

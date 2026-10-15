@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisContext;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
@@ -49,11 +49,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $orderService = $this->createOrderService();
         $messaging = $this->bootstrapEcotoneWithChannel($orderService, LicenceTesting::VALID_LICENCE);
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertSame(
             ['espresso-1', 'espresso-2', 'espresso-3'],
@@ -78,7 +78,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -137,7 +137,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$commandHandler::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessagePublisherConfiguration::create(queueName: $queueName)
                         ->withHighThroughputPublishing(),
@@ -146,7 +146,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+        $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
         while ($message = $messaging->getMessageChannel($queueName)->receive()) {
@@ -282,7 +282,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$orderService::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')
                         ->withHighThroughputPublishing(),
@@ -302,7 +302,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     $publisherConfiguration,
                     RedisBackedMessageChannelBuilder::create($queueName),

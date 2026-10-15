@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\BasicEnum;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;
@@ -29,52 +29,7 @@ class HeaderConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    JMSConverterConfiguration::createWithDefaults()
-                        ->withDefaultNullSerialization(true)
-                        ->withDefaultEnumSupport(true),
-                ])
-                ->withNamespaces(['Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion']),
-        );
-
-        self::assertNull($playground->typeHintedStringBackedEnum);
-        self::assertNull($playground->nonTypeHintedStringBackedEnum);
-        self::assertNull($playground->typeHintedIntBackedEnum);
-        self::assertNull($playground->nonTypeHintedIntBackedEnum);
-        self::assertNull($playground->typeHintedBasicEnum);
-        self::assertNull($playground->nonTypeHintedBasicEnum);
-
-        $ecotone->publishEventWithRoutingKey(
-            routingKey: 'message',
-            event: new Message(),
-            metadata: [
-                'typeHintedStringBackedEnum' => StringEnum::foo,
-                'nonTypeHintedStringBackedEnum' => StringEnum::foo,
-                'typeHintedIntBackedEnum' => NumericEnum::ONE,
-                'nonTypeHintedIntBackedEnum' => NumericEnum::ONE,
-                'typeHintedBasicEnum' => BasicEnum::ONE,
-                'nonTypeHintedBasicEnum' => BasicEnum::ONE,
-            ]
-        );
-
-        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);
-        ;
-        self::assertEquals(StringEnum::foo, $playground->nonTypeHintedStringBackedEnum);
-        self::assertEquals(NumericEnum::ONE, $playground->typeHintedIntBackedEnum);
-        self::assertEquals(NumericEnum::ONE, $playground->nonTypeHintedIntBackedEnum);
-        self::assertEquals(BasicEnum::ONE, $playground->typeHintedBasicEnum);
-        self::assertEquals(BasicEnum::ONE, $playground->nonTypeHintedBasicEnum);
-    }
-
-    public function test_handling_enums_in_headers_async(): void
-    {
-        $playground = new Playground();
-
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [Playground::class],
-            containerOrAvailableServices: [$playground],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()
@@ -91,7 +46,56 @@ class HeaderConversionTest extends TestCase
         self::assertNull($playground->typeHintedBasicEnum);
         self::assertNull($playground->nonTypeHintedBasicEnum);
 
-        $ecotone->publishEventWithRoutingKey(
+        $ecotone->publishEventWithRouting(
+            routingKey: 'message',
+            event: new Message(),
+            metadata: [
+                'typeHintedStringBackedEnum' => StringEnum::foo,
+                'nonTypeHintedStringBackedEnum' => StringEnum::foo,
+                'typeHintedIntBackedEnum' => NumericEnum::ONE,
+                'nonTypeHintedIntBackedEnum' => NumericEnum::ONE,
+                'typeHintedBasicEnum' => BasicEnum::ONE,
+                'nonTypeHintedBasicEnum' => BasicEnum::ONE,
+            ]
+        );
+
+        $ecotone->run('async');
+
+        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);
+        ;
+        self::assertEquals(StringEnum::foo->value, $playground->nonTypeHintedStringBackedEnum);
+        self::assertEquals(NumericEnum::ONE, $playground->typeHintedIntBackedEnum);
+        self::assertEquals(NumericEnum::ONE->value, $playground->nonTypeHintedIntBackedEnum);
+        self::assertEquals(BasicEnum::ONE, $playground->typeHintedBasicEnum);
+        self::assertEquals(BasicEnum::ONE->name, $playground->nonTypeHintedBasicEnum);
+    }
+
+    public function test_handling_enums_in_headers_async(): void
+    {
+        $playground = new Playground();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [Playground::class],
+            containerOrAvailableServices: [$playground],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
+                    JMSConverterConfiguration::createWithDefaults()
+                        ->withDefaultNullSerialization(true)
+                        ->withDefaultEnumSupport(true),
+                ])
+                ->withNamespaces(['Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion']),
+        );
+
+        self::assertNull($playground->typeHintedStringBackedEnum);
+        self::assertNull($playground->nonTypeHintedStringBackedEnum);
+        self::assertNull($playground->typeHintedIntBackedEnum);
+        self::assertNull($playground->nonTypeHintedIntBackedEnum);
+        self::assertNull($playground->typeHintedBasicEnum);
+        self::assertNull($playground->nonTypeHintedBasicEnum);
+
+        $ecotone->publishEventWithRouting(
             routingKey: 'message',
             event: new Message(),
             metadata: [

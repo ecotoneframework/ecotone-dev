@@ -3,7 +3,7 @@
 ## RetryTemplateBuilder API
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 ```
 
 ### Fixed Backoff
@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 ```php
 // Fixed delay between retries (in milliseconds)
 $retry = RetryTemplateBuilder::fixedBackOff(1000)  // 1s between retries
-    ->maxRetryAttempts(3);
+    ->maxRetries(3);            // 1 initial delivery + 3 retries = up to 4 handler calls
 ```
 
 ### Exponential Backoff
@@ -19,10 +19,10 @@ $retry = RetryTemplateBuilder::fixedBackOff(1000)  // 1s between retries
 ```php
 // Initial delay * multiplier^attempt
 // 1s -> 10s -> 100s -> 1000s...
-$retry = RetryTemplateBuilder::exponentialBackoff(
-    initialDelay: 1000,   // starting delay in ms
-    multiplier: 10        // multiplier for each retry
-)->maxRetryAttempts(5);
+$retry = RetryTemplateBuilder::exponentialBackOff(
+    initialDelayInMilliseconds: 1000,
+    multiplier: 10
+)->maxRetries(5);
 ```
 
 ### Exponential Backoff with Max Delay
@@ -30,17 +30,17 @@ $retry = RetryTemplateBuilder::exponentialBackoff(
 ```php
 // Like exponential, but capped at a maximum delay
 // 1s -> 2s -> 4s -> 8s -> 16s -> 32s -> 60s -> 60s...
-$retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(
-    initialDelay: 1000,   // starting delay in ms
-    multiplier: 2,        // multiplier for each retry
-    maxDelay: 60000       // cap delay at 60s
-)->maxRetryAttempts(10);
+$retry = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(
+    initialDelayInMilliseconds: 1000,
+    multiplier: 2,
+    maxDelayInMilliseconds: 60000
+)->maxRetries(10);
 ```
 
 ## ErrorHandlerConfiguration API
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 ```
 
 ### With Dead Letter Channel
@@ -50,7 +50,7 @@ After retries are exhausted, messages go to a dead letter channel:
 ```php
 ErrorHandlerConfiguration::createWithDeadLetterChannel(
     errorChannelName: 'errorChannel',
-    retryTemplate: RetryTemplateBuilder::fixedBackOff(1000)->maxRetryAttempts(3),
+    retryTemplate: RetryTemplateBuilder::fixedBackOff(1000)->maxRetries(3),
     deadLetterChannelName: 'dead_letter'
 );
 ```
@@ -62,14 +62,14 @@ Messages that exhaust retries are dropped:
 ```php
 ErrorHandlerConfiguration::create(
     errorChannelName: 'errorChannel',
-    retryTemplate: RetryTemplateBuilder::exponentialBackoff(1000, 2)->maxRetryAttempts(5)
+    retryTemplate: RetryTemplateBuilder::exponentialBackOff(1000, 2)->maxRetries(5)
 );
 ```
 
 ## FinalFailureStrategy Enum
 
 ```php
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 ```
 
 | Value | Constant | Behavior |
@@ -99,7 +99,7 @@ AmqpBackedMessageChannelBuilder::create('orders')
 ## #[InstantRetry] Attribute (Enterprise)
 
 ```php
-use Ecotone\Modelling\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 // Retry on any exception
 #[InstantRetry(retryTimes: 3)]
@@ -114,7 +114,7 @@ use Ecotone\Modelling\Attribute\InstantRetry;
 ## #[ErrorChannel] Attribute (Enterprise)
 
 ```php
-use Ecotone\Messaging\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\ErrorChannel;
 
 #[ErrorChannel('orders_error')]
 ```
@@ -126,8 +126,10 @@ use Ecotone\Messaging\Attribute\ErrorChannel;
 ## ErrorMessage API
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
+use Ecotone\Api\Messaging\ErrorMessage;
 
-$errorMessage->getPayload();         // Returns the exception
-$errorMessage->getOriginalMessage(); // Returns the original message
+$errorMessage->getPayload();            // Original message's payload
+$errorMessage->getExceptionClass();     // Thrown exception's class name
+$errorMessage->getExceptionMessage();   // Thrown exception's message
+$errorMessage->getExceptionStackTrace(); // Thrown exception's stack trace
 ```

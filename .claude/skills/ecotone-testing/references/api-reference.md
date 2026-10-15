@@ -4,7 +4,7 @@
 
 ### `EcotoneLite::bootstrapFlowTesting()`
 
-Standard test bootstrap. Skips all module packages by default.
+Standard test bootstrap. Loads every installed module package; each runs in memory until the test gives it a connection (a `DbalConnectionFactory`, a `TracerProviderInterface`). Name packages with `withEnabledModulePackageNames([...])` to load fewer.
 
 ```php
 public static function bootstrapFlowTesting(
@@ -16,46 +16,27 @@ public static function bootstrapFlowTesting(
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     bool                     $addInMemoryStateStoredRepository = true,
     bool                     $addInMemoryEventSourcedRepository = true,
-    array|bool|null          $enableAsynchronousProcessing = null,
     ?TestConfiguration       $testConfiguration = null,
     ?string                  $licenceKey = null
 ): FlowTestSupport
 ```
 
-### `EcotoneLite::bootstrapFlowTestingWithEventStore()`
+### `EcotoneLite::bootstrap()`
 
-Test bootstrap with in-memory event store. Enables eventSourcing, dbal, jmsConverter packages.
+Production/standalone bootstrap (not a test helper) -- loads every installed module package and returns the live
+messaging system rather than `FlowTestSupport`.
 
 ```php
-public static function bootstrapFlowTestingWithEventStore(
+public static function bootstrap(
     array                    $classesToResolve = [],
     ContainerInterface|array $containerOrAvailableServices = [],
     ?ServiceConfiguration    $configuration = null,
     array                    $configurationVariables = [],
-    ?string                  $pathToRootCatalog = null,
-    bool                     $allowGatewaysToBeRegisteredInContainer = false,
-    bool                     $addInMemoryStateStoredRepository = true,
-    bool                     $runForProductionEventStore = false,
-    array|bool|null          $enableAsynchronousProcessing = null,
-    ?TestConfiguration       $testConfiguration = null,
-    ?string                  $licenceKey = null,
-): FlowTestSupport
-```
-
-### `EcotoneLite::bootstrapForTesting()`
-
-Low-level bootstrap with full control. Does not skip any packages automatically.
-
-```php
-public static function bootstrapForTesting(
-    array                    $classesToResolve = [],
-    ContainerInterface|array $containerOrAvailableServices = [],
-    ?ServiceConfiguration    $configuration = null,
-    array                    $configurationVariables = [],
+    bool                     $useCachedVersion = false,
     ?string                  $pathToRootCatalog = null,
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     ?string                  $licenceKey = null,
-): FlowTestSupport
+): ConfiguredMessagingSystem
 ```
 
 ## FlowTestSupport Methods
@@ -65,9 +46,9 @@ public static function bootstrapForTesting(
 | Method | Description |
 |--------|-------------|
 | `sendCommand(object $command, array $metadata = [])` | Send command object |
-| `sendCommandWithRoutingKey(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
+| `sendCommandWithRouting(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
 | `publishEvent(object $event, array $metadata = [])` | Publish event object |
-| `publishEventWithRoutingKey(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
+| `publishEventWithRouting(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
 | `sendQuery(object $query, array $metadata = [], ...)` | Send query, returns result |
 | `sendQueryWithRouting(string $routingKey, mixed $query = [], ...)` | Send query by routing key |
 | `sendDirectToChannel(string $channel, mixed $payload = '', array $metadata = [])` | Send directly to channel |
@@ -76,13 +57,15 @@ public static function bootstrapForTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `getRecordedEvents()` | `mixed[]` | Events published via EventBus |
-| `getRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
-| `getRecordedCommands()` | `mixed[]` | Commands sent via CommandBus |
-| `getRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
-| `getRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
-| `getRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
-| `getRecordedEcotoneMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
+| `popRecordedEvents()` | `mixed[]` | Events published via EventBus since the last pop; removes them |
+| `popRecordedEventsOfType(string $className)` | `object[]` | Removes and returns only events of that class |
+| `popRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
+| `popRecordedCommands()` | `mixed[]` | Commands sent via CommandBus since the last pop; removes them |
+| `popRecordedCommandsOfType(string $className)` | `object[]` | Removes and returns only commands of that class |
+| `popRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
+| `popRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
+| `popRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
+| `popRecordedMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
 | `discardRecordedMessages()` | `self` | Clear all recorded messages |
 
 ### Aggregate & Saga State
@@ -107,7 +90,7 @@ public static function bootstrapForTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `run(string $name, ?ExecutionPollingMetadata $meta = null, TimeSpan\|DateTimeInterface\|null $releaseFor = null)` | `self` | Run consumer/endpoint |
+| `run(string $channelOrEndpointName, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer; delivers messages due at the test clock's current time, earliest due first; never moves the clock |
 | `getMessageChannel(string $channelName)` | `MessageChannel` | Get channel instance |
 | `receiveMessageFrom(string $channelName)` | `?Message` | Receive from pollable channel |
 
@@ -115,23 +98,27 @@ public static function bootstrapForTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `initializeProjection(string $name, array $metadata = [])` | `self` | Initialize projection |
+| `initializeProjection(string $name)` | `self` | Initialize projection |
 | `triggerProjection(string\|array $name)` | `self` | Trigger projection catch-up |
 | `resetProjection(string $name)` | `self` | Reset projection (clear + reinit) |
 | `deleteProjection(string $name)` | `self` | Delete projection |
-| `stopProjection(string $name)` | `self` | Stop projection |
+
+`stopProjection()` was removed in 2.0 with no replacement: stop a `#[Polling]` projection in a test by simply not
+calling `->run($endpointId)` again; a synchronous or async-channel projection has no "stop" concept to begin with.
 
 ### Time Control
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time |
-| `advanceTimeTo(Duration $duration)` | `self` | Advance clock by duration |
+| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time (same or later instant) |
+| `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
 
 ### Infrastructure
 
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `getGateway(string $gatewayClass)` | `object` | Get gateway instance |
-| `getServiceFromContainer(string $serviceId)` | `object` | Get service from container |
-| `getMessagingSystem()` | `ConfiguredMessagingSystem` | Get messaging system |
+| `getServiceFromContainer(string $serviceId)` | `object` | Get service from container. Not for reaching Ecotone's own internals in a test -- use `getGateway()`; see `docs/coding-conventions.md` rule 10 |
+| `getCommandBus()` / `getEventBus()` / `getQueryBus()` | `CommandBus` / `EventBus` / `QueryBus` | Get the bus gateway directly |
+| `runConsoleCommand(string $name, array $parameters = [])` | `mixed` | Run a registered console command |
+| `setupDatabaseTables()` | `self` | Create every table the test uses, on every connection that holds one -- the flow-test bootstrap already calls it unless `TestConfiguration::withDatabaseTablesSetUpOnBootstrap(false)`; nothing creates a table while a message is handled (see `docs/coding-conventions.md` rule 16) |

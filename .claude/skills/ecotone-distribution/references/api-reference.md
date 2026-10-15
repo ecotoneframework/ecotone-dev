@@ -3,8 +3,8 @@
 ## DistributedBus Interface
 
 ```php
-use Ecotone\Modelling\DistributedBus;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface DistributedBus
 {
@@ -59,8 +59,8 @@ interface DistributedBus
 ## MessagePublisher Interface
 
 ```php
-use Ecotone\Messaging\MessagePublisher;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\ExtensionObject\MediaType;
 
 interface MessagePublisher
 {
@@ -81,6 +81,14 @@ interface MessagePublisher
         object|array $data,
         array $metadata
     ): void;
+
+    // Publishes without blocking on delivery confirmation -- requires High Throughput
+    // Publishing with non-blocking confirmation enabled on the publisher.
+    public function publishDeferred(
+        mixed $data,
+        string $sourceMediaType = MediaType::APPLICATION_X_PHP,
+        array $metadata = []
+    ): Future;
 }
 ```
 
@@ -92,22 +100,23 @@ interface MessagePublisher
 | `sendWithMetadata(data, sourceMediaType, metadata)` | Send raw string with metadata |
 | `convertAndSend(data)` | Send object/array (auto-converted) |
 | `convertAndSendWithMetadata(data, metadata)` | Send object/array with metadata |
+| `publishDeferred(data, sourceMediaType, metadata)` | Send without blocking on delivery confirmation (requires High Throughput Publishing) |
 
 ## #[Distributed] Attribute
 
 ```php
-use Ecotone\Modelling\Attribute\Distributed;
+use Ecotone\Api\Attribute\Distributed;
 
 #[Distributed(distributionReference: DistributedBus::class)]
 ```
 
 - `distributionReference` -- defaults to `DistributedBus::class`, allows custom distribution reference
-- Applied to classes, marks all handlers in the class as distributed
+- Applied per handler method (alongside `#[CommandHandler]`/`#[EventHandler]`), not at the class level
 
 ## DistributedServiceMap API
 
 ```php
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 
 DistributedServiceMap::initialize(referenceName: DistributedBus::class)
 ```

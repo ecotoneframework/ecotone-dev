@@ -4,11 +4,12 @@ namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
@@ -16,7 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * licence Apache-2.0
  */
-class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -25,8 +26,7 @@ class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        /** @var AmqpMessageConsumerConfiguration $extensionObject */
-        foreach ($extensionObjects as $extensionObject) {
+        foreach (ExtensionObjectResolver::resolve(AmqpMessageConsumerConfiguration::class, $extensionObjects) as $extensionObject) {
             $messagingConfiguration->registerConsumer(
                 AmqpInboundChannelAdapterBuilder::createWith(
                     $extensionObject->getEndpointId(),
@@ -38,11 +38,6 @@ class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements
                     ->withReceiveTimeout($extensionObject->getReceiveTimeoutInMilliseconds())
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof AmqpMessageConsumerConfiguration;
     }
 
     public function getModulePackageName(): string

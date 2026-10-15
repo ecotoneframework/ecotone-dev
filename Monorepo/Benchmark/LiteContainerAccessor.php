@@ -2,7 +2,7 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Exception;
 use Psr\Container\ContainerInterface;
 

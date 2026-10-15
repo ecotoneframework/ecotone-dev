@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Fixture\MessengerConsumer;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Asynchronous('messenger_async')]
 /**

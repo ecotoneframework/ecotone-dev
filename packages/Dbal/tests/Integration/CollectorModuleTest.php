@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\AggregateNotFoundException;
-use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -128,7 +127,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         /** @var DeadLetterGateway $deadLetterGateway */
         $deadLetterGateway = $ecotoneLite->getGateway(DeadLetterGateway::class);
         foreach ($deadLetterGateway->list(1, 0) as $errorContext) {
-            $deadLetterGateway->reply($errorContext->getMessageId());
+            $deadLetterGateway->replay($errorContext->getMessageId());
         }
         $this->assertFalse($ecotoneLite->sendQueryWithRouting('notification.isNotified'));
 
@@ -146,11 +145,11 @@ final class CollectorModuleTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

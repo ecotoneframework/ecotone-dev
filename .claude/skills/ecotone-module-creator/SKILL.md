@@ -20,7 +20,7 @@ Every Ecotone module follows the `AnnotationModule` pattern:
 
 ```php
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -46,10 +46,6 @@ final class MyModule extends NoExternalConfigurationModule implements Annotation
         // Register handlers, converters, channels, etc.
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
 
     public function getModulePackageName(): string
     {
@@ -83,11 +79,6 @@ $methods = $annotationRegistrationService->findAnnotatedMethods(MyHandler::class
 When your module accepts external configuration:
 
 ```php
-public function canHandle($extensionObject): bool
-{
-    return $extensionObject instanceof MyModuleConfig;
-}
-
 public function prepare(
     Configuration $messagingConfiguration,
     array $extensionObjects,
@@ -132,7 +123,7 @@ Steps:
 2. Rename the template module class to `<YourPackage>Module`
 3. Update namespace from template namespace to `Ecotone\<YourPackage>`
 4. Update `composer.json` (name, autoload)
-5. Register package in `ModulePackageList` (add constant + match case)
+5. Register package: constant in `ModulePackageList`, then `packageNames()` and the `forPackage()` match case in `ModuleClassList`
 6. Add to root `composer.json` for monorepo
 
 ## 5. Testing Modules

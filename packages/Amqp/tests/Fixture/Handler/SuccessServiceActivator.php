@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\Handler;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Messaging\Message;
 
 /**
  * licence Apache-2.0
@@ -14,7 +14,7 @@ use Ecotone\Messaging\Message;
 final class SuccessServiceActivator
 {
     #[Asynchronous('async_channel')]
-    #[ServiceActivator('handle_channel')]
+    #[InternalHandler('handle_channel')]
     public function handle(Message $message): void
     {
     }

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -18,9 +18,9 @@ final class MessagingTestCase
         $connection = DbalMessagingTestCase::prepareConnection()->createContext()->getDbalConnection();
 
         self::deleteDatabaseTable('enqueue', $connection);
-        self::deleteDatabaseTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        self::deleteDatabaseTable(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $connection);
         self::deleteDatabaseTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        self::deleteDatabaseTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        self::deleteDatabaseTable(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $connection);
     }
 
     public static function cleanRabbitMQ(): void
@@ -61,7 +61,7 @@ final class MessagingTestCase
 
     private static function deleteDatabaseTable(string $tableName, Connection $connection): void
     {
-        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        $schemaManager = $connection->createSchemaManager();
 
         if ($schemaManager->tablesExist([$tableName])) {
             $connection->executeStatement('DROP TABLE ' . $tableName);

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +20,22 @@ use Test\Ecotone\Kafka\ConnectionTestCase;
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 #[RunTestsInSeparateProcesses]
@@ -51,7 +67,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->setConfiguration('message.max.bytes', '4000000'),
@@ -71,7 +87,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000)

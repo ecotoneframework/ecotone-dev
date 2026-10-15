@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Fixture\ExpressionLanguage\ExpressionLanguageCommandHandler;
 use Fixture\User\User;
 use Fixture\User\UserRepository;
@@ -38,11 +37,11 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withEnabledModulePackageNames([])
         );
 
         $userId = '123';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('user.register', $userId);
+        $ecotoneTestSupport->sendCommandWithRouting('user.register', $userId);
 
         /** @var UserRepository $userRepository */
         $userRepository = $ecotoneTestSupport->getGateway(UserRepository::class);
@@ -57,14 +56,14 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithDefaults()
                 ->doNotLoadCatalog()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withEnabledModulePackageNames([])
         );
 
         $amount = 123;
         $this->assertEquals(
             $amount,
             $ecotoneTestSupport
-                ->sendCommandWithRoutingKey('setAmount', ['amount' => $amount])
+                ->sendCommandWithRouting('setAmount', ['amount' => $amount])
                 ->sendQueryWithRouting('getAmount')
         );
         ;

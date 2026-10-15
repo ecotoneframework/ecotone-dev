@@ -29,7 +29,7 @@ $queryBus->send(new GetOrder('1'), metadata: ['tenant' => 'acme']);
 ### Single Header with `#[Header]`
 
 ```php
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Header;
 
 #[EventHandler]
 public function audit(
@@ -44,7 +44,7 @@ public function audit(
 ### All Headers with `#[Headers]`
 
 ```php
-use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\Headers;
 
 #[CommandHandler('logCommand')]
 public function log(#[Headers] array $headers): void
@@ -68,8 +68,8 @@ public function handle($command, array $headers, EventBus $eventBus): void
 ## Enriching Metadata Declaratively
 
 ```php
-use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
-use Ecotone\Messaging\Attribute\Endpoint\RemoveHeader;
+use Ecotone\Api\Attribute\AddHeader;
+use Ecotone\Api\Attribute\RemoveHeader;
 
 #[AddHeader('token', '123')]
 #[RemoveHeader('sensitiveData')]
@@ -111,7 +111,7 @@ Command (userId=123) -> CommandHandler -> publishes Event -> EventHandler receiv
 - Interceptors with `changeHeaders: true` must return an array
 - Userland headers propagate automatically from commands to events
 - Framework headers do NOT propagate
-- Use `getRecordedEventHeaders()` / `getRecordedCommandHeaders()` to verify metadata in tests
+- Use `popRecordedEventHeaders()` / `popRecordedCommandHeaders()` to verify metadata in tests
 
 ## Additional resources
 

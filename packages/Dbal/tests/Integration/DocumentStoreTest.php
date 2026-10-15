@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Store\Document\DocumentException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 
@@ -26,10 +26,10 @@ final class DocumentStoreTest extends DbalMessagingTestCase
         $documentStore = $this->bootstrapDocumentStore();
 
         $documentStore->addDocument('shop', '100', $this->convertOrderToJson('milk'));
-        $documentStore->updateDocument('shop', '100', $this->convertOrderToJson('water'));
+        $documentStore->updateDocument('shop', '100', $this->convertOrderToJson('water'), expectedVersion: 1);
         $this->assertOrder($documentStore, 'shop', '100', 'water');
 
-        $documentStore->upsertDocument('shop', '101', $this->convertOrderToJson('coffee'));
+        $documentStore->upsertDocument('shop', '101', $this->convertOrderToJson('coffee'), expectedVersion: 0);
         $this->assertOrder($documentStore, 'shop', '101', 'coffee');
 
         self::assertEquals(2, $documentStore->countDocuments('shop'));
@@ -55,6 +55,32 @@ final class DocumentStoreTest extends DbalMessagingTestCase
 
     }
 
+    public function test_a_document_that_cannot_be_read_back_is_refused_naming_its_id_and_collection(): void
+    {
+        $documentStore = $this->bootstrapDocumentStoreWithJmsConverter();
+        $documentStore->addDocument('unreadable_documents', 'document-1', new UnreadableDocumentForDocumentStore());
+
+        try {
+            $documentStore->getDocument('unreadable_documents', 'document-1');
+            self::fail('A document JMS cannot read back was returned');
+        } catch (DocumentException $exception) {
+            self::assertStringContainsString("Document with id 'document-1' in collection 'unreadable_documents' can not be converted from JSON to PHP object", $exception->getMessage());
+        }
+    }
+
+    public function test_reading_a_whole_collection_names_the_document_that_cannot_be_read_back(): void
+    {
+        $documentStore = $this->bootstrapDocumentStoreWithJmsConverter();
+        $documentStore->addDocument('unreadable_documents', 'document-1', new UnreadableDocumentForDocumentStore());
+
+        try {
+            $documentStore->getAllDocuments('unreadable_documents');
+            self::fail('A document JMS cannot read back was returned');
+        } catch (DocumentException $exception) {
+            self::assertStringContainsString("Document with id 'document-1' in collection 'unreadable_documents' can not be converted from JSON to PHP object", $exception->getMessage());
+        }
+    }
+
     private function assertOrder(DocumentStore $documentStore, string $shopName, string $orderId, string $order): void
     {
         self::assertEquals(
@@ -69,18 +95,33 @@ final class DocumentStoreTest extends DbalMessagingTestCase
 
     private function bootstrapDocumentStore(): DocumentStore
     {
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
         ))->getGateway(DocumentStore::class)
         ;
+    }
+
+    private function bootstrapDocumentStoreWithJmsConverter(): DocumentStore
+    {
+        return $this->bootstrapFlowTesting(
+            classesToResolve: [UnreadableDocumentForDocumentStore::class],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+        )->getGateway(DocumentStore::class);
     }
 
     private function convertOrderToJson(string $order): string
     {
         return json_encode(['data' => $order]);
     }
+}
+
+final class UnreadableDocumentForDocumentStore
+{
+    private ?array $notes = null;
 }

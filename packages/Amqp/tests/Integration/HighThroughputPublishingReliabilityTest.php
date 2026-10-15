@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpPublisherConfirmations;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpQueue;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -235,7 +235,7 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(false)
@@ -268,7 +268,7 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(false)

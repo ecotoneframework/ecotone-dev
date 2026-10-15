@@ -1,7 +1,22 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
@@ -9,11 +24,8 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
 use function count;
 
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\FieldType;
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
-use Ecotone\EventSourcing\EventStore\Operator;
-use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
@@ -66,43 +78,13 @@ class EventStoreAggregateStreamSource implements StreamSource
 
     private function loadFromStreamFilter(StreamFilter $streamFilter, string $aggregateId, ?string $lastPosition, int $count): StreamPage
     {
-        if (! $this->eventStore->hasStream($streamFilter->streamName)) {
-            return new StreamPage([], $lastPosition ?? '');
-        }
-
-        $metadataMatcher = new MetadataMatcher();
-        if ($streamFilter->aggregateType !== null) {
-            $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                MessageHeaders::EVENT_AGGREGATE_TYPE,
-                Operator::EQUALS,
-                $streamFilter->aggregateType
-            );
-        }
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_ID,
-            Operator::EQUALS,
-            $aggregateId
-        );
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_VERSION,
-            Operator::GREATER_THAN_EQUALS,
-            (int)$lastPosition + 1
-        );
-
-        if ($streamFilter->eventNames !== []) {
-            $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                'event_name',
-                Operator::IN,
-                $streamFilter->eventNames,
-                FieldType::MESSAGE_PROPERTY
-            );
-        }
-
-        $events = $this->eventStore->load(
+        $events = $this->eventStore->loadAggregateEvents(
             $streamFilter->streamName,
-            1,
+            $streamFilter->aggregateType,
+            $aggregateId,
+            (int) $lastPosition + 1,
             $count,
-            $metadataMatcher,
+            $streamFilter->eventNames,
         );
 
         return new StreamPage($events, $this->createPositionFrom($lastPosition, $events));
@@ -117,6 +99,6 @@ class EventStoreAggregateStreamSource implements StreamSource
         if ($lastEvent === false) {
             return $lastPosition ?? '';
         }
-        return (string) $lastEvent->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
+        return (string) $lastEvent->metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
     }
 }

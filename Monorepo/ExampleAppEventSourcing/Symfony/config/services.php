@@ -1,7 +1,6 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
@@ -14,10 +13,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
-        'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'],
+        'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
-        'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
+        'enabledModulePackageNames' => \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? [],
     ]);
 
     $services = $containerConfigurator->services();
@@ -26,7 +25,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autowire()
         ->autoconfigure();
 
-    $services->load('Monorepo\\ExampleAppEventSourcing\\ProophProjection\\', '%kernel.project_dir%/../ProophProjection/')
+    $services->load('Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\', '%kernel.project_dir%/../EcotoneProjection/')
         ->autowire()
         ->autoconfigure();
 

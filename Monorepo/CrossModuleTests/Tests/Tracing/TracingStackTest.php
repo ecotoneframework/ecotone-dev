@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests\Tracing;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
@@ -25,12 +25,11 @@ final class TracingStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
 
-    public static function skippedPackages(): array
+    public static function enabledModulePackageNames(): array
     {
-        return ModulePackageList::allPackagesExcept([
-            ModulePackageList::ASYNCHRONOUS_PACKAGE,
-            ModulePackageList::TRACING_PACKAGE
-        ]);
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
@@ -65,22 +64,6 @@ final class TracingStackTest extends FullAppTestCase
         $this->assertTracing($exporter);
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $configuration = $container->get(Configuration::class);
-        /** @var QueryBus $queryBus */
-        $queryBus = $container->get(QueryBus::class);
-        /** @var ConfiguredMessagingSystem $messagingSystem */
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-        /** @var InMemoryExporter $exporter */
-        $exporter = $messagingSystem->getServiceFromContainer(InMemoryExporter::class);
-
-        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-        self::runConsumerForMessaging('notifications', $messagingSystem);
-        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
-
-        $this->assertTracing($exporter);
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

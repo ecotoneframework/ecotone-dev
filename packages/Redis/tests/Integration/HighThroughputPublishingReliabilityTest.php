@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisContext;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Throwable;
@@ -69,15 +69,12 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
-                    PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
-                ]),
-            enableAsynchronousProcessing: [
-                RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing(),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
+                    PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
+                ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
     }
 

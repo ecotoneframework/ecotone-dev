@@ -2,13 +2,14 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Messaging\ConcurrencyException;
+use Ecotone\Api\Modelling\StateStoredRepository;
 
 /**
  * licence Apache-2.0
  */
-final class DocumentStoreAggregateRepository implements StandardRepository
+final class DocumentStoreAggregateRepository implements StateStoredRepository
 {
     private const COLLECTION_NAME = 'aggregates_';
 
@@ -35,8 +36,14 @@ final class DocumentStoreAggregateRepository implements StandardRepository
     public function save(array $identifiers, object $aggregate, array $metadata, ?int $versionBeforeHandling): void
     {
         $aggregateId = array_pop($identifiers);
+        $collectionName = $this->getCollectionName($aggregate::class);
+        $expectedVersion = $versionBeforeHandling ?? DocumentStore::LAST_WRITE_WINS;
 
-        $this->documentStore->upsertDocument($this->getCollectionName($aggregate::class), $aggregateId, $aggregate);
+        try {
+            $this->documentStore->upsertDocument($collectionName, $aggregateId, $aggregate, $expectedVersion);
+        } catch (ConcurrencyException) {
+            throw ConcurrencyException::forStaleAggregate($aggregate::class, (string) $aggregateId, $expectedVersion, $this->documentStore->getDocumentVersion($collectionName, $aggregateId));
+        }
     }
 
     private function getCollectionName(string $aggregateClassName): string

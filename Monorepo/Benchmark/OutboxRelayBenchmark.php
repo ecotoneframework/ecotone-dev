@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\OutboxForwardingMessageChannel;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\CombinedMessageChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Redis\RedisConnectionFactory;
-use Enqueue\Sqs\SqsConnectionFactory;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -153,11 +153,10 @@ class OutboxRelayBenchmark
     private function warmUpConsumer(): void
     {
         $context = (new DbalConnectionFactory(self::databaseDsn()))->createContext();
-        $context->createDataBaseTable();
         $context->purgeQueue($context->createQueue('benchmark_outbox'));
         $context->purgeQueue($context->createQueue('benchmark_target'));
 
-        $this->messaging->sendCommandWithRoutingKey('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
+        $this->messaging->sendCommandWithRouting('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
         $this->messaging->run('benchmark_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
@@ -174,7 +173,7 @@ class OutboxRelayBenchmark
     private function fillOutbox(): void
     {
         for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_RELAYED_MESSAGES; $messageNumber++) {
-            $this->messaging->sendCommandWithRoutingKey('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
+            $this->messaging->sendCommandWithRouting('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
         }
     }
 
@@ -232,10 +231,10 @@ class OutboxRelayBenchmark
                 $targetServices,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept(array_merge(
-                    [ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+                ->withEnabledModulePackageNames(array_merge(
+                    [ModulePackageList::DBAL_PACKAGE],
                     $targetPackage !== null ? [$targetPackage] : [],
-                )))
+                ))
                 ->withExtensionObjects([
                     $relayChannel,
                     DbalBackedMessageChannelBuilder::create('benchmark_outbox')

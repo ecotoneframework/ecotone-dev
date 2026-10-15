@@ -3,25 +3,27 @@
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
 function runMigrationForSymfony(Kernel $kernel): void
 {
     /** @var Connection $connection */
     $connection = $kernel->getContainer()->get(DbalConnectionFactory::class)->createContext()->getDbalConnection();
-    $abstractSchemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
+    $abstractSchemaManager = $connection->createSchemaManager();
     foreach ($abstractSchemaManager->listTables() as $table) {
         $connection->executeStatement('DROP TABLE ' . $table->getName());
     }
 
     migrateSymfonyForSingleTenant($connection);
+
+    $kernel->getContainer()->get(DatabaseSetupManager::class)->initializeAll(false);
 }
 
 function migrateSymfonyForSingleTenant(Connection $connection): void
 {
-    $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
+    $schemaManager = $connection->createSchemaManager();
 
     $personsTable = new Table('persons');
     $personsTable->addColumn('customer_id', Types::INTEGER);

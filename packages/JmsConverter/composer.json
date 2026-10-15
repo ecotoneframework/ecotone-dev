@@ -26,7 +26,7 @@
         "xml",
         "converter"
     ],
-    "description": "JMS Serializer media type converter for Ecotone \u2014 serialize commands, events, and queries with JMS annotations.",
+    "description": "JMS Serializer media type converter for Ecotone — serialize commands, events, and queries with JMS annotations.",
     "repositories": [
         {
             "type": "path",
@@ -38,6 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\JMSConverter\\": "Api/",
             "Ecotone\\JMSConverter\\": "src"
         }
     },
@@ -54,9 +55,9 @@
         "symfony/cache": "^6.4|^7.0|^8.0"
     },
     "require-dev": {
-        "ecotone/pdo-event-sourcing": "~1.328.2",
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
-        "phpstan/phpstan": "^1.8|^2.0"
+        "phpstan/phpstan": "^2.1",
+        "ecotone/pdo-event-sourcing": "~1.328.2"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -86,7 +87,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 17:33:51"
     },
     "config": {
         "sort-packages": true

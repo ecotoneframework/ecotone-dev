@@ -36,9 +36,9 @@ ECOTONE_LICENCE_KEY=your-licence-key-here
 ## EcotoneLite (Standalone)
 
 ```php
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Api\Lite\EcotoneLite;
 
-$application = EcotoneLiteApplication::bootstrap(
+$messagingSystem = EcotoneLite::bootstrap(
     licenceKey: 'your-licence-key-here',
 );
 ```
@@ -48,10 +48,10 @@ $application = EcotoneLiteApplication::bootstrap(
 Use `LicenceTesting::VALID_LICENCE` for test environments:
 
 ```php
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\LicenceTesting;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\LicenceTesting;
 
-$ecotoneLite = EcotoneLite::bootstrapForTesting(
+$ecotoneLite = EcotoneLite::bootstrapFlowTesting(
     [OrderFulfillmentOrchestrator::class],
     licenceKey: LicenceTesting::VALID_LICENCE,
 );

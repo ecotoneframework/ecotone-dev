@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
@@ -40,7 +39,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -53,7 +52,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -103,7 +102,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -116,12 +115,11 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
-        $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotoneLite->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->sendCommand(new RegisterTicket('124', 'Johnny', 'alert'));
 
@@ -138,14 +136,13 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
         ], $ecotoneLite->sendQueryWithRouting('getInProgressTickets'));
 
         $ecotoneLite->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
-        self::assertFalse(SchemaManagerCompatibility::tableExists($connection, 'in_progress_tickets'));
+        self::assertFalse($connection->createSchemaManager()->tableExists('in_progress_tickets'));
     }
 
     public function test_building_multiple_polling_projection(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [BasketListConfiguration::class, BasketList::class, ProductsConfiguration::class, Products::class],
             containerOrAvailableServices: [new BasketList(), new Products(), new BasketEventConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -153,18 +150,19 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommand(new CreateBasket('1000'));
-        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
+        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['1000' => []], $ecotoneLite->sendQueryWithRouting('getALlBaskets'));
         self::assertEquals([], $ecotoneLite->sendQueryWithRouting('getALlProducts'));
 
         $ecotoneLite->sendCommand(new AddProduct('1000', 'milk'));
 
-        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
-        $ecotoneLite->run(Products::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
+        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotoneLite->run(Products::PROJECTION_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['1000' => ['milk']], $ecotoneLite->sendQueryWithRouting('getALlBaskets'));
         self::assertEquals(['milk' => 1], $ecotoneLite->sendQueryWithRouting('getALlProducts'));

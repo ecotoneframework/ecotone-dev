@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType;
 
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[EventSourcingAggregate(true)]
 #[Stream(self::STREAM)]
@@ -35,7 +35,7 @@ final class DifferentStreamProductA
         return $product;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyProductACreated(ProductACreated $event): void
     {
         $this->productId = $event->productId;

@@ -2,8 +2,10 @@
 
 namespace Test;
 
-use Ecotone\Lite\Test\MessagingTestSupport;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Lite\Test\MessagingTestSupport;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Monolog\Handler\TestHandler;
@@ -33,6 +35,17 @@ class SymfonyApplicationTest extends KernelTestCase
             MessagingTestSupport::class,
             self::getMessagingTestSupport()
         );
+    }
+
+    public function test_it_sends_a_command_and_a_query_through_the_buses(): void
+    {
+        self::bootKernel([
+            'environment' => 'test',
+        ]);
+
+        self::getContainer()->get(CommandBus::class)->sendWithRouting('setAmount', ['amount' => 100]);
+
+        self::assertSame(100, self::getContainer()->get(QueryBus::class)->sendWithRouting('getAmount'));
     }
 
     public function test_it_writes_logs_to_ecotone_channel(): void

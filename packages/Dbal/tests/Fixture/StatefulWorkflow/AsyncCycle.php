@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 class AsyncCycle

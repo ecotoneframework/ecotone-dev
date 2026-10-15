@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection;
 
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 /**
  * licence Apache-2.0
@@ -15,8 +15,8 @@ class ProjectionConfiguration
     public function setMaximumLimitedTimeForProjections(): PollingMetadata
     {
         return PollingMetadata::create(InProgressTicketList::PROJECTION_CHANNEL)
-            ->setExecutionAmountLimit(3)
-            ->setExecutionTimeLimitInMilliseconds(300);
+            ->withExecutionAmountLimit(3)
+            ->withExecutionTimeLimitInMilliseconds(300);
     }
 
     #[ServiceContext]

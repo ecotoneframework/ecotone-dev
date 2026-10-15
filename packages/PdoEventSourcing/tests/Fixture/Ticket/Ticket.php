@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Ticket;
 
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -47,7 +47,7 @@ class Ticket
         return [new TicketWasClosed($this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyTicketWasRegistered(TicketWasRegistered $event): void
     {
         $this->ticketId       = $event->getTicketId();
@@ -55,13 +55,13 @@ class Ticket
         $this->ticketType     = $event->getTicketType();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyAssignedPersonWasChanged(AssignedPersonWasChanged $event): void
     {
         $this->assignedPerson = $event->getAssignedPerson();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyTicketWasClosed(TicketWasClosed $event): void
     {
         $this->isClosed = true;

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\ReactiveSystem\Stage_3\Infrastructure\Messaging;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 
 final class MessageChannelConfiguration
 {
@@ -35,7 +35,7 @@ final class MessageChannelConfiguration
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             "errorChannel",
             RetryTemplateBuilder::fixedBackOff(10)
-                ->maxRetryAttempts(2),
+                ->maxRetries(2),
             "dbal_dead_letter"
         );
     }

@@ -2,7 +2,7 @@
 
 ## `#[Header]`
 
-Source: `Ecotone\Messaging\Attribute\Parameter\Header`
+Source: `Ecotone\Api\Attribute\Header`
 
 Extracts a single header from message metadata and injects it into a handler parameter.
 
@@ -10,7 +10,7 @@ Extracts a single header from message metadata and injects it into a handler par
 #[Attribute(Attribute::TARGET_PARAMETER)]
 class Header
 {
-    public function __construct(string $headerName, string $expression = '')
+    public function __construct(string $headerName, string|Closure $expression = '')
 }
 ```
 
@@ -24,7 +24,7 @@ class Header
 
 ## `#[Headers]`
 
-Source: `Ecotone\Messaging\Attribute\Parameter\Headers`
+Source: `Ecotone\Api\Attribute\Headers`
 
 Injects all message metadata as an associative array into a handler parameter.
 
@@ -39,7 +39,7 @@ No constructor parameters.
 
 ## `#[AddHeader]`
 
-Source: `Ecotone\Messaging\Attribute\Endpoint\AddHeader`
+Source: `Ecotone\Api\Attribute\AddHeader`
 
 Declaratively adds a header to the message metadata. Applied on handler methods or classes.
 
@@ -62,7 +62,7 @@ Either `$value` or `$expression` must be provided, not both.
 
 ## `#[RemoveHeader]`
 
-Source: `Ecotone\Messaging\Attribute\Endpoint\RemoveHeader`
+Source: `Ecotone\Api\Attribute\RemoveHeader`
 
 Declaratively removes a header from the message metadata.
 
@@ -77,26 +77,30 @@ class RemoveHeader
 **Parameters:**
 - `name` (string, required) — The header key to remove
 
+## Header changing via `#[InternalHandler]` (Enterprise)
+
+For programmatic, dynamic header changes as part of a workflow step (as opposed to the declarative `#[AddHeader]`/`#[RemoveHeader]` above), `#[InternalHandler]` accepts a `changingHeaders: true` constructor argument: the handler's returned `array` is merged into the message headers instead of replacing the payload. Requires an Ecotone Enterprise licence. See the `ecotone-workflow` skill's `#[InternalHandler]` reference for the full semantics.
+
 ## `#[PropagateHeaders]`
 
-Source: `Ecotone\Messaging\Attribute\PropagateHeaders`
+Source: `Ecotone\Api\Attribute\PropagateHeaders`
 
 Controls whether userland headers propagate from the current message to downstream messages. Applied on gateway methods.
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-class PropagateHeaders
+final class PropagateHeaders
 {
-    public function __construct(bool $propagate)
+    public function __construct(bool $doPropagation = true)
 }
 ```
 
 **Parameters:**
-- `propagate` (bool, required) — `false` to disable automatic header propagation
+- `doPropagation` (bool, default `true`) — pass `false` to disable automatic header propagation
 
 ## Framework Headers Constants
 
-Source: `Ecotone\Messaging\MessageHeaders`
+Source: `Ecotone\Api\Messaging\MessageHeaders`
 
 | Constant | Value | Description |
 |----------|-------|-------------|
@@ -115,7 +119,7 @@ Source: `Ecotone\Messaging\MessageHeaders`
 
 ## Recorded Headers API
 
-Available on `EcotoneLite` test instance via `getRecordedEventHeaders()` and `getRecordedCommandHeaders()`.
+Available on `EcotoneLite` test instance via `popRecordedEventHeaders()` and `popRecordedCommandHeaders()`.
 
 Each entry provides:
 

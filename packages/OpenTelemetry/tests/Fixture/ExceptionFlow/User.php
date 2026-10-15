@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow;
 
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Identifier;
 use InvalidArgumentException;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 
@@ -16,7 +16,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
  */
 final class User
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $userId;
 
     #[CommandHandler]

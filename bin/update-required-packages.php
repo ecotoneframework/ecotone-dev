@@ -33,7 +33,7 @@ foreach ($packages as $package) {
         }
     }
 
-    file_put_contents($composerFile, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+    file_put_contents($composerFile, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) . "\n");
 }
 
 // Quickstart examples directly require some local packages (see bin/get-packages) so their tests
@@ -66,6 +66,6 @@ foreach ($iterator as $file) {
     }
 
     if ($touched) {
-        file_put_contents($path, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) . "\n");
+        file_put_contents($path, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) . "\n");
     }
 }

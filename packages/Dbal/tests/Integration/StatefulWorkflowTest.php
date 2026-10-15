@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\Audit;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\AuditConducted;
@@ -27,13 +27,14 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
         $cycleGateway = $ecotone->getGateway(CycleGateway::class);
 
         $cycleGateway->submitAnAudit(cycleId: 'foo', audit: new Audit('123', new Certificate('234')));
+        $ecotone->run('cycle');
 
         self::assertEquals(
             [
                 new AuditConducted('foo', '123'),
                 new CertificateIssued('foo', '234'),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(['123'], $cycleGateway->conductedAudits('foo'));
@@ -42,7 +43,7 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 Cycle::class,
                 CycleGateway::class,
@@ -53,7 +54,10 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
                 $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('cycle'),
+                ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

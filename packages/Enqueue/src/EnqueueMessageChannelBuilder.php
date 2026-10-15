@@ -2,11 +2,11 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
 /**
@@ -45,7 +45,7 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return false;
     }
 
-    public function withHeaderMapping(string $headerMapper): self
+    public function withHeaderMapping(string $headerMapper): static
     {
         $this->getInboundChannelAdapter()->withHeaderMapper($headerMapper);
         $this->getOutboundChannelAdapter()->withHeaderMapper($headerMapper);
@@ -53,42 +53,42 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this;
     }
 
-    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): static
     {
         $this->getInboundChannelAdapter()->withFinalFailureStrategy($finalFailureStrategy);
 
         return $this;
     }
 
-    public function withReceiveTimeout(int $timeoutInMilliseconds): self
+    public function withReceiveTimeout(int $timeoutInMilliseconds): static
     {
         $this->getInboundChannelAdapter()->withReceiveTimeout($timeoutInMilliseconds);
 
         return $this;
     }
 
-    public function withDefaultTimeToLive(int $timeInMilliseconds): self
+    public function withDefaultTimeToLive(int $timeInMilliseconds): static
     {
         $this->getOutboundChannelAdapter()->withDefaultTimeToLive($timeInMilliseconds);
 
         return $this;
     }
 
-    public function withDefaultDeliveryDelay(int $timeInMilliseconds): self
+    public function withDefaultDeliveryDelay(int $timeInMilliseconds): static
     {
         $this->getOutboundChannelAdapter()->withDefaultDeliveryDelay($timeInMilliseconds);
 
         return $this;
     }
 
-    public function withDefaultConversionMediaType(string $mediaType): self
+    public function withDefaultConversionMediaType(string $mediaType): static
     {
         $this->getOutboundChannelAdapter()->withDefaultConversionMediaType($mediaType);
 
         return $this;
     }
 
-    public function withAutoDeclare(bool $autoDeclare): self
+    public function withAutoDeclare(bool $autoDeclare): static
     {
         $this->getInboundChannelAdapter()->withDeclareOnStartup($autoDeclare);
         $this->getOutboundChannelAdapter()->withAutoDeclareOnSend($autoDeclare);
@@ -115,8 +115,8 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $serviceConfiguration = $builder->getServiceConfiguration();
-        if (! $this->getConversionMediaType() && $serviceConfiguration->getDefaultSerializationMediaType()) {
-            $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
+        if (! $this->getConversionMediaType() && $serviceConfiguration->defaultSerializationMediaType) {
+            $this->withDefaultConversionMediaType($serviceConfiguration->defaultSerializationMediaType);
         }
         return new Definition(EnqueueMessageChannel::class, [
             $this->inboundChannelAdapter->compile($builder),

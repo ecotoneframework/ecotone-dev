@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -20,7 +20,8 @@ class DeduplicationTableManager implements DbalTableManager
     public function __construct(
         private string $tableName,
         private bool $isUsed,
-        private bool $shouldAutoInitialize,
+        private ?string $consoleInvocationPrefix = null,
+        private ?string $connectionReferenceName = null,
     ) {
     }
 
@@ -41,7 +42,7 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        return $connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema());
+        return DbalIdempotentDdl::withIfNotExists($connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema()));
     }
 
     public function getDropTableSql(Connection $connection): string
@@ -51,11 +52,19 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        if (self::isInitialized($connection)) {
+        if ($this->isInitialized($connection)) {
             return;
         }
 
-        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
+        try {
+            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        } catch (TableExistsException) {
+        }
+    }
+
+    public function getMissingTableInstructions(): string
+    {
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
     public function dropTable(Connection $connection): void
@@ -71,19 +80,14 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
-    }
-
-    public function shouldBeInitializedAutomatically(): bool
-    {
-        return $this->shouldAutoInitialize;
+        return $connection->createSchemaManager()->tableExists($this->tableName);
     }
 
     public function getDefinition(): Definition
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]
+            [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix, $this->connectionReferenceName]
         );
     }
 

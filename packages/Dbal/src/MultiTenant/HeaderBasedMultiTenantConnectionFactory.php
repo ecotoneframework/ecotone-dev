@@ -7,17 +7,17 @@ namespace Ecotone\Dbal\MultiTenant;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
-use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
-use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
@@ -74,7 +74,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         /** @var ManagerRegistry $managerRegistry */
         $managerRegistry = $connectionFactory->getRegistry();
 
-        return $managerRegistry->getManager($connectionReference instanceof ConnectionReference ? $connectionReference->getConnectionName() : null);
+        return $managerRegistry->getManager($connectionReference instanceof ConnectionReference ? $connectionReference->connectionName : null);
     }
 
     public function getConnection(?string $tenant = null): Connection
@@ -194,6 +194,29 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     public function createContext(): Context
     {
         return $this->getConnectionFactory()->createContext();
+    }
+
+    public function databaseConnectionsOfEveryTenant(): array
+    {
+        $connectionReferences = array_values($this->connectionReferenceMapping);
+        if ($this->defaultConnectionName !== null) {
+            $connectionReferences[] = $this->defaultConnectionName;
+        }
+
+        $connections = [];
+        foreach ($connectionReferences as $connectionReference) {
+            $connectionReferenceName = $this->getConnectionReference($connectionReference);
+            if (isset($connections[$connectionReferenceName])) {
+                continue;
+            }
+
+            $context = $this->container->get($connectionReferenceName)->createContext();
+            if ($context instanceof DbalContext) {
+                $connections[$connectionReferenceName] = $context->getDbalConnection();
+            }
+        }
+
+        return $connections;
     }
 
     private function getConnectionReference(ConnectionReference|string|null $connectionReference): string

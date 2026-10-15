@@ -2,7 +2,7 @@
 
 ## #[Saga] Attribute
 
-Source: `Ecotone\Modelling\Attribute\Saga`
+Source: `Ecotone\Api\Attribute\Saga`
 
 Class-level attribute. Extends `Aggregate` -- sagas are stored and loaded like aggregates.
 
@@ -17,7 +17,7 @@ class MyProcess
 
 ## #[EventSourcingSaga] Attribute
 
-Source: `Ecotone\Modelling\Attribute\EventSourcingSaga`
+Source: `Ecotone\Api\Attribute\EventSourcingSaga`
 
 Class-level attribute. Extends `EventSourcingAggregate` -- saga state rebuilt from events.
 
@@ -34,10 +34,10 @@ class MyProcess
 
 ## WithEvents Trait
 
-Source: `Ecotone\Modelling\WithEvents`
+Source: `Ecotone\Api\Modelling\WithEvents`
 
 ```php
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[Saga]
 class OrderProcess
@@ -57,9 +57,10 @@ Methods:
 
 ## #[InternalHandler] Attribute
 
-Source: `Ecotone\Messaging\Attribute\InternalHandler`
+Source: `Ecotone\Api\Attribute\InternalHandler`
 
-Extends `ServiceActivator`. For internal message routing not exposed via bus.
+Extends `InputOutputEndpointAnnotation` directly. For internal message routing not exposed via a bus
+(`#[ServiceActivator]` was removed in 2.0 -- this is the only such attribute now).
 
 ```php
 #[InternalHandler(
@@ -77,13 +78,39 @@ Parameters:
 - `outputChannelName` (string, optional) -- channel to send result to (chains to next step)
 - `endpointId` (string, optional) -- required when used with `#[Asynchronous]`
 - `requiredInterceptorNames` (array, optional) -- interceptors to apply
-- `changingHeaders` (bool, optional) -- whether handler modifies message headers
+- `changingHeaders` (bool, optional, default `false`) -- header-changer mode, see below. **Requires Ecotone Enterprise licence.**
 
-If handler returns `null`, the chain stops (no message sent to outputChannel).
+By default (`changingHeaders: false`), if the handler returns `null`, the chain stops (no message sent to outputChannel).
+
+### Header-changer mode (`changingHeaders: true`, Enterprise)
+
+Source: `Ecotone\Api\Attribute\InternalHandler`
+
+With `changingHeaders: true`, the handler's return value is treated as headers to merge, not as the new payload:
+
+```php
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Header;
+
+class EnrichWithTenant
+{
+    #[InternalHandler(inputChannelName: 'step.name', outputChannelName: 'next.step', changingHeaders: true)]
+    public function enrich(#[Header('tenantId')] ?string $tenantId): array
+    {
+        return ['tenantId' => $tenantId ?? $this->tenantResolver->resolveCurrentTenantId()];
+    }
+}
+```
+
+- The returned `array` is merged into the message headers (existing keys are overwritten, other headers preserved); the payload is left untouched.
+- Returning `null` leaves the message (payload and headers) unchanged.
+- Returning anything other than `array` or `null` throws `Ecotone\Messaging\Support\InvalidArgumentException` naming the class/method.
+- The (unchanged-payload, enriched-headers) message continues to `outputChannelName` exactly as in the default mode.
+- `changingHeaders: true` requires an Ecotone Enterprise licence; without one, bootstrap throws `Ecotone\Messaging\Support\LicensingException` naming the class/method and linking to https://docs.ecotone.tech/enterprise. `changingHeaders: false` (the default) has no licence requirement.
 
 ## #[Orchestrator] Attribute (Enterprise)
 
-Source: `Ecotone\Messaging\Attribute\Orchestrator`
+Source: `Ecotone\Api\Attribute\Orchestrator`
 
 Method-level attribute. Returns array of channel names (routing slip).
 
@@ -102,21 +129,39 @@ Parameters:
 - `inputChannelName` (string, required) -- channel that triggers the orchestrator
 - `endpointId` (string, optional) -- required when used with `#[Asynchronous]`
 
-## #[OrchestratorGateway] Attribute (Enterprise)
+## Invoking a Fixed Orchestrator via Business Interface
 
-Source: `Ecotone\Messaging\Attribute\OrchestratorGateway`
-
-Method-level attribute on interface methods. Creates business interface gateway.
+A fixed orchestrator (one with an `#[Orchestrator(inputChannelName: ...)]` entry point) is invoked like any other
+endpoint, through `#[BusinessMethod]` targeting that channel:
 
 ```php
-use Ecotone\Messaging\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface MyWorkflowProcess
 {
-    #[OrchestratorGateway('workflow.start')]
+    #[BusinessMethod('workflow.start')]
     public function start(mixed $data): mixed;
 }
 ```
 
-Parameters:
-- First argument (string, required) -- the input channel name of the orchestrator to invoke
+## #[OrchestratorGateway] Attribute (Enterprise)
+
+Source: `Ecotone\Api\Attribute\OrchestratorGateway`
+
+Method-level attribute on interface methods. Takes **no arguments** -- unlike `#[BusinessMethod]`, it lets the
+*caller* supply the routing slip itself at call time instead of routing to a fixed `#[Orchestrator]` method.
+
+```php
+use Ecotone\Api\Attribute\OrchestratorGateway;
+
+interface MyDynamicWorkflowProcess
+{
+    #[OrchestratorGateway]
+    public function start(array $routingSlip, mixed $data, array $metadata): mixed;
+}
+```
+
+Parameters (fixed method shape -- all three are required):
+- `$routingSlip` (`string[]`) -- ordered list of internal channel names to execute
+- `$data` (`mixed`) -- payload passed to the first step
+- `$metadata` (`array`) -- message headers

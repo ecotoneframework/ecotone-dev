@@ -2,8 +2,8 @@
 
 namespace App\Schedule\ScheduledJob\ScheduledJob;
 
-use Ecotone\Messaging\Attribute\Poller;
-use Ecotone\Messaging\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
 
 class NotificationService
 {

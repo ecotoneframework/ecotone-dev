@@ -1,11 +1,11 @@
 <?php
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
 require __DIR__ . "/vendor/autoload.php";

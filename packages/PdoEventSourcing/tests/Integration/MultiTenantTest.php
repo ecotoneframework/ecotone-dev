@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -28,14 +32,17 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
 {
     public function test_building_asynchronous_event_driven_projection_with_multi_tenancy(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->initializeMultiTenantDefaultStream();
+
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant',
@@ -50,8 +57,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(
@@ -63,8 +69,8 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             metadata: ['tenant' => 'tenant_b']
         );
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 5000,
         ));
 
         self::assertEquals(
@@ -86,8 +92,8 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 5000,
         ));
 
         self::assertEquals(
@@ -105,20 +111,24 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
 
     public function test_building_synchronous_event_driven_projection_with_multi_tenancy(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->initializeMultiTenantDefaultStream();
+
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant\InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant',
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
+                    DbalConfiguration::createForTesting(),
                     MultiTenantConfiguration::create(
                         'tenant',
                         [
@@ -127,8 +137,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(
@@ -173,14 +182,17 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
 
     public function test_multi_tenancy_do_work_with_polling_endpoint(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->initializeMultiTenantDefaultStream();
+
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new \Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection',
@@ -195,8 +207,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                         ]
                     ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(
@@ -208,5 +219,14 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         $this->expectExceptionMessage('Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.');
 
         $ecotone->run(\Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
+    }
+
+    private function initializeMultiTenantDefaultStream(): void
+    {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($connection);
+            (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+        }
     }
 }

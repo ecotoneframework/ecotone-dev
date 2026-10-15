@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 
@@ -37,7 +37,7 @@ class Saga
         return [];
     }
 
-    #[EventSourcingHandler()]
+    #[Apply()]
     public function applySagaStarted(SagaStarted $event): void
     {
         $this->id = $event->getId();

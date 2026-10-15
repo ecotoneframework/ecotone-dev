@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Integration;
 
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\ConcurrencyException;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Support\ConcurrencyException;
-use Ecotone\Modelling\Event;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -33,22 +32,22 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving_events()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -69,31 +68,28 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $this->assertCount(1, $events);
         $this->assertEquals($event, $events[0]->getPayload());
         foreach ($metadata as $key => $value) {
-            $this->assertEquals($value, $events[0]->getMetadata()[$key]);
+            $this->assertEquals($value, $events[0]->metadata[$key]);
         }
     }
 
-    public function test_storing_for_simple_stream()
+    public function test_storing_events_without_aggregate_metadata()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
-        $eventStore->create($streamName, streamMetadata: [
-            LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
-        ]);
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -116,80 +112,49 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $this->assertEquals($eventTwo, $events[1]->getPayload());
     }
 
-    public function test_storing_same_event_for_simple_stream()
+    public function test_storing_same_event_twice_without_aggregate_metadata()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
-        $eventStore->create($streamName, streamMetadata: [
-            LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
-        ]);
-        $eventStore->appendTo(
-            $streamName,
-            [
-                Event::create(
-                    new TicketWasRegistered('123', 'Johnny', 'alert'),
-                    [
-                        '_aggregate_id' => 1,
-                        '_aggregate_version' => 1,
-                        '_aggregate_type' => 'ticket',
-                    ]
-                ),
-            ]
-        );
-
-        $eventStore->appendTo(
-            $streamName,
-            [
-                Event::create(
-                    new TicketWasRegistered('123', 'Johnny', 'alert'),
-                    [
-                        '_aggregate_id' => 1,
-                        '_aggregate_version' => 1,
-                        '_aggregate_type' => 'ticket',
-                    ]
-                ),
-            ]
-        );
+        $this->createStreamTable($streamName);
+        $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
+        $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
 
         $events = $eventStore->load($streamName);
         $this->assertCount(2, $events);
     }
 
-    public function test_storing_same_event_for_partioned_stream()
+    public function test_storing_same_aggregate_version_twice_is_rejected()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
-        $eventStore->create($streamName, streamMetadata: [
-            LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'partition',
-        ]);
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -223,22 +188,22 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_event_for_default_partioned_stream()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -272,25 +237,22 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_fetching_with_pagination()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
-        $eventStore->create($streamName, streamMetadata: [
-            LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
-        ]);
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -307,9 +269,9 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         );
     }
 
-    public function test_deleting_event_stream_table_also_deletes_stream_tables(): void
+    public function test_aggregates_are_stored_in_the_default_event_stream_table(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new InProgressTicketList($this->getConnection()),
                 new TicketEventConverter(),
@@ -317,27 +279,29 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone->sendCommand(new RegisterTicket('1', 'johny', 'alert'));
 
         $connection = $this->getConnection();
-        $eventStreamsTable = LazyProophEventStore::DEFAULT_STREAM_TABLE;
-        $streamTableName = '_' . sha1(Ticket::class);
 
-        $this->assertTrue(self::tableExists($connection, $eventStreamsTable));
-        $this->assertTrue(self::tableExists($connection, $streamTableName));
+        $this->assertTrue(self::tableExists($connection, StreamTableRegistry::DEFAULT_STREAM));
+        $this->assertFalse(self::tableExists($connection, '_' . sha1(Ticket::class)));
+        $this->assertFalse(self::tableExists($connection, 'event_streams'));
 
-        $tableManager = new EventStreamTableManager($eventStreamsTable, true, true);
+        $tableManager = new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true);
         $tableManager->dropTable($connection);
 
-        $this->assertFalse(self::tableExists($connection, $streamTableName));
-        $this->assertFalse(self::tableExists($connection, $eventStreamsTable));
+        $this->assertFalse(self::tableExists($connection, StreamTableRegistry::DEFAULT_STREAM));
+    }
+
+    private function createStreamTable(string $streamName): void
+    {
+        (new EventStreamTableManager([$streamName], true))->createTable($this->getConnection());
     }
 }

@@ -1,15 +1,29 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\Messaging\Support\ConcurrencyException;
-use Ecotone\Modelling\Event;
-use Ecotone\Projecting\ProjectionRegistry;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\Messaging\ConcurrencyException;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -45,8 +59,7 @@ $app->register('stream:load')
                 $eventStore->delete(Order::STREAM_NAME);
                 $io->writeln('Event store cleaned');
             }
-            $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
-            $projection->delete();
+            $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => OrderListProjection::PROJECTION_NAME]);
             $io->success('Database cleaned');
         }
 
@@ -90,8 +103,7 @@ $app->register('projection:delete')
     ->setDescription('Delete projection data')
     ->setCode(static function (InputInterface $input, OutputInterface $output) use ($messagingSystem) {
         $io = new SymfonyStyle($input, $output);
-        $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
-        $projection->delete();
+        $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => OrderListProjection::PROJECTION_NAME]);
         $io->success('Projection data deleted');
     });
 
@@ -99,9 +111,8 @@ $app->register('projection:backfill')
     ->setDescription('Trigger projection to rebuild data')
     ->setCode(static function (InputInterface $input, OutputInterface $output) use ($messagingSystem) {
         $io = new SymfonyStyle($input, $output);
-        $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
         $io->section('Triggering projection');
-        $projection->backfill();
+        $messagingSystem->runConsoleCommand('ecotone:projection:backfill', ['name' => OrderListProjection::PROJECTION_NAME]);
         $io->success('Projection backfilled');
     });
 

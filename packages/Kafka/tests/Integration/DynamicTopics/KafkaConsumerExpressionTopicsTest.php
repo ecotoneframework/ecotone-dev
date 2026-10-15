@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration\DynamicTopics;
 
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +24,22 @@ use Test\Ecotone\Kafka\Fixture\DynamicTopics\TopicsProvider;
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 #[RunTestsInSeparateProcesses]
@@ -41,7 +57,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
                 ]),
@@ -51,8 +67,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($topicName, 'order-placed');
 
         $ecotoneLite->run('dynamicTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $this->assertSame(
@@ -75,7 +91,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('literalOrdersTopic', $literalTopicName),
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $dynamicTopicName),
@@ -87,8 +103,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($dynamicTopicName, 'dynamic-order-placed');
 
         $ecotoneLite->run('mixedTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('mixedTopicsConsumer.getMessages');
@@ -112,7 +128,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
                 ]),
@@ -123,8 +139,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($topicName, 'order-placed-via-parameter');
 
         $ecotoneLite->run('parameterTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $this->assertSame(
@@ -136,7 +152,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
 
     private function publishToTopic(string $topic, string $payload): void
     {
-        $brokerList = ConnectionTestCase::getConnection()->getBootstrapServers()[0];
+        $brokerList = ConnectionTestCase::getConnection()->bootstrapServers[0];
 
         $conf = new Conf();
         $conf->set('metadata.broker.list', $brokerList);

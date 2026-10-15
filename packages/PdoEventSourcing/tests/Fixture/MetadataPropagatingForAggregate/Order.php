@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Event;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 /**
@@ -17,7 +17,7 @@ class Order
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $orderId;
 
     #[CommandHandler('placeOrder')]
@@ -32,7 +32,7 @@ class Order
         return [Event::create(new OrderWasPlaced($orderId), $headers)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function whenOrderWasPlaced(OrderWasPlaced $event): void
     {
         $this->orderId = $event->orderId;

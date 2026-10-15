@@ -3,11 +3,11 @@
 namespace App\OutboxPattern\Infrastructure;
 
 use App\OutboxPattern\Application\EventHandlerService;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 class Configuration
 {
@@ -32,11 +32,11 @@ class Configuration
     {
         return [
             PollingMetadata::create(self::DATABASE_CHANNEL)
-                    ->setHandledMessageLimit(2)
-                    ->setExecutionTimeLimitInMilliseconds(1000),
+                    ->withHandledMessageLimit(2)
+                    ->withExecutionTimeLimitInMilliseconds(1000),
             PollingMetadata::create(self::EXTERNAL_BROKER_CHANNEL)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(1000)
         ];
     }
 
@@ -44,6 +44,6 @@ class Configuration
     public function enableDocumentStoreRepository()
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreStandardRepository: true);
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true);
     }
 }

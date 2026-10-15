@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\Configuration\AmqpConfiguration;
-use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 final class EcotoneConfiguration
 {
@@ -21,25 +19,23 @@ final class EcotoneConfiguration
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
             RetryTemplateBuilder::fixedBackOff(100)
-                ->maxRetryAttempts(3),
+                ->maxRetries(3),
             'dbal_dead_letter'
         );
+    }
+
+    #[ServiceContext]
+    public function withoutInstantRetries(): InstantRetryConfiguration
+    {
+        return InstantRetryConfiguration::createWithDefaults()
+                ->withAsynchronousEndpointsRetry(false);
     }
 
     #[ServiceContext]
     public function aggregateRepository(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreStandardRepository: true,);
-    }
-
-    #[ServiceContext]
-    public function distributed(): array
-    {
-        return [
-            AmqpDistributedBusConfiguration::createConsumer(),
-            AmqpDistributedBusConfiguration::createPublisher(),
-        ];
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true,);
     }
 
     #[ServiceContext]

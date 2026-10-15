@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Fixture\MessengerConsumer\AmqpExampleCommand;
 use Fixture\MessengerConsumer\AmqpMessengerAsyncCommandHandler;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -35,7 +35,7 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
         $this->messaging = EcotoneLite::bootstrapFlowTesting(
             [AmqpMessengerAsyncCommandHandler::class],
             self::bootKernel()->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($this->channelName),
                 ])
@@ -51,7 +51,7 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_single_command(): void
     {
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('single_1'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('single_1'));
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
 
         $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup());
@@ -62,17 +62,17 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_multiple_commands(): void
     {
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_1'));
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_2'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('multi_1'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('multi_2'));
         /** Consumer not yet run */
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
 
-        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $commands = $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands');
         $this->assertCount(1, $commands);
         $this->assertEquals('multi_1', $commands[0]['id']);
 
-        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $commands = $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands');
         $this->assertCount(2, $commands);
         $this->assertEquals('multi_1', $commands[0]['id']);

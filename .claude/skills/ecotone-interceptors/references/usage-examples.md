@@ -2,12 +2,12 @@
 
 ## Transaction Interceptor (Around)
 
-Source pattern: `Ecotone\Messaging\Transaction\TransactionInterceptor`
+Source pattern: `Ecotone\Dbal\DbalTransaction\DbalTransactionInterceptor`
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Precedence;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 
 class TransactionInterceptor
 {
@@ -30,8 +30,8 @@ class TransactionInterceptor
 ## Validation Interceptor (Before)
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class ValidationInterceptor
 {
@@ -48,18 +48,22 @@ class ValidationInterceptor
 
 ## Audit Logging Interceptor (After)
 
+`#[After]`'s first parameter is the handler's **return value**, not the original request -- and it only runs at
+all when the handler returns something. A `void` `#[CommandHandler]` never triggers it; target a
+`#[QueryHandler]`, or a command handler with a return type, instead.
+
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\After;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Header;
 
 class AuditInterceptor
 {
-    #[After(pointcut: CommandHandler::class)]
+    #[After(pointcut: QueryHandler::class)]
     public function audit(
-        object $payload,
+        mixed $result,
         #[Header('correlationId')] string $correlationId
     ): void {
-        $this->auditLog->record($correlationId, $payload);
+        $this->auditLog->record($correlationId, $result);
     }
 }
 ```
@@ -67,8 +71,8 @@ class AuditInterceptor
 ## Authorization Interceptor (Presend)
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Presend;
+use Ecotone\Api\Attribute\Header;
 
 class AuthorizationInterceptor
 {
@@ -87,10 +91,51 @@ class AuthorizationInterceptor
 }
 ```
 
+## Tenant Header Enrichment (ChannelInterceptor, Enterprise)
+
+Targets a channel by name rather than a pointcut, so it runs for every message sent to that channel — including before a message is enqueued to an asynchronous channel. Requires an Ecotone Enterprise licence.
+
+```php
+use Ecotone\Api\Attribute\ChannelInterceptor;
+use Ecotone\Api\Attribute\Headers;
+
+class OrdersChannelTenantInterceptor
+{
+    #[ChannelInterceptor('orders', changeHeaders: true)]
+    public function enrichWithTenant(#[Headers] array $headers): array
+    {
+        $headers['tenantId'] = $this->tenantResolver->resolveCurrentTenantId();
+        return $headers;
+    }
+}
+```
+
+Ordering multiple interceptors on the same channel works the same way as other interceptors — lower `precedence` runs earlier:
+
+```php
+class FirstOrdersInterceptor
+{
+    #[ChannelInterceptor('orders', precedence: 1)]
+    public function intercept(#[Payload] string $payload): string
+    {
+        return strtoupper($payload);
+    }
+}
+
+class SecondOrdersInterceptor
+{
+    #[ChannelInterceptor('orders', precedence: 2)]
+    public function intercept(#[Payload] string $payload): string
+    {
+        return trim($payload);
+    }
+}
+```
+
 ## Correlation ID Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Before;
 
 class CorrelationIdInterceptor
 {
@@ -108,7 +153,7 @@ class CorrelationIdInterceptor
 ## Header Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Before;
 
 class HeaderEnricher
 {
@@ -127,8 +172,8 @@ class HeaderEnricher
 ## Argument Modification (Around)
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 class EnrichmentInterceptor
 {
@@ -137,7 +182,6 @@ class EnrichmentInterceptor
     {
         $args = $invocation->getArguments();
         // Modify arguments before handler runs
-        $invocation->replaceArgument('timestamp', time());
         return $invocation->proceed();
     }
 }
@@ -192,7 +236,7 @@ Targets a specific method in a specific class:
 Excludes specific targets:
 
 ```php
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')')]
 #[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
 #[Before(pointcut: 'not(App\Internal\*)')]
 ```
@@ -207,7 +251,7 @@ Excludes specific targets:
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
 
 // Complex: (attribute OR bus) AND NOT excluded
-#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutTransaction::class . ')')]
+#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutDatabaseTransaction::class . ')')]
 ```
 
 ### Real-World Example: Dynamic Transaction Pointcut
@@ -224,7 +268,7 @@ if ($config->isTransactionOnConsoleCommands()) {
     $pointcut .= '||(' . ConsoleCommand::class . ')';
 }
 // Exclude opt-outs
-$pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
+$pointcut = '(' . $pointcut . ')&&not(' . WithoutDatabaseTransaction::class . ')';
 ```
 
 ### Auto-Inference from Parameter Types
@@ -288,4 +332,4 @@ class AuthInterceptor
 | Specific aggregate | `Order::class` |
 | Async handlers only | `Asynchronous::class` |
 | All bus calls | `Gateway::class` |
-| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutTransaction::class . ')'` |
+| Exclude opt-outs | `CommandHandler::class . '&&not(' . WithoutDatabaseTransaction::class . ')'` |

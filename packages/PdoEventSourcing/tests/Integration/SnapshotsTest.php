@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
@@ -38,12 +37,12 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
     #[DataProvider('enterpriseMode')]
     public function test_snapshotting_aggregates_called_in_turn(bool $enableEnterpriseMode): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Basket::class], // fixme should not be required when aggregate class is in namespace used with `withNamespaces` method
             containerOrAvailableServices: [new BasketEventConverter(), new BasketMediaTypeConverter(), new TicketEventConverter(), new TicketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
@@ -57,7 +56,6 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                         ->withSnapshotsFor(Basket::class, 3),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null
         );
 

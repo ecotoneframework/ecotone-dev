@@ -5,22 +5,22 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
@@ -40,6 +40,22 @@ use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
@@ -148,16 +164,12 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $projection = $this->createOrderListProjectionWithAggregateStream();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, Order::class, EventsConverter::class],
             containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -196,7 +208,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
             public const NAME = 'order_list_partitioned_aggregate_stream';
 
             public function __construct(private Connection $connection)
@@ -262,7 +274,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list_partitioned';
 
             public function __construct(private Connection $connection)
@@ -324,7 +336,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     public function test_userland_partition_provider_is_prioritized_over_builtin_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
+        $userlandPartitionProvider = new #[PartitionProviderAttribute] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'userland_backfill_projection';
@@ -345,7 +357,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, Attribute\ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
+        $projection = new #[Projection('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
             #[EventHandler]
             public function handle(TicketWasRegistered $event): void
             {
@@ -360,41 +372,32 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->initializeProjection('userland_backfill_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(3, $messages, 'Expected 3 batches for 7 partitions with batch size 3 (3+3+1)');
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
     private function bootstrapEcotoneWithAsyncChannel(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('backfill_channel')],
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'))->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel'),
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel')
         );
     }
 }

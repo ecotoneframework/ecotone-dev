@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -37,7 +37,7 @@ final class DynamicChannelRetryTest extends TestCase
             [DynamicChannelRetryHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'async_tenant_a',
@@ -59,20 +59,20 @@ final class DynamicChannelRetryTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.dynamic', 'test_message');
+        $ecotoneTestSupport->sendCommandWithRouting('execute.dynamic', 'test_message');
 
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false,
         ));
 
         self::assertTrue($handler->failedOnce, 'Handler should have failed on first attempt');
 
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: true,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: true,
         ));
 
         self::assertTrue($handler->succeeded, 'Handler should have succeeded on retry after resend');

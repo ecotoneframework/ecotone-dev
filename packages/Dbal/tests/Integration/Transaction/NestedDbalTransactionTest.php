@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\NestedDbalHandlers;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\TestCountingLogger;
@@ -22,7 +21,7 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
     {
         $logger = new TestCountingLogger();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             [NestedDbalHandlers::class],
             [
                 new NestedDbalHandlers(),
@@ -31,7 +30,7 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true),
@@ -41,11 +40,11 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
         );
 
         // Prepare schema
-        $ecotone->sendCommandWithRoutingKey('nested.prepare');
+        $ecotone->sendCommandWithRouting('nested.prepare');
         $logger->reset();
 
         // Execute nested call: outer sends inner; both should be within a single DBAL transaction
-        $ecotone->sendCommandWithRoutingKey('nested.outer');
+        $ecotone->sendCommandWithRouting('nested.outer');
 
         // Exactly one transaction should be started and committed
         self::assertSame(1, $logger->getStartedCount(), 'Expected only one DB transaction to start for nested command bus calls');

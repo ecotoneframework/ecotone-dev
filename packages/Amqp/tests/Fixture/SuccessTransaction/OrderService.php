@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\SuccessTransaction;
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0
@@ -19,7 +19,7 @@ class OrderService
         $orderRegisteringGateway->place($order);
     }
 
-    #[ServiceActivator('placeOrder', 'placeOrderEndpoint')]
+    #[InternalHandler('placeOrder', endpointId: 'placeOrderEndpoint')]
     public function receive(string $order): void
     {
         $this->order = $order;

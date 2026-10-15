@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 /**
  * licence Apache-2.0
@@ -22,8 +22,8 @@ class ChannelConfiguration
                 ->withReceiveTimeout(1)
                 ->withPublisherConfirms(false),
             PollingMetadata::create(self::QUEUE_NAME)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(5000),
+                ->withHandledMessageLimit(1)
+                ->withExecutionTimeLimitInMilliseconds(5000),
             AmqpConfiguration::createWithDefaults()
                 ->withTransactionOnAsynchronousEndpoints(true)
                 ->withTransactionOnCommandBus(true),

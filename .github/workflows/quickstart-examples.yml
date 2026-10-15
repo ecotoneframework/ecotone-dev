@@ -2,6 +2,11 @@ name: 'Quickstart Examples Tests'
 
 on:
   pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
 
 concurrency:
   group: quickstart-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
@@ -121,6 +126,9 @@ jobs:
           done
           echo "Kafka failed to start within 60 seconds"
           exit 1
+
+      - name: Provide an Enterprise licence key to the examples that need one
+        run: echo "ECOTONE_LICENSE_KEY=$(php -r 'require "packages/Ecotone/src/Test/LicenceTesting.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --no-interaction

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
@@ -29,10 +29,10 @@ final class SynchronousEventDrivenSagaTest extends TestCase
 {
     public function test_product_is_added_by_synchronous_event_driven_saga(): void
     {
-        $testSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $testSupport = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new SagaProjection(), new SynchronousBasketList(), new SagaEventConverter(), new BasketEventConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga',
@@ -45,13 +45,13 @@ final class SynchronousEventDrivenSagaTest extends TestCase
         self::assertEquals([
             new CreateBasket('1000'),
             new AddProduct('1000', 'chocolate'),
-        ], $testSupport->getRecordedCommands());
+        ], $testSupport->popRecordedCommands());
 
         self::assertEquals([
             new BasketWasCreated('1000'),
             new SagaStarted('1000'),
             new ProductWasAddedToBasket('1000', 'chocolate'),
-        ], $testSupport->getRecordedEvents());
+        ], $testSupport->popRecordedEvents());
 
         self::assertEquals(true, $testSupport->sendQueryWithRouting('isSagaStarted', '1000'));
 

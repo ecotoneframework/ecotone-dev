@@ -16,7 +16,7 @@ These two examples walk through the complete projection lifecycle using a `User`
 ## What both examples share
 
 - A `User` `#[EventSourcingAggregate]` with `RegisterUser`, `ChangeUserName`, and `DeactivateUser` commands
-- `#[ProjectionV2]` + `#[FromAggregateStream(User::class)]` for automatic stream wiring
+- `#[Projection]` + `#[FromAggregateStream(User::class)]` for automatic stream wiring
 - `#[ProjectionInitialization]` and `#[ProjectionDelete]` lifecycle hooks
 - `#[QueryHandler]` on the projection class for `user.listActive`
 - A `run_example.php` script that walks the projection lifecycle and asserts on the read model state

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\_PackageTemplate\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -23,11 +23,6 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
 
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return false;
     }
 
     public function getModulePackageName(): string

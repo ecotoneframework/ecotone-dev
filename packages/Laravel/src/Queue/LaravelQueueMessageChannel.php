@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Queue;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Illuminate\Contracts\Queue\Factory;
@@ -130,5 +130,10 @@ final class LaravelQueueMessageChannel implements PollableChannel
         return $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
             : 'ecotone';
+    }
+
+    public function __toString(): string
+    {
+        return "laravel queue: {$this->connectionName}/{$this->queueName}";
     }
 }

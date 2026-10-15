@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Enqueue\AmqpLib\AmqpContext;
 use Exception;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -16,6 +17,21 @@ use PhpAmqpLib\Wire\AMQPTable;
 /**
  * AMQP Stream Acknowledge Callback
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 {
@@ -28,7 +44,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         private ConsumerPositionTracker $positionTracker,
         private string $consumerId,
         private ?string $streamOffset,
-        private CancellableAmqpStreamConsumer $streamConsumer,
+        private AmqpStreamInboundChannelAdapter $streamConsumer,
         private string $queueName,
         private CachedConnectionFactory $publisherConnectionFactory,
         private BatchCommitCoordinator $batchCommitCoordinator
@@ -44,7 +60,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         ConsumerPositionTracker $positionTracker,
         string $consumerId,
         ?string $streamOffset,
-        CancellableAmqpStreamConsumer $streamConsumer,
+        AmqpStreamInboundChannelAdapter $streamConsumer,
         string $queueName,
         CachedConnectionFactory $publisherConnectionFactory,
         BatchCommitCoordinator $batchCommitCoordinator

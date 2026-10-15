@@ -3,16 +3,21 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\ComponentTestBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -69,9 +74,9 @@ abstract class DbalMessagingTestCase extends TestCase
     {
         self::deleteTable('enqueue', $connection);
         self::deleteTable(OrderService::ORDER_TABLE, $connection);
-        self::deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        self::deleteTable(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $connection);
         self::deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        self::deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        self::deleteTable(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, $connection);
         self::deleteTable('persons', $connection);
         self::deleteTable('activities', $connection);
     }
@@ -188,8 +193,34 @@ abstract class DbalMessagingTestCase extends TestCase
         );
     }
 
-    private static function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
+    private static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
-        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        return $connection->createSchemaManager();
+    }
+
+    protected function bootstrapFlowTesting(
+        array $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        ?string $pathToRootCatalog = null,
+        bool $allowGatewaysToBeRegisteredInContainer = false,
+        bool $addInMemoryStateStoredRepository = true,
+        bool $addInMemoryEventSourcedRepository = true,
+        ?TestConfiguration $testConfiguration = null,
+        ?string $licenceKey = null,
+    ): FlowTestSupport {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $allowGatewaysToBeRegisteredInContainer,
+            $addInMemoryStateStoredRepository,
+            $addInMemoryEventSourcedRepository,
+            $testConfiguration,
+            $licenceKey,
+        );
     }
 }

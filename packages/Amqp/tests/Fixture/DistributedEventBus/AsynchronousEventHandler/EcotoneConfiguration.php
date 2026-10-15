@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 /**
  * licence Apache-2.0
@@ -20,7 +20,7 @@ final class EcotoneConfiguration
         return [
             AmqpBackedMessageChannelBuilder::create('notification_channel'),
             PollingMetadata::create('notification_channel')
-                ->withTestingSetup(maxExecutionTimeInMilliseconds: 1000),
+                ->withTestingSetup(executionTimeLimitInMilliseconds: 1000),
         ];
     }
 

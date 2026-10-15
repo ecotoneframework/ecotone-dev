@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Sqs;
 
-use Enqueue\Sqs\SqsConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

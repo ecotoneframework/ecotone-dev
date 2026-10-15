@@ -1,29 +1,47 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 use function get_class;
 
@@ -39,10 +57,10 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdatedConverter;
 
 /**
- * Tests for emitting events from ProjectionV2 handlers.
+ * Tests for emitting events from Projection handlers.
  *
  * EventStreamEmitter is a general EventSourcing feature that can be used with any event handler,
- * including ProjectionV2 handlers. It allows projections to emit events to other streams.
+ * including Projection handlers. It allows projections to emit events to other streams.
  *
  * @internal
  */
@@ -53,7 +71,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -63,12 +81,11 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -89,7 +106,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -99,12 +116,11 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -123,7 +139,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     {
         $projection = $this->createEmittingProjectionWithLinkToProjectionStream();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -132,16 +148,16 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->deleteProjection('emitting_linked_projection');
+        $ecotone->setupDatabaseTables();
         $ecotone->initializeProjection('emitting_linked_projection');
 
         $ecotone
@@ -165,7 +181,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createNonLiveEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -175,14 +191,15 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true))->createTable($this->getConnection());
+        (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true))->createTable($this->getConnection());
 
         $ecotone
             ->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
@@ -194,10 +211,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         // Check that NO events were emitted to the notifications stream
         // because the projection has live=false
         $eventStore = $ecotone->getGateway(EventStore::class);
-        self::assertFalse(
-            $eventStore->hasStream('notifications_stream_non_live'),
-            'No events should have been emitted to the stream because projection is not live'
-        );
+        self::assertSame([], $eventStore->load('notifications_stream_non_live'));
     }
 
     public function test_rebuild_should_not_emit_events(): void
@@ -205,7 +219,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -215,12 +229,11 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -229,11 +242,12 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
 
-        $ecotone->resetProjection('emitting_projection');
+        $ecotone->deleteProjection('emitting_projection')
+            ->initializeProjection('emitting_projection');
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before rebuild');
         $notificationsCountBeforeRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
 
-        $ecotone->getGateway(ProjectionRegistry::class)->get('emitting_projection')->prepareRebuild();
+        $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'emitting_projection']);
 
         self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events and rebuilt its state');
         $notificationsCountAfterRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
@@ -245,7 +259,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
@@ -255,12 +269,11 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -269,10 +282,12 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
 
-        $ecotone->resetProjection('emitting_projection');
+        $ecotone->deleteProjection('emitting_projection')
+            ->initializeProjection('emitting_projection');
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before backfill');
         self::assertFalse($eventStore->hasStream('notifications_stream'), 'Notifications stream should not exist after reset');
 
+        $ecotone->setupDatabaseTables();
         $ecotone->triggerProjection('emitting_projection');
 
         self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events');
@@ -281,7 +296,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[ProjectionV2('emitting_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_projection'), FromAggregateStream(Ticket::class), Stream('notifications_stream')] class () {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -337,7 +352,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createNonLiveEmittingProjection(): object
     {
-        return new #[ProjectionV2('non_live_emitting_projection'), ProjectionDeployment(live: false), FromStream(Ticket::class)] class () {
+        return new #[Projection('non_live_emitting_projection'), ProjectionDeployment(live: false), FromAggregateStream(Ticket::class), Stream('notifications_stream_non_live')] class () {
             private const STREAM_NAME = 'notifications_stream_non_live';
             private array $tickets = [];
 
@@ -390,7 +405,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[ProjectionV2('emitting_linked_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_linked_projection'), FromAggregateStream(Ticket::class), Stream('projection-emitting_linked_projection')] class () {
             private const STREAM_NAME = 'projection-emitting_linked_projection';
             private array $tickets = [];
 

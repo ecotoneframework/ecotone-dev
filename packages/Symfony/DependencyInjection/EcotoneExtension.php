@@ -2,15 +2,16 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
+use Ecotone\Api\Console\ConsoleWriter;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
@@ -32,19 +33,29 @@ class EcotoneExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
+        $givenKeys = array_merge(...array_map(array_keys(...), $configs));
+        FrameworkConfigurationKeys::refuseUnrecognisedKeys(
+            givenKeys: $givenKeys,
+            recognisedKeys: $configuration->getRecognisedKeys(),
+            configurationLocation: 'the `ecotone` bundle configuration',
+        );
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);
 
-        $skippedModules = $config['skippedModulePackageNames'] ?? [];
+        $enabledModulePackageNames = in_array(FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES, $givenKeys, true)
+            ? $config[FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES]
+            : null;
 
-        /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast(in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? false : $config['failFast'])
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
-            ->withSkippedModulePackageNames($skippedModules)
         ;
+
+        if ($enabledModulePackageNames !== null) {
+            $serviceConfiguration = $serviceConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
+        }
 
         if ($config['licenceKey'] !== null) {
             $serviceConfiguration = $serviceConfiguration->withLicenceKey($config['licenceKey']);
@@ -67,11 +78,7 @@ class EcotoneExtension extends Extension
             $retryTemplate            = $config['defaultConnectionExceptionRetry'];
             $serviceConfiguration = $serviceConfiguration
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoffWithMaxDelay(
-                        $retryTemplate['initialDelay'],
-                        $retryTemplate['maxAttempts'],
-                        $retryTemplate['multiplier']
-                    )
+                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
                 );
         }
         if (isset($config['defaultErrorChannel'])) {

@@ -2,18 +2,18 @@
 
 ## Projection Examples
 
-### Basic ProjectionV2 with Lifecycle
+### Basic Projection with Lifecycle
 
 ```php
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
-#[ProjectionV2('ticket_list')]
-#[FromStream(Ticket::class)]
+#[Projection('ticket_list')]
+#[FromAggregateStream(Ticket::class)]
 class TicketListProjection
 {
     private array $tickets = [];
@@ -63,13 +63,13 @@ class TicketListProjection
 ### Partitioned Projection with State
 
 ```php
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionState;
 
 #[Partitioned]
-#[ProjectionV2('ticket_details')]
-#[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[Projection('ticket_details')]
+#[FromAggregateStream(Ticket::class)]
 class TicketDetailsProjection
 {
     #[EventHandler]
@@ -103,11 +103,11 @@ Partitioned projection rules:
 ### Polling Projection
 
 ```php
-use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Api\Attribute\Polling;
 
 #[Polling('orderSummaryEndpoint')]
-#[ProjectionV2('order_summary')]
-#[FromStream(Order::class)]
+#[Projection('order_summary')]
+#[FromAggregateStream(Order::class)]
 class OrderSummaryProjection
 {
     #[EventHandler]
@@ -128,11 +128,11 @@ $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestin
 ### Streaming Projection
 
 ```php
-use Ecotone\Projecting\Attribute\Streaming;
+use Ecotone\Api\Projecting\Streaming;
 
 #[Streaming('dashboard_channel')]
-#[ProjectionV2('live_dashboard')]
-#[FromStream(Order::class)]
+#[Projection('live_dashboard')]
+#[FromAggregateStream(Order::class)]
 class LiveDashboardProjection
 {
     #[EventHandler]
@@ -146,9 +146,9 @@ class LiveDashboardProjection
 ### Multi-Stream Projection
 
 ```php
-#[ProjectionV2('calendar_view')]
-#[FromStream(Calendar::class)]
-#[FromStream(Meeting::class)]
+#[Projection('calendar_view')]
+#[FromAggregateStream(Calendar::class)]
+#[FromAggregateStream(Meeting::class)]
 class CalendarViewProjection
 {
     #[EventHandler]
@@ -164,9 +164,9 @@ Cannot be combined with `#[Partitioned]`.
 ### FromAggregateStream
 
 ```php
-use Ecotone\Projecting\Attribute\FromAggregateStream;
+use Ecotone\Api\Projecting\FromAggregateStream;
 
-#[ProjectionV2('order_list')]
+#[Projection('order_list')]
 #[FromAggregateStream(Order::class)]
 class OrderListProjection
 {
@@ -178,10 +178,10 @@ class OrderListProjection
 ### Projection with EventStreamEmitter
 
 ```php
-use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\Api\EventSourcing\EventStreamEmitter;
 
-#[ProjectionV2('notifications')]
-#[FromStream(Order::class)]
+#[Projection('notifications')]
+#[FromAggregateStream(Order::class)]
 class NotificationProjection
 {
     #[EventHandler]
@@ -206,33 +206,33 @@ class NotificationProjection
 ### Configuration Attributes
 
 ```php
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionBackfill;
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionExecution;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDeployment;
 
 // Batch size for event loading
-#[ProjectionV2('big_projection')]
+#[Projection('big_projection')]
 #[ProjectionExecution(eventLoadingBatchSize: 500)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class BigProjection { }
 
 // Backfill configuration
-#[ProjectionV2('my_proj')]
+#[Projection('my_proj')]
 #[Partitioned]
 #[ProjectionBackfill(backfillPartitionBatchSize: 100, asyncChannelName: 'backfill_channel')]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class BackfillableProjection { }
 
 // Blue/green deployment: non-live suppresses EventStreamEmitter events
-#[ProjectionV2('projection_v2')]
+#[Projection('projection_v2')]
 #[ProjectionDeployment(live: false)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class ProjectionV2Deploy { }
 
 // Manual kickoff: requires explicit initialization
-#[ProjectionV2('projection_v1')]
+#[Projection('projection_v1')]
 #[ProjectionDeployment(manualKickOff: true)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class ProjectionV1Deploy { }
 ```
 
@@ -241,8 +241,8 @@ class ProjectionV1Deploy { }
 ### Revision and NamedEvent
 
 ```php
-use Ecotone\Modelling\Attribute\Revision;
-use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\Attribute\NamedEvent;
 
 // Version 1 (default when no attribute)
 class PersonWasRegistered
@@ -275,22 +275,24 @@ class TicketWasRegistered
 }
 ```
 
-### Upcasting Pattern
+### Handling Old Revisions
 
-Upcasters transform old event versions to the current schema:
+There is no separate "upcaster" class the framework invokes -- `#[Revision]` only stamps
+`MessageHeaders::REVISION` on the event when it is produced. To branch on which revision produced a stored event,
+inject the header into the `#[Apply]` that applies it:
 
 ```php
-use Ecotone\Modelling\Attribute\EventRevision;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Messaging\MessageHeaders;
 
-class PersonWasRegisteredUpcaster
-{
-    public function upcast(array $payload, int $revision): array
-    {
-        if ($revision < 2) {
-            $payload['type'] = 'default';  // Provide default for new field
-        }
-        return $payload;
-    }
+#[Apply]
+public function applyRegistered(
+    PersonWasRegistered $event,
+    #[Header(MessageHeaders::REVISION)] int $revision
+): void {
+    $this->personId = $event->personId;
+    $this->type = $revision >= 2 ? $event->type : 'default';
 }
 ```
 
@@ -300,42 +302,20 @@ class PersonWasRegisteredUpcaster
 ```php
 // v1: { personId, name }
 // v2: { personId, name, type }
-// Upcaster sets type='default' for v1 events
+// The #[Apply] method supplies type='default' when $revision < 2
 ```
 
-**Renaming Fields:**
-```php
-public function upcast(array $payload, int $revision): array
-{
-    if ($revision < 2) {
-        $payload['fullName'] = $payload['name'];
-        unset($payload['name']);
-    }
-    return $payload;
-}
-```
+**Removing Fields:** a v1 event's extra property is simply never read by the current handler -- nothing to do.
 
-**Splitting Events:**
-```php
-// v1: PersonWasRegisteredAndActivated { id, name, activatedAt }
-// v2: Split into PersonWasRegistered + PersonWasActivated
-```
-
-**Removing Fields:**
-```php
-public function upcast(array $payload, int $revision): array
-{
-    unset($payload['deprecatedField']);
-    return $payload;
-}
-```
+**Splitting or renaming events:** there is no built-in replacement for splitting one stored event into two; keep
+handling the old event class (registered on the aggregate) alongside the new one, or replay-and-rewrite the stream
+via `EventStore::load()` + `create()` outside of live traffic.
 
 ### Versioning Best Practices
 
 1. **Always increment revision** when changing event schema
-2. **Never modify stored events** -- transform on read via upcasters
+2. **Never modify stored events** -- branch on the injected `MessageHeaders::REVISION` in the handler that applies them
 3. **Use `#[NamedEvent]`** to decouple storage from class names
-4. **Add defaults in upcasters** for new required fields
-5. **Keep events immutable** -- all properties `readonly`
-6. **Version from the start** -- use `#[Revision(1)]` explicitly
+4. **Keep events immutable** -- all properties `readonly`
+5. **Version from the start** -- use `#[Revision(1)]` explicitly
 7. **Test upcasters** -- verify old events can be loaded with new code

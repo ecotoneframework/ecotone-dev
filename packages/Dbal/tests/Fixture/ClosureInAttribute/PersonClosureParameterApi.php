@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ClosureInAttribute;
 
-use Ecotone\Dbal\Attribute\DbalParameter;
-use Ecotone\Dbal\Attribute\DbalQuery;
-use Ecotone\Dbal\Attribute\DbalWrite;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
+use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\FetchMode;
 
 /**
  * licence Apache-2.0

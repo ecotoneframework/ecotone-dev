@@ -2,7 +2,7 @@
 
 ## 1. What you'll learn
 
-This example shows how a **Tempest active-record model** (`use Tempest\Database\IsDatabaseModel`) becomes an **Ecotone `#[Aggregate]`**. The model carries its own `#[CommandHandler]` and `#[QueryHandler]` methods, and Ecotone persists it automatically through the `ecotone/tempest` package's `TempestRepository` (a `StandardRepository` that calls the model's own `save()`).
+This example shows how a **Tempest active-record model** (`use Tempest\Database\IsDatabaseModel`) becomes an **Ecotone `#[Aggregate]`**. The model carries its own `#[CommandHandler]` and `#[QueryHandler]` methods, and Ecotone persists it automatically through the `ecotone/tempest` package's `TempestRepository` (a `StateStoredRepository` that calls the model's own `save()`).
 
 The same aggregate is then exercised three ways:
 

@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpAdmin;
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\AmqpBinding;
-use Ecotone\Amqp\AmqpExchange;
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpBinding;
+use Ecotone\Api\Amqp\AmqpExchange;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Api\Amqp\RabbitConsumer;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
 
@@ -28,16 +27,13 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Apache-2.0
  */
-class AmqpModule implements AnnotationModule
+final class AmqpModule implements AnnotationModule
 {
-    private AmqpDistributionModule $amqpDistributionModule;
-
     /**
      * @param AmqpQueue[] $amqpQueuesFromMessageConsumers
      */
-    private function __construct(AmqpDistributionModule $amqpDistributionModule, private array $amqpQueuesFromMessageConsumers)
+    private function __construct(private array $amqpQueuesFromMessageConsumers)
     {
-        $this->amqpDistributionModule = $amqpDistributionModule;
     }
 
     /**
@@ -54,7 +50,6 @@ class AmqpModule implements AnnotationModule
         }
 
         return new self(
-            AmqpDistributionModule::create(),
             $amqpQueues,
         );
     }
@@ -64,8 +59,6 @@ class AmqpModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $extensionObjects = array_merge($this->amqpDistributionModule->getAmqpConfiguration($extensionObjects), $extensionObjects);
-
         $amqpExchanges = [];
         $amqpQueues = [];
         $amqpBindings = [];
@@ -75,7 +68,7 @@ class AmqpModule implements AnnotationModule
         $messageGroupIdToChannelMap = [];
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpStreamChannelBuilder) {
-                $messageGroupId = $extensionObject->getMessageGroupId();
+                $messageGroupId = $extensionObject->messageGroupId;
                 $channelName = $extensionObject->getMessageChannelName();
 
                 if (isset($messageGroupIdToChannelMap[$messageGroupId])) {
@@ -118,7 +111,7 @@ class AmqpModule implements AnnotationModule
         }
 
         if ($hasAmqpStreamChannelBuilder && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         foreach ($this->amqpQueuesFromMessageConsumers as $amqpQueue) {
@@ -130,7 +123,6 @@ class AmqpModule implements AnnotationModule
             $amqpQueues[] = $amqpQueue;
         }
 
-        $this->amqpDistributionModule->prepare($messagingConfiguration, $extensionObjects);
         $messagingConfiguration->registerServiceDefinition(AmqpAdmin::REFERENCE_NAME, DefinitionHelper::buildDefinitionFromInstance(
             AmqpAdmin::createWith(
                 $amqpExchanges,
@@ -143,17 +135,6 @@ class AmqpModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof AmqpBackedMessageChannelBuilder
-            || $extensionObject instanceof AmqpStreamChannelBuilder
-            || $extensionObject instanceof AmqpExchange
-            || $extensionObject instanceof AmqpQueue
-            || $extensionObject instanceof AmqpBinding
-            || $this->amqpDistributionModule->canHandle($extensionObject);
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];

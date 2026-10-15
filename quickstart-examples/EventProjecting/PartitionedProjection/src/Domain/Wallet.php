@@ -10,12 +10,12 @@ use App\EventProjecting\PartitionedProjection\Domain\Command\DebitWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCreated;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCredited;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasDebited;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 #[Stream('wallet_stream')]
@@ -58,20 +58,20 @@ class Wallet
         return [new WalletWasCredited($this->walletId, $command->amount)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyWalletWasCreated(WalletWasCreated $event): void
     {
         $this->walletId = $event->walletId;
         $this->balance = $event->initialBalance;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyWalletWasDebited(WalletWasDebited $event): void
     {
         $this->balance -= $event->amount;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyWalletWasCredited(WalletWasCredited $event): void
     {
         $this->balance += $event->amount;

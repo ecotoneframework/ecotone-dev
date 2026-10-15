@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\FailureMode;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\CommandBus;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 /**

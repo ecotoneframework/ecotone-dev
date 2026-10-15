@@ -3,11 +3,14 @@
 use App\Microservices\BackofficeService\ReadModel\TicketsProjection;
 use App\Microservices\CustomerService\Domain\Issue;
 use App\Microservices\CustomerService\Domain\IssueRepository;
+use App\Microservices\CustomerService\Domain\IssueSubscriber;
+use App\Microservices\CustomerService\Infrastructure\EmailConverter;
+use App\Microservices\CustomerService\Infrastructure\UuidConverter;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 
@@ -16,22 +19,35 @@ require __DIR__ . "/vendor/autoload.php";
 const BACKOFFICE_SERVICE = "backoffice_service";
 const CUSTOMER_SERVICE = "customer_service";
 
-$customerService = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+$customerService = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new IssueSubscriber(),
+        new EmailConverter(),
+        new UuidConverter(),
+        AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
+        DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(CUSTOMER_SERVICE)
-        ->withNamespaces(["App\Microservices\CustomerService"])
-        ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+        ->withNamespaces(["App\Microservices\CustomerService"]),
+    pathToRootCatalog: __DIR__,
+    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+    licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 
-$backofficeService = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
-    serviceConfiguration: ServiceConfiguration::createWithDefaults()
+$backofficeConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone');
+$backofficeService = EcotoneLite::bootstrap(
+    containerOrAvailableServices: [
+        new TicketsProjection($backofficeConnectionFactory),
+        AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]),
+        DbalConnectionFactory::class => $backofficeConnectionFactory,
+    ],
+    configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(BACKOFFICE_SERVICE)
-        ->withNamespaces(["App\Microservices\BackofficeService"])
-        ->doNotLoadCatalog(),
-    pathToRootCatalog: __DIR__
+        ->withNamespaces(["App\Microservices\BackofficeService"]),
+    pathToRootCatalog: __DIR__,
+    /** Distributed Bus with Service Map is an Ecotone Enterprise feature, see README.md for how to get a key */
+    licenceKey: getenv('ECOTONE_LICENSE_KEY') ?: null,
 );
 /** Running consumer for first time in order to create the queue */
 $backofficeService->run(BACKOFFICE_SERVICE);

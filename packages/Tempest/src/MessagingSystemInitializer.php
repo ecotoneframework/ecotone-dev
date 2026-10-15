@@ -6,10 +6,10 @@ namespace Ecotone\Tempest;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Tempest\Container\Container;
@@ -124,8 +124,11 @@ final class MessagingSystemInitializer implements Initializer
             ->withLoadCatalog('')
             ->withFailFast(false)
             ->withNamespaces($namespaces)
-            ->withSkippedModulePackageNames($config->skippedModulePackageNames)
             ->withCacheDirectoryPath($cacheDirectory);
+
+        if ($config->enabledModulePackageNames !== null) {
+            $applicationConfiguration = $applicationConfiguration->withEnabledModulePackageNames($config->enabledModulePackageNames);
+        }
 
         if ($config->serviceName !== '') {
             $applicationConfiguration = $applicationConfiguration->withServiceName($config->serviceName);

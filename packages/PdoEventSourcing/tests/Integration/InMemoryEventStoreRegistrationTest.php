@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Event;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,21 +23,21 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
 {
     public function test_registering_in_memory_event_store_when_event_sourcing_configuration_is_in_memory(): void
     {
-        $eventSourcingConfiguration = \Ecotone\EventSourcing\EventSourcingConfiguration::createInMemory();
+        $eventSourcingConfiguration = \Ecotone\Api\EventSourcing\EventSourcingConfiguration::createInMemory();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [TestEventConverter::class],
             [new TestEventConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     $eventSourcingConfiguration,
                 ]),
         );
 
-        /** @var \Ecotone\EventSourcing\EventStore $eventStore */
-        $eventStore = $ecotoneTestSupport->getGateway(\Ecotone\EventSourcing\EventStore::class);
+        /** @var \Ecotone\Api\EventSourcing\EventStore $eventStore */
+        $eventStore = $ecotoneTestSupport->getGateway(\Ecotone\Api\EventSourcing\EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
         $eventStore->appendTo(
@@ -56,7 +56,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
 
         $this->assertCount(1, $events);
         $this->assertEquals($event, $events[0]->getPayload());
-        $this->assertEquals('test_value', $events[0]->getMetadata()['test_key']);
+        $this->assertEquals('test_value', $events[0]->metadata['test_key']);
 
         // Verify that the InMemoryEventStore is registered and working
         // The adapter should delegate to Ecotone's InMemoryEventStore

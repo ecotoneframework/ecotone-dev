@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Test\StubLogger;
-use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
@@ -36,12 +36,12 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -54,10 +54,10 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
 
         $this->assertEquals(
             $messagePayload,
-            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1))->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
     }
 
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void
@@ -65,14 +65,14 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $queueName = 'redis';
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [RedisAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new RedisAsyncConsumerExample(),
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -98,7 +98,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),
@@ -106,9 +106,9 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create('async'),
@@ -136,7 +136,10 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 ConnectionException::connectionRetryMessage(2, 3),
                 ConnectionException::connectionRetryMessage(3, 9),
             ],
-            $loggerExample->getInfo()
+            array_values(array_filter(
+                $loggerExample->getInfo(),
+                fn ($logEntry) => ! is_string($logEntry) || ! str_starts_with($logEntry, 'Executing Message Handler')
+            ))
         );
     }
 }

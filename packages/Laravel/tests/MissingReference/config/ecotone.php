@@ -1,13 +1,11 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 return [
     'loadAppNamespaces' => false,
     'namespaces' => [
         env('ECOTONE_MISSING_REF_NS', 'App\MissingReference\Laravel\Shared'),
     ],
-    'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-        ModulePackageList::LARAVEL_PACKAGE,
-    ]),
+    'enabledModulePackageNames' => [ModulePackageList::LARAVEL_PACKAGE, ],
 ];

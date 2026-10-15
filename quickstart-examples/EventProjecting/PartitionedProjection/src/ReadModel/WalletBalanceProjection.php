@@ -9,19 +9,17 @@ use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCredited;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasDebited;
 use App\EventProjecting\PartitionedProjection\Domain\Wallet;
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
 
 #[Partitioned]
-#[ProjectionV2(self::NAME)]
+#[Projection(self::NAME)]
 #[FromStream('wallet_stream', Wallet::class)]
 #[Asynchronous('async_projection')]
 class WalletBalanceProjection

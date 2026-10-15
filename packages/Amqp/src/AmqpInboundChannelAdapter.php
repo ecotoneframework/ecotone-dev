@@ -6,12 +6,12 @@ namespace Ecotone\Amqp;
 
 use AMQPChannelException;
 use AMQPConnectionException;
+use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;

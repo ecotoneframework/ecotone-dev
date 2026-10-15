@@ -1,0 +1,31 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\:\:withPublisherConfirms\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Method Ecotone\\Api\\Amqp\\AmqpBackedMessageChannelBuilder\:\:getAmqpOutboundChannelAdapter\(\) should return Ecotone\\Amqp\\AmqpOutboundChannelAdapterBuilder but returns Ecotone\\Enqueue\\EnqueueOutboundChannelAdapterBuilder\.$#'
+			identifier: return.type
+			count: 1
+			path: Api/AmqpBackedMessageChannelBuilder.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:declareQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Context\:\:deleteQueue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpChannelManager.php
+
+		-
+			message: '#^Call to an undefined method Interop\\Queue\\Producer\:\:setDelayStrategy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/AmqpOutboundChannelAdapter.php

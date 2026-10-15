@@ -2,6 +2,8 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
+use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
+use Symfony\Component\Config\Definition\ArrayNode;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -78,12 +80,22 @@ class Configuration implements ConfigurationInterface
                         ->defaultNull()
                     ->end()
 
-                    ->arrayNode('skippedModulePackageNames')
+                    ->arrayNode(FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES)
                         ->scalarPrototype()
                     ->end()
                 ->end()
         ;
 
         return $treeBuilder;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getRecognisedKeys(): array
+    {
+        $tree = $this->getConfigTreeBuilder()->buildTree();
+
+        return $tree instanceof ArrayNode ? array_keys($tree->getChildren()) : [];
     }
 }

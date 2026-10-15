@@ -7,7 +7,7 @@ namespace Test\App\Unit\Domain\Product;
 use App\Testing\Domain\Product\Command\AddProduct;
 use App\Testing\Domain\Product\Event\ProductWasAdded;
 use App\Testing\Domain\Product\Product;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -24,7 +24,7 @@ final class ProductTest extends TestCase
             [new ProductWasAdded($productId,$name,$price)],
             EcotoneLite::bootstrapFlowTesting([Product::class])
                 ->sendCommand(new AddProduct($productId, $name, $price))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 }

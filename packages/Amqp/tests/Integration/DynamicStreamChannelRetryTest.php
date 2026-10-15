@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Exception;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -37,14 +37,14 @@ final class DynamicStreamChannelRetryTest extends AmqpMessagingTestCase
         $queueTenantB = 'stream_queue_tenant_b_' . Uuid::v7()->toRfc4122();
         $handler = new DynamicStreamRetryHandler();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DynamicStreamRetryHandler::class],
             [
                 $handler,
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueTenantA),
@@ -70,11 +70,11 @@ final class DynamicStreamChannelRetryTest extends AmqpMessagingTestCase
 
         $ecotoneLite->getCommandBus()->sendWithRouting('execute.dynamic_stream', 'test_message');
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(5000));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(5000));
 
         self::assertTrue($handler->failedOnce, 'Handler should have failed on first attempt');
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: true)->withExecutionTimeLimitInMilliseconds(5000));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: true)->withExecutionTimeLimitInMilliseconds(5000));
 
         self::assertTrue($handler->succeeded, 'Handler should have succeeded on retry after resend');
     }

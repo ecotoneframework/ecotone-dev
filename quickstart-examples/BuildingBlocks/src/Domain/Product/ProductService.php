@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Product;
 
-use Ecotone\Messaging\Attribute\MessageGateway;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Identifier;
 use Money\Money;
 
 /**

@@ -1,7 +1,22 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
@@ -9,19 +24,17 @@ namespace Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 use function in_array;
-
-use RuntimeException;
 
 class AggregateIdPartitionProvider implements PartitionProvider
 {
@@ -30,7 +43,8 @@ class AggregateIdPartitionProvider implements PartitionProvider
      */
     public function __construct(
         private DbalConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
-        private PdoStreamTableNameProvider $tableNameProvider,
+        private StreamTableRegistry $streamTableRegistry,
+        private MissingEventStreamTable $missingEventStreamTable,
         private array $partitionedProjections = [],
     ) {
     }
@@ -43,39 +57,35 @@ class AggregateIdPartitionProvider implements PartitionProvider
     public function count(StreamFilter $filter): int
     {
         $connection = $this->getConnection();
-        $platform = $connection->getDatabasePlatform();
+        $schema = EventStreamSchemaFactory::for($connection);
 
-        $streamTable = $this->tableNameProvider->generateTableNameForStream($filter->streamName);
+        $tableName = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = $schema->quoteIdentifier($tableName);
+        $aggregateIdExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false);
+        $aggregateTypeExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false);
 
         try {
-            if ($platform instanceof PostgreSQLPlatform) {
-                $result = $connection->executeQuery(<<<SQL
-                    SELECT COUNT(DISTINCT metadata->>'_aggregate_id')
-                    FROM {$streamTable}
-                    WHERE metadata->>'_aggregate_type' = ?
-                    SQL, [$filter->aggregateType]);
-            } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
-                $result = $connection->executeQuery(<<<SQL
-                    SELECT COUNT(DISTINCT aggregate_id)
-                    FROM {$streamTable}
-                    WHERE aggregate_type = ?
-                    SQL, [$filter->aggregateType]);
-            } else {
-                throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
-            }
+            $result = $connection->executeQuery(<<<SQL
+                SELECT COUNT(DISTINCT {$aggregateIdExpression})
+                FROM {$streamTable}
+                WHERE {$aggregateTypeExpression} = ?
+                SQL, [$filter->aggregateType]);
 
             return (int) $result->fetchOne();
         } catch (TableNotFoundException) {
-            return 0;
+            throw $this->missingEventStreamTable->exceptionFor($tableName);
         }
     }
 
     public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
     {
         $connection = $this->getConnection();
-        $platform = $connection->getDatabasePlatform();
+        $schema = EventStreamSchemaFactory::for($connection);
 
-        $streamTable = $this->tableNameProvider->generateTableNameForStream($filter->streamName);
+        $tableName = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = $schema->quoteIdentifier($tableName);
+        $aggregateIdExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false);
+        $aggregateTypeExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false);
 
         $limitClause = '';
         if ($limit !== null) {
@@ -84,31 +94,19 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $offsetClause = $offset > 0 ? " OFFSET {$offset}" : '';
 
         try {
-            if ($platform instanceof PostgreSQLPlatform) {
-                $query = $connection->executeQuery(<<<SQL
-                    SELECT DISTINCT metadata->>'_aggregate_id' AS aggregate_id
-                    FROM {$streamTable}
-                    WHERE metadata->>'_aggregate_type' = ?
-                    ORDER BY aggregate_id
-                    {$limitClause}{$offsetClause}
-                    SQL, [$filter->aggregateType]);
-            } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
-                $query = $connection->executeQuery(<<<SQL
-                    SELECT DISTINCT aggregate_id
-                    FROM {$streamTable}
-                    WHERE aggregate_type = ?
-                    ORDER BY aggregate_id
-                    {$limitClause}{$offsetClause}
-                    SQL, [$filter->aggregateType]);
-            } else {
-                throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
-            }
+            $query = $connection->executeQuery(<<<SQL
+                SELECT DISTINCT {$aggregateIdExpression} AS aggregate_id
+                FROM {$streamTable}
+                WHERE {$aggregateTypeExpression} = ?
+                ORDER BY aggregate_id
+                {$limitClause}{$offsetClause}
+                SQL, [$filter->aggregateType]);
 
             while ($aggregateId = $query->fetchOne()) {
                 yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
             }
         } catch (TableNotFoundException) {
-            return;
+            throw $this->missingEventStreamTable->exceptionFor($tableName);
         }
     }
 

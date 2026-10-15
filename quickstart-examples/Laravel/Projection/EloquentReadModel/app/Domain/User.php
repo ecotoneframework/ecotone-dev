@@ -14,15 +14,19 @@ use App\Domain\Command\RegisterUser;
 use App\Domain\Event\UserNameWasChanged;
 use App\Domain\Event\UserWasDeactivated;
 use App\Domain\Event\UserWasRegistered;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
+#[Stream(self::STREAM)]
 final class User
 {
+    public const STREAM = 'eloquent_read_model_users';
+
     use WithAggregateVersioning;
 
     #[Identifier]
@@ -58,7 +62,7 @@ final class User
         return [new UserWasDeactivated($this->userId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyRegistered(UserWasRegistered $event): void
     {
         $this->userId = $event->userId;
@@ -66,13 +70,13 @@ final class User
         $this->active = true;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyNameChanged(UserNameWasChanged $event): void
     {
         $this->name = $event->name;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyDeactivated(UserWasDeactivated $event): void
     {
         $this->active = false;

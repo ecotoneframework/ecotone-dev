@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\ErrorChannel;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 
 /**
  * licence Apache-2.0
@@ -33,8 +33,8 @@ class ErrorConfigurationContext
     {
         return ErrorHandlerConfiguration::create(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(2)
+            RetryTemplateBuilder::exponentialBackOff(1, 1)
+                ->maxRetries(2)
         );
     }
 
@@ -43,9 +43,9 @@ class ErrorConfigurationContext
     {
         return [
             PollingMetadata::create(self::INPUT_CHANNEL)
-                ->setExecutionTimeLimitInMilliseconds(3000)
-                ->setHandledMessageLimit(1)
-                ->setErrorChannelName(self::ERROR_CHANNEL),
+                ->withExecutionTimeLimitInMilliseconds(3000)
+                ->withHandledMessageLimit(1)
+                ->withErrorChannelName(self::ERROR_CHANNEL),
         ];
     }
 }

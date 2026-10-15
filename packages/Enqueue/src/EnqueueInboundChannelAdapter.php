@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessagePoller;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;
@@ -56,10 +56,10 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
                 $context->createQueue($this->queueName)
             );
 
-            /** @var EnqueueMessage $message */
-            $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
-                ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+            $timeoutInMilliseconds = $pollingMetadata->executionTimeLimitInMilliseconds > 0
+                ? min($pollingMetadata->executionTimeLimitInMilliseconds, $this->receiveTimeoutInMilliseconds)
                 : $this->receiveTimeoutInMilliseconds;
+            /** @var EnqueueMessage|null $message */
             $message = $consumer->receive($timeoutInMilliseconds);
 
             if (! $message) {

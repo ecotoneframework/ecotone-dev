@@ -59,8 +59,8 @@ interface DbalTableManager extends DefinedObject
     public function isInitialized(Connection $connection): bool;
 
     /**
-     * Returns whether this table should be automatically initialized at runtime.
-     * This combines global DbalConfiguration setting with feature-specific config.
+     * Message explaining how to create the table this manager owns, naming the exact
+     * command (or, without a console, the code) for the integration the application runs.
      */
-    public function shouldBeInitializedAutomatically(): bool;
+    public function getMissingTableInstructions(): string;
 }

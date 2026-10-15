@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Modelling\AggregateNotFoundException;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Modelling\AggregateNotFoundException;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\HighThroughputPublishing\HighThroughputTestChannelBuilder;
 use Test\Ecotone\Dbal\Fixture\ORM\AsynchronousEventHandler\NotificationService;
@@ -83,11 +82,11 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

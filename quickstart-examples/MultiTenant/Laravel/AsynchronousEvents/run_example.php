@@ -1,8 +1,8 @@
 <?php
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +12,12 @@ require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 $app = require __DIR__.'/bootstrap/app.php';
 try {
-$app->make(Kernel::class)->bootstrap();
+try {
+    $app->make(Kernel::class)->bootstrap();
+} finally {
+    /** Laravel's exception handler renders an error and lets the script exit 0; PHP's own handler exits non-zero */
+    restore_exception_handler();
+}
 }catch (Throwable $e) {
     echo "Error: " . $e->getMessage();
     dump($e->getTraceAsString());

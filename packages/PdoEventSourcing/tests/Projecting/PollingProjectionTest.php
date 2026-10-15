@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
@@ -32,7 +31,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_with_global_stream(): void
     {
         // Given a polling projection
-        $projection = new #[ProjectionV2('polling_test'), Polling('polling_test_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('polling_test'), Polling('polling_test_runner'), FromAggregateStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -55,7 +54,7 @@ final class PollingProjectionTest extends ProjectingTestCase
         $this->assertCount(0, $projection->projectedEvents);
 
         // When polling consumer runs
-        $ecotone->run('polling_test_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('polling_test_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then all events are projected
         $this->assertCount(2, $projection->projectedEvents);
@@ -66,7 +65,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_processes_events_incrementally(): void
     {
         // Given a polling projection
-        $projection = new #[ProjectionV2('incremental_test'), Polling('incremental_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('incremental_test'), Polling('incremental_runner'), FromAggregateStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -85,14 +84,14 @@ final class PollingProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('ticket-inc-1', 'John', 'bug'));
 
         // And polling runs
-        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         $this->assertCount(1, $projection->projectedEvents);
 
         // When more events are created
         $ecotone->sendCommand(new RegisterTicket('ticket-inc-2', 'Jane', 'feature'));
 
         // And polling runs again
-        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('incremental_runner', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then only new events are processed (total is 2, not 3)
         $this->assertCount(2, $projection->projectedEvents);
@@ -101,7 +100,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_attribute_throws_exception_when_combined_with_asynchronous(): void
     {
         // Given a projection with both Polling and Asynchronous attributes
-        $projection = new #[ProjectionV2('async_polling'), Polling('async_polling_runner'), Asynchronous('async'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('async_polling'), Polling('async_polling_runner'), Asynchronous('async'), FromAggregateStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -127,17 +126,13 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, array $extensionObjects = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects($extensionObjects),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

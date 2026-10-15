@@ -9,12 +9,12 @@ use App\Workflow\Saga\Application\Order\OrderService;
 use App\Workflow\Saga\Application\OrderProcess\Event\OrderProcessWasStarted;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcess;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
-use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Application\Payment\PaymentProcessor;
+use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 
@@ -24,13 +24,11 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class],
             [
                 OrderService::class => new StubOrderService($totalPrice)
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_saga')));
 
         $ecotoneLite->publishEvent(new OrderWasPlaced($orderId));
 
@@ -42,7 +40,7 @@ final class OrderProcessTest extends TestCase
 
         $this->assertEquals(
             new OrderProcessWasStarted($orderId),
-            $ecotoneLite->getRecordedEvents()[1]
+            $ecotoneLite->popRecordedEvents()[1]
         );
     }
 
@@ -50,20 +48,18 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class, PaymentService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor())
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_saga')));
 
         $this->assertEquals(
             OrderProcessStatus::READY_TO_BE_SHIPPED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->run('async')
+                ->run('async_saga')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }
@@ -72,23 +68,21 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class, PaymentService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor(successAfterAttempt: 3))
             ],
-            enableAsynchronousProcessing: [
-                // Make Message Channel aware of the delay
-                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true)
-            ]
-        );
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(// Make Message Channel aware of the delay
+                SimpleMessageChannelBuilder::createQueueChannel('async_saga', delayable: true)));
 
         $this->assertEquals(
             OrderProcessStatus::CANCELLED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1))
+                ->run('async_saga')
+                ->advanceTimeBy(new TimeSpan(hours: 1, minutes: 1))
+                ->run('async_saga')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }

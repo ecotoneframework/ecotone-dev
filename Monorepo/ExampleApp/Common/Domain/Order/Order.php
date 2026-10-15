@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Domain\Order;
 
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithEvents;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Money;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\Event\OrderWasPlaced;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductDetails;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
-use Ecotone\Messaging\Attribute\Deduplicated;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Aggregate]
 final class Order
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     private function __construct(#[Identifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
     {

@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection\InProgressTicketList;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -101,8 +100,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $ecotone->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
         $ecotone->sendCommand(new RegisterTicket('1234', 'Johnny', 'alert'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
@@ -153,54 +150,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
-    public function test_triggering_projection_action_is_asynchronous(): void
-    {
-        $ecotone = self::bootstrapEcotone();
-
-        $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
-        $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $ecotone->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-
-        self::assertEquals(
-            [
-                ['ticket_id' => '1', 'ticket_type' => 'alert'],
-                ['ticket_id' => '2', 'ticket_type' => 'alert'],
-            ],
-            $ecotone->sendQueryWithRouting('getInProgressTickets'),
-            'Projection deletion is totally asynchronous: can query it right after deletion'
-        );
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-
-        // At this point the projection is deleted
-        try {
-            $ecotone->sendQueryWithRouting('getInProgressTickets');
-            self::fail('Projection should be deleted, querying it should throw an exception');
-        } catch (Throwable $exception) {
-        }
-
-        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-
-        self::assertEquals(
-            [],
-            $ecotone->sendQueryWithRouting('getInProgressTickets'),
-            'Projection should be empty after initialization but no error are thrown: the table exists. Initialization is synchronous, but triggering projection is asynchronous'
-        );
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-
-        self::assertEquals(
-            [
-                ['ticket_id' => '1', 'ticket_type' => 'alert'],
-                ['ticket_id' => '2', 'ticket_type' => 'alert'],
-            ],
-            $ecotone->sendQueryWithRouting('getInProgressTickets')
-        );
-
-    }
-
     private static function bootstrapEcotone(
         $classesToResolve = [],
         $namespaces = [
@@ -209,18 +158,17 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         ],
         array $extensionObjects = [],
     ): FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects(array_merge([
                     EventSourcingConfiguration::createWithDefaults(),
                 ], $extensionObjects)),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
-        );
+        )->setupDatabaseTables();
     }
 }

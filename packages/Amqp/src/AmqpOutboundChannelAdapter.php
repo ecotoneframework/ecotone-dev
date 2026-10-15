@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -55,7 +55,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
         private PendingDeliveryRegistry    $pendingDeliveryRegistry,
-        private ?DelayStrategy             $delayStrategy = null,
+        private DelayStrategy              $delayStrategy = new HeadersExchangeDelayStrategy(),
         private bool                       $batchPublishing = false,
         private bool                       $nonBlockingConfirmation = false,
         private int                        $confirmationTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
@@ -76,7 +76,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messagesToPublish = $payload instanceof BatchMessage
             ? array_map(
                 fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),
-                $payload->getEntries(),
+                $payload->entries,
             )
             : [$message];
 
@@ -184,7 +184,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $this->connectionFactory->getProducer()
             ->setTimeToLive($timeToLive)
-            ->setDelayStrategy($this->delayStrategy ??= new HeadersExchangeDelayStrategy())
+            ->setDelayStrategy($this->delayStrategy)
             ->setDeliveryDelay($deliveryDelay)
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
@@ -334,5 +334,10 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             fn (FailedDelivery $failedDelivery): string => $failedDelivery->getFailureReason(),
             $deliveryResult->getFailedDeliveries(),
         ))));
+    }
+
+    public function __toString(): string
+    {
+        return "amqp outbound: exchange `{$this->exchangeName}`";
     }
 }

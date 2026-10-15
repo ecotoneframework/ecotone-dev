@@ -1,8 +1,8 @@
 <?php
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSender;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
@@ -60,7 +60,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->withFailFast(false)
             ->withDefaultErrorChannel('errorChannel')
             ->withNamespaces(['Monorepo\\ExampleApp\\Common\\'])
-            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true) ?? []),
+            ->withEnabledModulePackageNames(\json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? []),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',
     );

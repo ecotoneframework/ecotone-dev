@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Test\MultiTenant;
 
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\MultiTenant\Application\Command\RegisterCustomer;
@@ -32,6 +33,7 @@ final class MultiTenantTest extends TestCase
 
     public function setUp(): void
     {
+        putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
         $kernel = new Kernel('dev', true);
         $kernel->boot();
         $app = $kernel->getContainer();
@@ -46,6 +48,7 @@ final class MultiTenantTest extends TestCase
 
     protected function tearDown(): void
     {
+        putenv('SYMFONY_LICENCE_KEY');
         restore_exception_handler();
     }
 

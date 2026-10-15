@@ -5,40 +5,43 @@ declare(strict_types=1);
 namespace Ecotone\OpenTelemetry\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Lite\Test\Configuration\ProvidedReferences;
+use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Precedence;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\DistributedBus;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
+use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule
+final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule, ResolvesExtensionObjectsForFlowTesting
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -50,7 +53,12 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
         $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
+        if (ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $extensionObjects)) {
+            $messagingConfiguration->registerServiceDefinition(TracerProviderInterface::class, new Definition(NoopTracerProvider::class));
+        }
+
         $messagingConfiguration->addCompilerPass(new RegisterAddSpanEventLoggerCompilerPass());
+        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
 
         $messagingConfiguration->registerServiceDefinition(
             TracerInterceptor::class,
@@ -117,9 +125,13 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         }
     }
 
-    public function canHandle($extensionObject): bool
+    public function resolveForFlowTesting(array $extensionObjects, ProvidedReferences $providedReferences): array
     {
-        return $extensionObject instanceof TracingConfiguration || $extensionObject instanceof MessageChannelBuilder;
+        if ($providedReferences->has(TracerProviderInterface::class)) {
+            return $extensionObjects;
+        }
+
+        return [...$extensionObjects, new NoTracerProviderGiven()];
     }
 
     public function getModulePackageName(): string

@@ -3,24 +3,25 @@
 namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\DocumentStoreMessageChannel;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 
@@ -28,13 +29,15 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 /**
  * licence Apache-2.0
  */
-class DbalDocumentStoreModule implements AnnotationModule
+final class DbalDocumentStoreModule implements AnnotationModule
 {
     public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone.dbal.documentStore.collectionName';
     public const ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID = 'ecotone.dbal.documentStore.documentId';
+    public const ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION = 'ecotone.dbal.documentStore.expectedVersion';
     public const COLLECTION_NAME_PARAMETER = 'collectionName';
     public const DOCUMENT_ID_PARAMETER = 'documentId';
     public const DOCUMENT_PARAMETER = 'document';
+    public const EXPECTED_VERSION_PARAMETER = 'expectedVersion';
 
     /**
      * @inheritDoc
@@ -42,26 +45,26 @@ class DbalDocumentStoreModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
-        $isDocumentStoreActive = $dbalConfiguration->isEnableDbalDocumentStore() && ! $dbalConfiguration->isInMemoryDocumentStore();
-        // Combine both settings: global initialization and document store specific initialization
-        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled() && $dbalConfiguration->isInitializeDbalDocumentStore();
+        $isDocumentStoreActive = $dbalConfiguration->enableDbalDocumentStore && ! $dbalConfiguration->inMemoryDocumentStore;
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
-        // Register the DocumentStoreTableManager service
         $messagingConfiguration->registerServiceDefinition(
             DocumentStoreTableManager::class,
             new Definition(DocumentStoreTableManager::class, [
                 DbalDocumentStore::ECOTONE_DOCUMENT_STORE,
                 $isDocumentStoreActive,
-                $shouldAutoInitialize,
+                $consoleInvocationPrefix,
+                $dbalConfiguration->documentStoreConnectionReference,
             ])
         );
 
-        if (! $dbalConfiguration->isEnableDbalDocumentStore()) {
+        if (! $dbalConfiguration->enableDbalDocumentStore) {
             return;
         }
 
-        $referenceName = $dbalConfiguration->getDbalDocumentStoreReference();
+        $referenceName = $dbalConfiguration->dbalDocumentStoreReference;
         $inMemoryDocumentStore = InMemoryDocumentStore::createEmpty();
 
         $messagingConfiguration
@@ -90,6 +93,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                             GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                             GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                             GatewayPayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                            GatewayHeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                         ]
                     )
             )
@@ -100,6 +104,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                             GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                             GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                             GatewayPayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                            GatewayHeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                         ]
                     )
             )
@@ -131,6 +136,15 @@ class DbalDocumentStoreModule implements AnnotationModule
                     )
             )
             ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($referenceName, DocumentStore::class, 'getDocumentVersion', DocumentStoreMessageChannel::getDocumentVersion($referenceName))
+                    ->withParameterConverters(
+                        [
+                            GatewayHeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
+                            GatewayHeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
+                        ]
+                    )
+            )
+            ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($referenceName, DocumentStore::class, 'countDocuments', DocumentStoreMessageChannel::countDocuments($referenceName))
                     ->withParameterConverters(
                         [
@@ -147,56 +161,64 @@ class DbalDocumentStoreModule implements AnnotationModule
                     )
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::dropCollection($referenceName), 'dropCollection', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::dropCollection($referenceName), 'dropCollection', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::addDocument($referenceName), 'addDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
-                    HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
-                    HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
-                    PayloadBuilder::create(self::DOCUMENT_PARAMETER),
-                ])
-            )
-            ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::updateDocument($referenceName), 'updateDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::addDocument($referenceName), 'addDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                     PayloadBuilder::create(self::DOCUMENT_PARAMETER),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::upsertDocument($referenceName), 'upsertDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::updateDocument($referenceName), 'updateDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                     PayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                    HeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::deleteDocument($referenceName), 'deleteDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::upsertDocument($referenceName), 'upsertDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
+                    HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
+                    HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
+                    PayloadBuilder::create(self::DOCUMENT_PARAMETER),
+                    HeaderBuilder::create(self::EXPECTED_VERSION_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION),
+                ])
+            )
+            ->registerMessageHandler(
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::deleteDocument($referenceName), 'deleteDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getDocument($referenceName), 'getDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getDocument($referenceName), 'getDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::findDocument($referenceName), 'findDocument', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::findDocument($referenceName), 'findDocument', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                     HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::countDocuments($referenceName), 'countDocuments', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getDocumentVersion($referenceName), 'getDocumentVersion', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
+                    HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
+                    HeaderBuilder::create(self::DOCUMENT_ID_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID),
+                ])
+            )
+            ->registerMessageHandler(
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::countDocuments($referenceName), 'countDocuments', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                 ])
             )
             ->registerMessageHandler(
-                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getAllDocuments($referenceName), 'getAllDocuments', $dbalConfiguration->getDocumentStoreConnectionReference(), $dbalConfiguration->isInMemoryDocumentStore(), $inMemoryDocumentStore, [
+                new DbalDocumentStoreBuilder(DocumentStoreMessageChannel::getAllDocuments($referenceName), 'getAllDocuments', $dbalConfiguration->documentStoreConnectionReference, $dbalConfiguration->inMemoryDocumentStore, $inMemoryDocumentStore, [
                     HeaderBuilder::create(self::COLLECTION_NAME_PARAMETER, self::ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME),
                 ])
             );
@@ -213,24 +235,18 @@ class DbalDocumentStoreModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof DbalConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
         $extensions = [
-            new DbalTableManagerReference(DocumentStoreTableManager::class),
+            new DbalTableManagerReference(DocumentStoreTableManager::class, $dbalConfiguration->documentStoreConnectionReference),
         ];
 
-        if ($dbalConfiguration->isEnableDocumentStoreStandardRepository()) {
+        if ($dbalConfiguration->enableDocumentStoreStateStoredRepository) {
             $extensions[] = new DocumentStoreAggregateRepositoryBuilder(
-                $dbalConfiguration->getDbalDocumentStoreReference(),
-                $dbalConfiguration->getDocumentStoreRelatedAggregates()
+                $dbalConfiguration->dbalDocumentStoreReference,
+                $dbalConfiguration->documentStoreRelatedAggregates
             );
         }
 

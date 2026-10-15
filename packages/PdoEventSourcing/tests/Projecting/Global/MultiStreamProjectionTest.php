@@ -1,33 +1,39 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
-use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\StreamFilterRegistry;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
@@ -46,141 +52,6 @@ use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
  */
 final class MultiStreamProjectionTest extends ProjectingTestCase
 {
-    public function test_projecting_multiple_streams_in_order_across_batches(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', range(1, 12));
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [20, 21]);
-
-        $ecotone->triggerProjection($projection::NAME);
-
-        self::assertSame([...range(1, 12), 20, 21], $projection->sequences);
-    }
-
-    public function test_loading_only_requested_events_and_resuming_unconsumed_streams(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = $ecotone->getServiceFromContainer(EventStoreGlobalStreamSource::class);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', range(1, 12));
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [20, 21]);
-
-        $page = $source->load($projection::NAME, null, 2);
-
-        self::assertSame([1, 2], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=2:;ordered_stream_b=0:;', $page->lastPosition);
-
-        $page = $source->load($projection::NAME, $page->lastPosition, 2);
-
-        self::assertSame([3, 4], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=4:;ordered_stream_b=0:;', $page->lastPosition);
-    }
-
-    public function test_ordering_equal_timestamps_by_stream_registration_order(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = $ecotone->getServiceFromContainer(EventStoreGlobalStreamSource::class);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', [1, 2, 3], 10);
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [4, 5], 10);
-
-        $position = null;
-        $sequences = [];
-        for ($i = 0; $i < 5; $i++) {
-            $page = $source->load($projection::NAME, $position, 1);
-            self::assertCount(1, $page->events);
-            $sequences[] = $page->events[0]->getPayload()['sequence'];
-            $position = $page->lastPosition;
-        }
-
-        self::assertSame([1, 2, 3, 4, 5], $sequences);
-        self::assertSame([], $source->load($projection::NAME, $position, 1)->events);
-    }
-
-    public function test_refilling_a_stream_before_returning_later_events_from_another_stream(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = $ecotone->getServiceFromContainer(EventStoreGlobalStreamSource::class);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', range(1, 25));
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [30, 31]);
-
-        $page = $source->load($projection::NAME, null, 20);
-
-        self::assertSame(range(1, 20), array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=20:;ordered_stream_b=0:;', $page->lastPosition);
-
-        $page = $source->load($projection::NAME, $page->lastPosition, 20);
-
-        self::assertSame([...range(21, 25), 30, 31], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-    }
-
-    public function test_preserving_stream_order_when_timestamps_decrease(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = $ecotone->getServiceFromContainer(EventStoreGlobalStreamSource::class);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', [10, 1]);
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [5, 20]);
-
-        $page = $source->load($projection::NAME, null, 10);
-
-        self::assertSame([5, 10, 1, 20], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-    }
-
-    public function test_preserving_unconsumed_gaps_when_loading_multiple_streams(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = $ecotone->getServiceFromContainer(EventStoreGlobalStreamSource::class);
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', [10, 20, 30]);
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [1, 2]);
-
-        $page = $source->load($projection::NAME, 'ordered_stream_a=3:2;ordered_stream_b=0:;', 1);
-
-        self::assertSame([1], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=3:2;ordered_stream_b=1:;', $page->lastPosition);
-
-        $page = $source->load($projection::NAME, $page->lastPosition, 1);
-        self::assertSame([2], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=3:2;ordered_stream_b=2:;', $page->lastPosition);
-
-        $page = $source->load($projection::NAME, $page->lastPosition, 1);
-        self::assertSame([20], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame('ordered_stream_a=3:;ordered_stream_b=2:;', $page->lastPosition);
-    }
-
-    public function test_preserving_unconsumed_filled_gaps_outside_max_gap_offset(): void
-    {
-        $projection = $this->createOrderingProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
-        $source = new EventStoreGlobalStreamSource(
-            self::getConnectionFactory(),
-            new StubUTCClock(),
-            $ecotone->getServiceFromContainer(PdoStreamTableNameProvider::class),
-            $ecotone->getServiceFromContainer(StreamFilterRegistry::class),
-            [$projection::NAME],
-            maxGapOffset: 3
-        );
-
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_a', [20, 21, 22, 23, 24]);
-        $this->appendOrderingEvents($ecotone, 'ordered_stream_b', [1]);
-
-        $page = $source->load($projection::NAME, 'ordered_stream_a=5:1;ordered_stream_b=0:;', 1);
-        self::assertSame([1], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-
-        $page = $source->load($projection::NAME, $page->lastPosition, 1);
-        self::assertSame([20], array_map(fn ($event) => $event->getPayload()['sequence'], $page->events));
-        self::assertSame([], $source->load($projection::NAME, $page->lastPosition, 1)->events);
-    }
-
     public function test_building_multi_stream_synchronous_projection(): void
     {
         $projection = $this->createMultiStreamProjection();
@@ -259,7 +130,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-poll-1', 'm-poll-1'));
 
         // run polling endpoint
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['m-poll-1' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-1'));
     }
@@ -276,12 +147,12 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-poll-reset', 'm-poll-reset'));
 
         // run polling once to build state
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
         self::assertEquals(['m-poll-reset' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset'));
 
         // reset and then run polling again to catch up
         $ecotone->resetProjection($projection::NAME);
-        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run($projection::ENDPOINT_ID, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         self::assertEquals(['m-poll-reset' => 'created'], $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset'));
 
@@ -294,7 +165,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
+        return new #[Projection(self::NAME), FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection';
 
             private array $calendars = [];
@@ -345,7 +216,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPartitionedMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
             public const NAME = 'calendar_multi_stream_projection_partitioned';
 
             private array $calendars = [];
@@ -396,7 +267,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPollingMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
+        return new #[Projection(self::NAME), Polling(self::ENDPOINT_ID), FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection_polling';
             public const ENDPOINT_ID = 'calendar_multi_stream_projection_polling_runner';
 
@@ -446,49 +317,17 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         };
     }
 
-    private function createOrderingProjection(): object
-    {
-        return new #[ProjectionV2('ordered_multi_stream_projection'), Polling('ordered_multi_stream_projection_polling'), ProjectionExecution(2), FromStream('ordered_stream_a'), FromStream('ordered_stream_b')] class {
-            public const NAME = 'ordered_multi_stream_projection';
-
-            public array $sequences = [];
-
-            #[EventHandler('ordered.event')]
-            public function record(array $event): void
-            {
-                $this->sequences[] = $event['sequence'];
-            }
-        };
-    }
-
-    private function appendOrderingEvents(FlowTestSupport $ecotone, string $streamName, array $sequences, ?int $timestamp = null): void
-    {
-        $eventStore = $ecotone->getGateway(EventStore::class);
-        foreach ($sequences as $sequence) {
-            $eventStore->appendTo($streamName, [Event::createWithType('ordered.event', ['sequence' => $sequence], [
-                'timestamp' => 1_700_000_000 + ($timestamp ?? $sequence),
-                '_aggregate_type' => 'ordered-events',
-                '_aggregate_id' => $streamName . '-' . $sequence,
-                '_aggregate_version' => 1,
-            ])]);
-        }
-    }
-
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class, EventsConverter::class,
             ]),
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

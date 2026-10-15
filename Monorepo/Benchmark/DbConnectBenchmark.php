@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 class DbConnectBenchmark
 {

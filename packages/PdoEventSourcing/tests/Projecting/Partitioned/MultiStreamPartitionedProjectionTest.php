@@ -1,27 +1,43 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
@@ -158,8 +174,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$calendarStream}:{$calendarStream}:cal-A", $resultsBeforeReset[0]['partition_key']);
         self::assertEquals("{$calendarStream}:{$calendarStream}:cal-B", $resultsBeforeReset[1]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getPartitionTrackingEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getPartitionTrackingEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-A', 'meeting-1'));
 
@@ -204,8 +221,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$sharedStream}:{$categoryType}:cat-1", $resultsBeforeReset[1]['partition_key']);
         self::assertEquals("{$sharedStream}:{$productType}:prod-2", $resultsBeforeReset[2]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getSharedStreamEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getSharedStreamEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new CreateProduct('prod-3'));
 
@@ -233,7 +251,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: SharedStreamProduct::STREAM, aggregateType: SharedStreamProduct::AGGREGATE_TYPE), FromStream(stream: SharedStreamCategory::STREAM, aggregateType: SharedStreamCategory::AGGREGATE_TYPE)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromStream(stream: SharedStreamProduct::STREAM, aggregateType: SharedStreamProduct::AGGREGATE_TYPE), FromStream(stream: SharedStreamCategory::STREAM, aggregateType: SharedStreamCategory::AGGREGATE_TYPE)] class ($connection) {
             public const NAME = 'shared_stream_partition_tracking';
 
             public function __construct(private Connection $connection)
@@ -300,7 +318,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForSharedStream(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 SharedStreamProduct::class,
                 SharedStreamCategory::class,
@@ -308,21 +326,20 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new SharedStreamEventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
     }
 
     private function createMultiStreamPartitionedProjectionWithPartitionTracking(): object
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'partition_tracking_projection';
 
             public function __construct(private Connection $connection)
@@ -401,7 +418,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_partitioned_events';
 
             public function __construct(private Connection $connection)
@@ -493,8 +510,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$streamA}:{$aggregateType}:prodA-1", $resultsBeforeReset[0]['partition_key']);
         self::assertEquals("{$streamB}:{$aggregateType}:prodB-1", $resultsBeforeReset[1]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new CreateProductA('prodA-2'));
 
@@ -519,7 +537,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: DifferentStreamProductA::STREAM, aggregateType: DifferentStreamProductA::AGGREGATE_TYPE), FromStream(stream: DifferentStreamProductB::STREAM, aggregateType: DifferentStreamProductB::AGGREGATE_TYPE)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromStream(stream: DifferentStreamProductA::STREAM, aggregateType: DifferentStreamProductA::AGGREGATE_TYPE), FromStream(stream: DifferentStreamProductB::STREAM, aggregateType: DifferentStreamProductB::AGGREGATE_TYPE)] class ($connection) {
             public const NAME = 'different_stream_same_type_tracking';
 
             public function __construct(private Connection $connection)
@@ -586,7 +604,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForDifferentStreams(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 DifferentStreamProductA::class,
                 DifferentStreamProductB::class,
@@ -594,19 +612,18 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new DifferentStreamEventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class,
@@ -614,13 +631,12 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             ]),
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
     }
 }

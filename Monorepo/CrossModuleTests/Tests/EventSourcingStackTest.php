@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
@@ -23,12 +27,35 @@ final class EventSourcingStackTest extends FullAppTestCase
 {
     use ExampleAppEventSourcingCaseTrait;
 
-    public static function skippedPackages(): array
+    public static function enabledModulePackageNames(): array
     {
-        return ModulePackageList::allPackagesExcept([
+        return [
             ModulePackageList::EVENT_SOURCING_PACKAGE,
-            ModulePackageList::JMS_CONVERTER_PACKAGE
-        ]);
+            ModulePackageList::DBAL_PACKAGE,
+            ModulePackageList::JMS_CONVERTER_PACKAGE,
+        ];
+    }
+
+    /**
+     * Symfony, Laravel and Lite all point at the same DATABASE_DSN, so the tables this scenario
+     * needs only have to be provisioned once here rather than in each executeFor*() implementation.
+     */
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        $connection = (new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'))
+            ->createContext()
+            ->getDbalConnection();
+
+        foreach ([
+            new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true),
+            new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true),
+        ] as $tableManager) {
+            if (! $tableManager->isInitialized($connection)) {
+                $tableManager->createTable($connection);
+            }
+        }
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
@@ -59,13 +86,6 @@ final class EventSourcingStackTest extends FullAppTestCase
         );
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $this->executeTestScenario(
-            $container->get(CommandBus::class),
-            $container->get(QueryBus::class)
-        );
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

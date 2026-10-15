@@ -1,22 +1,36 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 use function get_class;
 
@@ -35,16 +49,15 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $projection = $this->getProjectionWithObjectRouting();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123')],
@@ -60,12 +73,11 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
         $projection = $this->getProjectionWithRegexRouting();
 
-        EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -74,16 +86,15 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $projection = $this->getProjectionWithMultipleHandlers();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123')],
@@ -96,7 +107,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $projection = new #[ProjectionV2('partitioned_projection_with_multiple_handlers'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        $projection = new #[Projection('partitioned_projection_with_multiple_handlers'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -112,16 +123,15 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123'), ['id' => '123']],
@@ -132,7 +142,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithObjectRouting(): object
     {
-        return new #[ProjectionV2('partitioned_projection_with_object_routing'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[Projection('partitioned_projection_with_object_routing'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -145,7 +155,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithRegexRouting(): object
     {
-        return new #[ProjectionV2('partitioned_projection_with_regex_routing'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[Projection('partitioned_projection_with_regex_routing'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler('test.*')]
@@ -158,7 +168,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithMultipleHandlers(): object
     {
-        return new #[ProjectionV2('partitioned_projection_with_multiple_handlers'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[Projection('partitioned_projection_with_multiple_handlers'), Partitioned, FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]

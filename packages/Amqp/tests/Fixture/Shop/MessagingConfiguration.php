@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Amqp\Fixture\Shop;
 
-use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 /**
  * licence Apache-2.0
@@ -32,7 +32,7 @@ class MessagingConfiguration
             AmqpMessageConsumerConfiguration::create(self::CONSUMER_ID, self::SHOPPING_QUEUE)
                 ->withReceiveTimeoutInMilliseconds(1),
             PollingMetadata::create(self::CONSUMER_ID)
-                ->setExecutionTimeLimitInMilliseconds(1000),
+                ->withExecutionTimeLimitInMilliseconds(1000),
         ];
     }
 }

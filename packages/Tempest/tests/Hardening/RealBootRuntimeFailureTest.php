@@ -6,8 +6,8 @@ namespace Test\Ecotone\Tempest\Hardening;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
@@ -22,6 +22,7 @@ use Tempest\Discovery\Composer;
 use Tempest\Discovery\DiscoveryConfig;
 use Tempest\Discovery\DiscoveryLocation;
 use Test\Ecotone\Tempest\Hardening\Fixture\InitializerService\GreetingServiceInitializer;
+use Test\Ecotone\Tempest\Hardening\Fixture\VersionedModel\VersionedBasket;
 use Test\Ecotone\Tempest\TempestTestPaths;
 use Throwable;
 
@@ -39,6 +40,8 @@ final class RealBootRuntimeFailureTest extends TestCase
 {
     private string $cacheDirectory;
 
+    private bool $kernelRegisteredHandlers = false;
+
     protected function setUp(): void
     {
         $this->cacheDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest';
@@ -50,8 +53,10 @@ final class RealBootRuntimeFailureTest extends TestCase
 
     protected function tearDown(): void
     {
-        restore_exception_handler();
-        restore_error_handler();
+        if ($this->kernelRegisteredHandlers) {
+            restore_exception_handler();
+            restore_error_handler();
+        }
 
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
@@ -83,6 +88,27 @@ final class RealBootRuntimeFailureTest extends TestCase
         );
     }
 
+    public function test_kernel_boots_when_a_handler_dependencys_own_dependency_is_missing_and_dispatch_fails_honestly(): void
+    {
+        $kernel = $this->bootTempestKernel(
+            'Test\\Ecotone\\Tempest\\Hardening\\Fixture\\MissingReferenceChain\\',
+        );
+
+        $commandBus = $kernel->container->get(CommandBus::class);
+
+        try {
+            $commandBus->sendWithRouting('missing_reference.chain', 'payload');
+
+            $this->fail('Dispatch must fail: RequiresMissingClass needs NonExistingCollaborator in its constructor');
+        } catch (Throwable $exception) {
+            $this->assertStringContainsString(
+                'NonExistingCollaborator',
+                $exception->getMessage(),
+                'The dispatch error must name what could not be resolved',
+            );
+        }
+    }
+
     public function test_kernel_boots_and_handler_executes_when_service_is_provided_by_initializer(): void
     {
         $kernel = $this->bootTempestKernel(
@@ -95,6 +121,20 @@ final class RealBootRuntimeFailureTest extends TestCase
         $commandBus = $kernel->container->get(CommandBus::class);
 
         $this->assertSame('Hello real-boot', $commandBus->sendWithRouting('hardening.greet', 'real-boot'));
+    }
+
+    public function test_a_versioned_aggregate_stored_as_a_tempest_model_is_refused_when_ecotone_boots_in_the_kernel(): void
+    {
+        try {
+            $this->bootTempestKernel('Test\\Ecotone\\Tempest\\Hardening\\Fixture\\VersionedModel\\');
+
+            $this->fail('A versioned Tempest model aggregate was not refused');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(
+                'Aggregate ' . VersionedBasket::class . ' is stored as a Tempest model',
+                $exception->getMessage(),
+            );
+        }
     }
 
     private function dispatchAndCaptureFailure(CommandBus $commandBus): Throwable
@@ -138,7 +178,7 @@ final class RealBootRuntimeFailureTest extends TestCase
 
         $kernel->container->config(new EcotoneConfig(
             namespaces: [$fixtureNamespace],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
 
         if ($configureContainer !== null) {
@@ -147,8 +187,9 @@ final class RealBootRuntimeFailureTest extends TestCase
 
         $kernel->loadConfig()
             ->bootDiscovery()
-            ->registerExceptionHandler()
-            ->event(KernelEvent::BOOTED);
+            ->registerExceptionHandler();
+        $this->kernelRegisteredHandlers = true;
+        $kernel->event(KernelEvent::BOOTED);
 
         return $kernel;
     }

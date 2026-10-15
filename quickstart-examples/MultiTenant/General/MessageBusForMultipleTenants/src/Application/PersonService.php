@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 final class PersonService
 {
     #[CommandHandler]
-    public function handle(RegisterPerson $command, PersonRepository $personRepository): void
+    public function handle(RegisterPerson $command, #[Reference] MultiTenantConnectionFactory $connectionFactory): void
     {
-        $personRepository->save(Person::register($command));
+        (new PersonRepository($connectionFactory))->save(Person::register($command));
     }
 
     #[QueryHandler('person.getAllRegistered')]

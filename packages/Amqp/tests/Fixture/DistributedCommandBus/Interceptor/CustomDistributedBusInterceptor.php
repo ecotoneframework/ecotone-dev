@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor;
 
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Interceptor\MethodInvocation;
 
 final class CustomDistributedBusInterceptor
 {

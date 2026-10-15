@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
@@ -27,11 +26,11 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
 {
     public function test_handling_multiple_streams_for_projection(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new MultipleStreamsProjection(), new BasketEventConverter(), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams',
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
@@ -40,8 +39,7 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotone

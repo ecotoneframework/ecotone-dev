@@ -105,7 +105,7 @@ public function test_event_sourced_aggregate(): void
             new TicketWasRegistered('ticket-1', 'Bug', 'johny'),
         ])
         ->sendCommand(new CloseTicket('ticket-1'))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertEquals([new TicketWasClosed('ticket-1')], $events);
 }
@@ -154,13 +154,13 @@ public function test_inspect_recorded_messages(): void
     $ecotone->sendCommand(new PlaceOrder('order-1'));
 
     // Get recorded events (published via EventBus)
-    $events = $ecotone->getRecordedEvents();
+    $events = $ecotone->popRecordedEvents();
 
     // Get recorded commands (sent via CommandBus)
-    $commands = $ecotone->getRecordedCommands();
+    $commands = $ecotone->popRecordedCommands();
 
     // Get event headers
-    $headers = $ecotone->getRecordedEventHeaders();
+    $headers = $ecotone->popRecordedEventHeaders();
 
     // Discard and start fresh
     $ecotone->discardRecordedMessages();
@@ -170,13 +170,13 @@ public function test_inspect_recorded_messages(): void
 ## ModulePackageList Configuration
 
 ```php
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
 // Available package constants:
 // ModulePackageList::CORE_PACKAGE
-// ModulePackageList::ASYNCHRONOUS_PACKAGE
 // ModulePackageList::AMQP_PACKAGE
+// ModulePackageList::DATA_PROTECTION_PACKAGE
 // ModulePackageList::DBAL_PACKAGE
 // ModulePackageList::REDIS_PACKAGE
 // ModulePackageList::SQS_PACKAGE
@@ -184,23 +184,27 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 // ModulePackageList::EVENT_SOURCING_PACKAGE
 // ModulePackageList::JMS_CONVERTER_PACKAGE
 // ModulePackageList::TRACING_PACKAGE
+// ModulePackageList::LARAVEL_PACKAGE
+// ModulePackageList::SYMFONY_PACKAGE
+// ModulePackageList::TEMPEST_PACKAGE
 // ModulePackageList::TEST_PACKAGE
 
 $config = ServiceConfiguration::createWithDefaults()
-    ->withSkippedModulePackageNames(
-        ModulePackageList::allPackagesExcept([
-            ModulePackageList::DBAL_PACKAGE,
-            ModulePackageList::EVENT_SOURCING_PACKAGE,
-        ])
-    );
+    ->withEnabledModulePackageNames([
+        ModulePackageList::DBAL_PACKAGE,
+        ModulePackageList::EVENT_SOURCING_PACKAGE,
+    ]);
 ```
 
 ## Projection Testing with Inline Class
 
 ```php
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+
 public function test_projection_builds_read_model(): void
 {
-    $projection = new class {
+    $projection = new #[Projection('ticket_list')] #[FromAggregateStream(Ticket::class)] class {
         public array $tickets = [];
 
         #[ProjectionInitialization]
@@ -222,7 +226,7 @@ public function test_projection_builds_read_model(): void
         }
     };
 
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$projection::class, Ticket::class],
         containerOrAvailableServices: [$projection],
     );

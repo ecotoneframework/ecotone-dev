@@ -15,12 +15,13 @@ use App\Testing\Domain\Verification\VerificationProcess;
 use App\Testing\Domain\Verification\VerificationSender;
 use App\Testing\Domain\Verification\VerificationToken;
 use App\Testing\Infrastructure\MessagingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Scheduling\TimeSpan;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\App\Fixture\StubTokenGenerator;
@@ -43,8 +44,9 @@ final class VerificationAcceptanceTest extends TestCase
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
-                ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandsWithRouting()
+                ->advanceTimeBy(TimeSpan::withHours(25))
+                ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)
+                ->popRecordedCommandsWithRouting()
         );
     }
 
@@ -54,7 +56,7 @@ final class VerificationAcceptanceTest extends TestCase
             [User::class, VerificationProcess::class, VerificationSender::class],
             [TokenGenerator::class => $tokenGenerator, new VerificationSender()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup()

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
@@ -25,10 +25,10 @@ final class UniqueNamedEventsTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapForTesting(
+        EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                 ])

@@ -2,9 +2,9 @@
 
 namespace App\Schedule\ScheduledJob\ScheduledCommandHandler;
 
-use Ecotone\Messaging\Attribute\Poller;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class InvoiceService
 {

@@ -1,11 +1,8 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 
 return [
-    'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-        ModulePackageList::LARAVEL_PACKAGE,
-        ModulePackageList::ASYNCHRONOUS_PACKAGE,
-    ]),
+    'enabledModulePackageNames' => [ModulePackageList::LARAVEL_PACKAGE, ],
     'licenceKey' => env('LARAVEL_LICENCE_KEY'),
 ];

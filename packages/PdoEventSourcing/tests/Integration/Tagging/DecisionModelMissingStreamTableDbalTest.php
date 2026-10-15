@@ -1,0 +1,250 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Integration\Tagging;
+
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Dbal\Database\MissingTableInstructions;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Test\LicenceTesting;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ * @internal
+ */
+final class DecisionModelMissingStreamTableDbalTest extends EventSourcingMessagingTestCase
+{
+    private const STREAM = 'ecotone_event_stream';
+
+    public function test_a_missing_event_stream_table_names_the_setup_command_before_an_aggregate_backed_model_decides_on_no_events(): void
+    {
+        $ecotone = $this->bootstrapWithoutTheEventStreamTable();
+
+        $refusal = null;
+        try {
+            $ecotone->sendCommand(new ReserveSeatForMissingStreamTableTest('screening-1'));
+        } catch (ConfigurationException $exception) {
+            $refusal = $exception;
+        }
+
+        self::assertStringContainsString(
+            MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, self::STREAM, null),
+            (string) $refusal?->getMessage(),
+        );
+        self::assertSame([], SeatReservationsForMissingStreamTableTest::$observedCapacities);
+    }
+
+    public function test_the_same_decision_is_taken_once_the_database_is_initialized(): void
+    {
+        $ecotone = $this->bootstrapWithoutTheEventStreamTable();
+
+        $ecotone->setupDatabaseTables();
+
+        $ecotone->sendCommand(new OpenScreeningForMissingStreamTableTest('screening-1', 2));
+        $ecotone->sendCommand(new ReserveSeatForMissingStreamTableTest('screening-1'));
+
+        self::assertSame([2], SeatReservationsForMissingStreamTableTest::$observedCapacities);
+    }
+
+    public function test_a_tagged_append_after_the_stream_table_is_deleted_in_the_same_process_names_the_setup_command(): void
+    {
+        $ecotone = $this->bootstrapWithoutTheEventStreamTable();
+        $ecotone->setupDatabaseTables();
+        $ecotone->sendCommand(new OpenScreeningForMissingStreamTableTest('screening-1', 2));
+
+        $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:delete', ['feature' => [EventStreamTableManager::FEATURE_NAME], 'force' => true]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, self::STREAM, null));
+
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo(self::STREAM, [new SeatReservedForMissingStreamTableTest('screening-1')]));
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        SeatReservationsForMissingStreamTableTest::$observedCapacities = [];
+    }
+
+    private function bootstrapWithoutTheEventStreamTable(): FlowTestSupport
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [
+                ScreeningForMissingStreamTableTest::class,
+                ScreeningOpenedForMissingStreamTableTest::class,
+                SeatReservedForMissingStreamTableTest::class,
+                ScreeningCapacityForMissingStreamTableTest::class,
+                SeatReservationsForMissingStreamTableTest::class,
+                EventsConverterForMissingStreamTableTest::class,
+            ],
+            containerOrAvailableServices: [
+                self::getConnectionFactory(),
+                new EventsConverterForMissingStreamTableTest(),
+                new SeatReservationsForMissingStreamTableTest(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults(),
+                    EventSourcingConfiguration::createWithDefaults(),
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                ])
+                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->getServiceFromContainer(DatabaseSetupManager::class)->drop(EventStreamTableManager::FEATURE_NAME);
+
+        return $ecotone;
+    }
+}
+
+final readonly class OpenScreeningForMissingStreamTableTest
+{
+    public function __construct(public string $screeningId, public int $capacity)
+    {
+    }
+}
+
+final readonly class ReserveSeatForMissingStreamTableTest
+{
+    public function __construct(public string $screeningId)
+    {
+    }
+}
+
+final readonly class ScreeningOpenedForMissingStreamTableTest
+{
+    public function __construct(public string $screeningId, public int $capacity)
+    {
+    }
+}
+
+final readonly class SeatReservedForMissingStreamTableTest
+{
+    public function __construct(#[EventTag('screening')] public string $screeningId)
+    {
+    }
+}
+
+#[EventSourcingAggregate]
+#[AggregateType('MissingStreamTableScreening')]
+final class ScreeningForMissingStreamTableTest
+{
+    use WithAggregateVersioning;
+
+    #[Identifier]
+    private string $screeningId;
+
+    private int $capacity = 0;
+
+    #[CommandHandler]
+    public static function open(OpenScreeningForMissingStreamTableTest $command): array
+    {
+        return [new ScreeningOpenedForMissingStreamTableTest($command->screeningId, $command->capacity)];
+    }
+
+    #[Apply]
+    public function applyOpened(ScreeningOpenedForMissingStreamTableTest $event): void
+    {
+        $this->screeningId = $event->screeningId;
+        $this->capacity = $event->capacity;
+    }
+}
+
+#[DecisionModel(aggregate: ScreeningForMissingStreamTableTest::class)]
+final class ScreeningCapacityForMissingStreamTableTest
+{
+    private int $capacity = 0;
+
+    #[Apply]
+    public function opened(ScreeningOpenedForMissingStreamTableTest $event): void
+    {
+        $this->capacity = $event->capacity;
+    }
+
+    public function capacity(): int
+    {
+        return $this->capacity;
+    }
+}
+
+final class SeatReservationsForMissingStreamTableTest
+{
+    /** @var int[] */
+    public static array $observedCapacities = [];
+
+    #[CommandHandler]
+    public function reserve(
+        ReserveSeatForMissingStreamTableTest $command,
+        ScreeningCapacityForMissingStreamTableTest $screening,
+    ): array {
+        self::$observedCapacities[] = $screening->capacity();
+
+        return [new SeatReservedForMissingStreamTableTest($command->screeningId)];
+    }
+}
+
+final class EventsConverterForMissingStreamTableTest
+{
+    #[Converter]
+    public function fromScreeningOpened(ScreeningOpenedForMissingStreamTableTest $event): array
+    {
+        return ['screeningId' => $event->screeningId, 'capacity' => $event->capacity];
+    }
+
+    #[Converter]
+    public function toScreeningOpened(array $event): ScreeningOpenedForMissingStreamTableTest
+    {
+        return new ScreeningOpenedForMissingStreamTableTest($event['screeningId'], $event['capacity']);
+    }
+
+    #[Converter]
+    public function fromSeatReserved(SeatReservedForMissingStreamTableTest $event): array
+    {
+        return ['screeningId' => $event->screeningId];
+    }
+
+    #[Converter]
+    public function toSeatReserved(array $event): SeatReservedForMissingStreamTableTest
+    {
+        return new SeatReservedForMissingStreamTableTest($event['screeningId']);
+    }
+}

@@ -11,10 +11,10 @@ use App\Domain\Command\ChangeUserName;
 use App\Domain\Command\DeactivateUser;
 use App\Domain\Command\RegisterUser;
 use App\Domain\User;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 
@@ -35,9 +35,10 @@ $eventStore = $container->get(EventStore::class);
 
 echo "== Symfony Projection Quickstart - Database Read Model ==\n\n";
 
-if ($eventStore->hasStream(User::class)) {
-    $eventStore->delete(User::class);
+if ($eventStore->hasStream(User::STREAM)) {
+    $eventStore->delete(User::STREAM);
 }
+$messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 
 echo "1) Delete projection (clean slate)\n";
 $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => 'user_list_database']);

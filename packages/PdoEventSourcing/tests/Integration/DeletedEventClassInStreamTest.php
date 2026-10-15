@@ -7,26 +7,25 @@ declare(strict_types=1);
 
 namespace Integration;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Event;
-use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Scheduling\DatePoint;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
@@ -36,7 +35,7 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_event_sourcing_with_deleted_event_class_in_stream(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             [ANamedEvent::class, AnAggregate::class, AProjection::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -44,10 +43,9 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE
-        )->sendCommandWithRoutingKey('create', ['id' => 'aggregate-1']);
+        )->sendCommandWithRouting('create', ['id' => 'aggregate-1']);
 
         // I append an unknown event to the same stream
         $ecotone->getGateway(EventStore::class)
@@ -104,14 +102,14 @@ class AnAggregate
         return [new ANamedEvent($command['id'])];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onAnotherNamedEvent(ANamedEvent $event): void
     {
         $this->id = $event->id;
     }
 }
 
-#[ProjectionV2('a-projection'), FromStream('a-stream')]
+#[Projection('a-projection'), FromStream('a-stream')]
 class AProjection
 {
     public array $events = [];

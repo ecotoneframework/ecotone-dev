@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Aws\Sqs\Exception\SqsException;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\PollableChannel;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\StubLogger;
-use Enqueue\Sqs\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
@@ -36,12 +36,12 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -54,10 +54,10 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
 
         $this->assertEquals(
             $messagePayload,
-            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1))->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->withFixedRateInMilliseconds(1)));
     }
 
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void
@@ -65,14 +65,14 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         $queueName = 'sqs';
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [SqsAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new SqsAsyncConsumerExample(),
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -96,7 +96,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),
@@ -104,9 +104,9 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create('async'),
@@ -134,7 +134,10 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 ConnectionException::connectionRetryMessage(2, 3),
                 ConnectionException::connectionRetryMessage(3, 9),
             ],
-            $loggerExample->getInfo()
+            array_values(array_filter(
+                $loggerExample->getInfo(),
+                fn ($logEntry) => ! is_string($logEntry) || ! str_starts_with($logEntry, 'Executing Message Handler')
+            ))
         );
     }
 }

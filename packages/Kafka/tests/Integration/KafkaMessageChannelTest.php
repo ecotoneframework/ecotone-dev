@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Api\KafkaHeader;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaHeader;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -42,6 +42,22 @@ use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncEventHandler;
  */
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 #[RunTestsInSeparateProcesses]
@@ -53,7 +69,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $this->assertEquals(
             [],
@@ -73,14 +89,14 @@ final class KafkaMessageChannelTest extends TestCase
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: $metadata);
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: $metadata);
         /** Consumer not yet run */
         $this->assertEquals(
             [],
             $messaging->sendQueryWithRouting('consumer.getMessages')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
@@ -106,11 +122,11 @@ final class KafkaMessageChannelTest extends TestCase
         $messaging
             ->sendCommand(new ScheduleMeeting($calendarId, Uuid::v7()->toRfc4122()));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
         $this->assertEquals($calendarId, $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $calendarHistory = $messaging->sendQueryWithRouting('meeting.getHistory');
         $this->assertCount(1, $calendarHistory);
         $this->assertEquals($calendarId, $calendarHistory[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
@@ -133,11 +149,11 @@ final class KafkaMessageChannelTest extends TestCase
                 ]
             );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
         $this->assertEquals('123', $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $calendarHistory = $messaging->sendQueryWithRouting('meeting.getHistory');
         $this->assertEquals($calendarId, $calendarHistory[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
     }
@@ -153,8 +169,8 @@ final class KafkaMessageChannelTest extends TestCase
                     'wronghost:9092',
                 ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = StubLogger::create(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -165,7 +181,7 @@ final class KafkaMessageChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $this->assertEmpty($messaging->sendQueryWithRouting('consumer.getMessages'));
         ;
@@ -179,13 +195,13 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -196,16 +212,18 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload, metadata: [
+        $messaging->sendCommandWithRouting('execute.fail', $messagePayload, metadata: [
             'failCount' => 1,
         ]);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
-        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $handledMessages = [];
+        for ($consumerRun = 0; $consumerRun < 3 && count($handledMessages) < 2; $consumerRun++) {
+            $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
+            $handledMessages = $messaging->sendQueryWithRouting('consumer.getMessages');
+        }
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
-        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $this->assertCount(2, $handledMessages);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 2000, stopOnError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -215,10 +233,10 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.noPayload');
+        $messaging->sendCommandWithRouting('execute.noPayload');
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
@@ -230,10 +248,10 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.arrayPayload', $payload);
+        $messaging->sendCommandWithRouting('execute.arrayPayload', $payload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
         $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
@@ -246,9 +264,9 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
+        $messaging->sendCommandWithRouting('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
         $this->assertEquals(
@@ -264,8 +282,8 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 4000));
 
         $this->assertEquals(
             ExampleCommand::class,
@@ -287,20 +305,20 @@ final class KafkaMessageChannelTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 4000));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
     }
 
-    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncCommandHandler::class, Calendar::class, MeetingHistory::class],
@@ -310,20 +328,21 @@ final class KafkaMessageChannelTest extends TestCase
                 ]), new KafkaAsyncCommandHandler(), new MeetingHistory(),
                 //'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: ($topicName = $topicName ?: Uuid::v7()->toRfc4122()),
                         messageGroupId: $topicName
                     ),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
-    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncEventHandler::class],
@@ -331,8 +350,8 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
                 //                'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -389,7 +408,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -397,7 +416,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: $messageGroupId = $topicName
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -409,19 +427,19 @@ final class KafkaMessageChannelTest extends TestCase
         $channel->send(MessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
 
         // Consumer1 consumes first message
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals([], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer2 consumes first two messages
-        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer1 consumes second and third messages
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
@@ -456,13 +474,12 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -474,11 +491,11 @@ final class KafkaMessageChannelTest extends TestCase
         // Verify group IDs are set correctly
         $this->assertEquals(
             $channelName,
-            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->groupId
         );
         $this->assertEquals(
             $channelName . '_consumer1',
-            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->groupId
         );
     }
 
@@ -493,14 +510,13 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
                         messageGroupId: $messageGroupId = 'predefined_group_id',
                     )
                         ->withCommitInterval(1), // Commit after each message
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -512,11 +528,11 @@ final class KafkaMessageChannelTest extends TestCase
         // Verify group IDs are set correctly
         $this->assertEquals(
             $messageGroupId,
-            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->groupId
         );
         $this->assertEquals(
             $messageGroupId . '_consumer1',
-            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->groupId
         );
     }
 
@@ -531,8 +547,8 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Publisher service
         $publisher = new class () {
-            #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
+            #[\Ecotone\Api\Attribute\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }
@@ -542,8 +558,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer1 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -560,8 +576,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer2 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -585,16 +601,15 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
                         topicName: $topicName,
                     )
                         ->withCommitInterval(1),
-                    \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName),
-                    TestConfiguration::createWithDefaults(),
+                    \Ecotone\Api\ExtensionObject\DistributedServiceMap::initialize()
+                        ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -608,7 +623,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -616,7 +631,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: 'consumer1' // Each consumer needs its own consumer group
                     )
                         ->withCommitInterval(1),
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -630,7 +644,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -638,7 +652,6 @@ final class KafkaMessageChannelTest extends TestCase
                         messageGroupId: 'consumer2' // Each consumer needs its own consumer group
                     )
                         ->withCommitInterval(1),
-                    TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -649,12 +662,12 @@ final class KafkaMessageChannelTest extends TestCase
         $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event3');
 
         // Both consumers should receive all events independently
-        // Using amountOfMessagesToHandle and maxExecutionTimeInMilliseconds for Kafka consumer group coordination
-        // maxExecutionTimeInMilliseconds must comfortably exceed KafkaInboundChannelAdapter::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING (10000ms)
+        // Using handledMessageLimit and executionTimeLimitInMilliseconds for Kafka consumer group coordination
+        // executionTimeLimitInMilliseconds must comfortably exceed KafkaInboundChannelAdapter::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING (10000ms)
         // to leave room for more than one poll cycle - each of these consumers is a brand-new consumer group needing to
         // rebalance before it can receive any of the 3 published events.
-        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 20000));
-        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 20000));
+        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 20000));
+        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 20000));
 
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->sendQueryWithRouting('getConsumed2'));

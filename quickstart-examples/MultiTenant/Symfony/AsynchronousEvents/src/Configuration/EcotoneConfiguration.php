@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Laravel\Config\LaravelConnectionReference;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Laravel\LaravelConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Symfony\SymfonyConnectionReference;
 
 final readonly class EcotoneConfiguration
 {

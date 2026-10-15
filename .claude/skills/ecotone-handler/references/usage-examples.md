@@ -5,7 +5,7 @@ Complete, runnable code examples for Ecotone message handlers.
 ## Command Handler (Service)
 
 ```php
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class OrderService
 {
@@ -28,9 +28,9 @@ class OrderService
 ## Command Handler (Aggregate)
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
 
 #[Aggregate]
 class Order
@@ -62,8 +62,8 @@ class Order
 ## Event Handler (Sync and Async)
 
 ```php
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
 
 class NotificationService
 {
@@ -87,7 +87,7 @@ class NotificationService
 ## Query Handler (Class-Based and String-Based)
 
 ```php
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 class ProductQueryService
 {
@@ -110,7 +110,7 @@ class ProductQueryService
 ## Handler with Header Parameters
 
 ```php
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Header;
 
 class AuditService
 {
@@ -125,14 +125,14 @@ class AuditService
 }
 ```
 
-## ServiceActivator with Output Channel
+## InternalHandler with Output Channel
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class TransformationService
 {
-    #[ServiceActivator(inputChannelName: 'transformChannel', outputChannelName: 'outputChannel')]
+    #[InternalHandler(inputChannelName: 'transformChannel', outputChannelName: 'outputChannel')]
     public function transform(string $payload): string
     {
         return json_encode(['data' => $payload]);

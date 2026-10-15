@@ -2,19 +2,19 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
-use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\ChannelProtectionConfiguration;
+use Ecotone\Api\DataProtection\DataProtectionConfiguration;
+use Ecotone\Api\DataProtection\Key;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\DataProtection\Encryption\Crypto;
-use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DirectChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -184,7 +184,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 routingKey: 'command',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',
@@ -222,7 +222,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 routingKey: 'command',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',
@@ -398,7 +398,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->publishEventWithRoutingKey(
+            ->publishEventWithRouting(
                 routingKey: 'event',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',
@@ -433,7 +433,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\NonPollable'])
                 ->withExtensionObjects(
                     [
@@ -519,7 +519,7 @@ class EncryptMessagesWithChannelConfigurationJsonTest extends TestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration'])
                 ->withExtensionObjects([
                     $channelProtectionConfiguration,

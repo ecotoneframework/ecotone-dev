@@ -105,10 +105,10 @@ This provides:
 
 - PHP 8.1+
 - Composer
-- **PostgreSQL or MySQL** (required - SQLite is not supported by the Prooph event store)
+- **PostgreSQL or MySQL** (required - SQLite is not supported by the event store)
 - **Ecotone Enterprise License** (required for partitioned projections)
 
-> **Note**: This example requires PostgreSQL or MySQL. The Prooph event store used for event sourcing does not support SQLite.
+> **Note**: This example requires PostgreSQL or MySQL. The event store used for event sourcing does not support SQLite.
 
 ### Installation
 

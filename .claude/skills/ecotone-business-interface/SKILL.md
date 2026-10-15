@@ -17,22 +17,22 @@ Business interfaces let you declare PHP interfaces that Ecotone auto-implements 
 ## 1. DBAL Query Interface
 
 ```php
-use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
-use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Api\Dbal\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\FetchMode;
 
 interface OrderRepository
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE order_id = :orderId')]
+    #[DbalQuery('SELECT * FROM orders WHERE order_id = :orderId')]
     public function findById(string $orderId): ?array;
 
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM orders WHERE status = :status',
         fetchMode: FetchMode::ASSOCIATIVE
     )]
     public function findByStatus(string $status): array;
 
-    #[DbalWriteBusinessMethod('INSERT INTO orders (order_id, product, status) VALUES (:orderId, :product, :status)')]
+    #[DbalWrite('INSERT INTO orders (order_id, product, status) VALUES (:orderId, :product, :status)')]
     public function save(string $orderId, string $product, string $status): void;
 }
 ```
@@ -40,7 +40,7 @@ interface OrderRepository
 ## 2. Media Type Converter
 
 ```php
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class OrderConverter
 {
@@ -73,7 +73,7 @@ The framework auto-discovers converters and uses them for type conversion in mes
 `BusinessMethod` is an interface-only attribute -- Ecotone auto-generates an implementation that sends messages through the messaging system. The `requestChannel` routes to the matching handler's routing key.
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface NotificationGateway
 {
@@ -81,11 +81,11 @@ interface NotificationGateway
     public function send(string $message, string $recipient): void;
 }
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class NotificationHandler
 {
-    #[ServiceActivator('notification.send')]
+    #[InternalHandler('notification.send')]
     public function handle(string $message): void
     {
         // Process notification
@@ -98,8 +98,8 @@ class NotificationHandler
 BusinessMethod interfaces can be injected as parameters into CommandHandler methods for cross-aggregate communication:
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 
 interface ProductService
 {
@@ -131,7 +131,7 @@ Use `#[Reference]` for explicit service container injection when it is not the f
 Ecotone attributes support expressions for dynamic behavior:
 
 ```php
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class OrderService
 {
@@ -147,7 +147,7 @@ Available variables: `payload` (message payload), `headers` (message headers).
 Ecotone auto-generates repositories for aggregates. For custom repositories:
 
 ```php
-use Ecotone\Modelling\Attribute\Repository;
+use Ecotone\Api\Attribute\Repository;
 
 #[Repository]
 interface CustomOrderRepository
@@ -167,7 +167,7 @@ interface CustomOrderRepository
 
 ## Additional resources
 
-- [API reference](references/api-reference.md) -- Attribute constructor signatures and parameter lists for `DbalQueryBusinessMethod`, `DbalWriteBusinessMethod`, `DbalParameter`, `BusinessMethod`/`MessageGateway`, `FetchMode` constants, and `MediaType` constants. Load when you need exact constructor parameters, types, or defaults.
+- [API reference](references/api-reference.md) -- Attribute constructor signatures and parameter lists for `DbalQuery`, `DbalWrite`, `DbalParameter`, `BusinessMethod`/`MessageGateway`, `FetchMode` constants, and `MediaType` constants. Load when you need exact constructor parameters, types, or defaults.
 
 - [Usage examples](references/usage-examples.md) -- Complete, runnable code examples for all business interface patterns: advanced DBAL queries with parameter type conversion and expressions, write operations, JSON converters, BusinessMethod with headers and routing, cross-aggregate injection with `#[Reference]`, custom connection references. Load when you need full class implementations or advanced variations beyond the basic patterns above.
 

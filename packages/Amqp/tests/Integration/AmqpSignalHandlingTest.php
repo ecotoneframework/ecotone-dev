@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -31,14 +31,14 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $signalHandler = new AmqpSignalSendingMessageHandler();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpSignalSendingMessageHandler::class],
             [
                 $signalHandler,
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
@@ -55,8 +55,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $ecotoneLite->run(
             $endpointId,
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 30000
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 30000
             )
         );
 
@@ -66,14 +66,14 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent(): void
     {
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
@@ -90,8 +90,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $ecotoneLite->run(
             'async_commands_unique',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 30000
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 30000
             )
         );
 
@@ -101,14 +101,14 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent_with_defaults(): void
     {
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
@@ -137,13 +137,13 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
     //     */
     //    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
     //    {
-    //        $ecotoneLite = $this->bootstrapForTesting(
+    //        $ecotoneLite = $this->bootstrapFlowTesting(
     //            [],
     //            [
     //                ...$this->getConnectionFactoryReferences(),
     //            ],
     //            ServiceConfiguration::createWithDefaults()
-    //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+    //                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE,])
     //                ->withExtensionObjects([
     //                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::v7()->toRfc4122()),
     //                ])

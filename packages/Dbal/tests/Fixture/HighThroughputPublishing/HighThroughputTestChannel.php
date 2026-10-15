@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\HighThroughputPublishing;
 
-use Ecotone\Messaging\BatchMessage;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -33,7 +33,7 @@ final class HighThroughputTestChannel implements PollableChannel, BatchSupportin
         $payload = $message->getPayload();
 
         if ($payload instanceof BatchMessage) {
-            foreach ($payload->getEntries() as $entry) {
+            foreach ($payload->entries as $entry) {
                 $this->queue[] = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();
@@ -73,5 +73,10 @@ final class HighThroughputTestChannel implements PollableChannel, BatchSupportin
     public function supportsBatchMessages(): bool
     {
         return true;
+    }
+
+    public function __toString(): string
+    {
+        return 'high throughput test: ' . $this->channelName;
     }
 }

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Tempest\Hardening;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
@@ -127,7 +126,7 @@ final class ProductionCacheInvalidationTest extends TestCase
         $container = new GenericContainer();
         $container->config(new EcotoneConfig(
             namespaces: $namespaces,
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
 
         return $container;

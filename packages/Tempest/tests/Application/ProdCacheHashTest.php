@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
@@ -20,7 +19,7 @@ final class ProdCacheHashTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\User\\'],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
             cacheConfiguration: true,
         );

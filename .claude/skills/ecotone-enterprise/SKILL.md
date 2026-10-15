@@ -45,7 +45,7 @@ You don't need Enterprise on day one. These are the growth signals that tell you
 
 **"We want less infrastructure code in our domain"**
 - Instant Aggregate Fetch removes repository injection boilerplate -- aggregates arrive automatically
-- Advanced Event Sourcing Handlers pass metadata during reconstruction for context-aware rebuilding
+- Advanced `#[Apply]` Methods pass metadata during reconstruction for context-aware rebuilding
 - Asynchronous Message Buses make an entire bus async with one configuration change
 
 ## Enterprise Features at a Glance
@@ -85,7 +85,7 @@ You don't need Enterprise on day one. These are the growth signals that tell you
 | Feature | What It Does |
 |---------|-------------|
 | **Instant Aggregate Fetch** | Direct aggregate retrieval without repository injection boilerplate |
-| **Advanced Event Sourcing Handlers** | Pass metadata to `#[EventSourcingHandler]` for context-aware aggregate reconstruction |
+| **Advanced `#[Apply]` Methods** | Pass metadata to `#[Apply]` for context-aware aggregate reconstruction |
 
 ## Quick Code Examples
 
@@ -108,7 +108,7 @@ public function fulfill(OrderData $data): array
 
 **Instant Retry -- declare resilience as an attribute:**
 ```php
-#[InstantRetry(retries: 3, exceptions: [\Doctrine\DBAL\Exception\RetryableException::class])]
+#[InstantRetry(retryTimes: 3, exceptions: [\Doctrine\DBAL\Exception\RetryableException::class])]
 #[CommandHandler]
 public function placeOrder(PlaceOrder $command): void
 {
@@ -121,7 +121,7 @@ public function placeOrder(PlaceOrder $command): void
 DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
     'tenant_channel',
     headerName: 'tenantId',
-    channelMapping: [
+    headerMapping: [
         'tenant_a' => 'tenant_a_queue',
         'tenant_b' => 'tenant_b_queue',
     ]

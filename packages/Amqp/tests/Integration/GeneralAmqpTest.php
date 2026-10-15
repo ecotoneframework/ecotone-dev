@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
@@ -28,7 +28,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
             services: [new OrderService(), new OrderErrorHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        $ecotone->sendCommandWithRouting('order.register', 'milk');
         self::assertEquals(
             [],
             $ecotone->sendQueryWithRouting('order.getOrders')
@@ -50,11 +50,11 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
             amqpConfig: ['heartbeat' => 2]
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        $ecotone->sendCommandWithRouting('order.register', 'milk');
         sleep(5);
-        $ecotone->sendCommandWithRoutingKey('order.register', 'salt');
+        $ecotone->sendCommandWithRouting('order.register', 'salt');
         sleep(5);
-        $ecotone->sendCommandWithRoutingKey('order.register', 'sunflower');
+        $ecotone->sendCommandWithRouting('order.register', 'sunflower');
         $ecotone->run('orders');
         $ecotone->run('orders');
         $ecotone->run('orders');
@@ -73,7 +73,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         self::assertEquals(
             ['window'],
             $ecotone
-                ->sendCommandWithRoutingKey('addToBasket', 'window')
+                ->sendCommandWithRouting('addToBasket', 'window')
                 ->run('addToCart')
                 ->sendQueryWithRouting('getShoppingCartList')
         );
@@ -85,7 +85,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
             containerOrAvailableServices: array_merge($this->getConnectionFactoryReferences($amqpConfig), $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

@@ -5,8 +5,8 @@ All workflow tests use `EcotoneLite::bootstrapFlowTesting()` to bootstrap the fr
 ## Testing Saga Start and State
 
 ```php
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 public function test_saga_starts_on_event(): void
 {
@@ -36,7 +36,7 @@ public function test_saga_completes_when_all_events_received(): void
         ->publishEvent(new OrderWasPlaced($orderId))
         ->publishEvent(new PaymentWasReceived($orderId))
         ->publishEvent(new ItemsWereShipped($orderId))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertContainsEquals(new OrderWasFulfilled($orderId), $events);
 }
@@ -53,14 +53,14 @@ $saga = $ecotone->getSaga(OrderProcess::class, '123');
 $this->assertEquals(OrderStatus::PLACED, $saga->getStatus());
 ```
 
-## Testing Saga Events via getRecordedEvents()
+## Testing Saga Events via popRecordedEvents()
 
 ```php
 $ecotone = EcotoneLite::bootstrapFlowTesting([OrderProcess::class]);
 
 $events = $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->getRecordedEvents();
+    ->popRecordedEvents();
 
 $this->assertEquals([new OrderProcessWasStarted('123')], $events);
 ```
@@ -80,7 +80,7 @@ $this->assertEquals(OrderProcessStatus::PLACED, $status);
 ## Testing Saga with Async and Delayed Messages
 
 ```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Api\Scheduling\TimeSpan;
 
 public function test_saga_retries_payment_after_delay(): void
 {
@@ -90,14 +90,16 @@ public function test_saga_retries_payment_after_delay(): void
             OrderService::class => new StubOrderService(Money::EUR(100)),
             PaymentService::class => new PaymentService(new FailingPaymentProcessor())
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
+            ]),
     );
 
     $ecotone
         ->publishEvent(new OrderWasPlaced('123'))
-        ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1));
+        ->advanceTimeBy(new TimeSpan(hours: 1))
+        ->run('async');
 
     $saga = $ecotone->getSaga(OrderProcess::class, '123');
     $this->assertEquals(2, $saga->getPaymentAttempt());
@@ -115,9 +117,10 @@ public function test_saga_triggers_command_via_output_channel(): void
             OrderService::class => new StubOrderService(Money::EUR(100)),
             PaymentService::class => new PaymentService(new PaymentProcessor())
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]),
     );
 
     $this->assertEquals(
@@ -125,7 +128,7 @@ public function test_saga_triggers_command_via_output_channel(): void
         $ecotone
             ->publishEvent(new OrderWasPlaced('123'))
             ->run('async')
-            ->getRecordedEventsByType(PaymentWasSuccessful::class)
+            ->popRecordedEventsOfType(PaymentWasSuccessful::class)
     );
 }
 ```
@@ -136,14 +139,16 @@ public function test_saga_triggers_command_via_output_channel(): void
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     [OrderProcess::class, PaymentService::class],
     [PaymentService::class => new PaymentService(new FailingProcessor())],
-    enableAsynchronousProcessing: [
-        SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
-    ],
+    configuration: ServiceConfiguration::createWithDefaults()
+        ->withExtensionObjects([
+            SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
+        ]),
 );
 
 $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1));
+    ->advanceTimeBy(new TimeSpan(hours: 1))
+    ->run('async');
 ```
 
 ## Testing Stateless Workflow Chains
@@ -178,9 +183,10 @@ public function test_async_workflow(): void
             ImageResizer::class => new ImageResizer(),
             ImageUploader::class => $uploader = new InMemoryImageUploader(),
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]),
     );
 
     $ecotone
@@ -213,10 +219,10 @@ Orchestrator tests require Enterprise licence configuration.
 ### Basic Orchestrator Test
 
 ```php
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Testing\LicenceTesting;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 
 public function test_orchestrator_executes_steps_in_order(): void
 {
@@ -224,7 +230,7 @@ public function test_orchestrator_executes_steps_in_order(): void
         [AuthorizationOrchestrator::class],
         [$orchestrator = new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -234,7 +240,7 @@ public function test_orchestrator_executes_steps_in_order(): void
 }
 ```
 
-### Testing Orchestrator via Business Interface (OrchestratorGateway)
+### Testing Orchestrator via Business Interface (`#[BusinessMethod]`)
 
 ```php
 public function test_orchestrator_via_business_interface(): void
@@ -243,7 +249,7 @@ public function test_orchestrator_via_business_interface(): void
         [AuthorizationOrchestrator::class, AuthorizationProcess::class],
         [new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -258,7 +264,7 @@ public function test_orchestrator_via_business_interface(): void
 ### Testing Async Orchestrator
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 public function test_async_orchestrator(): void
 {
@@ -266,14 +272,11 @@ public function test_async_orchestrator(): void
         [AsyncWorkflow::class],
         [$service = new AsyncWorkflow()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                ModulePackageList::CORE_PACKAGE,
-                ModulePackageList::ASYNCHRONOUS_PACKAGE,
-            ]))
+            ->withEnabledModulePackageNames([ModulePackageList::CORE_PACKAGE])
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
     );
 
     $ecotone->sendDirectToChannel('async.workflow', []);

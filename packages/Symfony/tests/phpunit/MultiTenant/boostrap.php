@@ -1,7 +1,9 @@
 <?php
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -12,7 +14,7 @@ function runMigrationForSymfonyTenants(Kernel $kernel): void
 
     /** @var Connection $connection */
     foreach ([$connectionTenantA, $connectionTenantB] as $connection) {
-        $abstractSchemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
+        $abstractSchemaManager = $connection->createSchemaManager();
         foreach ($abstractSchemaManager->listTables() as $table) {
             $connection->executeStatement('DROP TABLE ' . $table->getName());
         }
@@ -48,4 +50,7 @@ function migrateSymfony(Connection $connection): void
                 customer_id INTEGER PRIMARY KEY
             )
         SQL);
+
+    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true))->createTable($connection);
+    (new DeduplicationTableManager(DbalHandledMessages::DEFAULT_DEDUPLICATION_TABLE, true))->createTable($connection);
 }

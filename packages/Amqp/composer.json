@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Amqp\\": "Api/",
             "Ecotone\\Amqp\\": "src"
         }
     },
@@ -59,7 +60,7 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
-        "phpstan/phpstan": "^1.8|^2.0",
+        "phpstan/phpstan": "^2.1",
         "doctrine/annotations": "^1.13|^2.0",
         "ext-amqp": "*",
         "enqueue/amqp-ext": "^0.10.18",
@@ -109,6 +110,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-10 11:29:09"
+        "release-time": "2026-10-11 17:33:51"
     }
 }

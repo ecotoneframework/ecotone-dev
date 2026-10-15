@@ -42,4 +42,20 @@ function migrate(PDO $pdo): void
             )
             SQL
     );
+    $pdo->exec(
+        <<<'SQL'
+            DROP TABLE IF EXISTS ecotone_deduplication
+            SQL
+    );
+    $pdo->exec(
+        <<<'SQL'
+            CREATE TABLE ecotone_deduplication (
+                message_id VARCHAR(255),
+                consumer_endpoint_id VARCHAR(255),
+                routing_slip VARCHAR(255),
+                handled_at BIGINT,
+                PRIMARY KEY (message_id, consumer_endpoint_id, routing_slip)
+            )
+            SQL
+    );
 }

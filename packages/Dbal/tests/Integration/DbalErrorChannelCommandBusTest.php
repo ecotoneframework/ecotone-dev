@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlingException;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
-use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
@@ -29,6 +28,22 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRe
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 #[CoversClass(ErrorChannel::class)]
@@ -50,7 +65,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 1);
 
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
 
@@ -72,7 +87,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 2);
 
-        $this->replyAllErrorMessagesById($ecotone);
+        $this->replayAllErrorMessagesById($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
         self::assertEquals(2, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -114,7 +129,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -165,7 +180,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -237,30 +252,31 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
         $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessagesById(FlowTestSupport $ecotone): void
+    private function replayAllErrorMessagesById(FlowTestSupport $ecotone): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $gateway->reply(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->replay(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessages(FlowTestSupport $ecotone): void
+    private function replayAllErrorMessages(FlowTestSupport $ecotone): void
     {
-        $ecotone->getGateway(DeadLetterGateway::class)->replyAll();
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
     }
 
     private function bootstrapEcotone(array $namespaces, array $services = []): FlowTestSupport
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
-            configuration: ServiceConfiguration::createWithAsynchronicityOnly()
+            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
+                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
+use Ecotone\Api\Sqs\SqsConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -15,7 +16,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
-use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -26,14 +26,14 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
 
     private bool $batchPublishing = false;
     private bool $nonBlockingConfirmation = false;
-    private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT;
+    private int $confirmationTimeoutInMilliseconds = self::DEFAULT_CONFIRMATION_TIMEOUT;
 
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
         $this->initialize($connectionFactoryReferenceName);
     }
 
-    public static function create(string $queueName, string $connectionFactoryReferenceName = SqsConnectionFactory::class): self
+    public static function create(string $queueName, string $connectionFactoryReferenceName = SqsConnectionReference::DEFAULT): self
     {
         return new self($queueName, $connectionFactoryReferenceName);
     }
@@ -44,7 +44,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $this->batchPublishing = $batchPublishing;
         $this->nonBlockingConfirmation = $nonBlockingConfirmation;
         if ($confirmationTimeoutInMilliseconds !== null) {
-            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
+            $this->confirmationTimeoutInMilliseconds = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
@@ -63,7 +63,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         if (($this->batchPublishing || $this->nonBlockingConfirmation) && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
+            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
@@ -90,7 +90,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             new Reference(PendingDeliveryRegistry::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
-            $this->confirmationTimeout,
+            $this->confirmationTimeoutInMilliseconds,
         ]);
     }
 }

@@ -6,8 +6,8 @@ namespace Ecotone\Tempest\Config;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
+use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Tempest\Config\PDO\MySqlDriver;
 use Ecotone\Tempest\Config\PDO\PostgresDriver;
 use Ecotone\Tempest\Config\PDO\SQLiteDriver;
@@ -27,11 +27,7 @@ final class TempestConnectionResolver
 {
     public static function resolve(TempestConnectionReference $reference): ConnectionFactory
     {
-        if (! class_exists(DbalConnection::class)) {
-            throw new InvalidArgumentException('Dbal Module is not installed. Please install it first to make use of Database capabilities.');
-        }
-
-        $configTag = $reference->getConfigTag();
+        $configTag = $reference->configTag;
 
         if ($configTag === null) {
             return self::resolveFromTempestConnection();

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceReceiver;
@@ -28,7 +29,7 @@ final class DistributedMessageTest extends AmqpMessagingTestCase
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
         $ticketService->run('ticket_service');
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
     }
@@ -40,8 +41,9 @@ final class DistributedMessageTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces($namespaces),
+                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
+                ->withNamespaces($namespaces)
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

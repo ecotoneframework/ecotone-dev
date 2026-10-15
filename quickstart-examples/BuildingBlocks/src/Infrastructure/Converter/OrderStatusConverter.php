@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Converter;
 
 use App\Domain\Order\OrderStatus;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 final class OrderStatusConverter
 {

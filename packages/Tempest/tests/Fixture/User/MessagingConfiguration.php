@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\User;
 
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
 
 /**
  * licence Apache-2.0

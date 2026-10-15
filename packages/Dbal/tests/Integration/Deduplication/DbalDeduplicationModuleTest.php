@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
@@ -30,42 +29,48 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_given_command_handler()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->sendCommandWithRouting('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->run('email', ExecutionPollingMetadata::createWithTestingSetup(1, 300))
+                ->sendCommandWithRouting('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->run('email', ExecutionPollingMetadata::createWithTestingSetup(1, 300))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 
     public function test_deduplicating_after_first_handling_was_failure_during_asynchronous_processing()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(1),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('email'),
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122()]);
+        $ecotoneLite->sendCommandWithRouting('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122()]);
 
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()
             ->withHandledMessageLimit(1)
@@ -85,14 +90,14 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_global_deduplication()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -103,8 +108,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
@@ -113,14 +118,14 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_timeout()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 60000),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -131,8 +136,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
@@ -144,14 +149,14 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_timeout_and_batch_size()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -162,8 +167,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
                 ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
@@ -175,14 +180,14 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_header()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(false),
                     DbalBackedMessageChannelBuilder::create($queueName),
@@ -193,9 +198,9 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->publishEventWithRoutingKey('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, maxExecutionTimeInMilliseconds: 1000000))
+                ->publishEventWithRouting('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRouting('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, executionTimeLimitInMilliseconds: 1000000))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
@@ -204,17 +209,18 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     {
         $queueName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
                         ->withAutoDeclare(false),
+                    DbalBackedMessageChannelBuilder::create('email'),
                 ])
         );
 
@@ -222,92 +228,108 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
-                ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
+                ->sendCommandWithRouting('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
+                ->sendCommandWithRouting('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 
     public function test_deduplicating_with_header_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
     }
 
     public function test_deduplicating_with_payload_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
+                ->sendCommandWithRouting('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
+                ->sendCommandWithRouting('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
     }
 
     public function test_deduplicating_with_complex_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
     }
 
     public function test_deduplicating_with_expression_allows_different_values()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-456'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-456'])
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
     }
@@ -315,14 +337,14 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_with_expression_in_asynchronous_processing()
     {
         $queueName = 'async_expression';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -331,8 +353,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
-                ->sendCommandWithRoutingKey('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRouting('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
@@ -340,20 +362,24 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_tracking_name_isolation()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [TrackingNameDeduplicationCommandHandler::class],
             [
                 new TrackingNameDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         // Send same orderId to both tracking contexts
         $ecotoneLite
-            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-123'])
-            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_two', metadata: ['orderId' => 'order-123']);
+            ->sendCommandWithRouting('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-123'])
+            ->sendCommandWithRouting('tracking.handle_with_tracking_two', metadata: ['orderId' => 'order-123']);
 
         // Both should be processed because they have different tracking names
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingOneCallCount'));
@@ -362,20 +388,24 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_within_same_tracking_name()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [TrackingNameDeduplicationCommandHandler::class],
             [
                 new TrackingNameDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email'),
+                    DbalBackedMessageChannelBuilder::create('async_expression'),
+                ])
         );
 
         // Send same orderId twice to same tracking context
         $ecotoneLite
-            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456'])
-            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456']);
+            ->sendCommandWithRouting('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456'])
+            ->sendCommandWithRouting('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456']);
 
         // Only first should be processed due to deduplication within same tracking name
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingOneCallCount'));

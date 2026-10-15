@@ -22,18 +22,13 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.328.2",
-        "ecotone/jms-converter": "~1.328.2",
-        "ecotone/laravel": "~1.328.2",
         "ecotone/laravel-starter": "^1.1.0",
-        "ecotone/lite-application": "~1.328.2",
         "ecotone/lite-event-sourcing-starter": "^1.0",
-        "ecotone/pdo-event-sourcing": "~1.328.2",
-        "laravel/laravel": "^10.0",
+        "laravel/laravel": "^11.0",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {
-        "doctrine/orm": "^2.11|^3.0",
+        "doctrine/orm": "^3.0",
         "phpunit/phpunit": "^9.6|^10.5|^11.0"
     },
     "config": {

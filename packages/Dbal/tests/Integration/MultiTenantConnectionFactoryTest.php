@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Betting\BetService;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
@@ -38,7 +39,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         ];
 
         $ecotoneLite = $this->boostrapEcotone('tenant', $connections, defaultConnectionName: 'default_tenant_connection');
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'unknown']);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false, metadata: ['tenant' => 'unknown']);
 
         $this->assertNotNull($expectedContext->receive());
         ;
@@ -57,7 +58,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
             'tenant_a' => 'tenant_a_connection',
             'tenant_b' => 'tenant_b_connection',
         ]);
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
 
         $this->assertNotNull($expectedContext->receive());
         ;
@@ -79,7 +80,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false);
     }
 
     public function test_throwing_exception_when_tenant_can_not_be_mapped_and_no_default_channel_provided()
@@ -98,7 +99,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_x']);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false, metadata: ['tenant' => 'tenant_x']);
     }
 
     public function test_throwing_exception_when_trying_to_switch_to_different_tenant_when_one_is_activated()
@@ -117,7 +118,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('makeBetAndSwitchTenant', false, metadata: ['tenant' => 'tenant_a', 'newTenant' => 'tenant_b']);
+        $ecotoneLite->sendCommandWithRouting('makeBetAndSwitchTenant', false, metadata: ['tenant' => 'tenant_a', 'newTenant' => 'tenant_b']);
     }
 
     public function test_round_robin_as_default_for_multi_tenant_connection_while_fetching_messages()
@@ -134,7 +135,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
 
         /** Sending two Messages to tenant A */
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
         /** Fetching Tenant A */
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
@@ -149,7 +150,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $this->assertSame('tenant_a', $usedConnectionContext);
 
         /** Sending to tenant B */
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
         /** Fetching Tenant B */
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
@@ -169,15 +170,16 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $connections,
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
-    ): \Ecotone\Lite\Test\FlowTestSupport {
+    ): \Ecotone\Api\Lite\Test\FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             [BetService::class],
             array_merge([new BetService()], $connections),
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
-                        ->setExecutionAmountLimit(1),
+                        ->withExecutionAmountLimit(1),
                     $defaultConnectionName
                         ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class)
                         : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),
@@ -185,11 +187,8 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withDeduplication(false),
-                ]),
-            allowGatewaysToBeRegisteredInContainer: true,
-            enableAsynchronousProcessing: [
-                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class),
-            ],
+                ]))->addExtensionObject(FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class)),
+            allowGatewaysToBeRegisteredInContainer: true
         );
     }
 }

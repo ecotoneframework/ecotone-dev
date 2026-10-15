@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
-use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 class CycleStarted

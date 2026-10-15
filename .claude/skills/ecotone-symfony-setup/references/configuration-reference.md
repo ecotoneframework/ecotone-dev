@@ -32,8 +32,9 @@ ecotone:
         maxAttempts: 3
         multiplier: 2
 
-    # Skip specific module packages
-    skippedModulePackageNames: []
+    # Module packages to load besides Core (e.g. dbal, amqp); omit the key
+    # entirely to load every installed package, [] loads Core alone
+    enabledModulePackageNames: [dbal, amqp]
 
     # Enterprise licence key
     licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
@@ -51,9 +52,13 @@ ecotone:
 | `defaultErrorChannel` | `null` | Error channel name |
 | `defaultMemoryLimit` | `null` | Consumer memory limit (MB) |
 | `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
+| `enabledModulePackageNames` | every installed package | Explicit list of module packages to load, besides Core; the key must be present to restrict loading at all |
 | `licenceKey` | `null` | Enterprise licence key |
 | `test` | `false` | Enable test mode |
+
+Any other key is refused at bootstrap with a `ConfigurationException` naming the keys Ecotone reads. The 1.x
+`skippedModulePackageNames` key and the earlier 2.0 `modulePackages` key are refused with their replacement:
+`skippedModulePackageNames` listed packages to skip, `enabledModulePackageNames` lists packages to load.
 
 ## SymfonyConnectionReference API
 

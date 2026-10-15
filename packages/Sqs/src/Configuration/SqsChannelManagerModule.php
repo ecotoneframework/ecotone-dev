@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Sqs\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\Manager\ChannelManagerReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -14,11 +17,8 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsChannelManager;
 
 #[ModuleAnnotation]
@@ -44,7 +44,7 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
             ChannelInitializationConfiguration::createWithDefaults()
         );
 
-        $shouldAutoInitialize = $channelInitConfig->isAutomaticChannelInitializationEnabled();
+        $shouldAutoInitialize = $channelInitConfig->automaticChannelInitialization;
 
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {
@@ -69,13 +69,6 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
                 );
             }
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof SqsBackedMessageChannelBuilder
-            || $extensionObject instanceof ChannelInitializationConfiguration;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

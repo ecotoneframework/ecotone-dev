@@ -2,16 +2,16 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\EventSourcingSaga;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingSaga;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Modelling\WithEvents;
 
 #[EventSourcingSaga(withInternalEventRecorder: true)]
 class AsyncCycle
@@ -100,19 +100,19 @@ class AsyncCycle
         return $this->certificates;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCycleStarted(CycleStarted $event): void
     {
         $this->cycleId = $event->cycleId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyAuditConducted(AuditConducted $event): void
     {
         $this->audits[] = $event->auditId;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyCertificateIssued(CertificateIssued $event): void
     {
         $this->certificates[] = $event->certificateId;

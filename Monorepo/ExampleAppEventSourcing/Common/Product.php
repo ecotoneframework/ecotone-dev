@@ -2,15 +2,15 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Common;
 
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
 class Product
@@ -33,14 +33,14 @@ class Product
         return [new PriceWasChanged($this->productId, $command->getPrice())];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onProductWasRegistered(ProductWasRegistered $event): void
     {
         $this->productId = $event->getProductId();
         $this->price = $event->getPrice();
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function onPriceWasChanged(PriceWasChanged $event): void
     {
         $this->price = $event->getPrice();

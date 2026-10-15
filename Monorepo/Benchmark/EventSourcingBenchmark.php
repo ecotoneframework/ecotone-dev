@@ -2,10 +2,10 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
@@ -24,12 +24,13 @@ class EventSourcingBenchmark extends Assert
     use FullAppBenchmarkCaseTrait;
     use ExampleAppEventSourcingCaseTrait;
 
-    public static function skippedPackages(): array
+    public static function enabledModulePackageNames(): array
     {
-        return ModulePackageList::allPackagesExcept([
+        return [
             ModulePackageList::EVENT_SOURCING_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,
             ModulePackageList::JMS_CONVERTER_PACKAGE,
-        ]);
+        ];
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
@@ -60,13 +61,6 @@ class EventSourcingBenchmark extends Assert
         );
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $this->executeTestScenario(
-            $container->get(CommandBus::class),
-            $container->get(QueryBus::class)
-        );
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

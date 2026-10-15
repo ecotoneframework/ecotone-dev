@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis;
 
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
 use Enqueue\Redis\RedisMessage;
@@ -92,7 +92,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         $immediateMessages = [];
         $delayedEntries = [];
         $delayedMessages = [];
-        foreach ($batchMessage->getEntries() as $entry) {
+        foreach ($batchMessage->entries as $entry) {
             $originalMessage = $this->convertBatchEntryToMessage($entry);
             $outboundMessage = $this->prepareOutboundMessage($originalMessage);
             $headers = $outboundMessage->getHeaders();
@@ -167,5 +167,10 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
                 var_export($batchPublishResult, true),
             ));
         }
+    }
+
+    public function __toString(): string
+    {
+        return "redis outbound: {$this->queueName}";
     }
 }

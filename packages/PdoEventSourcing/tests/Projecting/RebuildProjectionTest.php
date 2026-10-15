@@ -6,24 +6,24 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\PartitionAggregateId;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionRebuild;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\PartitionAggregateId;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionExecution;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionRebuild;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use RuntimeException;
@@ -123,11 +123,11 @@ abstract class AbstractRebuildPartitionedProjection
     }
 }
 
-#[ProjectionV2('rebuild_rollback')]
+#[Projection('rebuild_rollback')]
 #[Partitioned]
 #[ProjectionRebuild]
 #[ProjectionExecution(eventLoadingBatchSize: 3)]
-#[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class RebuildRollbackProjection
 {
     public bool $shouldFailOnProjection = false;
@@ -200,6 +200,22 @@ class RebuildRollbackProjection
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 final class RebuildProjectionTest extends ProjectingTestCase
@@ -210,7 +226,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
         $this->expectExceptionMessage('Rebuild partition batch size must be at least 1');
 
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_batch0_projection'), Partitioned, ProjectionRebuild(partitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_batch0_projection'), Partitioned, ProjectionRebuild(partitionBatchSize: 0), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             protected function tableName(): string
             {
                 return 'rebuild_batch0_tickets';
@@ -223,7 +239,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_async_rebuild_with_batch_of_2(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_batch2_async'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_batch2_async'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildBatch2Tickets')]
             public function query(): array
             {
@@ -248,19 +264,19 @@ final class RebuildProjectionTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'rebuild_batch2_async']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('rebuild_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('rebuild_channel');
         self::assertCount(3, $messages);
 
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getRebuildBatch2Tickets'));
     }
 
     public function test_partitioned_projection_sync_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_sync_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_sync_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildSyncPartitionedTickets')]
             public function query(): array
             {
@@ -285,7 +301,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_global_projection_async_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_global_async'), ProjectionRebuild(asyncChannelName: 'rebuild_global_channel'), FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
+        $projection = new #[ Projection('rebuild_global_async'), ProjectionRebuild(asyncChannelName: 'rebuild_global_channel'), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
             #[QueryHandler('getRebuildGlobalAsyncTickets')]
             public function query(): array
             {
@@ -311,17 +327,17 @@ final class RebuildProjectionTest extends ProjectingTestCase
 
         self::assertCount(3, $ecotone->sendQueryWithRouting('getRebuildGlobalAsyncTickets'));
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('rebuild_global_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('rebuild_global_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('rebuild_global_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('rebuild_global_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(3, $ecotone->sendQueryWithRouting('getRebuildGlobalAsyncTickets'));
     }
 
     public function test_global_projection_sync_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_global_sync'), ProjectionRebuild, FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
+        $projection = new #[ Projection('rebuild_global_sync'), ProjectionRebuild, FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
             #[QueryHandler('getRebuildGlobalSyncTickets')]
             public function query(): array
             {
@@ -346,7 +362,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_rebuild_resets_existing_data(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_resets_data'), Partitioned, ProjectionRebuild, FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_resets_data'), Partitioned, ProjectionRebuild, FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildResetsDataTickets')]
             public function query(): array
             {
@@ -420,19 +436,14 @@ final class RebuildProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, bool|array $channels, ?TestConfiguration $testConfiguration = null): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
-            enableAsynchronousProcessing: $channels,
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->withExtensionObjects(is_array($channels) ? $channels : [])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: $testConfiguration,
+            testConfiguration: $testConfiguration
         );
     }
 }

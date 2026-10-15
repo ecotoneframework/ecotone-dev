@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use DateTimeInterface;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 /**
  * licence Apache-2.0

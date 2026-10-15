@@ -1,0 +1,62 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Fixture\SecondaryConnectionStream;
+
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
+
+#[EventSourcingAggregate]
+#[Stream(self::STREAM, connectionReferenceName: self::CONNECTION_REFERENCE)]
+/**
+ * licence Apache-2.0
+ */
+final class SecondaryOrder
+{
+    use WithAggregateVersioning;
+
+    public const STREAM = 'secondary_connection_stream';
+    public const CONNECTION_REFERENCE = 'secondary_connection';
+
+    #[Identifier]
+    private string $orderId;
+
+    private string $status;
+
+    #[CommandHandler('secondaryOrder.place')]
+    public static function place(PlaceSecondaryOrder $command): array
+    {
+        return [new SecondaryOrderPlaced($command->orderId)];
+    }
+
+    #[CommandHandler('secondaryOrder.cancel')]
+    public function cancel(CancelSecondaryOrder $command): array
+    {
+        return [new SecondaryOrderCancelled($this->orderId)];
+    }
+
+    #[QueryHandler('secondaryOrder.getStatus')]
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    #[Apply]
+    public function applyPlaced(SecondaryOrderPlaced $event): void
+    {
+        $this->orderId = $event->orderId;
+        $this->status = 'placed';
+    }
+
+    #[Apply]
+    public function applyCancelled(SecondaryOrderCancelled $event): void
+    {
+        $this->status = 'cancelled';
+    }
+}

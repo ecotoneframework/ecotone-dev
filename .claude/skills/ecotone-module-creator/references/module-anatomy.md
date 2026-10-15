@@ -8,7 +8,7 @@ The minimal module template (from the package template directory):
 namespace Ecotone\_PackageTemplate\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -33,10 +33,6 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
     ): void {
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
 
     public function getModulePackageName(): string
     {
@@ -47,13 +43,12 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
 
 ## ModulePackageList Constants
 
-Source: `Ecotone\Messaging\Config\ModulePackageList`
+Source: `Ecotone\Api\ExtensionObject\ModulePackageList`
 
 ```php
 final class ModulePackageList
 {
     public const CORE_PACKAGE = 'core';
-    public const ASYNCHRONOUS_PACKAGE = 'asynchronous';
     public const AMQP_PACKAGE = 'amqp';
     public const DATA_PROTECTION_PACKAGE = 'dataProtection';
     public const DBAL_PACKAGE = 'dbal';
@@ -65,18 +60,20 @@ final class ModulePackageList
     public const TRACING_PACKAGE = 'tracing';
     public const LARAVEL_PACKAGE = 'laravel';
     public const SYMFONY_PACKAGE = 'symfony';
+    public const TEMPEST_PACKAGE = 'tempest';
     public const TEST_PACKAGE = 'test';
-
-    public static function allPackages(): array { ... }
-    public static function allPackagesExcept(array $names): array { ... }
-    public static function getModuleClassesForPackage(string $name): array { ... }
 }
 ```
 
+`ModulePackageList` holds only the names an application passes to `ServiceConfiguration::withEnabledModulePackageNames()`. The
+lookups only the framework calls live in the internal `Ecotone\Messaging\Config\ModuleClassList`:
+`packageNames()` (every package, `TEST_PACKAGE` included) and `forPackage()` (a package's module classes). Exclusion
+is done by the caller, e.g. `array_diff(ModuleClassList::packageNames(), $skippedPackages)`.
+
 To register a new package:
-1. Add constant: `public const MY_PACKAGE = 'myPackage';`
-2. Add to `allPackages()` return array
-3. Add match case in `getModuleClassesForPackage()`
+1. Add constant to `ModulePackageList`: `public const MY_PACKAGE = 'myPackage';`
+2. Add it to `ModuleClassList::packageNames()`
+3. Add a `MY_PACKAGE_MODULES` constant and a match case in `ModuleClassList::forPackage()`
 
 ## AnnotationModule Interface
 
@@ -96,8 +93,6 @@ interface AnnotationModule
         ModuleReferenceSearchService $moduleReferenceSearchService,
         InterfaceToCallRegistry $interfaceToCallRegistry
     ): void;
-
-    public function canHandle($extensionObject): bool;
 
     public function getModulePackageName(): string;
 }
@@ -128,12 +123,12 @@ interface Configuration
     public function registerConsumer(ChannelAdapterConsumerBuilder $consumer): self;
 
     // Register converters
-    public function registerConverter(ConverterBuilder $converter): self;
-
-    // Register service activators
-    public function registerServiceActivator(ServiceActivatorBuilder $activator): self;
+    public function registerConverter(CompilableBuilder $converter): self;
 }
 ```
+
+There is no `registerServiceActivator()` -- a `#[ServiceActivator]`/`#[InternalHandler]` handler is built with
+`ServiceActivatorBuilder` and registered the same way as any other handler, through `registerMessageHandler()`.
 
 ## AnnotationFinder Interface (Key Methods)
 
@@ -145,16 +140,16 @@ Used in `create()` to scan for annotations:
 interface AnnotationFinder
 {
     // Find classes annotated with a specific attribute
-    public function findAnnotatedClasses(string $attributeClass): array;
+    public function findAnnotatedClasses(string $annotationClassName): array;
 
-    // Find methods annotated with a specific attribute
-    public function findAnnotatedMethods(string $attributeClass): array;
+    // Find methods annotated with a specific attribute; returns AnnotatedMethod[]
+    public function findAnnotatedMethods(string $methodAnnotationClassName): array;
 
-    // Find all annotations for a class
-    public function getAnnotationsForClass(string $className): array;
+    // Get a required class/method attribute instance
+    public function getAttributeForClass(string $className, string $attributeClassName): object;
 
-    // Find all annotations for a method
-    public function getAnnotationsForMethod(string $className, string $methodName): array;
+    // Get an optional class/method attribute instance, or null
+    public function findAttributeForClass(string $className, string $attributeClassName): ?object;
 }
 ```
 
@@ -261,10 +256,6 @@ final class MyPackageModule implements AnnotationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof MyPackageConfiguration;
-    }
 
     public function getModulePackageName(): string
     {

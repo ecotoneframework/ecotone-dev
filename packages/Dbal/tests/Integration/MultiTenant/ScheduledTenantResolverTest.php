@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
@@ -269,15 +269,16 @@ final class ScheduledTenantResolverTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classes,
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
-                        ->setExecutionAmountLimit(1)
-                        ->setHandledMessageLimit(1),
+                        ->withExecutionAmountLimit(1)
+                        ->withHandledMessageLimit(1),
                     PollingMetadata::create('external_processing')
-                        ->setExecutionAmountLimit(1)
-                        ->setHandledMessageLimit(1),
+                        ->withExecutionAmountLimit(1)
+                        ->withHandledMessageLimit(1),
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_a_connection'],
@@ -289,11 +290,8 @@ final class ScheduledTenantResolverTest extends TestCase
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
-                ]),
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
+                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
     }
 

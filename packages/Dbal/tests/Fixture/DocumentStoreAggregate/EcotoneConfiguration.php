@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 
 /**
  * licence Apache-2.0
@@ -16,6 +16,6 @@ class EcotoneConfiguration
     public function getDbalConfiguration(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreStandardRepository: true);
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true);
     }
 }

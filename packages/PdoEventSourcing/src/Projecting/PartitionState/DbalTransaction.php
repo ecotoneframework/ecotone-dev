@@ -7,11 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
-use Doctrine\DBAL\Driver\Exception as Dbal3DriverException;
-use Doctrine\DBAL\Exception\DriverException;
-use Ecotone\Dbal\DbalTransaction\ImplicitCommit;
 use Ecotone\Projecting\Transaction;
-use Exception;
 
 class DbalTransaction implements Transaction
 {
@@ -21,36 +17,15 @@ class DbalTransaction implements Transaction
 
     public function commit(): void
     {
-        try {
-            $this->connection->commit();
-        } catch (DriverException|Dbal3DriverException $e) {
-            if (ImplicitCommit::isImplicitCommitException($e, $this->connection)) {
-                try {
-                    $this->connection->rollBack();
-                } catch (Exception) {
-                    // do nothing
-                }
-                return;
-            } else {
-                throw $e;
-            }
-        }
+        $this->connection->commit();
     }
 
     public function rollBack(): void
     {
-        try {
-            $this->connection->rollBack();
-        } catch (DriverException|Dbal3DriverException $e) {
-            if (ImplicitCommit::isImplicitCommitException($e, $this->connection)) {
-                try {
-                    $this->connection->rollBack();
-                } catch (Exception) {
-                    // do nothing
-                }
-            } else {
-                throw $e;
-            }
+        if (! $this->connection->isTransactionActive()) {
+            return;
         }
+
+        $this->connection->rollBack();
     }
 }

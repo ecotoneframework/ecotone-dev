@@ -28,11 +28,17 @@ abstract class TracingTestCase extends TestCase
         );
     }
 
+    private const INTERNAL_NOISE_SPAN_NAME_PREFIX = 'Message Handler: Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor::';
+
     public static function buildTree(InMemoryExporter $exporter): array
     {
         $tree = [];
         /** @var SpanDataInterface $span */
         foreach ($exporter->getSpans() as $span) {
+            if (str_starts_with($span->getName(), self::INTERNAL_NOISE_SPAN_NAME_PREFIX)) {
+                continue;
+            }
+
             $preparedSpan = [
                 'details' => [
                     'name' => $span->getName(),

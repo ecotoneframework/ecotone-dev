@@ -4,6 +4,11 @@
 
 ### Full Configuration
 
+`ErrorHandlerConfiguration` only fires once an endpoint's failures are actually routed to its `errorChannelName`
+(here `'errorChannel'`) -- set that globally with `ServiceConfiguration::withDefaultErrorChannel()` (or per Symfony's
+`defaultErrorChannel` / Laravel's `default_error_channel` config), or per endpoint with
+`PollingMetadata::withErrorChannelName()`.
+
 ```php
 class ResiliencyConfig
 {
@@ -12,8 +17,8 @@ class ResiliencyConfig
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
-            RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 30000)
-                ->maxRetryAttempts(5),
+            RetryTemplateBuilder::exponentialBackOffWithMaxDelay(1000, 2, 30000)
+                ->maxRetries(5),
             'dead_letter'
         );
     }
@@ -41,8 +46,8 @@ public function errorHandler(): ErrorHandlerConfiguration
 {
     return ErrorHandlerConfiguration::create(
         'errorChannel',
-        RetryTemplateBuilder::exponentialBackoff(1000, 2)
-            ->maxRetryAttempts(5)
+        RetryTemplateBuilder::exponentialBackOff(1000, 2)
+            ->maxRetries(5)
     );
 }
 ```
@@ -52,7 +57,7 @@ public function errorHandler(): ErrorHandlerConfiguration
 Messages that exhaust all retries go to the dead letter channel:
 
 ```php
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 
 class DeadLetterConfig
 {
@@ -96,44 +101,41 @@ This guarantees no events are lost even if the application crashes after saving 
 Route errors from a specific endpoint to a custom error handler:
 
 ```php
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 #[ServiceContext]
 public function ordersPolling(): PollingMetadata
 {
     return PollingMetadata::create('ordersEndpoint')
-        ->setErrorChannelName('orders_error');
+        ->withErrorChannelName('orders_error');
 }
 ```
 
-## Custom Error Processing with ServiceActivator
+## Custom Error Processing with InternalHandler
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Messaging\ErrorMessage;
 
 class ErrorProcessor
 {
-    #[ServiceActivator(inputChannelName: 'orders_error')]
+    #[InternalHandler(inputChannelName: 'orders_error')]
     public function handleError(ErrorMessage $errorMessage): void
     {
-        $exception = $errorMessage->getPayload();
-        $originalMessage = $errorMessage->getOriginalMessage();
-
         $this->logger->error('Order processing failed', [
-            'exception' => $exception->getMessage(),
-            'payload' => $originalMessage->getPayload(),
+            'exception' => $errorMessage->getExceptionClass() . ': ' . $errorMessage->getExceptionMessage(),
+            'payload' => $errorMessage->getPayload(),
         ]);
     }
 }
 ```
 
-Route errors to custom processing via `PollingMetadata::setErrorChannelName()` or `ErrorHandlerConfiguration`.
+Route errors to custom processing via `PollingMetadata::withErrorChannelName()` or `ErrorHandlerConfiguration`.
 
 ## #[InstantRetry] with Specific Exceptions (Enterprise)
 
 ```php
-use Ecotone\Modelling\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 #[InstantRetry(retryTimes: 3, exceptions: [ConnectionException::class, TimeoutException::class])]
 #[CommandHandler('order.place')]
@@ -146,7 +148,7 @@ public function placeOrder(PlaceOrder $command): void
 ## #[ErrorChannel] Usage (Enterprise)
 
 ```php
-use Ecotone\Messaging\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\ErrorChannel;
 
 #[ErrorChannel('orders_error')]
 class OrderService

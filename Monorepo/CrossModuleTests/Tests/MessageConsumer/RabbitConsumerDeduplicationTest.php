@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
-use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Amqp\AmqpQueue;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Amqp\AmqpConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithCustomDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithDefaultDeduplicationExample2;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithIndependentDeduplicationExample;
@@ -53,17 +52,16 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithCustomDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithCustomDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
@@ -126,17 +124,16 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithDefaultDeduplicationExample2::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithDefaultDeduplicationExample2(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
@@ -200,17 +197,16 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithIndependentDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithIndependentDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withEnabledModulePackageNames([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),

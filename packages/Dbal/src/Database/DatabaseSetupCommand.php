@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Database;
 
-use Ecotone\Messaging\Attribute\ConsoleCommand;
-use Ecotone\Messaging\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use InvalidArgumentException;
 
 use function is_bool;
 
@@ -18,7 +20,7 @@ use function is_bool;
 class DatabaseSetupCommand
 {
     public function __construct(
-        private DatabaseSetupManager $databaseSetupManager,
+        private DatabaseSetupManagerRegistry $databaseSetupManagerRegistry,
     ) {
     }
 
@@ -28,94 +30,191 @@ class DatabaseSetupCommand
         #[ConsoleParameterOption] bool|string $initialize = false,
         #[ConsoleParameterOption] bool|string $sql = false,
         #[ConsoleParameterOption] bool|string $onlyUsed = true,
+        #[ConsoleParameterOption] bool|string $missing = false,
+        #[ConsoleParameterOption] ?string $connection = null,
     ): ?ConsoleCommandResultSet {
-        // Normalize boolean parameters from CLI strings
         $initialize = $this->normalizeBoolean($initialize);
         $sql = $this->normalizeBoolean($sql);
         $onlyUsed = $this->normalizeBoolean($onlyUsed);
+        $missing = $this->normalizeBoolean($missing);
 
-        // If specific feature names provided
+        $connectionReferenceNames = $this->resolveConnectionScope($connection);
+
         if (count($feature) > 0) {
-            $rows = [];
-
-            if ($sql) {
-                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($feature);
-                return ConsoleCommandResultSet::create(
-                    ['SQL Statement'],
-                    [[implode("\n", $statements)]]
-                );
-            }
-
-            if ($initialize) {
-                foreach ($feature as $featureName) {
-                    $this->databaseSetupManager->initialize($featureName);
-                    $rows[] = [$featureName, 'Created'];
-                }
-                return ConsoleCommandResultSet::create(['Feature', 'Status'], $rows);
-            }
-
-            $initStatus = $this->databaseSetupManager->getInitializationStatus();
-            $usageStatus = $this->databaseSetupManager->getUsageStatus();
-            foreach ($feature as $featureName) {
-                $isInitialized = $initStatus[$featureName] ?? false;
-                $isUsed = $usageStatus[$featureName] ?? false;
-                $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
-            }
-            return ConsoleCommandResultSet::create(['Feature', 'Used', 'Initialized'], $rows);
+            return $this->setupForFeatures($feature, $connectionReferenceNames, $initialize, $sql, $missing);
         }
 
-        // Show all features
-        $featureNames = $this->databaseSetupManager->getFeatureNames($onlyUsed);
+        return $this->setupForAllFeatures($connectionReferenceNames, $onlyUsed, $initialize, $sql, $missing);
+    }
 
-        if (count($featureNames) === 0) {
+    private function setupForFeatures(array $featureNames, array $connectionReferenceNames, bool $initialize, bool $sql, bool $missing): ConsoleCommandResultSet
+    {
+        $matches = $this->locateFeatures($featureNames, $connectionReferenceNames);
+
+        if ($missing) {
+            $matches = array_values(array_filter(
+                $matches,
+                fn (array $match) => ! ($this->databaseSetupManagerRegistry->getManagerFor($match['connection'])->getInitializationStatus()[$match['feature']] ?? false)
+            ));
+        }
+
+        if ($sql) {
+            $statements = [];
+            foreach ($matches as $match) {
+                $statements = array_merge(
+                    $statements,
+                    $this->databaseSetupManagerRegistry->getManagerFor($match['connection'])->getCreateSqlStatementsForFeatures([$match['feature']])
+                );
+            }
+            return ConsoleCommandResultSet::create(['SQL Statement'], [[implode("\n", $statements)]]);
+        }
+
+        if ($initialize) {
+            $rows = [];
+            foreach ($matches as $match) {
+                $this->databaseSetupManagerRegistry->getManagerFor($match['connection'])->initialize($match['feature']);
+                $rows[] = [$match['feature'], $match['connection'], 'Created'];
+            }
+            return ConsoleCommandResultSet::create(['Feature', 'Connection', 'Status'], $rows);
+        }
+
+        $rows = [];
+        foreach ($matches as $match) {
+            $manager = $this->databaseSetupManagerRegistry->getManagerFor($match['connection']);
+            $isInitialized = $manager->getInitializationStatus()[$match['feature']] ?? false;
+            $isUsed = $manager->getUsageStatus()[$match['feature']] ?? false;
+            $rows[] = [$match['feature'], $match['connection'], $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
+        }
+        return ConsoleCommandResultSet::create(['Feature', 'Connection', 'Used', 'Initialized'], $rows);
+    }
+
+    private function setupForAllFeatures(array $connectionReferenceNames, bool $onlyUsed, bool $initialize, bool $sql, bool $missing): ConsoleCommandResultSet
+    {
+        $entries = $this->collectFeatureEntries($connectionReferenceNames, $onlyUsed);
+
+        if (count($entries) === 0) {
             return ConsoleCommandResultSet::create(
                 ['Status'],
                 [['No database tables registered for setup.']]
             );
         }
 
+        if ($missing) {
+            $entries = array_values(array_filter($entries, fn (array $entry) => ! $entry['initialized']));
+        }
+
         if ($sql) {
-            $statements = $this->databaseSetupManager->getCreateSqlStatements($onlyUsed);
+            $statements = [];
+            foreach ($entries as $entry) {
+                $statements = array_merge(
+                    $statements,
+                    $this->databaseSetupManagerRegistry->getManagerFor($entry['connection'])->getCreateSqlStatementsForFeatures([$entry['feature']])
+                );
+            }
+            return ConsoleCommandResultSet::create(['SQL Statement'], [[implode("\n", $statements)]]);
+        }
+
+        if ($missing) {
             return ConsoleCommandResultSet::create(
-                ['SQL Statement'],
-                [[implode("\n", $statements)]]
+                ['Feature', 'Connection'],
+                array_map(fn (array $entry) => [$entry['feature'], $entry['connection']], $entries)
             );
         }
 
         if ($initialize) {
-            $this->databaseSetupManager->initializeAll($onlyUsed);
+            foreach ($connectionReferenceNames as $connectionReferenceName) {
+                $this->databaseSetupManagerRegistry->getManagerFor($connectionReferenceName)->initializeAll($onlyUsed);
+            }
             return ConsoleCommandResultSet::create(
-                ['Feature', 'Status'],
-                array_map(fn (string $feature) => [$feature, 'Created'], $featureNames)
+                ['Feature', 'Connection', 'Status'],
+                array_map(fn (array $entry) => [$entry['feature'], $entry['connection'], 'Created'], $entries)
             );
         }
 
-        $initializationStatus = $this->databaseSetupManager->getInitializationStatus($onlyUsed);
-        $usageStatus = $this->databaseSetupManager->getUsageStatus();
-        $rows = [];
-        foreach ($featureNames as $featureName) {
-            $isInitialized = $initializationStatus[$featureName] ?? false;
-            $isUsed = $usageStatus[$featureName] ?? false;
-            $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
-        }
-
         return ConsoleCommandResultSet::create(
-            ['Feature', 'Used', 'Initialized'],
-            $rows
+            ['Feature', 'Connection', 'Used', 'Initialized'],
+            array_map(
+                fn (array $entry) => [$entry['feature'], $entry['connection'], $entry['used'] ? 'Yes' : 'No', $entry['initialized'] ? 'Yes' : 'No'],
+                $entries
+            )
         );
     }
 
     /**
-     * Normalize boolean parameter from CLI string to actual boolean.
-     * Handles cases where CLI passes "false" as a string.
+     * @param string[] $connectionReferenceNames
+     * @return array<array{feature: string, connection: string, used: bool, initialized: bool}>
      */
+    private function collectFeatureEntries(array $connectionReferenceNames, bool $onlyUsed): array
+    {
+        $entries = [];
+        foreach ($connectionReferenceNames as $connectionReferenceName) {
+            $manager = $this->databaseSetupManagerRegistry->getManagerFor($connectionReferenceName);
+            $initializationStatus = $manager->getInitializationStatus($onlyUsed);
+            $usageStatus = $manager->getUsageStatus();
+            foreach ($manager->getFeatureNames($onlyUsed) as $featureName) {
+                $entries[] = [
+                    'feature' => $featureName,
+                    'connection' => $connectionReferenceName,
+                    'used' => $usageStatus[$featureName] ?? false,
+                    'initialized' => $initializationStatus[$featureName] ?? false,
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param string[] $featureNames
+     * @param string[] $connectionReferenceNames
+     * @return array<array{feature: string, connection: string}>
+     */
+    private function locateFeatures(array $featureNames, array $connectionReferenceNames): array
+    {
+        $matches = [];
+        $found = [];
+        foreach ($connectionReferenceNames as $connectionReferenceName) {
+            $manager = $this->databaseSetupManagerRegistry->getManagerFor($connectionReferenceName);
+            foreach ($featureNames as $featureName) {
+                if (in_array($featureName, $manager->getFeatureNames(false), true)) {
+                    $matches[] = ['feature' => $featureName, 'connection' => $connectionReferenceName];
+                    $found[$featureName] = true;
+                }
+            }
+        }
+
+        $notFound = array_diff($featureNames, array_keys($found));
+        if ($notFound !== []) {
+            throw new InvalidArgumentException(sprintf(
+                'Table manager not found for feature(s): %s on connection(s): %s',
+                implode(', ', $notFound),
+                implode(', ', $connectionReferenceNames)
+            ));
+        }
+
+        return $matches;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function resolveConnectionScope(?string $connection): array
+    {
+        if ($connection !== null) {
+            $this->databaseSetupManagerRegistry->getManagerFor($connection);
+
+            return [$connection];
+        }
+
+        return $this->databaseSetupManagerRegistry->getConnectionReferenceNames();
+    }
+
     private function normalizeBoolean(bool|string $value): bool
     {
         if (is_bool($value)) {
             return $value;
         }
 
-        // Handle string values from CLI
         return $value !== 'false' && $value !== '0' && $value !== '';
     }
 }

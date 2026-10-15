@@ -12,14 +12,14 @@ use App\Testing\Domain\User\User;
 use App\Testing\Domain\Verification\TokenGenerator;
 use App\Testing\Domain\Verification\VerificationProcess;
 use App\Testing\Infrastructure\MessagingConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -37,7 +37,7 @@ final class UserTest extends TestCase
         /** Comparing published events after registration */
         $this->assertEquals(
             [new UserWasRegistered($userId, $email, $phoneNumber)],
-            $user->getRecordedEvents()
+            $user->popRecordedEvents()
         );
     }
 
@@ -52,7 +52,7 @@ final class UserTest extends TestCase
             [new UserWasRegistered($userId, $email, $phoneNumber)],
             EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -65,7 +65,7 @@ final class UserTest extends TestCase
         $this->assertTrue(
             EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
-                ->sendCommandWithRoutingKey("user.block", metadata: ["aggregate.id" => $userId])
+                ->sendCommandWithRouting("user.block", metadata: ["aggregate.id" => $userId])
                 ->getAggregate(User::class, $userId)
                 ->isBlocked()
         );

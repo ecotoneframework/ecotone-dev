@@ -9,27 +9,29 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
 use function in_array;
 use function json_decode;
 use function json_encode;
 
+use Throwable;
+
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
     private const INITIALIZATION_STATUS_KEY = 'initialization_status';
-
-    /** @var array<string, bool> Track initialization per connection */
-    private array $initialized = [];
 
     /**
      * @param string[]|null $projectionNames
@@ -60,43 +62,22 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         return $this->connectionFactory->createContext()->getDbalConnection();
     }
 
-    private function getConnectionKey(): string
-    {
-        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
-            return $this->connectionFactory->currentActiveTenant();
-        }
-
-        return 'default';
-    }
-
-    private function isInitialized(): bool
-    {
-        return $this->initialized[$this->getConnectionKey()] ?? false;
-    }
-
-    private function markInitialized(): void
-    {
-        $this->initialized[$this->getConnectionKey()] = true;
-    }
-
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
     {
-        $this->createSchema();
-
         $tableName = $this->getTableName();
         $query = <<<SQL
             SELECT last_position, user_state, metadata FROM {$tableName}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
             SQL;
 
-        if ($lock) {
+        if ($lock && ! $this->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             $query .= ' FOR UPDATE';
         }
 
-        $row = $this->getConnection()->fetchAssociative($query, [
+        $row = $this->onTable(fn () => $this->getConnection()->fetchAssociative($query, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
-        ]);
+        ]));
         if (! $row) {
             return null;
         }
@@ -108,8 +89,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
     {
-        $this->createSchema();
-
         $connection = $this->getConnection();
         $tableName = $this->getTableName();
 
@@ -130,13 +109,13 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $metadata = [
             self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::UNINITIALIZED->value,
         ];
-        $rowsAffected = $connection->executeStatement($insertQuery, [
+        $rowsAffected = $this->onTable(fn () => $connection->executeStatement($insertQuery, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
             'lastPosition' => '',
             'userState' => json_encode(null),
             'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
-        ]);
+        ]));
 
         // If no rows were affected, the partition already existed
         if ($rowsAffected === 0) {
@@ -149,8 +128,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
-        $this->createSchema();
-
         $connection = $this->getConnection();
         $tableName = $this->getTableName();
 
@@ -170,46 +147,39 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $metadata = [
             self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::INITIALIZED->value,
         ];
-        $connection->executeStatement($saveStateQuery, [
+        $this->onTable(fn () => $connection->executeStatement($saveStateQuery, [
             'projectionName' => $projectionState->projectionName,
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
             'userState' => json_encode($projectionState->userState, JSON_THROW_ON_ERROR),
             'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
-        ]);
+        ]));
     }
 
     public function init(string $projectionName): void
     {
-        $this->createSchema();
+        if (! $this->tableManager->isInitialized($this->getConnection())) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
     }
 
     public function delete(string $projectionName): void
     {
-        $this->createSchema();
-
         $tableName = $this->getTableName();
-        $this->getConnection()->executeStatement(<<<SQL
+        $this->onTable(fn () => $this->getConnection()->executeStatement(<<<SQL
             DELETE FROM {$tableName} WHERE projection_name = :projectionName
             SQL, [
             'projectionName' => $projectionName,
-        ]);
+        ]));
     }
 
-    public function createSchema(): void
+    private function onTable(callable $statement): mixed
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically() || $this->isInitialized()) {
-            return;
+        try {
+            return $statement();
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager);
         }
-
-        $connection = $this->getConnection();
-
-        // Delegate to table manager - single source of truth for schema
-        if (! $this->tableManager->isInitialized($connection)) {
-            $this->tableManager->createTable($connection);
-        }
-
-        $this->markInitialized();
     }
 
     public function beginTransaction(): Transaction

@@ -2,6 +2,8 @@
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
@@ -13,14 +15,13 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 /**
  * licence Apache-2.0
  */
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
+    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionReference::DEFAULT): self
     {
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
@@ -30,6 +31,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
+                new Reference(EcotoneClockInterface::class),
             ]),
         ], 'createFor');
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [

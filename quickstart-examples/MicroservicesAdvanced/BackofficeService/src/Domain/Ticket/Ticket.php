@@ -7,12 +7,12 @@ use App\Microservices\BackofficeService\Domain\Ticket\Command\PrepareTicket;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasAssigned;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasCancelled;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasPrepared;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Distributed;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\Uuid;
 
 #[EventSourcingAggregate]
@@ -46,7 +46,7 @@ class Ticket
         return [new TicketWasCancelled($this->ticketId)];
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyTicketWasPrepared(TicketWasPrepared $event): void
     {
         $this->ticketId    = $event->getTicketId();
@@ -54,7 +54,7 @@ class Ticket
         $this->isAssigned  = false;
     }
 
-    #[EventSourcingHandler]
+    #[Apply]
     public function applyTicketWasCancelled(TicketWasCancelled $event): void
     {
         $this->isCancelled = true;

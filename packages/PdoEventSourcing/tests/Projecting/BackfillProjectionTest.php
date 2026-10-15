@@ -5,22 +5,22 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionBackfill;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -73,6 +73,22 @@ abstract class AbstractTicketProjection
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 final class BackfillProjectionTest extends ProjectingTestCase
@@ -83,7 +99,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
         $this->expectExceptionMessage('Backfill partition batch size must be at least 1');
 
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch0_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('batch0_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 0), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             protected function tableName(): string
             {
                 return 'batch0_tickets';
@@ -96,7 +112,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_async_backfill_with_batch_of_2_processes_5_partitions_in_3_runs(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch2_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('batch2_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getBackfillTickets')]
             public function query(): array
             {
@@ -123,21 +139,21 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'batch2_async_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(3, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(4, $ecotone->sendQueryWithRouting('getBackfillTickets'));
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets'));
     }
 
     public function test_partitioned_projection_async_backfill_with_batch_of_5_completes_in_single_run(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch5_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 5, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('batch5_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 5, asyncChannelName: 'backfill_channel'), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getBackfillTickets5')]
             public function query(): array
             {
@@ -164,17 +180,17 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'batch5_async_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets5'));
     }
 
     public function test_partitioned_projection_sync_backfill_processes_all_partitions_immediately(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('sync_partitioned_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('sync_partitioned_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getSyncBackfillTickets')]
             public function query(): array
             {
@@ -202,7 +218,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
     public function test_global_projection_async_backfill_processes_all_events_after_running_channel(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('global_async_projection'), ProjectionBackfill(asyncChannelName: 'backfill_global_channel'), FromStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('global_async_projection'), ProjectionBackfill(asyncChannelName: 'backfill_global_channel'), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getGlobalAsyncTickets')]
             public function query(): array
             {
@@ -231,17 +247,17 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('getGlobalAsyncTickets'));
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_global_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_global_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(3, $ecotone->sendQueryWithRouting('getGlobalAsyncTickets'));
     }
 
     public function test_global_projection_sync_backfill_processes_all_events_immediately(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('global_sync_projection'), ProjectionBackfill(), FromStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ Projection('global_sync_projection'), ProjectionBackfill(), FromAggregateStream(Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getGlobalSyncTickets')]
             public function query(): array
             {
@@ -282,19 +298,14 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, bool|array $channels, ?TestConfiguration $testConfiguration = null): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
-            enableAsynchronousProcessing: $channels,
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->withExtensionObjects(is_array($channels) ? $channels : [])->addExtensionObject(DbalConfiguration::createForTesting()),
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: $testConfiguration,
+            testConfiguration: $testConfiguration
         );
     }
 }

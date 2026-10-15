@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
@@ -31,6 +29,22 @@ use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
  * @internal
  */
 final class ProjectionStateGatewayTest extends ProjectingTestCase
@@ -65,7 +79,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     public function test_multiple_streams_without_from_aggregate_stream_on_gateway_throws_exception(): void
     {
-        $projection = new #[ ProjectionV2('ticket_counter_partitioned'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class), FromStream(stream: Basket::class, aggregateType: Basket::class), ] class () {
+        $projection = new #[ Projection('ticket_counter_partitioned'), Partitioned, FromAggregateStream(Ticket::class), FromAggregateStream(Basket::class), ] class () {
             public const NAME = 'ticket_counter_partitioned';
 
             #[EventHandler]
@@ -86,7 +100,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     public function test_from_aggregate_stream_on_gateway_method_disambiguates_multiple_streams(): void
     {
-        $projection = new #[ ProjectionV2('ticket_counter_multi_stream'), Partitioned, FromAggregateStream(Ticket::class), FromAggregateStream(Basket::class), ] class () {
+        $projection = new #[ Projection('ticket_counter_multi_stream'), Partitioned, FromAggregateStream(Ticket::class), FromAggregateStream(Basket::class), ] class () {
             public const NAME = 'ticket_counter_multi_stream';
 
             #[EventHandler]
@@ -126,7 +140,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class () {
             public const NAME = 'ticket_counter_partitioned';
 
             #[EventHandler]
@@ -148,16 +162,12 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTesting(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
-            runForProductionEventStore: true,
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

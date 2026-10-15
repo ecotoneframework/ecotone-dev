@@ -8,7 +8,7 @@ use Interop\Queue\Context;
 /**
  * licence Apache-2.0
  */
-interface ReconnectableConnectionFactory extends ConnectionFactory
+interface ReconnectableConnectionFactory extends \Ecotone\Enqueue\ConnectionFactory
 {
     public function isDisconnected(?Context $context): bool;
 

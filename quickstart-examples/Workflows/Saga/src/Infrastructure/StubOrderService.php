@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Workflow\Saga\Infrastructure;
 
 use App\Workflow\Saga\Application\Order\OrderService;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\Identifier;
 use Money\Money;
 
 final readonly class StubOrderService implements OrderService

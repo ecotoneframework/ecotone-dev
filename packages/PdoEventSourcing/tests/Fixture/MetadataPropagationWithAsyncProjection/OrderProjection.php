@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionInitialization;
 
 #[Asynchronous(channelName: self::CHANNEL)]
-#[Projection(name: self::NAME, fromStreams: [Order::class])]
+#[Projection(name: self::NAME)]
+#[FromAggregateStream(Order::class)]
 /**
  * licence Apache-2.0
  */

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\PollableChannel;
 use Interop\Queue\ConnectionFactory;
 
 /**
@@ -44,5 +44,10 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
     private function getContextChannel(): PollableChannel
     {
         return $this->connectionFactory->createContext();
+    }
+
+    public function __toString(): string
+    {
+        return 'fake with connection factory: ' . $this->channelName;
     }
 }

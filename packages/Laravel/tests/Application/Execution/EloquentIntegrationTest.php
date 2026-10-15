@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;
@@ -40,6 +40,20 @@ final class EloquentIntegrationTest extends TestCase
             $table->string('price_currency');
             $table->dateTime('updated_at');
             $table->dateTime('created_at');
+        });
+
+        if (Schema::hasTable('jobs')) {
+            Schema::drop('jobs');
+        }
+        Schema::create('jobs', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('queue');
+            $table->longText('payload');
+            $table->tinyInteger('attempts')->unsigned();
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+            $table->index(['queue', 'reserved_at']);
         });
 
         if (Schema::hasTable('orders')) {

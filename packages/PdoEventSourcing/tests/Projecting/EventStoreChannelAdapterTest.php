@@ -1,25 +1,40 @@
 <?php
 
-/*
+/**
  * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Projecting\EventStreamingChannelAdapter;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -55,7 +70,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -64,21 +79,18 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -90,13 +102,13 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $this->assertCount(0, $ecotone->sendQueryWithRouting('getConsumed'));
 
         // When feeder runs (polls event store and pushes to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are in the streaming channel but not consumed yet
         $this->assertCount(0, $ecotone->sendQueryWithRouting('getConsumed'));
 
         // When stream consumer runs (handle 2 messages)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are consumed
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');
@@ -124,7 +136,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -138,12 +150,12 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     )
                         ->withEventNames(['*TicketWasRegistered']), // Only TicketWasRegistered events
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -154,10 +166,10 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $ecotone->sendCommand(new CloseTicket('ticket-2'));
 
         // When feeder runs (polls event store and pushes filtered events to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // When stream consumer runs (handle 2 messages - only TicketWasRegistered events)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then only TicketWasRegistered events are consumed (TicketWasClosed events are filtered out)
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');
@@ -212,7 +224,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $ticketCounter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -222,18 +234,18 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
-            runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -248,10 +260,10 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $this->assertEquals(1, $counts['closed'], 'Event handler should have processed 1 TicketWasClosed event');
 
         // When feeder runs (polls event store and pushes to streaming channel)
-        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // When stream consumer runs (handle 3 messages)
-        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+        $ecotone->run('stream_consumer', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Then events are also consumed from streaming channel (as arrays)
         $consumedEvents = $ecotone->sendQueryWithRouting('getConsumed');

@@ -93,14 +93,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Namespaces
+    | Enabled Module Package Names
     |--------------------------------------------------------------------------
     |
-    | A list of namespaces that Ecotone should look in for configurations,
-    | command handlers, aggregates, projections, etc.
+    | The Ecotone module packages to load, as ModulePackageList constants
+    | (e.g. [ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::DBAL_PACKAGE]).
+    | null loads every installed module package. A list loads Core, which
+    | includes Asynchronous, and the packages you name; an empty list loads
+    | Core alone.
     |
     */
-    'skippedModulePackageNames' => [],
+    'enabledModulePackageNames' => null,
 
     /*
     |--------------------------------------------------------------------------

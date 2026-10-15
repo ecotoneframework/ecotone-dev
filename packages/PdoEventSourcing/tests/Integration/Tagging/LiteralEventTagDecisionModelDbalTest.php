@@ -1,0 +1,194 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Integration\Tagging;
+
+use function array_map;
+
+use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\EventStore;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\Test\LicenceTesting;
+
+use function sys_get_temp_dir;
+
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+
+use function uniqid;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ * @internal
+ */
+final class LiteralEventTagDecisionModelDbalTest extends EventSourcingMessagingTestCase
+{
+    private const CLASSES = [
+        InvoiceIssuingHandlerForDbalLiteralTag::class,
+        InvoiceNumberingForDbalLiteralTag::class,
+        InvoiceIssuedForDbalLiteralTag::class,
+        InvoiceConverterForDbalLiteralTag::class,
+    ];
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->dropTables();
+    }
+
+    public function tearDown(): void
+    {
+        $this->dropTables();
+        parent::tearDown();
+    }
+
+    public function test_gapless_numbering_over_a_class_level_literal_tag_needs_no_value_on_the_command(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $ecotone->sendCommand(new IssueInvoiceForDbalLiteralTag('customer-1'));
+        $ecotone->sendCommand(new IssueInvoiceForDbalLiteralTag('customer-2'));
+        $ecotone->sendCommand(new IssueInvoiceForDbalLiteralTag('customer-1'));
+
+        self::assertSame([1, 2, 3], $this->issuedNumbers($ecotone));
+    }
+
+    /**
+     * @return int[]
+     */
+    private function issuedNumbers(FlowTestSupport $ecotone): array
+    {
+        return array_map(
+            static fn (Event $event): int => $event->getPayload()->number,
+            $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('invoiceSequence', 'default'))->events,
+        );
+    }
+
+    private function bootstrapEcotone(): FlowTestSupport
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: self::CLASSES,
+            containerOrAvailableServices: [self::getConnectionFactory(), new InvoiceIssuingHandlerForDbalLiteralTag(), new InvoiceConverterForDbalLiteralTag()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                    DbalConfiguration::createWithDefaults(),
+                ])
+                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->setupDatabaseTables();
+
+        return $ecotone;
+    }
+
+    private function dropTables(): void
+    {
+        $connection = $this->getConnection();
+        foreach ([TagTableManager::TAGGED_EVENTS_TABLE, TagTableManager::TAG_VERSIONS_TABLE, 'ecotone_event_stream'] as $tableName) {
+            if (self::tableExists($connection, $tableName)) {
+                $connection->executeStatement('DROP TABLE ' . $tableName);
+            }
+        }
+    }
+}
+
+/**
+ * @internal
+ */
+final readonly class IssueInvoiceForDbalLiteralTag
+{
+    public function __construct(public string $customerId)
+    {
+    }
+}
+
+/**
+ * @internal
+ */
+#[EventTag('invoiceSequence', value: 'default')]
+final readonly class InvoiceIssuedForDbalLiteralTag
+{
+    public function __construct(public int $number)
+    {
+    }
+}
+
+/**
+ * @internal
+ */
+#[DecisionModel(tags: ['invoiceSequence'])]
+final class InvoiceNumberingForDbalLiteralTag
+{
+    private int $lastNumber = 0;
+
+    #[Apply]
+    public function issued(InvoiceIssuedForDbalLiteralTag $event): void
+    {
+        $this->lastNumber = $event->number;
+    }
+
+    public function nextNumber(): int
+    {
+        return $this->lastNumber + 1;
+    }
+}
+
+/**
+ * @internal
+ */
+final class InvoiceIssuingHandlerForDbalLiteralTag
+{
+    #[CommandHandler]
+    public function issue(IssueInvoiceForDbalLiteralTag $command, InvoiceNumberingForDbalLiteralTag $numbering): array
+    {
+        return [new InvoiceIssuedForDbalLiteralTag($numbering->nextNumber())];
+    }
+}
+
+/**
+ * @internal
+ */
+final class InvoiceConverterForDbalLiteralTag
+{
+    #[Converter]
+    public function fromInvoiceIssued(InvoiceIssuedForDbalLiteralTag $event): array
+    {
+        return ['number' => $event->number];
+    }
+
+    #[Converter]
+    public function toInvoiceIssued(array $event): InvoiceIssuedForDbalLiteralTag
+    {
+        return new InvoiceIssuedForDbalLiteralTag($event['number']);
+    }
+}

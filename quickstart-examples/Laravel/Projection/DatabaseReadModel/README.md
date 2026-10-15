@@ -15,7 +15,7 @@ flowchart LR
     Client -->|send command| CommandBus
     CommandBus -->|route| User["User\n#[EventSourcingAggregate]"]
     User -->|return events| EventStore[(Event Store\nPostgreSQL)]
-    EventStore -->|stream| UserListProjection["UserListProjection\n#[ProjectionV2]"]
+    EventStore -->|stream| UserListProjection["UserListProjection\n#[Projection]"]
     UserListProjection -->|INSERT / UPDATE| ReadModel[(user_list_database\ntable)]
     Client -->|sendWithRouting| QueryBus
     QueryBus -->|listActive| UserListProjection
@@ -52,7 +52,7 @@ sequenceDiagram
     User-->>EventStore: [UserWasDeactivated]
 ```
 
-The `User` aggregate is annotated with `#[EventSourcingAggregate]`. Command handlers are `static` for creation (`register`) and instance methods for mutations (`changeName`, `deactivate`). Each handler returns an array of events. `#[EventSourcingHandler]` methods reconstruct aggregate state from stored events — they must have no side effects.
+The `User` aggregate is annotated with `#[EventSourcingAggregate]`. Command handlers are `static` for creation (`register`) and instance methods for mutations (`changeName`, `deactivate`). Each handler returns an array of events. `#[Apply]` methods reconstruct aggregate state from stored events — they must have no side effects.
 
 Each event class is annotated with `#[NamedEvent('user.was_registered')]` (and so on). The name is what Ecotone stores alongside the event payload, so the recorded stream stays readable even if you later move or rename the PHP class. Without `#[NamedEvent]`, the fully-qualified class name is used — which couples your stored events to your namespace. For any event you intend to keep on disk, give it a stable name.
 

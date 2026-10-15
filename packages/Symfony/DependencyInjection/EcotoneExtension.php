@@ -86,6 +86,11 @@ class EcotoneExtension extends Extension
                 ->withDefaultErrorChannel($config['defaultErrorChannel']);
         }
 
+        if ($config['headersInLogContext'] !== []) {
+            $serviceConfiguration = $serviceConfiguration
+                ->withHeadersInLogContext($config['headersInLogContext']);
+        }
+
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
         if (! $container->has(\Psr\Container\ContainerInterface::class)) {

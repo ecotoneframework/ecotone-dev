@@ -23,6 +23,7 @@ final class EcotoneConfig
         public ?array $enabledModulePackageNames = null,
         public bool $test = false,
         public string $licenceKey = '',
+        public array $headersInLogContext = [],
         mixed ...$unrecognisedKeys,
     ) {
         FrameworkConfigurationKeys::refuseUnrecognisedKeys(

@@ -93,6 +93,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Headers In Log Context
+    |--------------------------------------------------------------------------
+    |
+    | Message headers to add to the context of Ecotone's log entries,
+    | e.g. ['userId', 'region']. A header is added when the message carries it.
+    |
+    */
+    'headersInLogContext' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Enabled Module Package Names
     |--------------------------------------------------------------------------
     |

@@ -80,6 +80,11 @@ class Configuration implements ConfigurationInterface
                         ->defaultNull()
                     ->end()
 
+                    ->arrayNode('headersInLogContext')
+                        ->scalarPrototype()
+                        ->end()
+                    ->end()
+
                     ->arrayNode(FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES)
                         ->scalarPrototype()
                     ->end()

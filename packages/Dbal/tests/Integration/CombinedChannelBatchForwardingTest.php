@@ -13,12 +13,10 @@ use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
@@ -1086,10 +1084,5 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         }
 
         return $messages;
-    }
-
-    private function receiveImmediatelyFrom(PollableChannel $channel): ?Message
-    {
-        return $channel->receiveWithTimeout(PollingMetadata::create('test')->withExecutionTimeLimitInMilliseconds(100));
     }
 }

@@ -144,7 +144,10 @@ jobs:
           # kernel-boot harness tied to the monorepo layout; it is covered by the unified Monorepo
           # job, so exclude it from the isolated per-package Split Testing matrix.
           COMPONENTS=$(echo "$COMPONENTS" | grep -v 'packages/Tempest')
-          RUN_TESTS="composer tests:ci"
+          # These components run PHPStan once and each database pass as a task of its own, in parallel.
+          # A pass owns its databases, its SQLite files and its temp directory, so passes share nothing,
+          # and the component takes as long as its slowest pass instead of the sum of all three.
+          SPLIT_DATABASE_PASSES="packages/Dbal packages/PdoEventSourcing"
 
           if [ "${{ matrix.stability }}" = "prefer-lowest" ]; then
             COMPOSER_UP="composer update --${{ matrix.stability }}"
@@ -174,88 +177,107 @@ jobs:
             return $ok
           }
 
-          _run_component_tests() {
-            local db_host="127.0.0.1"
+          _install_component() {
             local dir="$1"
             local compose_up_cmd="$2"
-            local run_tests_cmd="$3"
-            local overall_exit_code=0
 
-            # Isolate temp directory per component, so parallel PHPStan runs do not race on a shared /tmp/phpstan cache
-            local tmp_slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
-            local component_tmp_dir="/tmp/ecotone_component_${tmp_slug}"
+            _run_tests "Install composer dependencies ($dir)" "cd '${dir}' && ${compose_up_cmd}"
+          }
+
+          _run_pass() {
+            local db_host="127.0.0.1"
+            local dir="$1"
+            local pass="$2"
+            local script="$3"
+            local slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
+            local pass_slug=$(echo "$pass" | tr '[:upper:]' '[:lower:]')
+
+            # Isolate temp directory per task, so parallel PHPStan runs and parallel database passes
+            # do not race on a shared /tmp/phpstan cache or on EcotoneLite cache directories
+            local component_tmp_dir="/tmp/ecotone_component_${slug}_${pass_slug}"
             mkdir -p "$component_tmp_dir"
-            run_tests_cmd="TMPDIR='${component_tmp_dir}' ${run_tests_cmd}"
+            local run_tests_cmd="TMPDIR='${component_tmp_dir}' composer ${script}"
 
-            # Install dependencies and determine if MySQL pass is needed (direct or transitive doctrine/dbal)
-            if ! _run_tests "Install composer dependencies ($dir)" "cd '${dir}' && ${compose_up_cmd}"; then
-              overall_exit_code=1
-            fi
-            
-            local has_dbal=0
-            if bash -c "cd '${dir}' && composer show doctrine/dbal > /dev/null 2>&1"; then
-              has_dbal=1
-            fi
+            # Derive unique DB names per pass to avoid cross-test conflicts
+            local db_name="ecotone_${slug}_${pass_slug}"
+            local create_databases="\
+              psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
+              mysql -h '${db_host}' -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\""
 
-            if [ "$has_dbal" -eq 1 ]; then
-              # Derive unique DB names per component execution to avoid cross-test conflicts
-              local slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
-
-              local db_name
-              # Run Postgres pass
-              db_name="ecotone_${slug}_pg"
-              if ! _run_tests "$dir (Postgres)" "\
-                psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
-                mysql -h '${db_host}' -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\" && \
-                cd '${dir}' && \
-                DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
-                SECONDARY_DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
-                ${run_tests_cmd}"; then
-                overall_exit_code=1
-              fi
-
-              # Run MySQL pass
-              db_name="ecotone_${slug}_mysql"
-              if ! _run_tests "$dir (MySQL)" "\
-                psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
-                mysql -h '${db_host}' -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\" && \
-                cd '${dir}' && \
-                DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
-                SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
-                ${run_tests_cmd}"; then
-                overall_exit_code=1
-              fi
-
-              # Run SQLite pass. Only Tempest is skipped: its multi-tenant tests derive a connection
-              # from Tempest's own Postgres config and ignore DATABASE_DSN, so they need a server engine.
-              # PdoEventSourcing and DataProtection used to be skipped here as "SQLite event store not
-              # supported". That is stale - SQLite is a supported event store engine in 2.0
-              # (upgrade-2.0.md) and both suites pass against it.
-              if [[ ! "$dir" =~ (Tempest) ]]; then
+            case "$pass" in
+              Postgres)
+                _run_tests "$dir (Postgres)" "\
+                  ${create_databases} && \
+                  cd '${dir}' && \
+                  DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
+                  SECONDARY_DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
+                  ${run_tests_cmd}"
+                ;;
+              MySQL)
+                _run_tests "$dir (MySQL)" "\
+                  ${create_databases} && \
+                  cd '${dir}' && \
+                  DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
+                  SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
+                  ${run_tests_cmd}"
+                ;;
+              SQLite)
                 local sqlite_db="/tmp/ecotone_${slug}_test.db"
                 local sqlite_db_secondary="/tmp/ecotone_${slug}_test_b.db"
                 # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
                 # This is needed because both enqueue/dsn and Doctrine's DsnParser
                 # require 4 slashes for absolute paths to be parsed correctly
-                if ! _run_tests "$dir (SQLite)" "\
+                _run_tests "$dir (SQLite)" "\
                   rm -f '${sqlite_db}' '${sqlite_db_secondary}' && \
                   cd '${dir}' && \
                   DATABASE_DSN='sqlite:///${sqlite_db}' \
                   SECONDARY_DATABASE_DSN='sqlite:///${sqlite_db_secondary}' \
-                  ${run_tests_cmd}"; then
-                  overall_exit_code=1
+                  ${run_tests_cmd}"
+                ;;
+              PHPStan)
+                _run_tests "$dir (PHPStan)" "cd '${dir}' && ${run_tests_cmd}"
+                ;;
+              AllDatabases)
+                local overall_exit_code=0
+                _run_pass "$dir" Postgres "$script" || overall_exit_code=1
+                _run_pass "$dir" MySQL "$script" || overall_exit_code=1
+                # Run SQLite pass. Only Tempest is skipped: its multi-tenant tests derive a connection
+                # from Tempest's own Postgres config and ignore DATABASE_DSN, so they need a server engine.
+                # PdoEventSourcing and DataProtection used to be skipped here as "SQLite event store not
+                # supported". That is stale - SQLite is a supported event store engine in 2.0
+                # (upgrade-2.0.md) and both suites pass against it.
+                if [[ ! "$dir" =~ (Tempest) ]]; then
+                  _run_pass "$dir" SQLite "$script" || overall_exit_code=1
                 fi
-              fi
-            else
-              # No DB dependency: run tests with no DB env vars
-              if ! _run_tests "$dir" "cd '${dir}' && ${run_tests_cmd}"; then
-                overall_exit_code=1
-              fi
-            fi
-
-            return $overall_exit_code
+                return $overall_exit_code
+                ;;
+              NoDatabase)
+                # No DB dependency: run tests with no DB env vars
+                _run_tests "$dir" "cd '${dir}' && ${run_tests_cmd}"
+                ;;
+            esac
           }
-          export -f _run_tests _run_component_tests
-          
+          export -f _run_tests _install_component _run_pass
+
+          install_exit_code=0
+          echo "$COMPONENTS" | xargs -n1 | parallel -j +3 "_install_component {} '$COMPOSER_UP'" || install_exit_code=1
+
+          # Determine if database passes are needed (direct or transitive doctrine/dbal).
+          # Split passes are listed first, so the longest tasks start first.
+          SPLIT_TASKS=""
+          OTHER_TASKS=""
+          for dir in $COMPONENTS; do
+            if ! (cd "$dir" && composer show doctrine/dbal > /dev/null 2>&1); then
+              OTHER_TASKS+="$dir NoDatabase tests:ci"$'\n'
+            elif [[ " $SPLIT_DATABASE_PASSES " == *" $dir "* ]]; then
+              SPLIT_TASKS+="$dir Postgres tests:phpunit"$'\n'"$dir MySQL tests:phpunit"$'\n'"$dir SQLite tests:phpunit"$'\n'"$dir PHPStan tests:phpstan"$'\n'
+            else
+              OTHER_TASKS+="$dir AllDatabases tests:ci"$'\n'
+            fi
+          done
+
           # Run tests in parallel and collect exit codes
-          echo "$COMPONENTS" | xargs -n1 | parallel -j +3 "_run_component_tests {} '$COMPOSER_UP' '$RUN_TESTS'"
+          tests_exit_code=0
+          printf '%s%s' "$SPLIT_TASKS" "$OTHER_TASKS" | parallel -j +3 --colsep ' ' "_run_pass {1} {2} {3}" || tests_exit_code=1
+
+          exit $(( install_exit_code || tests_exit_code ))

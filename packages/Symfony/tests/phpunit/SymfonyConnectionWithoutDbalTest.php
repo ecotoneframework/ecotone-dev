@@ -6,7 +6,6 @@ namespace Test;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -30,11 +29,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::refusalFor("SymfonyConnectionReference::createForConnection('reporting')"));
 
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE])
-                ->withExtensionObjects([SymfonyConnectionReference::createForConnection('reporting')]),
-        );
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [SymfonyConnectionReference::createForConnection('reporting')], enabledModules: [ModulePackageList::SYMFONY_PACKAGE]);
     }
 
     public function test_a_manager_registry_connection_reference_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -42,11 +37,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::refusalFor("SymfonyConnectionReference::createForManagerRegistry('reporting')"));
 
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE])
-                ->withExtensionObjects([SymfonyConnectionReference::createForManagerRegistry('reporting')]),
-        );
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [SymfonyConnectionReference::createForManagerRegistry('reporting')], enabledModules: [ModulePackageList::SYMFONY_PACKAGE]);
     }
 
     public function test_the_default_connection_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -65,8 +56,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$configuration::class],
             [$configuration],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE]),
+            enabledModules: [ModulePackageList::SYMFONY_PACKAGE],
         );
     }
 
@@ -86,8 +76,7 @@ final class SymfonyConnectionWithoutDbalTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$configuration::class],
             [$configuration],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SYMFONY_PACKAGE]),
+            enabledModules: [ModulePackageList::SYMFONY_PACKAGE],
         );
     }
 

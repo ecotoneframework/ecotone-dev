@@ -7,12 +7,14 @@ namespace Test\Ecotone\Laravel\HeadersInLogContext;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
+use Psr\Log\NullLogger;
 use RuntimeException;
 use Stringable;
 
@@ -23,7 +25,7 @@ use Stringable;
 #[RunTestsInSeparateProcesses]
 final class HeadersInLogContextTest extends TestCase
 {
-    public function test_headers_listed_in_config_ecotone_are_in_the_log_context(): void
+    public function test_headers_listed_in_a_service_context_are_in_the_log_context(): void
     {
         $logger = new class () extends AbstractLogger {
             /** @var array<int, array{message: string, context: array<string, mixed>}> */
@@ -49,9 +51,8 @@ final class HeadersInLogContextTest extends TestCase
         $app = self::bootWith(
             [
                 'loadAppNamespaces' => false,
-                'namespaces' => ['Test\\Ecotone\\Laravel\\Fixture\\ExpressionLanguage'],
+                'namespaces' => ['Test\\Ecotone\\Laravel\\Fixture\\ExpressionLanguage', 'Test\\Ecotone\\Laravel\\HeadersInLogContext'],
                 'enabledModulePackageNames' => [],
-                'headersInLogContext' => ['userId'],
             ],
             $logger,
         );
@@ -63,11 +64,20 @@ final class HeadersInLogContextTest extends TestCase
         self::assertArrayNotHasKey('region', $context);
     }
 
-    public function test_the_shipped_configuration_names_the_key(): void
+    public function test_the_headers_in_log_context_config_key_is_refused_naming_the_service_context_replacement(): void
     {
-        $shippedConfiguration = require __DIR__ . '/../../config/ecotone.php';
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Ecotone does not recognise the `headersInLogContext` key in config/ecotone.php. Since Ecotone 2.0 it is set on ServiceConfiguration, returned from a #[ServiceContext] method: ServiceConfiguration::createWithDefaults()->withHeadersInLogContext(['userId']). Move it there and remove the key. The keys Ecotone reads in config/ecotone.php are: enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, test.");
 
-        self::assertSame([], $shippedConfiguration['headersInLogContext']);
+        self::bootWith(
+            [
+                'loadAppNamespaces' => false,
+                'namespaces' => ['Test\\Ecotone\\Laravel\\Fixture\\ExpressionLanguage'],
+                'enabledModulePackageNames' => [],
+                'headersInLogContext' => ['userId'],
+            ],
+            new NullLogger(),
+        );
     }
 
     private static function bootWith(array $ecotoneConfiguration, object $logger): Application

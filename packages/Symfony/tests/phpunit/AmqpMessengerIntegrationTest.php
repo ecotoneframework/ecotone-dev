@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
@@ -35,10 +34,8 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
         $this->messaging = EcotoneLite::bootstrapFlowTesting(
             [AmqpMessengerAsyncCommandHandler::class],
             self::bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($this->channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($this->channelName)],
+            enabledModules: [],
         );
 
     }

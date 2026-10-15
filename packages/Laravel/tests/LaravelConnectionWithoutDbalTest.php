@@ -6,7 +6,6 @@ namespace Test\Ecotone\Laravel;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -30,11 +29,7 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::refusalFor("LaravelConnectionReference::create('reporting')"));
 
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::LARAVEL_PACKAGE])
-                ->withExtensionObjects([LaravelConnectionReference::create('reporting')]),
-        );
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [LaravelConnectionReference::create('reporting')], enabledModules: [ModulePackageList::LARAVEL_PACKAGE]);
     }
 
     public function test_the_default_laravel_connection_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -53,8 +48,7 @@ final class LaravelConnectionWithoutDbalTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$configuration::class],
             [$configuration],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::LARAVEL_PACKAGE]),
+            enabledModules: [ModulePackageList::LARAVEL_PACKAGE],
         );
     }
 

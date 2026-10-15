@@ -9,7 +9,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
@@ -51,10 +50,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
@@ -73,10 +70,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
         $metadata = [
             MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122(),
@@ -108,10 +103,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
@@ -131,11 +124,11 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ])
+            extensionObjects: [
+                SymfonyMessengerMessageChannelBuilder::create($channelName),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
@@ -154,12 +147,11 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ])
+            extensionObjects: [
+                SymfonyMessengerMessageChannelBuilder::create($channelName)->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
@@ -177,10 +169,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.noPayload');
@@ -199,10 +189,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.arrayPayload', $payload);
@@ -222,10 +210,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
@@ -247,10 +233,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
@@ -270,10 +254,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncEventHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->publishEvent($messagePayload);
@@ -304,10 +286,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [
@@ -325,10 +305,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [

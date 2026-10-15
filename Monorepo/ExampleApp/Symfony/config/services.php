@@ -15,8 +15,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'loadSrcNamespaces' => false,
         'namespaces' => ['Monorepo\\ExampleApp\\Common\\'],
-        'defaultErrorChannel' => 'errorChannel',
-        'failFast' => false,
         'enabledModulePackageNames' => \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? [],
     ]);
 

@@ -6,7 +6,6 @@ namespace Test\SingleTenant;
 
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -101,11 +100,8 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
-                [ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE, ]
-            ),
-            addInMemoryStateStoredRepository: false
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ],
+            addInMemoryStateStoredRepository: false,
         );
 
         $ecotoneLite->sendCommand(new RegisterCustomer(1, 'John Doe'));
@@ -126,11 +122,8 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames(
-                [ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE, ]
-            ),
-            addInMemoryStateStoredRepository: false
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ],
+            addInMemoryStateStoredRepository: false,
         );
 
         $ecotoneLite->publishEvent(new ExternalRegistrationHappened(1, 'John Doe'));

@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -118,10 +117,6 @@ final class VersionedTempestModelTest extends TestCase
 
     private function bootstrap(string $fixtureClass): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            [$fixtureClass],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE]),
-        );
+        return EcotoneLite::bootstrapFlowTesting([$fixtureClass], enabledModules: [ModulePackageList::TEMPEST_PACKAGE]);
     }
 }

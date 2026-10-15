@@ -6,7 +6,6 @@ namespace Test\Ecotone\Tempest\Dbal;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -30,11 +29,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::refusalFor("TempestConnectionReference::create('tenant_a')"));
 
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE])
-                ->withExtensionObjects([TempestConnectionReference::create('tenant_a')]),
-        );
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [TempestConnectionReference::create('tenant_a')], enabledModules: [ModulePackageList::TEMPEST_PACKAGE]);
     }
 
     public function test_an_untagged_tempest_connection_reference_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -42,11 +37,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::refusalFor("TempestConnectionReference 'reporting'"));
 
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE])
-                ->withExtensionObjects([TempestConnectionReference::fromTagAndReferenceName('reporting')]),
-        );
+        EcotoneLite::bootstrapFlowTesting(extensionObjects: [TempestConnectionReference::fromTagAndReferenceName('reporting')], enabledModules: [ModulePackageList::TEMPEST_PACKAGE]);
     }
 
     public function test_the_default_tempest_connection_is_refused_at_bootstrap_when_ecotone_dbal_is_not_installed(): void
@@ -65,8 +56,7 @@ final class TempestConnectionWithoutDbalTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$configuration::class],
             [$configuration],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TEMPEST_PACKAGE]),
+            enabledModules: [ModulePackageList::TEMPEST_PACKAGE],
         );
     }
 

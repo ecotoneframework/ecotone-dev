@@ -5,9 +5,8 @@ namespace Ecotone\Laravel;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Api\Console\ConsoleWriter;
-use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
@@ -19,6 +18,7 @@ use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
@@ -53,18 +53,14 @@ class EcotoneProvider extends ServiceProvider
 
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
-        $useProductionCache      = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
+        $useProductionCache      = in_array($environment, ['prod', 'production']) || ($this->app instanceof Application && $this->app->configurationIsCached());
         $cacheDirectory         = $this->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . 'ecotone';
         $enableTesting = Config::get('ecotone.test');
 
-        $errorChannel = Config::get('ecotone.defaultErrorChannel');
-
         $enabledModulePackageNames = Config::get('ecotone.' . FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES);
-        /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
-        $applicationConfiguration = ServiceConfiguration::createWithDefaults()
+        $applicationConfiguration = BootstrapConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
-            ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
             ->withCacheDirectoryPath($cacheDirectory);
 
@@ -74,36 +70,6 @@ class EcotoneProvider extends ServiceProvider
 
         if (Config::get('ecotone.licenceKey') !== null) {
             $applicationConfiguration = $applicationConfiguration->withLicenceKey(Config::get('ecotone.licenceKey'));
-        }
-
-        $serializationMediaType = Config::get('ecotone.defaultSerializationMediaType');
-        if ($serializationMediaType) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withDefaultSerializationMediaType($serializationMediaType);
-        }
-        $serviceName = Config::get('ecotone.serviceName');
-        if ($serviceName) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withServiceName($serviceName);
-        }
-
-        if ($errorChannel) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withDefaultErrorChannel($errorChannel);
-        }
-
-        $headersInLogContext = Config::get('ecotone.headersInLogContext');
-        if ($headersInLogContext) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withHeadersInLogContext($headersInLogContext);
-        }
-
-        $retryTemplate = Config::get('ecotone.defaultConnectionExceptionRetry');
-        if ($retryTemplate) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
-                );
         }
 
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
@@ -213,7 +179,7 @@ class EcotoneProvider extends ServiceProvider
         return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data';
     }
 
-    public function prepareFromCache(mixed $useProductionCache, string $rootCatalog, ServiceConfiguration $applicationConfiguration, mixed $enableTesting, string $cacheDirectory): array
+    public function prepareFromCache(mixed $useProductionCache, string $rootCatalog, BootstrapConfiguration $applicationConfiguration, mixed $enableTesting, string $cacheDirectory): array
     {
         $externalContainer = new LaravelPsrContainerAdapter($this->app);
 
@@ -263,7 +229,7 @@ class EcotoneProvider extends ServiceProvider
             CommandFinished::class,
             function ($event) {
                 // Clear Ecotone cache when optimize commands finishes successfully
-                if (in_array($event->command, ['optimize', 'optimize:clear', 'cache:clear']) && $event->exitCode === 0) {
+                if (in_array($event->command, ['optimize', 'optimize:clear', 'cache:clear', 'config:cache', 'config:clear']) && $event->exitCode === 0) {
                     EcotoneCacheClear::clearEcotoneCacheDirectories($this->getCacheDirectoryPath());
                 }
             }

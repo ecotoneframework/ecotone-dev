@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -38,7 +39,7 @@ final class EndpointErrorChannelTest extends TestCase
         $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');
         $ecotone->run(ThrowingHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
-        $this->assertNotNull($ecotone->receiveMessageFrom('appErrorChannel'));
+        $this->assertNotNull(ChannelTestSupport::of($ecotone)->receiveMessageFrom('appErrorChannel'));
     }
 
     public function test_disabling_the_error_channel_lets_the_exception_propagate(): void

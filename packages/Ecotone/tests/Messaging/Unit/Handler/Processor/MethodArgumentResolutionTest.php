@@ -14,7 +14,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use stdClass;
@@ -68,9 +69,9 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::ORDER_CHANNEL,
-            MessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
+            StaticMessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
                 ->build()
         );
@@ -89,9 +90,9 @@ final class MethodArgumentResolutionTest extends TestCase
         $this->expectException(MethodInvocationException::class);
 
         try {
-            $ecotone->sendMessageDirectToChannelWithMessageReply(
+            ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
                 MethodResolutionHandler::ORDER_CHANNEL,
-                MessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
+                StaticMessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
                     ->setContentType(MediaType::createApplicationXml())
                     ->build()
             );
@@ -106,9 +107,9 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::STRING_CHANNEL,
-            MessageBuilder::withPayload('bla')
+            StaticMessageBuilder::withPayload('bla')
                 ->setContentType(MediaType::createApplicationXml())
                 ->build()
         );
@@ -124,9 +125,9 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::UNION_CHANNEL,
-            MessageBuilder::withPayload('bla')
+            StaticMessageBuilder::withPayload('bla')
                 ->setContentType(MediaType::createApplicationXml())
                 ->build()
         );

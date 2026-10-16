@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Closure;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
@@ -114,10 +115,11 @@ final class ImmutableConfigurationCopyTest extends TestCase
             ->withMediaTypeConversion('orders', MediaType::createApplicationJson())
             ->withSpyOnChannel('audit')
             ->withInMemoryConsumerPositionTracker(false)
-            ->withDatabaseTablesSetUpOnBootstrap(false);
+            ->withDatabaseTablesSetUpOnBootstrap(false)
+            ->withTimeAt(new DateTimeImmutable('2024-03-01 10:00:00'));
 
         self::assertSame(
-            ['failOnCommandHandlerNotFound', 'failOnQueryHandlerNotFound', 'pollableChannelMediaTypeConversion', 'channelToConvertOn', 'spiedChannelNames', 'inMemoryConsumerPositionTracker', 'databaseTablesSetUpOnBootstrap'],
+            ['failOnCommandHandlerNotFound', 'failOnQueryHandlerNotFound', 'pollableChannelMediaTypeConversion', 'channelToConvertOn', 'spiedChannelNames', 'inMemoryConsumerPositionTracker', 'databaseTablesSetUpOnBootstrap', 'timeAt'],
             array_keys(get_object_vars($original)),
         );
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withFailOnCommandHandlerNotFound(true), ['failOnCommandHandlerNotFound' => true]);
@@ -130,6 +132,7 @@ final class ImmutableConfigurationCopyTest extends TestCase
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withSpyOnChannel('shipping'), ['spiedChannelNames' => ['orders', 'audit', 'shipping']]);
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withInMemoryConsumerPositionTracker(true), ['inMemoryConsumerPositionTracker' => true]);
         self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withDatabaseTablesSetUpOnBootstrap(true), ['databaseTablesSetUpOnBootstrap' => true]);
+        self::assertCopyChangesOnly($original, fn (TestConfiguration $configuration) => $configuration->withTimeAt(new DateTimeImmutable('2025-01-01 00:00:00')), ['timeAt' => new DateTimeImmutable('2025-01-01 00:00:00')]);
     }
 
     public function test_execution_polling_metadata_copy_changes_only_the_named_fields(): void

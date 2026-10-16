@@ -90,6 +90,7 @@ final class DeduplicationModule implements AnnotationModule
                     new Reference($connectionFactory),
                     $dbalConfiguration->deduplicationRemovalBatchSize,
                     new Reference(DeduplicationTableManager::class),
+                    new Reference(EcotoneClockInterface::class),
                 ])
         );
 

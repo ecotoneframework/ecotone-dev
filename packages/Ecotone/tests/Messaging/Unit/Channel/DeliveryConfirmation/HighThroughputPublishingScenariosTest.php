@@ -14,6 +14,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderForwarder;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
@@ -72,7 +73,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         );
         $this->assertEquals(
             new OrderWasPlaced('espresso-forwarded'),
-            $ecotoneLite->receiveMessageFrom('async_orders')->getPayload(),
+            ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('async_orders')->getPayload(),
         );
     }
 
@@ -92,7 +93,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         );
         $this->assertEquals(
             new OrderWasPlaced('espresso-1'),
-            $ecotoneLite->receiveMessageFrom('async_orders')->getPayload(),
+            ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('async_orders')->getPayload(),
         );
     }
 
@@ -108,7 +109,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('failure_channel'))
                 ->withEnabledModulePackageNames([])
         );
-        $channel = $ecotoneLite->getMessageChannel('async_orders');
+        $channel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($channel instanceof MessageChannelInterceptorAdapter);
         $channel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 
@@ -116,13 +117,13 @@ final class HighThroughputPublishingScenariosTest extends TestCase
 
         $this->assertSame('transaction committed', $operationsLog->getOperations()[count($operationsLog->getOperations()) - 1]);
 
-        $firstFailedMessage = $ecotoneLite->receiveMessageFrom('failure_channel');
-        $secondFailedMessage = $ecotoneLite->receiveMessageFrom('failure_channel');
+        $firstFailedMessage = ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('failure_channel');
+        $secondFailedMessage = ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('failure_channel');
         $this->assertStringContainsString('espresso-1', $firstFailedMessage->getPayload());
         $this->assertStringContainsString('espresso-2', $secondFailedMessage->getPayload());
         $this->assertStringContainsString(OrderWasPlaced::class, $firstFailedMessage->getHeaders()->get(MessageHeaders::TYPE_ID));
         $this->assertStringContainsString('broker not available', $firstFailedMessage->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE));
-        $this->assertNull($ecotoneLite->receiveMessageFrom('failure_channel'));
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('failure_channel'));
     }
 
     public function test_only_failed_message_from_batch_is_routed_to_error_channel(): void
@@ -137,7 +138,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('failure_channel'))
                 ->withEnabledModulePackageNames([])
         );
-        $channel = $ecotoneLite->getMessageChannel('async_orders');
+        $channel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($channel instanceof MessageChannelInterceptorAdapter);
         $channel->getInternalMessageChannel()->failDeliveriesContaining('espresso-2', 'broker rejected message');
 
@@ -145,10 +146,10 @@ final class HighThroughputPublishingScenariosTest extends TestCase
 
         $this->assertSame('transaction committed', $operationsLog->getOperations()[count($operationsLog->getOperations()) - 1]);
 
-        $failedMessage = $ecotoneLite->receiveMessageFrom('failure_channel');
+        $failedMessage = ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('failure_channel');
         $this->assertStringContainsString('espresso-2', $failedMessage->getPayload());
         $this->assertStringContainsString('broker rejected message', $failedMessage->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE));
-        $this->assertNull($ecotoneLite->receiveMessageFrom('failure_channel'));
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('failure_channel'));
     }
 
     private function bootstrapEcotone(OperationsLog $operationsLog): FlowTestSupport

@@ -39,6 +39,7 @@ final class InboundMessageConverter
         private string $acknowledgeHeaderName,
         private FinalFailureStrategy $finalFailureStrategy,
         private LoggingGateway $loggingGateway,
+        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -55,7 +56,7 @@ final class InboundMessageConverter
         $acknowledgeMode = $kafkaConsumerConfiguration->getAcknowledgeMode();
 
         $messageHeaders = $source->headers ?? [];
-        $messageBuilder = MessageBuilder::withPayload($source->payload)
+        $messageBuilder = $this->messageBuilder->withPayload($source->payload)
             ->setMultipleHeaders($headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));
 
         $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create(

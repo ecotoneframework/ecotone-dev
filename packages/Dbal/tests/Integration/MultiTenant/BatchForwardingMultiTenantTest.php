@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -70,13 +71,13 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
     }
 

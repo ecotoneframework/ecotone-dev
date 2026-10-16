@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
@@ -176,7 +176,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         // write for real implementation tests, if is acked correctly
 
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();

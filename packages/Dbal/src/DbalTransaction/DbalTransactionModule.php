@@ -13,6 +13,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -77,6 +78,7 @@ final class DbalTransactionModule implements AnnotationModule
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
+            new Reference(EcotoneClockInterface::class),
             $commandRoutingKeysWithoutTransaction,
             $commandClassesWithoutTransaction,
         ]);

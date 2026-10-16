@@ -25,6 +25,7 @@ use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -77,7 +78,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
     }
 
@@ -120,7 +121,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
-        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
+        $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
 
         $messaging->run('orderProcessing', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
@@ -157,8 +158,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('outbox'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox'))));
     }
 
     public function test_execution_limit_of_two_moves_exactly_two_batches(): void
@@ -193,8 +194,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $expectedMoved = array_map(fn (int $messageNumber) => 'order-' . $messageNumber, range(0, 199));
         $expectedRemaining = array_map(fn (int $messageNumber) => 'order-' . $messageNumber, range(200, 299));
-        $this->assertSame($expectedMoved, $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertSame($expectedRemaining, $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('outbox'))));
+        $this->assertSame($expectedMoved, $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
+        $this->assertSame($expectedRemaining, $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox'))));
     }
 
     public function test_plain_combined_channel_reusing_outbox_forwarding_source_fails_at_compile_time(): void
@@ -284,8 +285,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
-        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+        $this->assertCount(1, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing')));
+        $this->assertCount(2, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_messages_for_different_targets_on_shared_outbox_reach_their_own_channels(): void
@@ -328,13 +329,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('standardProcessing'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('standardProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('priorityProcessing'));
         $this->assertSame(2, $this->amountOfRowsOn('outbox'));
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['flat white', 'cortado'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('priorityProcessing'))));
+        $this->assertSame(['flat white', 'cortado'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('priorityProcessing'))));
         $this->assertSame(0, $this->amountOfPendingRowsOn('standardProcessing'));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
     }
@@ -418,8 +419,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('sharedOutboxPublisher', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('standardProcessing'))));
-        $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('priorityProcessing'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('standardProcessing'))));
+        $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('priorityProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('standardOutbox'));
         $this->assertSame(0, $this->amountOfRowsOn('priorityOutbox'));
     }
@@ -454,13 +455,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('failingProcessing'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('failingProcessing'))));
         $this->assertSame(1, $this->amountOfRowsOn('outbox'));
         $this->assertSame([true], $this->redeliveredFlagsOn('outbox'));
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('failingProcessing'))));
+        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('failingProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
     }
 
@@ -494,7 +495,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 10000));
         $elapsedInMilliseconds = (microtime(true) - $startedAt) * 1000;
 
-        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertCount(1, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing')));
         $this->assertLessThan(3000, $elapsedInMilliseconds);
     }
 
@@ -533,8 +534,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
+        $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_drained_message_with_stop_failure_strategy_stops_consumer_without_message_loss(): void
@@ -578,7 +579,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         }
 
         $this->assertTrue($consumerStopped);
-        $this->assertCount(3, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+        $this->assertCount(3, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_batch_forwarding_configuration_for_non_dbal_channel_fails_at_compile_time(): void
@@ -663,7 +664,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
             $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-            $forwardedMessages = $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'));
+            $forwardedMessages = $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'));
             $this->assertCount(2, $forwardedMessages);
             foreach ($forwardedMessages as $forwardedMessage) {
                 $this->assertFalse($forwardedMessage->getHeaders()->containsKey('collectorBypass'));
@@ -790,8 +791,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
-        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+        $this->assertCount(1, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing')));
+        $this->assertCount(2, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_failed_forwarding_releases_all_messages_back_to_outbox(): void
@@ -823,7 +824,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        $this->assertCount(3, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+        $this->assertCount(3, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_error_channel_is_not_involved_in_failed_forwarding_for_release_and_ignore_strategies(): void
@@ -863,10 +864,10 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
             $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-            $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('customErrorChannel')));
-            $this->assertSame(['espresso'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+            $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('customErrorChannel')));
+            $this->assertSame(['espresso'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
             $expectedRemainingOnOutbox = $finalFailureStrategy === FinalFailureStrategy::RELEASE ? 1 : 0;
-            $this->assertCount($expectedRemainingOnOutbox, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+            $this->assertCount($expectedRemainingOnOutbox, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
         }
     }
 
@@ -912,8 +913,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         }
 
         $this->assertTrue($consumerStopped);
-        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('customErrorChannel')));
-        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+        $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('customErrorChannel')));
+        $this->assertCount(2, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_messages_claimed_by_another_process_are_not_published_until_claim_expires(): void
@@ -945,13 +946,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->claimSingleOutboxRowAsAnotherProcess('outbox', claimValidForSeconds: 3600);
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertCount(1, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing')));
 
         $this->expireForeignOutboxClaims('outbox');
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
-        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
+        $this->assertCount(1, $this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing')));
+        $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     private function claimSingleOutboxRowAsAnotherProcess(string $channelName, int $claimValidForSeconds): void
@@ -982,12 +983,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
-        $this->assertNull($this->receiveImmediatelyFrom($messaging->getMessageChannel('outbox')));
+        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
+        $this->assertNull($this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel('outbox')));
     }
 
     public function test_connection_failure_during_delivery_is_recovered_without_duplicates(): void
@@ -1008,7 +1009,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
-        $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom(ChannelTestSupport::of($messaging)->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
     }
 

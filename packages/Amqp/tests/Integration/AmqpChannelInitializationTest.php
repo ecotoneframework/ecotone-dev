@@ -11,6 +11,7 @@ use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -39,7 +40,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Try to receive message - should fail because queue doesn't exist and auto-init is disabled
         $this->expectException(Exception::class);
-        $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
+        ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
     public function test_sending_succeeds_when_auto_initialization_enabled_and_channel_auto_declare_disabled(): void
@@ -54,7 +55,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Try to receive message - should fail because queue doesn't exist and auto-init is disabled
         $this->expectException(Exception::class);
-        $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
+        ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
     public function test_manual_channel_initialization_via_console_command_then_send_succeeds(): void
@@ -80,7 +81,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME, 'test message');
 
         // Consume and verify
-        $message = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
+        $message = ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
         self::assertNotNull($message);
         self::assertEquals('test message', $message->getPayload());
     }
@@ -101,7 +102,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Verify we can send and receive
         $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME, 'test message 1');
-        $message = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
+        $message = ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
         self::assertNotNull($message);
         self::assertEquals('test message 1', $message->getPayload());
 
@@ -114,7 +115,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Try to receive message - should fail because queue was deleted
         $this->expectException(Exception::class);
-        $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
+        ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
     public function test_channel_status_command_shows_initialization_state(): void
@@ -173,8 +174,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME_2, 'message 2');
         $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME_3, 'message 3');
 
-        $message2 = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
-        $message3 = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_3)->receive();
+        $message2 = ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
+        $message3 = ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME_3)->receive();
 
         self::assertNotNull($message2);
         self::assertNotNull($message3);
@@ -210,7 +211,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Verify channels are deleted - receiving should fail
         $this->expectException(Exception::class);
-        $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
+        ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
     }
 
     public function test_stream_channel_initialization(): void
@@ -242,7 +243,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         // Verify we can send and receive on stream channel
         $ecotone->sendDirectToChannel(self::TEST_STREAM_CHANNEL_NAME, 'stream message');
 
-        $message = $ecotone->getMessageChannel(self::TEST_STREAM_CHANNEL_NAME)->receive();
+        $message = ChannelTestSupport::of($ecotone)->getMessageChannel(self::TEST_STREAM_CHANNEL_NAME)->receive();
         self::assertNotNull($message);
         self::assertEquals('stream message', $message->getPayload());
 

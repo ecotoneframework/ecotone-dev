@@ -20,6 +20,7 @@ use Ecotone\Messaging\Handler\Gateway\NullEntrypointGateway;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -86,6 +87,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     $this->finalFailureStrategy,
                     Reference::to(LoggingGateway::class),
+                    Reference::to(MessageBuilder::class),
                 ]),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 $this->receiveTimeoutInMilliseconds,

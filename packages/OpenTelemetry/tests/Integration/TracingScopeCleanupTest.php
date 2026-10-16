@@ -22,7 +22,7 @@ use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -178,7 +178,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
         $rebuildingChannelInterceptor = new class () extends AbstractChannelInterceptor {
             public function preSend(Message $message, MessageChannel $messageChannel): ?Message
             {
-                return MessageBuilder::withPayload($message->getPayload())->build();
+                return StaticMessageBuilder::withPayload($message->getPayload())->build();
             }
         };
 

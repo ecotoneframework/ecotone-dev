@@ -35,6 +35,7 @@ class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
         private Key $encryptionKey,
         private bool $isPayloadSensitive,
         private array $sensitiveHeaders,
+        private MessageBuilder $messageBuilder,
     ) {
         Assert::allStrings($this->sensitiveHeaders, 'Sensitive headers should be array of strings');
     }
@@ -53,7 +54,7 @@ class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
             }
         }
 
-        return MessageBuilder::withPayload($payload)
+        return $this->messageBuilder->withPayload($payload)
             ->setMultipleHeaders($headers)
             ->build()
         ;

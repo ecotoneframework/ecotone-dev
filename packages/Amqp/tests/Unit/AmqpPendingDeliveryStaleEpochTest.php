@@ -6,7 +6,7 @@ namespace Test\Ecotone\Amqp\Unit;
 
 use Ecotone\Amqp\AmqpPendingDelivery;
 use Ecotone\Amqp\AmqpPublisherConfirmations;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Interop\Amqp\AmqpContext;
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +28,7 @@ final class AmqpPendingDeliveryStaleEpochTest extends TestCase
 
         $pendingDelivery = new AmqpPendingDelivery(
             $this->createStub(AmqpContext::class),
-            [['message' => MessageBuilder::withPayload('order published before reconnect')->build(), 'deliveryTag' => $deliveryTag, 'correlationId' => '']],
+            [['message' => StaticMessageBuilder::withPayload('order published before reconnect')->build(), 'deliveryTag' => $deliveryTag, 'correlationId' => '']],
             timeoutInMilliseconds: 1000,
             channelName: 'orders',
             confirmations: $confirmations,

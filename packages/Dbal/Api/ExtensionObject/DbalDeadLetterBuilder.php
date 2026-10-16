@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -156,6 +157,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         if (! $builder->has($deadLetterHandlerReference)) {
             $builder->register($deadLetterHandlerReference, new Definition(DeadLetterHandler::class, [
                 Reference::to(self::storeReferenceFor($this->referenceName)),
+                Reference::to(MessageBuilder::class),
             ]));
         }
 

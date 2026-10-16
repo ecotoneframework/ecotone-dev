@@ -15,6 +15,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Handler\MessageHandlingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -34,7 +35,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
-        $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
+        $channel = ChannelTestSupport::of($ecotone)->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
         $requeuedMessage = $channel->receive();
 
         $this->assertNotNull($requeuedMessage);
@@ -50,7 +51,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
-        $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
+        $channel = ChannelTestSupport::of($ecotone)->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
         $requeuedMessage = $channel->receive();
 
         $this->assertNotNull($requeuedMessage);
@@ -77,7 +78,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $deadLetterChannel */
-        $deadLetterChannel = $ecotone->getMessageChannel(DeadLetterRoutingHandler::DEAD_LETTER_CHANNEL);
+        $deadLetterChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(DeadLetterRoutingHandler::DEAD_LETTER_CHANNEL);
         $deadLetterMessage = $deadLetterChannel->receive();
 
         $this->assertNotNull($deadLetterMessage);

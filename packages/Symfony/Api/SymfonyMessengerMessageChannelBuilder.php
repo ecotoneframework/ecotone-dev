@@ -13,6 +13,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\SymfonyBundle\Messenger\SymfonyAcknowledgementCallback;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
@@ -80,6 +81,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
                     $this->headerMapper,
                     $this->acknowledgeMode,
                     new Reference(ConversionService::REFERENCE_NAME),
+                    new Reference(MessageBuilder::class),
                     $this->finalFailureStrategy,
                 ]),
             ]

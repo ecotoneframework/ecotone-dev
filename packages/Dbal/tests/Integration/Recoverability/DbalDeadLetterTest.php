@@ -13,7 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Handler\MessageHandlingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
@@ -43,7 +43,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $errorMessage = MessageBuilder::withPayload('')->build();
+        $errorMessage = StaticMessageBuilder::withPayload('')->build();
         $gateway->store($errorMessage);
 
         $retrievedMessage = $gateway->show($errorMessage->getHeaders()->getMessageId());
@@ -57,7 +57,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $errorMessage = MessageBuilder::withPayload('')->build();
+        $errorMessage = StaticMessageBuilder::withPayload('')->build();
         $gateway->store($this->createFailedMessage($errorMessage));
 
         $this->assertEquals(
@@ -76,7 +76,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $errorMessage = MessageBuilder::withPayload('error1')
+        $errorMessage = StaticMessageBuilder::withPayload('error1')
                                 ->setMultipleHeaders([
                                     ErrorContext::EXCEPTION_STACKTRACE => '#12',
                                     ErrorContext::EXCEPTION_LINE => 120,
@@ -98,7 +98,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $message = MessageBuilder::withPayload('error2')->build();
+        $message = StaticMessageBuilder::withPayload('error2')->build();
 
         $this->assertEquals(0, $gateway->count());
 

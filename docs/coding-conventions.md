@@ -173,6 +173,45 @@ deleting defaults that, in the commits' own words, "every real construction site
 for (`3e9e92d56`, `7f7d24bc0`, `65ba2a852`, `84e70e8c4`, `e15bd042f`, `eb859ceb8`). There is nothing here to
 discover later, only work to redo, so check it while you are writing the constructor.
 
+### 2a. Never default a dependency either
+
+`EcotoneClockInterface $clock = new NativeClock()` is rule 2 with the null written out. The parameter is optional,
+so the class has two ways to run — the injected one and the fallback — and nothing tells a construction site which
+one it chose. The sites that pass the dependency and the sites that take the default then diverge exactly like the
+two branches of a null check, except that no `if` marks the fork. Every dependency is a required constructor
+parameter, at every construction site, and the container is what passes it: a module registers it with a
+`Reference`, a runtime caller passes the instance it was itself given.
+
+```php
+// wrong — eight construction sites, two pass the clock, six silently run on real time
+public function __construct(ConnectionFactory $factory, EcotoneClockInterface $clock = new NativeClock()) {}
+
+// right — a site that cannot name a clock cannot be written
+public function __construct(ConnectionFactory $factory, EcotoneClockInterface $clock) {}
+```
+
+Evidence: the 2.0.0-beta.2 clock regression. `DbalReconnectableConnectionFactory` and `DbalContext` both took a
+defaulted clock. The two channel adapters passed the container's clock, while the transaction interceptor, dead
+letter, document store, deduplication, batch forwarding and database setup took the default. The connection cache is
+keyed by the wrapped factory, so the first caller's clock won, the transaction interceptor was always first, and a
+DBAL consumer on real time never saw a message the pinned test clock had made due. In 1.x the context read a global
+`Clock::get()`, so every site agreed by accident; 2.0 made the clock a dependency, and a default turned each missed
+site into a silent second mode.
+
+The same shape hid in a value object: `MessageHeaders::create()` filled a missing timestamp from a fresh
+`NativeClock`, so a `#[Scheduled]` method's result and `sendDirectToChannel()` carried real time inside a test
+pinned to another date. The fix was the same: `MessageBuilder` became the container service that holds the clock
+and stamps on `build()`, and the value object refuses a missing timestamp instead of inventing one
+(`MessageTimestampFromTestClockTest`, `MessageHeadersWithoutTimestampTest`).
+
+A third copy sat in the event stores: `DbalEventStore` wrote `created_at` from real `now` when an appended event had
+no timestamp, and `InMemoryEventStore` recorded none, so the two stores disagreed and a pinned test loaded back a
+time it never set. Both stores now take the clock and stamp the metadata before recording
+(`EventStoreConformanceTest::test_an_event_appended_without_a_timestamp_is_stamped_by_the_clock_ecotone_was_given`).
+Where a site genuinely cannot be given the dependency — `DbalContext` is built by the connection factory an
+application constructs from a DSN — the class does not default it: the one path that has it sets it, and the accessor
+refuses with a message naming that path (`DbalContextWithoutClockTest`).
+
 ---
 
 ## 3. Constructor-injected services are stateless
@@ -591,6 +630,30 @@ test breaks the next time the internals are refactored.
    (`loadByCriteria()`, `popRecordedEvents()`).
 3. For a console command, assert on its console output (`9e1d89d43`, `70dad03b8`).
 4. Name the test after the behaviour, not the class that implements it (`294c0a3d4`).
+
+**A message channel is a transport, not a surface.** Fetching a channel and calling `send()` and `receive()` on it
+proves what the channel did, not what the application saw, and it skips every interceptor the application's own path
+runs through, so it stays green while the real path breaks. `FlowTestSupport` therefore has no `getMessageChannel()`,
+`receiveMessageFrom()` or `sendMessageDirectToChannel()` any more; Ecotone's own channel and interceptor suites reach
+a channel through the internal `Ecotone\Test\ChannelTestSupport`, and nothing else does. The 2.0.0-beta.2 clock
+regression is the evidence: three `DbalBackedMessageChannelTest` delayed-message tests drove the channel directly
+and passed, while a command sent through the bus — the transaction interceptor first, then the delayed handler —
+never became due on the test clock. Drive the channel the way the application does, and assert on the handler:
+
+```php
+// wrong — proves the channel, not the application (the method no longer exists on FlowTestSupport)
+$channel = $ecotone->getMessageChannel('orders');
+$channel->send(MessageBuilder::withPayload('some')->setHeader(MessageHeaders::DELIVERY_DELAY, 2000)->build());
+$ecotone->advanceTimeBy(Duration::seconds(3));
+self::assertNotNull($channel->receive());
+
+// right — the #[Asynchronous('orders')] handler is what the application observes
+$ecotone->sendCommandWithRouting('order.confirm', 'order-1');
+$ecotone->run('orders');
+self::assertSame([], $ecotone->sendQueryWithRouting('order.confirmed'));
+$ecotone->advanceTimeBy(Duration::seconds(3))->run('orders');
+self::assertSame(['order-1'], $ecotone->sendQueryWithRouting('order.confirmed'));
+```
 
 Evidence: `12d960553` (the `implement-blackbox-tests` worktree), `3c5bdf306`, `d15d2627d`, `8065c0b19`,
 `50354a085`, `d3920e4f2`, `f000f86ef`, `191178d36`, `e7e2c11a8`, `cb1ca48be`, `4a2acf01d`, `9e1d89d43`,

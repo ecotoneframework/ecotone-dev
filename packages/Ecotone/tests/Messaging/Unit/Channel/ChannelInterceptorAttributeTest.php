@@ -13,7 +13,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -45,7 +47,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
 
         $ecotone->sendCommandWithRouting(AsyncCapturingHandler::ROUTING_KEY, 'hello');
 
-        $queuedMessage = $ecotone->getMessageChannel(AsyncCapturingHandler::CHANNEL)->receive();
+        $queuedMessage = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncCapturingHandler::CHANNEL)->receive();
         $this->assertSame('HELLO', $queuedMessage->getPayload());
     }
 
@@ -112,9 +114,9 @@ final class ChannelInterceptorAttributeTest extends TestCase
             [$interceptor, $handler, new UppercaseService()],
         );
 
-        $ecotone->sendMessageDirectToChannel(
+        ChannelTestSupport::of($ecotone)->sendMessageDirectToChannel(
             CapturingHandler::CHANNEL,
-            \Ecotone\Messaging\Support\MessageBuilder::withPayload('hello')
+            StaticMessageBuilder::withPayload('hello')
                 ->setHeader('suffix', '!')
                 ->build(),
         );

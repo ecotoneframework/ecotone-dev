@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Unit\MessageHandling;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StubMethodInvocation;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use PHPUnit\Framework\TestCase;
 
@@ -22,7 +22,7 @@ class MessageHeadersPropagatorTest extends TestCase
 
         $messageHeadersPropagator->storeHeaders(
             StubMethodInvocation::createEndingImmediately(),
-            MessageBuilder::withPayload('some')
+            StaticMessageBuilder::withPayload('some')
                 ->setHeader('token', 123)
                 ->build()
         );

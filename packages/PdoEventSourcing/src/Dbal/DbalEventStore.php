@@ -26,6 +26,7 @@ use Ecotone\Api\EventSourcing\FieldType;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
 use Ecotone\Api\EventSourcing\Operator;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -77,6 +78,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         private ProjectionInvariantGuard $projectionInvariantGuard,
         AppendStrategy $appendStrategy,
         private MissingEventStreamTable $missingEventStreamTable,
+        private EcotoneClockInterface $clock,
         private ?string $consoleInvocationPrefix = null,
     ) {
         $this->tagCollaborator = $tagCollaborator;
@@ -539,14 +541,15 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
     public function convertToRow(object|array $eventToConvert): array
     {
         $metadata = $eventToConvert instanceof Event ? $eventToConvert->metadata : [];
+        if (! array_key_exists(MessageHeaders::TIMESTAMP, $metadata)) {
+            $metadata[MessageHeaders::TIMESTAMP] = $this->clock->now()->unixTime()->inSeconds();
+        }
         $serialized = $this->eventSerializer->serialize($eventToConvert);
 
         $eventId = array_key_exists(MessageHeaders::MESSAGE_ID, $metadata)
             ? (string) $metadata[MessageHeaders::MESSAGE_ID]
             : Uuid::uuid4()->toString();
-        $createdAt = array_key_exists(MessageHeaders::TIMESTAMP, $metadata)
-            ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC'))
-            : new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $createdAt = new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC'));
 
         return [
             $eventId,
@@ -638,7 +641,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         }
 
         /** @var DbalContext $context */
-        $context = (new DbalReconnectableConnectionFactory($connectionFactory))->createContext();
+        $context = (new DbalReconnectableConnectionFactory($connectionFactory, $this->clock))->createContext();
 
         return $context->getDbalConnection();
     }

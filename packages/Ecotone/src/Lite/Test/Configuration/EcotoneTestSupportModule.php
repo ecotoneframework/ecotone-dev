@@ -166,7 +166,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             Clock::class,
             [
                 new Reference(ClockInterface::class, ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-                new Definition(StaticPsrClock::class, ['now']),
+                new Definition(StaticPsrClock::class, [$testConfiguration->timeAt?->format('Y-m-d H:i:s.u P') ?? 'now']),
             ],
             factory: [Clock::class, 'createWithFallback']
         ));
@@ -467,7 +467,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class, [Reference::to(ConversionService::REFERENCE_NAME)])]),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), new Definition(AsGivenRecordedEventFormat::class, [Reference::to(ConversionService::REFERENCE_NAME)]), Reference::to(EcotoneClockInterface::class)]),
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
@@ -488,7 +488,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                     if ($extensionObject->isInMemory()) {
                         $messagingConfiguration->registerServiceDefinition(
                             InMemoryEventStore::class,
-                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class)]),
+                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class), Reference::to(EcotoneClockInterface::class)]),
                         );
                         $messagingConfiguration->registerServiceDefinition(
                             GuardedTagBump::class,

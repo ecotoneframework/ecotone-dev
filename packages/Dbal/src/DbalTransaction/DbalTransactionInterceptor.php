@@ -7,6 +7,7 @@ use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -38,7 +39,7 @@ class DbalTransactionInterceptor
      * @param string[] $commandRoutingKeysWithoutTransaction
      * @param string[] $commandClassesWithoutTransaction
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private array $commandRoutingKeysWithoutTransaction = [], private array $commandClassesWithoutTransaction = [])
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private EcotoneClockInterface $clock, private array $commandRoutingKeysWithoutTransaction = [], private array $commandClassesWithoutTransaction = [])
     {
     }
 
@@ -60,7 +61,7 @@ class DbalTransactionInterceptor
 
             /** @var Connection[] $connections */
             $possibleConnections = array_map(function (ConnectionFactory $connectionFactory) {
-                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory));
+                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock));
 
                 /** @var DbalContext $context */
                 $context = $connectionFactory->createContext();

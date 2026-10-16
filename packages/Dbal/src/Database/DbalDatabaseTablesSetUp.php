@@ -8,6 +8,7 @@ use function array_filter;
 use function array_map;
 
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Lite\Test\DatabaseTablesSetUp;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -28,6 +29,7 @@ final class DbalDatabaseTablesSetUp implements DatabaseTablesSetUp
     public function __construct(
         private array $connectionFactories,
         private array $tableManagersByConnection,
+        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -66,7 +68,7 @@ final class DbalDatabaseTablesSetUp implements DatabaseTablesSetUp
      */
     private function setUp(ConnectionFactory $connectionFactory, array $tableManagers): void
     {
-        (new DatabaseSetupManager(new DbalReconnectableConnectionFactory($connectionFactory), $tableManagers))->initializeAll();
+        (new DatabaseSetupManager(new DbalReconnectableConnectionFactory($connectionFactory, $this->clock), $tableManagers))->initializeAll();
     }
 
     /**

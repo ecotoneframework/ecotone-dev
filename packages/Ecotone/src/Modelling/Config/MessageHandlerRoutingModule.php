@@ -43,6 +43,7 @@ use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
@@ -182,6 +183,7 @@ final class MessageHandlerRoutingModule implements AnnotationModule
                     ->chain(new Definition(TypeAliasResolverProcessor::class, [
                         $eventBusTypeAliases,
                         MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME,
+                        Reference::to(MessageBuilder::class),
                     ]))
                     ->chain($this->buildRouterProcessor($eventBusRouting, MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME, $isRunningForFlowTesting, false))
             );

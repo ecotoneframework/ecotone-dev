@@ -6,7 +6,6 @@ namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
 use Interop\Queue\Destination;
@@ -46,7 +45,9 @@ class DbalContext implements Context
      *
      * @param Connection|callable $connection
      */
-    public function __construct($connection, array $config = [], private EcotoneClockInterface $clock = new NativeClock())
+    private EcotoneClockInterface $clock;
+
+    public function __construct($connection, array $config = [])
     {
         $this->config = array_replace([
             'table_name' => 'enqueue',
@@ -226,6 +227,14 @@ class DbalContext implements Context
 
     public function getClock(): EcotoneClockInterface
     {
+        if (! isset($this->clock)) {
+            throw new LogicException(
+                'This DbalContext was created straight from the connection factory, so it carries no clock to produce or consume messages with. '
+                . 'Ecotone reaches every context through Ecotone\Dbal\DbalReconnectableConnectionFactory, which hands it the EcotoneClockInterface from the container; '
+                . 'create the context through that wrapper, or use the context only for getDbalConnection().'
+            );
+        }
+
         return $this->clock;
     }
 }

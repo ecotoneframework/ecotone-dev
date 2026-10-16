@@ -17,8 +17,9 @@ use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeCallba
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use InvalidArgumentException;
 use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
@@ -43,7 +44,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_acking_message_when_ack_available_in_message_header()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -55,7 +56,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $messaging = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler);
 
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannelName, $message);
 
         $messaging->run('some-id');
 
@@ -65,7 +66,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_requeing_message_on_gateway_failure()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -78,7 +79,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $messaging = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler);
 
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannelName, $message);
         $messaging->run('some-id');
 
         $this->assertTrue($acknowledgementCallback->isRequeued());
@@ -87,7 +88,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_throwing_exception_and_requeuing_when_stop_on_error_defined()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -102,7 +103,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannelName, $message);
         $messaging->run('some-id');
 
         $this->assertTrue($acknowledgementCallback->isRequeued());
@@ -111,7 +112,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_throwing_exception_and_rejecting_message()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
+        $message = StaticMessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
             ->setHeader('amqpAcker', $acknowledgementCallback)
             ->build();
@@ -124,7 +125,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $messaging = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler, true);
 
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannelName, $message);
         $messaging->run('some-id');
 
         $this->assertTrue($acknowledgementCallback->isRejected());
@@ -149,7 +150,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         /** @var InMemoryAcknowledgeCallback $acknowledge */
         $acknowledge = $headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]];
         $this->assertInstanceOf(InMemoryAcknowledgeCallback::class, $acknowledge);
-        $this->assertNull($ecotoneTestSupport->getMessageChannel($messageChannelName)->receive());
+        $this->assertNull(ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel($messageChannelName)->receive());
     }
 
     public function test_sending_to_error_channel()
@@ -176,7 +177,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $messaging->run($asyncChannelName);
 
-        $message = $messaging->getMessageChannel($errorChannelName)->receive();
+        $message = ChannelTestSupport::of($messaging)->getMessageChannel($errorChannelName)->receive();
         $this->assertNotNull($message);
         $this->assertTrue($message->getHeaders()->containsKey(ErrorContext::EXCEPTION_MESSAGE));
     }
@@ -230,13 +231,13 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     ->withEnabledModulePackageNames([])
         );
 
-        $originalNessage = MessageBuilder::withPayload('some')->build();
+        $originalNessage = StaticMessageBuilder::withPayload('some')->build();
         $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
 
         $messaging->run($asyncChannelName);
 
-        $this->assertNull($messaging->getMessageChannel($errorChannelName)->receive());
-        $requeuedMessage = $messaging->getMessageChannel($asyncChannelName)->receive();
+        $this->assertNull(ChannelTestSupport::of($messaging)->getMessageChannel($errorChannelName)->receive());
+        $requeuedMessage = ChannelTestSupport::of($messaging)->getMessageChannel($asyncChannelName)->receive();
         $this->assertNotNull($requeuedMessage);
         $this->assertNotSame($originalNessage->getHeaders()->getMessageId(), $requeuedMessage->getHeaders()->getMessageId());
     }
@@ -260,7 +261,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             $ecotoneTestSupport->sendQueryWithRouting('get_number_of_calls')
         );
         $this->assertNull(
-            $ecotoneTestSupport->getMessageChannel($inputChannelName)->receive()
+            ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel($inputChannelName)->receive()
         );
     }
 
@@ -285,7 +286,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             $ecotoneTestSupport->sendQueryWithRouting('get_number_of_calls')
         );
         $this->assertNull(
-            $ecotoneTestSupport->getMessageChannel($inputChannelName)->receive()
+            ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel($inputChannelName)->receive()
         );
     }
 

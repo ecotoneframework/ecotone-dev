@@ -14,6 +14,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 use Exception;
@@ -45,7 +46,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertNotNull($message);
         $this->assertGreaterThanOrEqual(3, count($loggerExample->getInfo()));
@@ -64,7 +65,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertNotNull($message);
         $this->assertGreaterThanOrEqual(4, count($loggerExample->getInfo()));
@@ -89,7 +90,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             $exception = true;
         }
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertTrue($exception);
         $this->assertNull($message);
@@ -124,7 +125,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             $exception = true;
         }
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertTrue($exception);
         $this->assertNull($message);
@@ -152,7 +153,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertNotNull($message);
         $this->assertGreaterThanOrEqual(4, count($loggerExample->getInfo()));
@@ -199,7 +200,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             $exception = true;
         }
 
-        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive();
 
         $this->assertTrue($exception);
         $this->assertNull($message);
@@ -225,8 +226,8 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $this->assertNull($ecotoneLite->getMessageChannel('orders')->receive());
-        $this->assertNotNull($ecotoneLite->getMessageChannel('deadLetter')->receive());
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('deadLetter')->receive());
     }
 
     public function test_sending_to_dead_letter_on_failure_using_global_configuration()
@@ -248,8 +249,8 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $this->assertNull($ecotoneLite->getMessageChannel('orders')->receive());
-        $this->assertNotNull($ecotoneLite->getMessageChannel('deadLetter')->receive());
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('deadLetter')->receive());
     }
 
     public function test_on_success_recover_message_is_not_sent_to_dlq()
@@ -275,8 +276,8 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel('orders')->receive());
-        $this->assertNull($ecotoneLite->getMessageChannel('deadLetter')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('orders')->receive());
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('deadLetter')->receive());
     }
 
 

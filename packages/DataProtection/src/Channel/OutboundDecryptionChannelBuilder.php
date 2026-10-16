@@ -26,6 +26,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBuilder
 {
@@ -55,6 +56,7 @@ readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBui
                 $this->encryptionKey,
                 $this->isPayloadSensitive,
                 $this->sensitiveHeaders,
+                Reference::to(MessageBuilder::class),
             ]
         );
     }

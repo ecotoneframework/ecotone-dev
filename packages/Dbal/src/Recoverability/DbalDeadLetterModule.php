@@ -9,6 +9,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
@@ -29,6 +30,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -138,17 +140,20 @@ final class DbalDeadLetterModule implements AnnotationModule
                 ? new Definition(InMemoryDeadLetterStore::class, [
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
+                    Reference::to(MessageBuilder::class),
                 ])
                 : new Definition(DbalDeadLetterStore::class, [
                     new Definition(CachedConnectionFactory::class, [
                         new Definition(DbalReconnectableConnectionFactory::class, [
                             new Reference($connectionFactoryReference),
+                            new Reference(EcotoneClockInterface::class),
                         ]),
                     ], 'createFor'),
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
                     Reference::to(RetryRunner::class),
                     Reference::to(DeadLetterTableManager::class),
+                    Reference::to(MessageBuilder::class),
                 ])
         );
 

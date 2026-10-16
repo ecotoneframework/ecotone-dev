@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -38,8 +39,8 @@ class QueueChannelTest extends TestCase
         $ecotoneLite->sendDirectToChannel('rawQueue', 'a');
         $ecotoneLite->sendDirectToChannel('rawQueue', 'b');
 
-        $this->assertSame('a', $ecotoneLite->receiveMessageFrom('rawQueue')->getPayload());
-        $this->assertSame('b', $ecotoneLite->receiveMessageFrom('rawQueue')->getPayload());
+        $this->assertSame('a', ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('rawQueue')->getPayload());
+        $this->assertSame('b', ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('rawQueue')->getPayload());
     }
 
     public function test_returning_null_when_queue_is_empty()
@@ -51,7 +52,7 @@ class QueueChannelTest extends TestCase
                 ->withEnabledModulePackageNames([]),
         );
 
-        $this->assertNull($ecotoneLite->receiveMessageFrom('rawQueue'));
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('rawQueue'));
     }
 
     public function test_resending_message_back_to_queue_on_failure(): void

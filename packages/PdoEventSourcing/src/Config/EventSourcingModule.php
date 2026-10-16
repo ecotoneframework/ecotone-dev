@@ -15,6 +15,7 @@ use Ecotone\Api\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Configuration\FlowTestingDbalConnections;
@@ -75,6 +76,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Projecting\ProjectingHeaders;
 use Symfony\Component\Uid\Uuid;
@@ -270,7 +272,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             );
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class)])
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class), Reference::to(RecordedEventFormat::class), Reference::to(EcotoneClockInterface::class)])
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,
@@ -305,6 +307,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
                 new Reference(ProjectionInvariantGuard::class),
                 new Reference(AppendStrategy::class),
                 new Reference(MissingEventStreamTable::class),
+                new Reference(EcotoneClockInterface::class),
                 $consoleInvocationPrefix,
             ])
         );
@@ -331,6 +334,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
                 new Reference($eventSourcingConfiguration->getConnectionReferenceName()),
                 new Reference(TagSchemaVerifier::class),
                 $dynamicConsistencyBoundary->isEnabled(),
+                new Reference(EcotoneClockInterface::class),
             ])
         );
 
@@ -592,7 +596,7 @@ final class EventSourcingModule extends NoExternalConfigurationModule implements
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
                 ->chain(new Definition(RunningProjectionValidator::class))
-                ->chain(new Definition(StreamNameMapper::class, [$this->projectionStreamMapping]))
+                ->chain(new Definition(StreamNameMapper::class, [Reference::to(MessageBuilder::class), $this->projectionStreamMapping]))
                 ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),

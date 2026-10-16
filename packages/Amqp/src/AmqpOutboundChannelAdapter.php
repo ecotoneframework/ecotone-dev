@@ -55,6 +55,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
         private PendingDeliveryRegistry    $pendingDeliveryRegistry,
+        private MessageBuilder             $messageBuilder,
         private DelayStrategy              $delayStrategy = new HeadersExchangeDelayStrategy(),
         private bool                       $batchPublishing = false,
         private bool                       $nonBlockingConfirmation = false,
@@ -75,7 +76,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $messagesToPublish = $payload instanceof BatchMessage
             ? array_map(
-                fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),
+                fn (array $entry): Message => $this->messageBuilder->withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),
                 $payload->entries,
             )
             : [$message];

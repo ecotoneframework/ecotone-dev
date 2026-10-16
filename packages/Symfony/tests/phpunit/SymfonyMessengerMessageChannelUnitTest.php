@@ -5,6 +5,8 @@ namespace Test;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Scheduling\NativeClock;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\SymfonyBundle\Messenger\MetadataStamp;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
@@ -31,7 +33,8 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
         $this->messageConverter = new SymfonyMessageConverter(
             $this->createStub(HeaderMapper::class),
             'mode',
-            $this->createStub(ConversionService::class)
+            $this->createStub(ConversionService::class),
+            new MessageBuilder(new NativeClock()),
         );
         $this->envelope = new Envelope(
             $this->createStub(stdClass::class),

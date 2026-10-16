@@ -9,6 +9,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\FakeTransactionModule;
@@ -45,7 +46,7 @@ final class HighThroughputPublishingChannelTest extends TestCase
     {
         $operationsLog = new OperationsLog();
         $ecotoneLite = $this->bootstrapEcotone($operationsLog);
-        $channel = $ecotoneLite->getMessageChannel('async_orders');
+        $channel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($channel instanceof MessageChannelInterceptorAdapter);
         $channel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 

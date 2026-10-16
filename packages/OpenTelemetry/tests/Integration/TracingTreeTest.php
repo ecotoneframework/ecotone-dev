@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
+use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\OpenTelemetry\Support\OTelTracer;
 use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
@@ -192,7 +192,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
@@ -215,7 +215,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
@@ -248,7 +248,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
 
@@ -738,7 +738,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => $tracerProvider,
             ],
             extensionObjects: [
-                TracingConfiguration::createWithDefaults(),
+                OpenTelemetryConfiguration::createWithDefaults(),
                 SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ],

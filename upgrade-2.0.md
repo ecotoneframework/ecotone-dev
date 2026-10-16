@@ -2952,6 +2952,46 @@ flushes only a provider that can — an SDK one. Any other provider handles mess
 forced flush left on. Bind an SDK tracer provider (`OpenTelemetry\SDK\Trace\TracerProvider`) when you want spans
 actually flushed.
 
+### Tracing is part of Core, and OpenTelemetry is one of its exporters
+
+**Before:** every span was produced by the `ecotone/open-telemetry` package: `TracerInterceptor` around the buses and
+handlers, `TracingChannelInterceptor` on every pollable channel, and `AddSpanEventLogger` turning log lines into span
+events. The trace context travelled between processes as a JSON `ecotoneTracingCarrier` header, the parent of a
+synchronous span came from OpenTelemetry's ambient context, and without that package there was no trace at all.
+
+**Now:** Core produces the spans. `Ecotone\Api\Tracing` holds the model — `Span`, `SpanKind`, `SpanStatus`,
+`SpanEvent` — plus the `SpanRecorder` seam and an `InMemorySpanRecorder`; `TracingConfiguration::createWithDefaults()
+->withSpanRecorder($referenceName)` names the recorders that receive every ended span. The trace context travels as
+the W3C `traceparent` and `tracestate` headers (`MessageHeaders::TRACEPARENT`, `MessageHeaders::TRACESTATE`), which
+are framework headers: they are not copied into the next message as user metadata, are not reported as span
+attributes, and a root span continues the trace a message already carries, so a command sent with a `traceparent`
+header from an HTTP request becomes a child of that request's span. Span names, kinds, attributes and the
+`exception` event are unchanged. The tracing interceptors are registered only when a recorder is configured or a
+tracing package hands over its `Tracer`, so an application without tracing pays nothing. `ecotone/open-telemetry`
+becomes an implementation of that `Tracer`: it starts live SDK spans with the same ids Core reports, keeps the
+forced flush and the Dynamic Consistency Boundary spans, and records nothing when a flow test is given no
+`TracerProviderInterface`, in which case Core's own tracer serves the configured recorders. Its configuration moved
+to `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; the never-settable tracing level is gone.
+`MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER`, which nothing set, is removed.
+
+**How to adapt:** rename `Ecotone\OpenTelemetry\Configuration\TracingConfiguration` to
+`Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; `withForceFlushOnBusExecution()` and
+`withForceFlushOnAsynchronousMessageHandled()` keep their names. A consumer outside Ecotone that read the
+`ecotoneTracingCarrier` header reads `traceparent` instead, which any OpenTelemetry propagator already does. To
+assert on spans in a flow test without the OpenTelemetry SDK, register an `InMemorySpanRecorder` as a service and
+name it in `TracingConfiguration`:
+
+```php
+$recorder = new InMemorySpanRecorder();
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService(), InMemorySpanRecorder::class => $recorder],
+    [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+);
+$ecotone->sendCommand(new PlaceOrder('1'));
+$recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
+```
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

@@ -20,6 +20,7 @@ parameters:
 		- packages/Ecotone/Api
 		- packages/JmsConverter/Api
 		- packages/Kafka/Api
+		- packages/OpenTelemetry/Api
 		- packages/Laravel/Api
 		- packages/PdoEventSourcing/Api
 		- packages/Redis/Api

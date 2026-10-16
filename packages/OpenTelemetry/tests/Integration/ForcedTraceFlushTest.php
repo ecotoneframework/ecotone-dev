@@ -11,7 +11,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
+use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -84,7 +84,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'order-1');
 

@@ -36,6 +36,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\OpenTelemetry\\": "Api/",
             "Ecotone\\OpenTelemetry\\": "src"
         }
     },

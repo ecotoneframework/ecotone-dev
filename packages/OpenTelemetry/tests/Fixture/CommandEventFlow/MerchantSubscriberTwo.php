@@ -12,7 +12,7 @@ use Ecotone\Api\Gateway\CommandBus;
  */
 final class MerchantSubscriberTwo
 {
-    #[EventHandler]
+    #[EventHandler(endpointId: 'merchant.subscriber.two')]
     public function merchantToUser(MerchantCreated $event, CommandBus $commandBus): void
     {
         $commandBus->send(new RegisterUser($event->merchantId . '-second'));

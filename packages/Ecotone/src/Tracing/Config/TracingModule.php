@@ -37,6 +37,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
 use Ecotone\Tracing\Tracer;
@@ -80,6 +81,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 : new Reference($tracerReferences[0]->referenceName)
         );
         $messagingConfiguration->addCompilerPass(new RegisterSpanEventLoggerCompilerPass());
+        $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
         $messagingConfiguration->registerServiceDefinition(
             TracingInterceptor::class,
             new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class)])
@@ -95,6 +97,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             'traceEventBus' => EventBus::class,
             'traceAsynchronousEndpoint' => AsynchronousRunningEndpoint::class,
             'traceDistributedBus' => DistributedBus::class,
+            'traceProjection' => ProjectionTriggerEndpoint::class,
         ] as $method => $pointcut) {
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorBuilder::create(

@@ -154,7 +154,13 @@ abstract class TracingTestCase extends TestCase
                 continue;
             }
             foreach ($expectedTreeNode['details'] as $expectedKey => $expectedValue) {
-                self::assertSame($expectedValue, $collectedNode['details'][$expectedKey]);
+                if ($expectedKey === 'attributes') {
+                    foreach ($expectedValue as $expectedAttributeKey => $expectedAttributeValue) {
+                        self::assertSame($expectedAttributeValue, $collectedNode['details']['attributes'][$expectedAttributeKey] ?? null, "Attribute {$expectedAttributeKey} on span {$collectedNode['details']['name']}");
+                    }
+                } else {
+                    self::assertSame($expectedValue, $collectedNode['details'][$expectedKey]);
+                }
             }
 
             if (! array_key_exists('child', $expectedTreeNode)) {

@@ -296,9 +296,13 @@ final class AsynchronousTracingTest extends TracingTestCase
             self::buildTree($recorder->recordedSpans())
         );
 
-        $eventNames = array_map(fn ($event): string => $event->name, $eventBus['details']['events']);
-        $this->assertNotEmpty(array_filter($eventNames, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
-        $this->assertNotEmpty(array_filter($eventNames, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
+        $eventBusEvents = array_map(fn ($event): string => $event->name, $eventBus['details']['events']);
+        $this->assertNotEmpty(array_filter($eventBusEvents, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
+
+        $route = $eventBus['children'][array_key_first($eventBus['children'])];
+        $this->assertSame('Routing to: user.registered.endpoint', $route['details']['name']);
+        $routeEvents = array_map(fn ($event): string => $event->name, $route['details']['events']);
+        $this->assertNotEmpty(array_filter($routeEvents, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
     }
 
     public function test_tracing_scheduled_handler(): void

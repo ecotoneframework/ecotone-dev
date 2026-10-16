@@ -335,14 +335,19 @@ final class TracingTreeTest extends TracingTestCase
                     'details' => ['name' => 'Event Bus'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'details' => ['name' => 'Routing to: merchant.subscriber.one'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'Command Bus'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -372,28 +377,38 @@ final class TracingTreeTest extends TracingTestCase
                     'details' => ['name' => 'Event Bus'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'details' => ['name' => 'Routing to: merchant.subscriber.one'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'Command Bus'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
+                            'details' => ['name' => 'Routing to: merchant.subscriber.two'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'Command Bus'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -429,14 +444,19 @@ final class TracingTreeTest extends TracingTestCase
                                     'details' => ['name' => 'Event Bus'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                                            'details' => ['name' => 'Routing to: merchant.subscriber.one'],
                                             'children' => [
                                                 [
-                                                    'details' => ['name' => 'Command Bus'],
+                                                    'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
                                                     'children' => [
                                                         [
-                                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                                            'children' => [],
+                                                            'details' => ['name' => 'Command Bus'],
+                                                            'children' => [
+                                                                [
+                                                                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                                                    'children' => [],
+                                                                ],
+                                                            ],
                                                         ],
                                                     ],
                                                 ],
@@ -528,17 +548,13 @@ final class TracingTreeTest extends TracingTestCase
             self::buildTree($exporter)
         );
 
-        /** @var Event $event */
-        $event = $result['details']['events'][0];
-        $this->stringStartsWith(
-            'Publishing Event Message',
-        )->evaluate($event->getName());
+        $eventBusEvents = array_map(fn (Event $event): string => $event->getName(), $result['details']['events']);
+        $this->assertNotEmpty(array_filter($eventBusEvents, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
 
-        /** @var Event $event */
-        $event = $result['details']['events'][2];
-        $this->stringStartsWith(
-            'Collecting message with id',
-        )->evaluate($event->getName());
+        $route = $result['children'][array_key_first($result['children'])];
+        $this->assertSame('Routing to: user.registered', $route['details']['name']);
+        $routeEvents = array_map(fn (Event $event): string => $event->getName(), $route['details']['events']);
+        $this->assertNotEmpty(array_filter($routeEvents, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
     }
 
     public function test_two_traces_with_asynchronous_handlers()

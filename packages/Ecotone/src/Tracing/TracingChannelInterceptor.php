@@ -9,6 +9,7 @@ use function array_pop;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -31,7 +32,11 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $span = $this->tracer->startSpan('Sending to Channel: ' . $this->channelName, SpanKind::Producer, MessageSpanAttributes::from($message));
+        $span = $this->tracer->startSpan('Sending to Channel: ' . $this->channelName, SpanKind::Producer, [
+            ...MessageSpanAttributes::from($message),
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
+            SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
+        ]);
         $this->openSendSpans[] = $span;
 
         return $this->messageBuilder->fromMessage($message)
@@ -67,7 +72,11 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         }
 
         $this->tracer
-            ->startSpan('Asynchronous Channel: ' . $this->channelName, SpanKind::Consumer, MessageSpanAttributes::from($message), TracingInterceptor::remoteParentOf($message))
+            ->startSpan('Asynchronous Channel: ' . $this->channelName, SpanKind::Consumer, [
+                ...MessageSpanAttributes::from($message),
+                SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
+                SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
+            ], TracingInterceptor::remoteParentOf($message))
             ->fail($exception);
     }
 

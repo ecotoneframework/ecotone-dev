@@ -6,6 +6,7 @@ namespace Ecotone\Tracing;
 
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 
 use function is_scalar;
@@ -34,6 +35,7 @@ final class MessageSpanAttributes
             $attributes[MessageHeaders::PARENT_MESSAGE_ID] = $headers->getParentId();
         }
         $attributes[MessageHeaders::TIMESTAMP] = $headers->getTimestamp();
+        $attributes[SpanAttribute::MESSAGING_SYSTEM] = SpanAttribute::ECOTONE;
 
         return $attributes;
     }

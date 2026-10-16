@@ -116,12 +116,17 @@ final class TracingTreeTest extends TracingTestCase
                     'details' => ['name' => 'Event Bus'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
+                            'details' => ['name' => 'Routing to: merchant.to.user', 'kind' => SpanKind::Producer],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
                                     'children' => [
-                                        ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                        [
+                                            'details' => ['name' => 'Command Bus'],
+                                            'children' => [
+                                                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                            ],
+                                        ],
                                     ],
                                 ],
                             ],
@@ -139,7 +144,7 @@ final class TracingTreeTest extends TracingTestCase
         $users = $this->users();
         $subscriberOne = $this->merchantSubscriber();
         $subscriberTwo = new class () {
-            #[EventHandler('merchant.created')]
+            #[EventHandler('merchant.created', endpointId: 'merchant.to.second.user')]
             public function merchantToUser(string $merchantId, CommandBus $commandBus): void
             {
                 $commandBus->sendWithRouting('user.register', $merchantId . '-second');
@@ -164,14 +169,20 @@ final class TracingTreeTest extends TracingTestCase
                 [
                     'details' => ['name' => 'Event Bus'],
                     'children' => [
-                        ['details' => ['name' => 'Event Handler: ' . $subscriberOne::class . '::merchantToUser'], 'children' => [$commandBusChild]],
-                        ['details' => ['name' => 'Event Handler: ' . $subscriberTwo::class . '::merchantToUser'], 'children' => [$commandBusChild]],
+                        [
+                            'details' => ['name' => 'Routing to: merchant.to.user'],
+                            'children' => [['details' => ['name' => 'Event Handler: ' . $subscriberOne::class . '::merchantToUser'], 'children' => [$commandBusChild]]],
+                        ],
+                        [
+                            'details' => ['name' => 'Routing to: merchant.to.second.user'],
+                            'children' => [['details' => ['name' => 'Event Handler: ' . $subscriberTwo::class . '::merchantToUser'], 'children' => [$commandBusChild]]],
+                        ],
                     ],
                 ],
             ],
             self::buildTree($recorder->recordedSpans())
         );
-        $this->assertCount(7, self::spanNamesWithoutFrameworkNoise($recorder->recordedSpans()));
+        $this->assertCount(9, self::spanNamesWithoutFrameworkNoise($recorder->recordedSpans()));
     }
 
     public function test_tracing_tree_with_three_levels_of_nesting(): void
@@ -206,12 +217,17 @@ final class TracingTreeTest extends TracingTestCase
                                     'details' => ['name' => 'Event Bus'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
+                                            'details' => ['name' => 'Routing to: merchant.to.user'],
                                             'children' => [
                                                 [
-                                                    'details' => ['name' => 'Command Bus'],
+                                                    'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
                                                     'children' => [
-                                                        ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                                        [
+                                                            'details' => ['name' => 'Command Bus'],
+                                                            'children' => [
+                                                                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                                            ],
+                                                        ],
                                                     ],
                                                 ],
                                             ],
@@ -319,12 +335,13 @@ final class TracingTreeTest extends TracingTestCase
             ]);
 
         $spans = $recorder->recordedSpans();
-        $this->assertCount(4, $spans);
+        $this->assertCount(5, $spans);
 
         $this->assertChildSpan('Command Handler: ' . $users::class . '::register', $spans[0], $messageId, $correlationId);
         $this->assertChildSpan('Command Bus', $spans[1], $messageId, $correlationId);
         $this->assertSpanWith('Event Handler: ' . $subscriber::class . '::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Event Bus', $spans[3], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('Routing to: merchant.to.user', $spans[3], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('Event Bus', $spans[4], $messageId, $correlationId, $timestamp);
     }
 
     public function test_a_failing_handler_marks_its_span_and_the_bus_span_as_failed_with_the_exception_recorded(): void
@@ -405,7 +422,7 @@ final class TracingTreeTest extends TracingTestCase
     private function merchantSubscriber(): object
     {
         return new class () {
-            #[EventHandler('merchant.created')]
+            #[EventHandler('merchant.created', endpointId: 'merchant.to.user')]
             public function merchantToUser(string $merchantId, CommandBus $commandBus): void
             {
                 $commandBus->sendWithRouting('user.register', $merchantId);

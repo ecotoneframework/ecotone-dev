@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
@@ -53,12 +52,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBus = $ecotoneLite->getGateway(DeduplicatedCommandBus::class);
@@ -81,12 +77,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBus = $ecotoneLite->getGateway(CustomHeaderDeduplicatedCommandBus::class);
@@ -109,12 +102,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -137,12 +127,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -165,12 +152,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -193,12 +177,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBusOne = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -224,12 +205,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
-            // No license key provided - should throw exception
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 
@@ -241,12 +218,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBusOne = $ecotoneLite->getGateway(IsolatedCommandBusOne::class);
@@ -270,12 +244,9 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(true)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $commandBusOne = $ecotoneLite->getGateway(IsolatedCommandBusOne::class);

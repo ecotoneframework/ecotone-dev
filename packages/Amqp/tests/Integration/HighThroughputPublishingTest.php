@@ -16,7 +16,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -72,13 +71,8 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             [...$this->getConnectionFactoryReferences()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey(Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey(Uuid::v7()->toRfc4122())->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
     }
 
@@ -88,13 +82,11 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [...$this->getConnectionFactoryReferences()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName),
-                    AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName: $queueName),
-                ]),
+            extensionObjects: [
+                AmqpMessagePublisherConfiguration::create()->withDefaultRoutingKey($queueName),
+                AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName:$queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $publisher = $messaging->getGateway(MessagePublisher::class);
@@ -118,14 +110,8 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [...$this->getConnectionFactoryReferences()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(true)
-                        ->withDefaultRoutingKey($queueName)
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(true)->withDefaultRoutingKey($queueName)->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $publisher = $messaging->getGateway(MessagePublisher::class);
@@ -218,12 +204,8 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
                 AmqpLibConnection::class => $libConnectionFactory,
                 $orderService,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName:$channelName)->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -349,14 +331,13 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             $commandHandler === null ? [] : [$commandHandler::class],
             $commandHandler === null
-                ? [...$this->getConnectionFactoryReferences()]
-                : [...$this->getConnectionFactoryReferences(), $commandHandler],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    $publisherConfiguration,
-                    AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName: $queueName),
-                ]),
+            ? [...$this->getConnectionFactoryReferences()]
+            : [...$this->getConnectionFactoryReferences(), $commandHandler],
+            extensionObjects: [
+                $publisherConfiguration,
+                AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName:$queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -379,12 +360,8 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [...$this->getConnectionFactoryReferences(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName:$channelName)->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: $licenceKey,
         );
     }

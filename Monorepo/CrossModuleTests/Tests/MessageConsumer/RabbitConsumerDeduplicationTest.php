@@ -57,20 +57,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 new RabbitConsumerWithCustomDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper('*')
-                        ->withDefaultRoutingKey($queueName),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                AmqpQueue::createWith($queueName),
+                AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(true)->withHeaderMapper('*')->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** @var MessagePublisher $messagePublisher */
@@ -129,20 +122,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 new RabbitConsumerWithDefaultDeduplicationExample2(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper('*')
-                        ->withDefaultRoutingKey($queueName),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                AmqpQueue::createWith($queueName),
+                AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(true)->withHeaderMapper('*')->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** @var MessagePublisher $messagePublisher */
@@ -202,20 +188,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 new RabbitConsumerWithIndependentDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper('*')
-                        ->withDefaultRoutingKey($queueName),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                AmqpQueue::createWith($queueName),
+                AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(true)->withHeaderMapper('*')->withDefaultRoutingKey($queueName),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** @var MessagePublisher $messagePublisher */

@@ -15,7 +15,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -131,14 +130,10 @@ final class IntegerAggregateIdentifierTest extends EventSourcingMessagingTestCas
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [CounterWithIntegerId::class, $converter::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    match ($implementation) {
-                        'in-memory' => EventSourcingConfiguration::createInMemory(),
-                        'dbal' => EventSourcingConfiguration::createWithDefaults(),
-                    },
-                ]),
+            extensionObjects: [match($implementation) {
+                'in-memory' => EventSourcingConfiguration::createInMemory(),'dbal' => EventSourcingConfiguration::createWithDefaults(),
+            }],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
         $ecotone->setupDatabaseTables();
 

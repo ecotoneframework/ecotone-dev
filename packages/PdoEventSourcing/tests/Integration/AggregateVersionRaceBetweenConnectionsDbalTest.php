@@ -11,7 +11,6 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConcurrencyException;
@@ -94,9 +93,8 @@ final class AggregateVersionRaceBetweenConnectionsDbalTest extends EventSourcing
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$stream::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $connectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
+            extensionObjects: [EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap($setUpTables),
         )->getGateway(EventStore::class);
     }

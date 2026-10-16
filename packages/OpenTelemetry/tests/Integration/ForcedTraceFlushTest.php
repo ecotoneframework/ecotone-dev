@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
@@ -38,8 +37,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);
@@ -61,11 +59,8 @@ final class ForcedTraceFlushTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
 
         $ecotone->sendCommandWithRouting('order.place', 'order-1');
@@ -89,13 +84,8 @@ final class ForcedTraceFlushTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, TracerProviderInterface::class => new NoopTracerProvider()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
-                ->withExtensionObjects([
-                    TracingConfiguration::createWithDefaults()
-                        ->withForceFlushOnBusExecution(false)
-                        ->withForceFlushOnAsynchronousMessageHandled(false),
-                ]),
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);
@@ -117,8 +107,7 @@ final class ForcedTraceFlushTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, TracerProviderInterface::class => self::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertSame(['order-1'], $handler->handled);

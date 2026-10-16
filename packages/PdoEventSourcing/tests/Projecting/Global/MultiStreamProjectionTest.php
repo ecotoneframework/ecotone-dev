@@ -27,7 +27,6 @@ use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
@@ -325,9 +324,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
                 MeetingWithEventSourcing::class, EventsConverter::class,
             ]),
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

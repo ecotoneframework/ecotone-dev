@@ -16,7 +16,6 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -159,12 +158,14 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [CouponIssuedForTagTransactionTest::class, TagTransactionCommandHandler::class, EventsConverterForTagTransactionTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new TagTransactionCommandHandler(), new EventsConverterForTagTransactionTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $dbalConfiguration])
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                $dbalConfiguration,
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
     }
 

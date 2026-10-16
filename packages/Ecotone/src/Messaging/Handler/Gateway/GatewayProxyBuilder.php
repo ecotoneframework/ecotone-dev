@@ -275,7 +275,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
         // Choose resolver based on Enterprise license
-        $isEnterprise = $builder->getServiceConfiguration()->isRunningForEnterprise();
+        $isEnterprise = $builder->getBootstrapConfiguration()->isRunningForEnterprise();
         $errorChannelResolver = $isEnterprise
             ? new EnterpriseGatewayErrorChannelResolver()
             : new StandardGatewayErrorChannelResolver();

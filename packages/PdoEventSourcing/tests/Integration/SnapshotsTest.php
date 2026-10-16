@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,25 +37,17 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
     public function test_snapshotting_aggregates_called_in_turn(bool $enableEnterpriseMode): void
     {
         $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [Basket::class], // fixme should not be required when aggregate class is in namespace used with `withNamespaces` method
+            classesToResolve: [Basket::class],
             containerOrAvailableServices: [new BasketEventConverter(), new BasketMediaTypeConverter(), new TicketEventConverter(), new TicketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Basket',
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\Snapshots',
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withDocumentStore(),
-                    EventSourcingConfiguration::createWithDefaults()
-                        ->withSnapshotsFor(Ticket::class, 1)
-                        ->withSnapshotsFor(Basket::class, 3),
-                ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDocumentStore(),
+                EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(Ticket::class, 1)->withSnapshotsFor(Basket::class, 3),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
-            licenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null
+            licenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null,
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Basket', 'Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\Snapshots', ],
+            environment: 'prod',
         );
 
         $ecotone

@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
@@ -86,11 +85,7 @@ final class FlowTestingStorageFromProvidedConnectionTest extends DbalMessagingTe
     public function test_a_dbal_channel_in_a_flow_test_without_its_connection_is_refused_naming_both_ways_out(): void
     {
         try {
-            $this->bootstrapFlowTesting(
-                configuration: ServiceConfiguration::createWithDefaults()
-                    ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                    ->withExtensionObjects([DbalBackedMessageChannelBuilder::create('orders')]),
-            );
+            $this->bootstrapFlowTesting(extensionObjects: [DbalBackedMessageChannelBuilder::create('orders')], enabledModules: [ModulePackageList::DBAL_PACKAGE]);
             self::fail('A DBAL channel without its connection was accepted');
         } catch (ConfigurationException $exception) {
             self::assertStringContainsString('Message Channel `orders` is a DbalBackedMessageChannelBuilder', $exception->getMessage());
@@ -104,10 +99,9 @@ final class FlowTestingStorageFromProvidedConnectionTest extends DbalMessagingTe
         return $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service) => $service::class, $services),
             containerOrAvailableServices: $withConnection
-                ? [...$services, DbalConnectionFactory::class => $this->getConnectionFactory()]
-                : $services,
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            ? [...$services, DbalConnectionFactory::class => $this->getConnectionFactory()]
+            : $services,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
         );
     }
 

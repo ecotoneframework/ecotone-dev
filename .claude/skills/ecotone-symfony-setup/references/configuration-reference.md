@@ -4,9 +4,6 @@
 
 ```yaml
 ecotone:
-    # Service name for distributed architecture
-    serviceName: 'my_service'
-
     # Auto-load classes from src/ directory (default: true)
     loadSrcNamespaces: true
 
@@ -14,47 +11,46 @@ ecotone:
     namespaces:
         - 'App\CustomNamespace'
 
-    # Fail fast in dev (validates configuration on boot)
-    failFast: true
-
-    # Default serialization format for async messages
-    defaultSerializationMediaType: 'application/json'
-
-    # Default error channel for async consumers
-    defaultErrorChannel: 'errorChannel'
-
-    # Memory limit for consumers (MB)
-    defaultMemoryLimit: 256
-
-    # Connection retry on failure
-    defaultConnectionExceptionRetry:
-        initialDelay: 100
-        maxAttempts: 3
-        multiplier: 2
-
     # Module packages to load besides Core (e.g. dbal, amqp); omit the key
     # entirely to load every installed package, [] loads Core alone
     enabledModulePackageNames: [dbal, amqp]
 
     # Enterprise licence key
     licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
+
+    # Load the test support module
+    test: false
 ```
 
 ## All Configuration Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `serviceName` | `null` | Service identifier for distributed messaging |
-| `failFast` | `false` | Validates config at boot (auto-enabled in dev) |
 | `loadSrcNamespaces` | `true` | Auto-scan `src/` for handlers |
 | `namespaces` | `[]` | Additional namespaces to scan |
-| `defaultSerializationMediaType` | `null` | Media type for async serialization |
-| `defaultErrorChannel` | `null` | Error channel name |
-| `defaultMemoryLimit` | `null` | Consumer memory limit (MB) |
-| `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
 | `enabledModulePackageNames` | every installed package | Explicit list of module packages to load, besides Core; the key must be present to restrict loading at all |
 | `licenceKey` | `null` | Enterprise licence key |
 | `test` | `false` | Enable test mode |
+
+The service name, default serialization media type, default error channel, consumer memory limit, connection retry
+template and headers in log context are not bundle keys. They are set on `ServiceConfiguration`, returned from exactly
+one `#[ServiceContext]` method:
+
+```php
+#[ServiceContext]
+public function serviceConfiguration(): ServiceConfiguration
+{
+    return ServiceConfiguration::createWithDefaults()
+        ->withServiceName('my_service')
+        ->withDefaultSerializationMediaType('application/json')
+        ->withDefaultErrorChannel('errorChannel')
+        ->withConsumerMemoryLimit(256)
+        ->withConnectionRetryTemplate(RetryTemplateBuilder::exponentialBackOff(100, 2)->maxRetries(3))
+        ->withHeadersInLogContext(['userId']);
+}
+```
+
+The container cache is owned by the Symfony kernel: `cache:clear` rebuilds it.
 
 Any other key is refused at bootstrap with a `ConfigurationException` naming the keys Ecotone reads. The 1.x
 `skippedModulePackageNames` key and the earlier 2.0 `modulePackages` key are refused with their replacement:

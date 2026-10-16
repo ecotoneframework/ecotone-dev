@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -56,11 +55,8 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create('async', 'database')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create('async', 'database')->withFinalFailureStrategy(FinalFailureStrategy::RESEND)],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_1'));
@@ -80,11 +76,8 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create('async', 'database')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create('async', 'database')->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)],
+            enabledModules: [],
         );
     }
 
@@ -97,10 +90,8 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [DelayedService::class],
             $container,
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create('async', 'database'),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create('async', 'database')],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('execute.delayed_command', new DelayedCommand('test_1'), metadata: [

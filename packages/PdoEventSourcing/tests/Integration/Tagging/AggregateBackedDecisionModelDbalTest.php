@@ -25,7 +25,6 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -253,8 +252,8 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
 
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: $withDynamicConsistencyBoundary
-                ? [...self::AGGREGATE_CLASSES, ...self::DECISION_CLASSES]
-                : self::AGGREGATE_CLASSES,
+            ? [...self::AGGREGATE_CLASSES, ...self::DECISION_CLASSES]
+            : self::AGGREGATE_CLASSES,
             containerOrAvailableServices: [
                 $connectionFactory,
                 new EventsConverterForAggregateBackedDbalTest(),
@@ -263,12 +262,11 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
                 new WalletMediaTypeConverterForAggregateBackedDbalTest(),
                 new WalletBalanceMediaTypeConverterForAggregateBackedDbalTest(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects($extensionObjects)
-                ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
+            extensionObjects: $extensionObjects,
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            cacheDirectoryPath: sys_get_temp_dir().'/ecotone-test-'.uniqid(),
         );
         $ecotone->setupDatabaseTables();
 

@@ -9,7 +9,6 @@ use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -234,14 +233,8 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
             [
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(false)
-                        ->withRoutingKeyFromHeader('routingKey')
-                        ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 3000),
-                ]),
+            extensionObjects: [AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(false)->withRoutingKeyFromHeader('routingKey')->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:3000)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -267,14 +260,8 @@ final class HighThroughputPublishingReliabilityTest extends AmqpMessagingTestCas
             [
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(false)
-                        ->withDefaultRoutingKey($queueName)
-                        ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 3000),
-                ]),
+            extensionObjects: [AmqpMessagePublisherConfiguration::create()->withAutoDeclareQueueOnSend(false)->withDefaultRoutingKey($queueName)->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:3000)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

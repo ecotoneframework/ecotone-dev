@@ -54,7 +54,7 @@ $ecotone
 
 ## Key Testing Methods
 
-- `ServiceConfiguration::withExtensionObjects([...])` -- register in-memory channels for `bootstrapFlowTesting`
+- `extensionObjects: [...]` -- register in-memory channels for `bootstrapFlowTesting`
 - `$ecotone->run('channelName')` -- consume messages from a channel
 - `ExecutionPollingMetadata::createWithTestingSetup()` -- default test polling config
 - `$ecotone->sendDirectToChannel('channel', $payload)` -- inject messages directly into a channel

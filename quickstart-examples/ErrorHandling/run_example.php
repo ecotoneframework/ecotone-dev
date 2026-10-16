@@ -27,11 +27,9 @@ $ecotoneLite = EcotoneLite::bootstrap(
         DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
         AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withNamespaces(['App'])
-        ->withServiceName($serviceName)
-        ->withDefaultErrorChannel('errorChannel'),
+    extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)->withDefaultErrorChannel('errorChannel')],
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 $ecotoneLite->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 /** @var AmqpConnectionFactory $amqpConnectionFactory */

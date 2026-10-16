@@ -37,6 +37,7 @@ use Ecotone\Lite\Test\WithoutDatabaseTables;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -126,7 +127,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensionObjects, TestConfiguration::createWithDefaults());
-        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
 
         // In memory consumer position tracker
         $messagingConfiguration->registerServiceDefinition(
@@ -141,7 +142,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             );
         }
 
-        $this->registerInMemoryEventStoreIfNeeded($messagingConfiguration, $extensionObjects, $serviceConfiguration);
+        $this->registerInMemoryEventStoreIfNeeded($messagingConfiguration, $extensionObjects, $bootstrapConfiguration);
 
         $databaseTablesSetUp = ExtensionObjectResolver::resolve(DatabaseTablesSetUpReference::class, $extensionObjects)[0] ?? null;
         $messagingConfiguration->registerServiceDefinition(
@@ -222,10 +223,11 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
+        $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $serviceExtensions, BootstrapConfiguration::createWithDefaults());
         // Check if InMemoryEventStore will be registered
         $shouldRegisterInMemoryStreamSource = false;
 
-        if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+        if (! $bootstrapConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
             // EVENT_SOURCING_PACKAGE is disabled, so we'll use InMemoryEventStore
             $shouldRegisterInMemoryStreamSource = true;
         } else {
@@ -459,10 +461,10 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             ));
     }
 
-    private function registerInMemoryEventStoreIfNeeded(Configuration $messagingConfiguration, array $extensionObjects, ServiceConfiguration $serviceConfiguration): void
+    private function registerInMemoryEventStoreIfNeeded(Configuration $messagingConfiguration, array $extensionObjects, BootstrapConfiguration $bootstrapConfiguration): void
     {
         $registerInMemoryEventStoreStreamSource = false;
-        if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+        if (! $bootstrapConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
             DynamicConsistencyBoundary::resolveFrom($extensionObjects)->registerServicesForInMemoryStore($messagingConfiguration);
 
             $messagingConfiguration->registerServiceDefinition(

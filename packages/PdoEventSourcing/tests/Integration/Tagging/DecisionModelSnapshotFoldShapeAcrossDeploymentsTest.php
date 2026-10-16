@@ -13,7 +13,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Handler\Type;
@@ -95,15 +94,14 @@ final class DecisionModelSnapshotFoldShapeAcrossDeploymentsTest extends EventSou
                 $snapshotConverter,
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDocumentStore(),
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),
-                ]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDocumentStore(),
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withSnapshotsFor(BasketHistoryAcrossDeployments::class, 1),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         )->sendCommand(new ObserveBasketHistory('1'));
 
         $this->assertSame([['created', 'milk']], $observer->observedHistories);

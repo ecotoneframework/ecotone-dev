@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Fixture\ExpressionLanguage\ExpressionLanguageCommandHandler;
@@ -32,12 +31,8 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [User::class, UserRepository::class, UserService::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()
-                ->doNotLoadCatalog()
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
-                ])
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [InMemoryRepositoryBuilder::createForAllStateStoredAggregates()],
+            enabledModules: [],
         );
 
         $userId = '123';
@@ -54,9 +49,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [ExpressionLanguageCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()
-                ->doNotLoadCatalog()
-                ->withEnabledModulePackageNames([])
+            enabledModules: [],
         );
 
         $amount = 123;

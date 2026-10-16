@@ -30,8 +30,11 @@ final class LoggingModuleTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
+            ],
+            enabledModules: [],
         );
 
         $ecotoneLite
@@ -47,9 +50,13 @@ final class LoggingModuleTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            (ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
-                ->withDefaultErrorChannel('customErrorChannel'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
+                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('customErrorChannel'),
+            ],
+            enabledModules: [],
         );
 
         $ecotoneLite

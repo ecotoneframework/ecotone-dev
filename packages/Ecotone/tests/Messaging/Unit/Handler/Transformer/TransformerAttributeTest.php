@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\ChannelTestSupport;
@@ -40,7 +39,11 @@ final class TransformerAttributeTest extends TestCase
     {
         $this->expectException(\Ecotone\Messaging\Support\InvalidArgumentException::class);
 
-        EcotoneLite::bootstrapFlowTesting([VoidTransformerHandler::class], [new VoidTransformerHandler()], configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]));
+        EcotoneLite::bootstrapFlowTesting(
+            [VoidTransformerHandler::class],
+            [new VoidTransformerHandler()],
+            enabledModules: [],
+        );
     }
 
     public function test_message_is_not_sent_to_output_channel_when_transformer_returns_null(): void
@@ -97,10 +100,8 @@ final class TransformerAttributeTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [TransformerHandler::class],
             [new TransformerHandler()],
-            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel(TransformerHandler::NULL_OUTPUT_CHANNEL),
-            ])
-                ->withEnabledModulePackageNames([]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel(TransformerHandler::NULL_OUTPUT_CHANNEL)],
+            enabledModules: [],
         );
     }
 }

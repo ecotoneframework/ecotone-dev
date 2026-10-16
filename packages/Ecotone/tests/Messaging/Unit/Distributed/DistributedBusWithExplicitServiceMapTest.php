@@ -584,12 +584,11 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $this->expectException(LicensingException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withServiceName('test')
-                ->withExtensionObjects([
-                    DistributedServiceMap::initialize(),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                DistributedServiceMap::initialize(),
+                ServiceConfiguration::createWithDefaults()->withServiceName('test'),
+            ],
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
@@ -599,11 +598,8 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    DistributedServiceMap::initialize(),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [DistributedServiceMap::initialize()],
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -678,15 +674,11 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: $services,
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withServiceName($serviceName)
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects(array_merge(is_array($sharedQueueChannel) ? $sharedQueueChannel : [
-                    $sharedQueueChannel ?? SimpleMessageChannelBuilder::createQueueChannel($serviceName),
-                ], $extensionObjects ?: []))
-                ->withNamespaces($namespaces),
+            extensionObjects: array_merge(array_merge(is_array($sharedQueueChannel) ? $sharedQueueChannel : [$sharedQueueChannel ?? SimpleMessageChannelBuilder::createQueueChannel($serviceName), ], $extensionObjects ?: []), [ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)]),
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: $namespaces,
         );
     }
 
@@ -764,54 +756,51 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $publisherService = EcotoneLite::bootstrapFlowTesting(
             [$publisher::class],
             [$publisher, ConsumerPositionTracker::class => $positionTracker],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName($service0Name)
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    $publisherStreamingChannel,
-                    $queueChannelService0,
-                    $queueChannelService1,
-                    $queueChannelService2,
-                    $sharedDistributedMap,
-                ]),
+            extensionObjects: [
+                $publisherStreamingChannel,
+                $queueChannelService0,
+                $queueChannelService1,
+                $queueChannelService2,
+                $sharedDistributedMap,
+                ServiceConfiguration::createWithDefaults()->withServiceName($service0Name),
+            ],
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
-            licenceKey: LicenceTesting::VALID_LICENCE
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Consumer service 1
         $consumerService1 = EcotoneLite::bootstrapFlowTesting(
             [$consumer1::class],
             [$consumer1, ConsumerPositionTracker::class => $positionTracker],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName($service1Name)
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    $publisherStreamingChannel,
-                    $queueChannelService0,
-                    $queueChannelService1,
-                    $queueChannelService2,
-                    $sharedDistributedMap,
-                ]),
+            extensionObjects: [
+                $publisherStreamingChannel,
+                $queueChannelService0,
+                $queueChannelService1,
+                $queueChannelService2,
+                $sharedDistributedMap,
+                ServiceConfiguration::createWithDefaults()->withServiceName($service1Name),
+            ],
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
-            licenceKey: LicenceTesting::VALID_LICENCE
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Consumer service 2
         $consumerService2 = EcotoneLite::bootstrapFlowTesting(
             [$consumer2::class],
             [$consumer2, ConsumerPositionTracker::class => $positionTracker],
-            ServiceConfiguration::createWithDefaults()
-                ->withServiceName($service2Name)
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    $publisherStreamingChannel,
-                    $queueChannelService0,
-                    $queueChannelService1,
-                    $queueChannelService2,
-                    $sharedDistributedMap,
-                ]),
+            extensionObjects: [
+                $publisherStreamingChannel,
+                $queueChannelService0,
+                $queueChannelService1,
+                $queueChannelService2,
+                $sharedDistributedMap,
+                ServiceConfiguration::createWithDefaults()->withServiceName($service2Name),
+            ],
+            enabledModules: [],
             pathToRootCatalog: __DIR__ . '/../../',
-            licenceKey: LicenceTesting::VALID_LICENCE
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Publish events

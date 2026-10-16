@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
@@ -84,15 +83,11 @@ final class ReconnectTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             [OrderService::class, OrderRegisteringGateway::class],
             containerOrAvailableServices: array_merge($services, [new OrderService()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects(array_merge([
-                    DbalBackedMessageChannelBuilder::create('orders'),
-                    DbalBackedMessageChannelBuilder::create('processOrders'),
-                ], $extensionObjects)),
+            extensionObjects: array_merge([DbalBackedMessageChannelBuilder::create('orders'), DbalBackedMessageChannelBuilder::create('processOrders'), ], $extensionObjects),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            environment: 'prod',
         );
     }
 }

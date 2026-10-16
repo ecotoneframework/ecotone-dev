@@ -3,7 +3,6 @@
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -86,13 +85,10 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 new EventsConverters(),
                 self::getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('cycle'),
-                ])
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('cycle')],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow'],
         );
     }
 }

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
@@ -34,12 +33,11 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
                 new RedisConsumerExample(),
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisMessageConsumerConfiguration::create($endpointId, $queueName),
-                    RedisMessagePublisherConfiguration::create(queueName: $queueName),
-                ])
+            extensionObjects: [
+                RedisMessageConsumerConfiguration::create($endpointId, $queueName),
+                RedisMessagePublisherConfiguration::create(queueName:$queueName),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
         );
 
         $payload = Uuid::v7()->toRfc4122();

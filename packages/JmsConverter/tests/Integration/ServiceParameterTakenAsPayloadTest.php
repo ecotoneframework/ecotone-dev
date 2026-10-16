@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Handler\MethodInvocationException;
@@ -33,7 +32,7 @@ final class ServiceParameterTakenAsPayloadTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, ClockInterface::class => new StaticPsrClock('2026-03-01 12:00:00')],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );
 
         $this->expectException(MethodInvocationException::class);
@@ -68,7 +67,7 @@ final class ServiceParameterTakenAsPayloadTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$basket::class],
             [ClockInterface::class => new StaticPsrClock('2026-03-01 12:00:00')],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
         );
         $ecotone->sendCommandWithRouting('basket.create', 'basket-1');
 

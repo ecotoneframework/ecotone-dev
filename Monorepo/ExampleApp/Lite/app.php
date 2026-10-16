@@ -2,7 +2,6 @@
 
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSender;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
@@ -54,14 +53,10 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     ];
     return EcotoneLite::bootstrap(
         containerOrAvailableServices: $services,
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->doNotLoadCatalog()
-            ->withCacheDirectoryPath(__DIR__ . "/var/cache")
-            ->withFailFast(false)
-            ->withDefaultErrorChannel('errorChannel')
-            ->withNamespaces(['Monorepo\\ExampleApp\\Common\\'])
-            ->withEnabledModulePackageNames(\json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? []),
+        enabledModules: \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'),true)??[],
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',
+        namespaces: ['Monorepo\\ExampleApp\\Common\\'],
+        cacheDirectoryPath: __DIR__."/var/cache",
     );
 };

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -68,20 +67,11 @@ final class StreamingChannelValidationTest extends TestCase
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel1',
-                        topicName: $topic1,
-                        messageGroupId: $sharedGroupId  // Same group ID
-                    ),
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel2',
-                        topicName: $topic2,
-                        messageGroupId: $sharedGroupId  // Same group ID - should fail
-                    ),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'channel1', topicName:$topic1, messageGroupId:$sharedGroupId),
+                KafkaMessageChannelBuilder::create(channelName:'channel2', topicName:$topic2, messageGroupId:$sharedGroupId),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -112,20 +102,11 @@ final class StreamingChannelValidationTest extends TestCase
                 $handler,
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel1',
-                        topicName: $topic1,
-                        messageGroupId: $groupId1
-                    ),
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'channel2',
-                        topicName: $topic2,
-                        messageGroupId: $groupId2
-                    ),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'channel1', topicName:$topic1, messageGroupId:$groupId1),
+                KafkaMessageChannelBuilder::create(channelName:'channel2', topicName:$topic2, messageGroupId:$groupId2),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

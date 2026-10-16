@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\JMSConverter\Integration;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Error;
 use PHPUnit\Framework\TestCase;
@@ -42,10 +41,7 @@ final class UnionIdentifierAggregateTest extends TestCase
 
     public function test_union_type_identifier_is_not_supported_for_event_sourced_aggregates_without_union_discriminator(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [TicketWithoutDiscriminator::class],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([EventSourcingConfiguration::createInMemory()]),
-        );
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(classesToResolve: [TicketWithoutDiscriminator::class], extensionObjects: [EventSourcingConfiguration::createInMemory()]);
 
         $this->expectException(Error::class);
 

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
@@ -86,19 +85,9 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
         return $this->bootstrapFlowTesting(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'])],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects(array_merge(
-                    $extensionObjects,
-                    $channelBuilders,
-                    [
-                        DbalConfiguration::createWithDefaults()
-                            ->withTransactionOnCommandBus(true)
-                            ->withTransactionOnAsynchronousEndpoints(true)
-                            ->withDoctrineORMRepositories(true),
-                    ]
-                )),
-            addInMemoryStateStoredRepository: false
+            extensionObjects: array_merge($extensionObjects, $channelBuilders, [DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true)->withTransactionOnAsynchronousEndpoints(true)->withDoctrineORMRepositories(true), ]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            addInMemoryStateStoredRepository: false,
         );
     }
 }

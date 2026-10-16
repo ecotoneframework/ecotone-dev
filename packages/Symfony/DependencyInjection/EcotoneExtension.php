@@ -3,8 +3,7 @@
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Api\Console\ConsoleWriter;
-use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
@@ -46,49 +45,18 @@ class EcotoneExtension extends Extension
             ? $config[FrameworkConfigurationKeys::ENABLED_MODULE_PACKAGE_NAMES]
             : null;
 
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
+        $bootstrapConfiguration = BootstrapConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
-            ->withFailFast(in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? false : $config['failFast'])
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
         ;
 
         if ($enabledModulePackageNames !== null) {
-            $serviceConfiguration = $serviceConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
+            $bootstrapConfiguration = $bootstrapConfiguration->withEnabledModulePackageNames($enabledModulePackageNames);
         }
 
         if ($config['licenceKey'] !== null) {
-            $serviceConfiguration = $serviceConfiguration->withLicenceKey($config['licenceKey']);
-        }
-
-        if (isset($config['serviceName'])) {
-            $serviceConfiguration = $serviceConfiguration
-                ->withServiceName($config['serviceName']);
-        }
-
-        if (isset($config['defaultSerializationMediaType'])) {
-            $serviceConfiguration = $serviceConfiguration
-                ->withDefaultSerializationMediaType($config['defaultSerializationMediaType']);
-        }
-        if (isset($config['defaultMemoryLimit'])) {
-            $serviceConfiguration = $serviceConfiguration
-                ->withConsumerMemoryLimit($config['defaultMemoryLimit']);
-        }
-        if (isset($config['defaultConnectionExceptionRetry'])) {
-            $retryTemplate            = $config['defaultConnectionExceptionRetry'];
-            $serviceConfiguration = $serviceConfiguration
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff($retryTemplate['initialDelay'], $retryTemplate['multiplier'])->maxRetries($retryTemplate['maxAttempts'])
-                );
-        }
-        if (isset($config['defaultErrorChannel'])) {
-            $serviceConfiguration = $serviceConfiguration
-                ->withDefaultErrorChannel($config['defaultErrorChannel']);
-        }
-
-        if ($config['headersInLogContext'] !== []) {
-            $serviceConfiguration = $serviceConfiguration
-                ->withHeadersInLogContext($config['headersInLogContext']);
+            $bootstrapConfiguration = $bootstrapConfiguration->withLicenceKey($config['licenceKey']);
         }
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
@@ -110,7 +78,7 @@ class EcotoneExtension extends Extension
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..')),
             $configurationVariableService,
-            $serviceConfiguration,
+            $bootstrapConfiguration,
             enableTestPackage: $config['test']
         );
 

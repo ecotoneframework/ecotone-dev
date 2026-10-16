@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithEvents;
@@ -42,7 +41,7 @@ final class InterfaceTypedPayloadTest extends TestCase
                 $this->received[] = $event;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], $this->serialisingAsyncChannel());
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
 
         $ecotone
             ->publishEvent(new ProductAddedToBasket('basket-1', 'product-1'))
@@ -82,7 +81,7 @@ final class InterfaceTypedPayloadTest extends TestCase
                 $this->changes[] = $event::class;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$basket::class], [], $this->serialisingAsyncChannel());
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$basket::class], [], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
 
         $ecotone
             ->sendCommandWithRouting('basket.addProduct', ['basketId' => 'basket-1', 'productId' => 'product-1'])
@@ -118,7 +117,7 @@ final class InterfaceTypedPayloadTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], $this->serialisingAsyncChannel());
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$listener::class], [$listener], [$this->serialisingAsyncChannel()], [ModulePackageList::JMS_CONVERTER_PACKAGE]);
         $ecotone->publishEventWithRouting('basket.changed', ['basketId' => 'basket-1', 'productId' => 'product-1']);
 
         $this->expectException(MethodInvocationException::class);
@@ -127,12 +126,8 @@ final class InterfaceTypedPayloadTest extends TestCase
         $ecotone->run('async');
     }
 
-    private function serialisingAsyncChannel(): ServiceConfiguration
+    private function serialisingAsyncChannel(): SimpleMessageChannelBuilder
     {
-        return ServiceConfiguration::createWithDefaults()
-            ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
-            ->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel('async', conversionMediaType: MediaType::createApplicationJson()),
-            ]);
+        return SimpleMessageChannelBuilder::createQueueChannel('async', conversionMediaType: MediaType::createApplicationJson());
     }
 }

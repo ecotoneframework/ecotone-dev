@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tempest\Application;
 
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Tempest\EcotoneConfig;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
@@ -21,14 +22,13 @@ final class HeadersInLogContextTest extends EcotoneIntegrationTestCase
     protected function ecotoneConfig(): EcotoneConfig
     {
         return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\ExpressionLanguage\\'],
+            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\ExpressionLanguage\\', 'Test\\Ecotone\\Tempest\\Application\\HeadersInLogContext\\'],
             enabledModulePackageNames: [],
             test: true,
-            headersInLogContext: ['userId'],
         );
     }
 
-    public function test_headers_listed_in_ecotone_config_are_in_the_log_context(): void
+    public function test_headers_listed_in_a_service_context_are_in_the_log_context(): void
     {
         $logger = new class () extends AbstractLogger {
             /** @var array<int, array{message: string, context: array<string, mixed>}> */
@@ -58,5 +58,13 @@ final class HeadersInLogContextTest extends EcotoneIntegrationTestCase
         $context = $logger->contextOf('Executing Command Handler');
         self::assertSame('user-7', $context['userId']);
         self::assertArrayNotHasKey('region', $context);
+    }
+
+    public function test_the_headers_in_log_context_config_argument_is_refused_naming_the_service_context_replacement(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Ecotone does not recognise the `headersInLogContext` key in EcotoneConfig. Since Ecotone 2.0 it is set on ServiceConfiguration, returned from a #[ServiceContext] method: ServiceConfiguration::createWithDefaults()->withHeadersInLogContext(['userId']). Move it there and remove the key. The keys Ecotone reads in EcotoneConfig are: enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, test.");
+
+        new EcotoneConfig(headersInLogContext: ['userId']);
     }
 }

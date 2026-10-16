@@ -27,13 +27,12 @@ final class EndpointErrorChannelTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ThrowingHandler::class],
             [new ThrowingHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('appErrorChannel')
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
-                    SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
+                SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('appErrorChannel'),
+            ],
+            enabledModules: [],
         );
 
         $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');
@@ -47,14 +46,13 @@ final class EndpointErrorChannelTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [ThrowingHandler::class],
             [new ThrowingHandler()],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('appErrorChannel')
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
-                    SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
-                    PollingMetadata::create(ThrowingHandler::ENDPOINT_ID)->withEnabledErrorChannel(false),
-                ])
-                    ->withEnabledModulePackageNames([]),
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(ThrowingHandler::CHANNEL),
+                SimpleMessageChannelBuilder::createQueueChannel('appErrorChannel'),
+                PollingMetadata::create(ThrowingHandler::ENDPOINT_ID)->withEnabledErrorChannel(false),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('appErrorChannel'),
+            ],
+            enabledModules: [],
         );
 
         $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');

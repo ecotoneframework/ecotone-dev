@@ -21,7 +21,6 @@ use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -431,7 +430,7 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
             return EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
                 containerOrAvailableServices: [$converter],
-                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             )->getGateway(EventStore::class);
         }
@@ -439,15 +438,13 @@ final class TaggedEventStoreConformanceTest extends EventSourcingMessagingTestCa
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [StudentEnrolledForTaggedConformance::class, CourseCapacityChangedForTaggedConformance::class, $converter::class, $secondStream::class],
             containerOrAvailableServices: [$converter, DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    match ($implementation) {
-                        'in-memory' => EventSourcingConfiguration::createInMemory(),
-                        'dbal' => EventSourcingConfiguration::createWithDefaults(),
-                    },
-                ]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                match($implementation) {
+                    'in-memory' => EventSourcingConfiguration::createInMemory(),'dbal' => EventSourcingConfiguration::createWithDefaults(),
+                },
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables()->getGateway(EventStore::class);
     }

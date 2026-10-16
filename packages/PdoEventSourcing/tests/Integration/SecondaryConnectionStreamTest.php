@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -38,10 +37,9 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
                 DbalConnectionFactory::class => $this->connectionForTenantA(),
                 SecondaryOrder::CONNECTION_REFERENCE => $this->connectionForTenantB(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
         );
 
         $ecotone->sendCommandWithRouting('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));

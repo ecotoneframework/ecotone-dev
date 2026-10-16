@@ -6,7 +6,6 @@ namespace Test;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -51,11 +50,8 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create($channelName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create($channelName)->withFinalFailureStrategy(FinalFailureStrategy::RESEND)],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_1'));
@@ -75,11 +71,8 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
         EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SymfonyMessengerMessageChannelBuilder::create('some')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
-                ])
+            extensionObjects: [SymfonyMessengerMessageChannelBuilder::create('some')->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)],
+            enabledModules: [],
         );
     }
 }

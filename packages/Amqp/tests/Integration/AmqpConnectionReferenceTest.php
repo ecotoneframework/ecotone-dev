@@ -9,7 +9,6 @@ use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use Symfony\Component\Uid\Uuid;
@@ -30,11 +29,8 @@ final class AmqpConnectionReferenceTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [
                 AmqpConnectionReference::DEFAULT => $connection_factory,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queue_name),
-                ]),
+            extensionObjects: [AmqpBackedMessageChannelBuilder::create($queue_name)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
         ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());

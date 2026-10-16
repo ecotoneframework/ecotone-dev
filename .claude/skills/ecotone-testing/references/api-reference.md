@@ -4,7 +4,7 @@
 
 ### `EcotoneLite::bootstrapFlowTesting()`
 
-Standard test bootstrap. Loads every installed module package; each runs in memory until the test gives it a connection (a `DbalConnectionFactory`, a `TracerProviderInterface`). Name packages with `withEnabledModulePackageNames([...])` to load fewer.
+Standard test bootstrap. Loads every installed module package; each runs in memory until the test gives it a connection (a `DbalConnectionFactory`, a `TracerProviderInterface`). Name packages with `enabledModules: [...]` to load fewer; register extension objects with `extensionObjects: [...]`.
 
 ```php
 public static function bootstrapFlowTesting(

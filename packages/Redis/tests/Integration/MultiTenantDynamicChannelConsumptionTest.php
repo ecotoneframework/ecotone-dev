@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
@@ -61,20 +60,12 @@ final class MultiTenantDynamicChannelConsumptionTest extends ConnectionTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
             [$handler, RedisConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create($tenantAChannel),
-                    RedisBackedMessageChannelBuilder::create($tenantBChannel),
-                    DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
-                        thisMessageChannelName: 'channel_owner_creation',
-                        headerName: 'tenant',
-                        headerMapping: [
-                            'tenant_a' => $tenantAChannel,
-                            'tenant_b' => $tenantBChannel,
-                        ],
-                    ),
-                ]),
+            extensionObjects: [
+                RedisBackedMessageChannelBuilder::create($tenantAChannel),
+                RedisBackedMessageChannelBuilder::create($tenantBChannel),
+                DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(thisMessageChannelName:'channel_owner_creation', headerName:'tenant', headerMapping:['tenant_a' => $tenantAChannel, 'tenant_b' => $tenantBChannel, ], ),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

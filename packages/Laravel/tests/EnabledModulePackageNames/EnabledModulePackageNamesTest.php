@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[RunTestsInSeparateProcesses]
 final class EnabledModulePackageNamesTest extends TestCase
 {
-    private const RECOGNISED_KEYS = 'cacheConfiguration, defaultConnectionExceptionRetry, defaultErrorChannel, defaultSerializationMediaType, enabledModulePackageNames, headersInLogContext, licenceKey, loadAppNamespaces, namespaces, serviceName, test';
+    private const RECOGNISED_KEYS = 'enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, test';
 
     public function test_only_the_listed_module_packages_are_loaded(): void
     {

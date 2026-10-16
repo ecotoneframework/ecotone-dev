@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
@@ -92,12 +91,8 @@ final class HighThroughputPublishingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [KafkaPublisherConfiguration::createWithDefaults(topicName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );
     }
 
@@ -108,15 +103,8 @@ final class HighThroughputPublishingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        'async_orders',
-                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
-                        messageGroupId: $uniqueId,
-                    )->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [KafkaMessageChannelBuilder::create('async_orders', topicName:$uniqueId = Uuid::v7()->toRfc4122(), messageGroupId:$uniqueId, )->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );
     }
 
@@ -125,12 +113,8 @@ final class HighThroughputPublishingTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [KafkaPublisherConfiguration::createWithDefaults(topicName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $publisher = $messaging->getGateway(MessagePublisher::class);
@@ -178,13 +162,11 @@ final class HighThroughputPublishingTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [$commandHandler::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $commandHandler],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(topicName: $topicName)
-                        ->withHighThroughputPublishing(),
-                    TopicConfiguration::createWithReferenceName('batchOrdersTopic', $topicName),
-                ]),
+            extensionObjects: [
+                KafkaPublisherConfiguration::createWithDefaults(topicName:$topicName)->withHighThroughputPublishing(),
+                TopicConfiguration::createWithReferenceName('batchOrdersTopic', $topicName),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -245,9 +227,8 @@ final class HighThroughputPublishingTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [KafkaBrokerConfiguration::class => $brokerConfiguration, $orderService],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([$channelBuilder]),
+            extensionObjects: [$channelBuilder],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

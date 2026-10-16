@@ -7,7 +7,6 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use ArrayObject;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -44,8 +43,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'), metadata: [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -73,8 +71,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->publishEvent(new MerchantCreated('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -105,8 +102,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [Merchant::class, User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new CreateMerchant('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -140,11 +136,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE, ])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ],
         )
             ->sendCommand(new RegisterUser('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -196,8 +189,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
             EcotoneLite::bootstrapFlowTesting(
                 [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
                 [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
-                ServiceConfiguration::createWithDefaults()
-                    ->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE])
+                enabledModules: [ModulePackageList::TRACING_PACKAGE],
             )
                 ->sendCommand(new RegisterUser('1'), metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,

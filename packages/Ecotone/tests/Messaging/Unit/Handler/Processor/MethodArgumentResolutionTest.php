@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\MethodInvocationException;
@@ -192,7 +191,7 @@ final class MethodArgumentResolutionTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [MethodResolutionHandler::class],
             [new MethodResolutionHandler()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
     }
 }

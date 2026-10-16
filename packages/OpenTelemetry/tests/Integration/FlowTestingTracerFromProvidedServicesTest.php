@@ -7,7 +7,6 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -25,7 +24,7 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
             [$orders],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
 
         self::assertSame(['coffee'], $ecotone->sendCommandWithRouting('order.place', 'coffee')->sendQueryWithRouting('order.placed'));
@@ -39,7 +38,7 @@ final class FlowTestingTracerFromProvidedServicesTest extends TracingTestCase
         EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
             [$orders, TracerProviderInterface::class => self::prepareTracer($exporter)],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::TRACING_PACKAGE]),
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )->sendCommandWithRouting('order.place', 'coffee');
 
         self::assertNotEmpty($exporter->getSpans());

@@ -21,7 +21,7 @@ use Symfony\Component\Filesystem\Filesystem;
 #[RunTestsInSeparateProcesses]
 final class EnabledModulePackageNamesTest extends TestCase
 {
-    private const RECOGNISED_KEYS = 'cacheConfiguration, defaultConnectionExceptionRetry, defaultErrorChannel, defaultMemoryLimit, defaultSerializationMediaType, enabledModulePackageNames, failFast, headersInLogContext, licenceKey, loadSrcNamespaces, namespaces, serviceName, test';
+    private const RECOGNISED_KEYS = 'enabledModulePackageNames, licenceKey, loadSrcNamespaces, namespaces, test';
 
     protected function setUp(): void
     {

@@ -7,7 +7,6 @@ namespace Test\Ecotone\Kafka\Integration;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -57,7 +56,7 @@ final class KafkaModuleLicenceTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$orders::class],
             [$orders],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE]),
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );
 
         self::assertSame(['coffee'], $ecotone->sendCommandWithRouting('order.place', 'coffee')->sendQueryWithRouting('order.placed'));
@@ -66,15 +65,11 @@ final class KafkaModuleLicenceTest extends TestCase
     public function test_a_kafka_channel_without_a_licence_is_refused_naming_the_channel_and_the_licence_key(): void
     {
         try {
-            EcotoneLite::bootstrapFlowTesting(
-                configuration: ServiceConfiguration::createWithDefaults()
-                    ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                    ->withExtensionObjects([KafkaMessageChannelBuilder::create('orders')]),
-            );
+            EcotoneLite::bootstrapFlowTesting(extensionObjects: [KafkaMessageChannelBuilder::create('orders')], enabledModules: [ModulePackageList::KAFKA_PACKAGE]);
             self::fail('A Kafka channel without a licence was accepted');
         } catch (LicensingException $exception) {
             self::assertStringContainsString('Kafka is used here (KafkaMessageChannelBuilder for channel `orders`)', $exception->getMessage());
-            self::assertStringContainsString("ServiceConfiguration::createWithDefaults()->withLicenceKey('...')", $exception->getMessage());
+            self::assertStringContainsString("licenceKey in your framework's Ecotone configuration", $exception->getMessage());
             self::assertStringContainsString("EcotoneLite::bootstrapFlowTesting(..., licenceKey: '...')", $exception->getMessage());
         }
     }
@@ -94,7 +89,7 @@ final class KafkaModuleLicenceTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$consumer::class],
             [$consumer],
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE]),
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
         );
     }
 }

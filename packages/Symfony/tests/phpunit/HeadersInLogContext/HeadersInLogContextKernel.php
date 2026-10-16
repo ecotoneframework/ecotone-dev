@@ -45,7 +45,7 @@ final class HeadersInLogContextKernel extends Kernel
 
     private function configureContainer(ContainerConfigurator $container): void
     {
-        $container->extension('ecotone', ['loadSrcNamespaces' => false, 'namespaces' => ['Fixture\\ExpressionLanguage'], 'enabledModulePackageNames' => []]);
+        $container->extension('ecotone', ['loadSrcNamespaces' => false, 'namespaces' => ['Fixture\\ExpressionLanguage', 'Test\\HeadersInLogContext'], 'enabledModulePackageNames' => []]);
         $container->extension('ecotone', $this->ecotoneConfiguration);
         $container->services()->set('logger', RecordingLogger::class)->public();
         $container->services()->set(ExpressionLanguageCommandHandler::class)->public();

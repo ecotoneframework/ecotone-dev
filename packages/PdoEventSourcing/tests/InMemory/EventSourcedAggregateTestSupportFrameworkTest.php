@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -182,10 +181,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
-                ]),
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections')],
         );
 
         $this->assertCount(

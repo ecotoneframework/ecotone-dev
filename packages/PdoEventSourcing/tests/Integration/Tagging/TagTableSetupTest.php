@@ -11,7 +11,6 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -202,12 +201,11 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, CouponIssuedConverterForTagTableSetupTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new CouponIssuedConverterForTagTableSetupTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                DbalConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

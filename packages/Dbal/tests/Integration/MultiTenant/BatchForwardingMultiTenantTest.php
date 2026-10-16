@@ -11,7 +11,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\ConnectionFactory;
@@ -47,18 +46,13 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
-                    ),
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], ),
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

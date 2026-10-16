@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -112,12 +111,11 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
+            namespaces: [],
+            environment: 'prod',
         );
         $documentStore = $ecotone->getGateway(DocumentStore::class);
 
@@ -152,12 +150,11 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
+            namespaces: [],
+            environment: 'prod',
         );
         $documentStore = $ecotone->getGateway(DocumentStore::class);
 
@@ -194,12 +191,11 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
+            namespaces: [],
+            environment: 'prod',
         );
         $documentStore = $ecotone->getGateway(DocumentStore::class);
 
@@ -333,12 +329,11 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
+            namespaces: [],
+            environment: 'prod',
         );
         $documentStore = $ecotone->getGateway(DocumentStore::class);
 
@@ -400,12 +395,11 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
+            namespaces: [],
+            environment: 'prod',
         );
     }
 

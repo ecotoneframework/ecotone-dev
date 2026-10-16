@@ -10,7 +10,6 @@ use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -36,26 +35,12 @@ final class DynamicChannelRetryTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [DynamicChannelRetryHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'async_tenant_a',
-                        topicName: $topicTenantA,
-                    )
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
-                        ->withReceiveTimeout(3000),
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'async_tenant_b',
-                        topicName: $topicTenantB,
-                    )
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
-                        ->withReceiveTimeout(3000),
-                    DynamicMessageChannelBuilder::createRoundRobin(
-                        thisMessageChannelName: 'async',
-                        channelNames: ['async_tenant_a', 'async_tenant_b'],
-                    ),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'async_tenant_a', topicName:$topicTenantA, )->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(3000),
+                KafkaMessageChannelBuilder::create(channelName:'async_tenant_b', topicName:$topicTenantB, )->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(3000),
+                DynamicMessageChannelBuilder::createRoundRobin(thisMessageChannelName:'async', channelNames:['async_tenant_a', 'async_tenant_b'], ),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

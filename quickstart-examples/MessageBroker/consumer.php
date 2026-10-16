@@ -41,10 +41,7 @@ $ecotone = EcotoneLite::bootstrap(
             'dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'
         ]),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->withExtensionObjects([
-            AmqpBackedMessageChannelBuilder::create($channelName),
-        ])
+    extensionObjects: [AmqpBackedMessageChannelBuilder::create($channelName)],
 );
 
 echo "Starting consumer for queue '{$channelName}'...\n";

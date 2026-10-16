@@ -11,7 +11,6 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -579,14 +578,10 @@ final class DocumentStoreConformanceTest extends DbalMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDocumentStore(inMemoryDocumentStore: match ($implementation) {
-                        'in-memory' => true,
-                        'dbal' => false,
-                    }),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDocumentStore(inMemoryDocumentStore:match($implementation) {
+                'in-memory' => true,'dbal' => false,
+            })],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
         )->getGateway(DocumentStore::class);
     }
 }

@@ -9,8 +9,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(
     containerOrAvailableServices: [new OrderService()],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 
 $messagingSystem->getCommandBus()->send(new PlaceOrder(1, "Milk"));

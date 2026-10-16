@@ -6,7 +6,6 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -70,10 +69,12 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 \Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('failure_channel'))
-                ->withEnabledModulePackageNames([])
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                InMemoryHighThroughputPublishingChannelBuilder::create('failure_channel'),
+            ],
+            enabledModules: [],
         );
         $ordersChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
@@ -93,7 +94,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class],
             [$outboundAdapter],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
         $publisher = $ecotoneLite->getGateway(InMemoryHighThroughputPublisherModule::PUBLISHER_REFERENCE);
         $outboundAdapter->failDeliveriesWith('broker down');
@@ -218,7 +219,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$commandHandler::class, InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class, FakeTransactionModule::class],
             [$commandHandler, $outboundAdapter, OperationsLog::class => $operationsLog],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
         $outboundAdapter->failDeliveriesContaining('poisoned', 'broker rejected the batch');
 
@@ -241,7 +242,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [InMemoryHighThroughputPublisherModule::class, InMemoryHighThroughputOutboundAdapter::class],
             [$outboundAdapter],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([]),
+            enabledModules: [],
         );
         $publisher = $ecotoneLite->getGateway(InMemoryHighThroughputPublisherModule::PUBLISHER_REFERENCE);
 

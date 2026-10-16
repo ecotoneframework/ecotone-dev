@@ -8,7 +8,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -92,21 +91,13 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: 'tenant',
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeduplication(true, expirationTime: 1),
-                    DbalBackedMessageChannelBuilder::create('email'),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create(tenantHeaderName:'tenant', tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime:1),
+                DbalBackedMessageChannelBuilder::create('email'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

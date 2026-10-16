@@ -126,10 +126,7 @@ public function test_add_and_remove_headers(): void
     $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
         [AddingMultipleHeaders::class],
         [AddingMultipleHeaders::class => new AddingMultipleHeaders()],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]),
+        extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('async')],
         testConfiguration: TestConfiguration::createWithDefaults()
             ->withSpyOnChannel('async')
     );
@@ -160,10 +157,7 @@ public function test_metadata_propagates_to_async_handlers(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [OrderService::class],
         containerOrAvailableServices: [new OrderService()],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            ])
+        extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
     );
 
     $ecotone->sendCommandWithRouting(

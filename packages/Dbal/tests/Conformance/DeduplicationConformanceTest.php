@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
@@ -178,15 +177,10 @@ final class DeduplicationConformanceTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [$handlers::class],
             containerOrAvailableServices: [$handlers, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withDeduplication(expirationTime: self::ONE_HOUR_IN_MILLISECONDS, inMemory: match ($implementation) {
-                            'in-memory' => true,
-                            'dbal' => false,
-                        }),
-                ]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDeduplication(expirationTime:self::ONE_HOUR_IN_MILLISECONDS, inMemory:match($implementation) {
+                'in-memory' => true,'dbal' => false,
+            })],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         )->setupDatabaseTables();
     }
 }

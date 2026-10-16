@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
@@ -22,11 +21,10 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
     {
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withNamespaces(['Test\Ecotone\Amqp\Fixture\SuccessTransaction']),
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\Amqp\Fixture\SuccessTransaction'],
+            environment: 'prod',
         );
 
         self::assertEquals(

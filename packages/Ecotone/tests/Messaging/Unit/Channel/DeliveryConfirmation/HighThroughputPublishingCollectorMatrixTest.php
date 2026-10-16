@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
@@ -67,10 +66,11 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            extensionObjects: [
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector($collectorEnabled),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))
-                ->withEnabledModulePackageNames([])
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+            ],
+            enabledModules: [],
         );
     }
 }

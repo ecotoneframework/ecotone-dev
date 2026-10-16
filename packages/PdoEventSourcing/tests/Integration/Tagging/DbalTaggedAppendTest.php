@@ -12,7 +12,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -182,12 +181,11 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                DbalConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();
@@ -203,12 +201,11 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
+                DbalConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Test\ChannelTestSupport;
 use Exception;
@@ -32,14 +31,11 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 [new FailingService()],
                 $this->getConnectionFactoryReferences()
             ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                    AmqpBackedMessageChannelBuilder::create(channelName: 'async')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(100),
-                ])
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                AmqpBackedMessageChannelBuilder::create(channelName:'async')->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(100),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
@@ -57,14 +53,11 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 [new FailingService()],
                 $this->getConnectionFactoryReferences()
             ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                    AmqpBackedMessageChannelBuilder::create(channelName: 'async')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
-                        ->withReceiveTimeout(100),
-                ])
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                AmqpBackedMessageChannelBuilder::create(channelName:'async')->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(100),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');
@@ -83,14 +76,11 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 [new FailingService()],
                 $this->getConnectionFactoryReferences()
             ),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                    AmqpBackedMessageChannelBuilder::create(channelName: 'async')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(100),
-                ])
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                AmqpBackedMessageChannelBuilder::create(channelName:'async')->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(100),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');

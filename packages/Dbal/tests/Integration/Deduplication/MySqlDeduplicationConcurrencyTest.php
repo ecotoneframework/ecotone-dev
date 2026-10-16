@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -63,10 +62,9 @@ final class MySqlDeduplicationConcurrencyTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $connectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            environment: 'prod',
         );
 
         $ecotone->sendCommandWithRouting('handle', metadata: [MessageHeaders::MESSAGE_ID => 'message-1']);

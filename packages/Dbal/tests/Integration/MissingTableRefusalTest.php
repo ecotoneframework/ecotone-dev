@@ -12,7 +12,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -90,9 +89,8 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         $logger = StubLogger::create();
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), 'logger' => $logger],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
@@ -158,9 +156,11 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults(), DbalBackedMessageChannelBuilder::create('orders')]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults(),
+                DbalBackedMessageChannelBuilder::create('orders'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
     }
@@ -169,9 +169,8 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([$dbalConfiguration]),
+            extensionObjects: [$dbalConfiguration],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
     }

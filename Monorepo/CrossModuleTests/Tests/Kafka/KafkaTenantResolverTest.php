@@ -93,23 +93,13 @@ final class KafkaTenantResolverTest extends TestCase
                 'tenant_a_connection' => $stubConnection,
                 'tenant_b_connection' => $stubConnection,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    TopicConfiguration::createWithReferenceName('tenant_a_topic', $tenantATopic),
-                    TopicConfiguration::createWithReferenceName('tenant_b_topic', $tenantBTopic),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [$tenantATopic => 'tenant_a_connection', $tenantBTopic => 'tenant_b_connection'],
-                        DbalConnectionFactory::class,
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withDeduplication(false),
-                ]),
+            extensionObjects: [
+                TopicConfiguration::createWithReferenceName('tenant_a_topic',$tenantATopic),
+                TopicConfiguration::createWithReferenceName('tenant_b_topic',$tenantBTopic),
+                MultiTenantConfiguration::create('tenant',[$tenantATopic=>'tenant_a_connection',$tenantBTopic=>'tenant_b_connection'],DbalConnectionFactory::class,),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE,ModulePackageList::KAFKA_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

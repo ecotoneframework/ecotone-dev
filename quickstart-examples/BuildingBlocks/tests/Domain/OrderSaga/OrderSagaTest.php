@@ -96,9 +96,11 @@ final class OrderSagaTest extends TestCase
 
     private function getBootstrapFlowTesting(bool $isReservationSuccessful): \Ecotone\Api\Lite\Test\FlowTestSupport
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class, UuidConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderSaga::class, Order::class, Product::class, ProductService::class, ProductReservationService::class, UuidConverter::class],
             [new ProductReservationService($isReservationSuccessful), new UuidConverter()],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true)));
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders',true)],
+        );
         return $ecotoneLite;
     }
 }

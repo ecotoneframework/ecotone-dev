@@ -7,7 +7,6 @@ namespace Test\Ecotone\Messaging\Unit\Channel\PollableChannel;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -292,10 +291,9 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects(array_merge($extensionObjects, $channelBuilders))
-                ->withEnabledModulePackageNames([]),
-            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
+            extensionObjects: array_merge($extensionObjects, $channelBuilders),
+            enabledModules: [],
+            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null,
         );
     }
 }

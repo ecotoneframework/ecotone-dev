@@ -12,7 +12,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -81,12 +80,8 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [RedisMessagePublisherConfiguration::create(queueName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
         );
     }
 
@@ -140,13 +135,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [$commandHandler::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisMessagePublisherConfiguration::create(queueName: $queueName)
-                        ->withHighThroughputPublishing(),
-                    RedisBackedMessageChannelBuilder::create($queueName),
-                ]),
+            extensionObjects: [
+                RedisMessagePublisherConfiguration::create(queueName:$queueName)->withHighThroughputPublishing(),
+                RedisBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -285,12 +278,8 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
             licenceKey: $licenceKey,
         );
     }
@@ -305,12 +294,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    $publisherConfiguration,
-                    RedisBackedMessageChannelBuilder::create($queueName),
-                ]),
+            extensionObjects: [
+                $publisherConfiguration,
+                RedisBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

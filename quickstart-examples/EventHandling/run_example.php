@@ -8,8 +8,8 @@ use Ecotone\Api\Lite\EcotoneLite;
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(
     containerOrAvailableServices: [new NotificationService()],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 
 $messagingSystem->getEventBus()->publish(new OrderWasPlaced(1, "Milk"));

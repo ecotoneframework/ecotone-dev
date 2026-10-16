@@ -41,11 +41,8 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
             containerOrAvailableServices: [
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [RedisBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -72,11 +69,8 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 new RedisAsyncConsumerExample(),
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [RedisBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE, ],
         );
 
         $this->getConnectionFactory()->createContext()->purgeQueue(new RedisDestination($queueName));
@@ -106,14 +100,11 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
                 RedisConnectionFactory::class => new RedisConnectionFactory('redis://localhost:1000'),
                 'logger' => $loggerExample,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
-                )
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create('async'),
-                ])
+            extensionObjects: [
+                RedisBackedMessageChannelBuilder::create('async'),
+                ServiceConfiguration::createWithDefaults()->withConnectionRetryTemplate(RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE, ],
         );
 
         $wasFinallyRethrown = false;

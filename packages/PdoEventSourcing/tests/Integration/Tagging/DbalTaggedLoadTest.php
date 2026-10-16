@@ -12,7 +12,6 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -263,12 +262,11 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [StudentSubscribedForDbalLoadTest::class, CourseCapacityChangedForDbalLoadTest::class, EventsConverterForDbalLoadTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalLoadTest()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
-                    DbalConfiguration::createWithDefaults(),
-                ]),
+            extensionObjects: [
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
+                DbalConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $ecotone->setupDatabaseTables();

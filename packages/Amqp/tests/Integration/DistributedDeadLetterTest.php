@@ -42,13 +42,12 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withServiceName($serviceName)
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withNamespaces($namespaces)
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            extensionObjects: [ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: $namespaces,
+            environment: 'prod',
         );
     }
 }

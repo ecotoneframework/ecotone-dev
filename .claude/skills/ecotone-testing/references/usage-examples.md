@@ -189,11 +189,12 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 // ModulePackageList::TEMPEST_PACKAGE
 // ModulePackageList::TEST_PACKAGE
 
-$config = ServiceConfiguration::createWithDefaults()
-    ->withEnabledModulePackageNames([
+EcotoneLite::bootstrapFlowTesting(
+    enabledModules: [
         ModulePackageList::DBAL_PACKAGE,
         ModulePackageList::EVENT_SOURCING_PACKAGE,
-    ]);
+    ],
+);
 ```
 
 ## Projection Testing with Inline Class

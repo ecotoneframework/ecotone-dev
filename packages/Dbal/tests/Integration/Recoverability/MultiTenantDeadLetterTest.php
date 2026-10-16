@@ -51,18 +51,14 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withDefaultErrorChannel('dbal_dead_letter')
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
-                    ),
-                ])
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults(),
+                DbalBackedMessageChannelBuilder::create('async'),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], ),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('dbal_dead_letter'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'milk', metadata: ['tenant' => 'tenant_a']);

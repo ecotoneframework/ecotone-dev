@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisConnectionReference;
@@ -33,11 +32,8 @@ final class RedisConnectionReferenceTest extends ConnectionTestCase
             [
                 RedisConnectionReference::DEFAULT => $connection_factory,
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE])
-                ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create($queue_name),
-                ])
+            extensionObjects: [RedisBackedMessageChannelBuilder::create($queue_name)],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE],
         );
 
         ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -70,12 +69,12 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
-            (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::REDIS_PACKAGE, ])
-                ->withExtensionObjects([
-                    PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
-                ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
+                RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing(),
+            ],
+            enabledModules: [ModulePackageList::REDIS_PACKAGE, ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

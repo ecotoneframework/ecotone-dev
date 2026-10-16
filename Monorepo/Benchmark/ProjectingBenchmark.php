@@ -5,7 +5,6 @@ namespace Monorepo\Benchmark;
 use Closure;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -40,18 +39,12 @@ class ProjectingBenchmark
                 DbalConnectionFactory::class => new DbalConnectionFactory($connectionString),
                 ...$container,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->doNotLoadCatalog()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
-                ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
-                ->withDefaultErrorChannel('errorChannel')
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ]),
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
             useCachedVersion: true,
             pathToRootCatalog: self::getProjectDir(),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Monorepo\\ExampleAppEventSourcing\\Common\\',...$namespaces],
+            cacheDirectoryPath: self::getProjectDir()."/var/cache/$name",
         );
     }
 

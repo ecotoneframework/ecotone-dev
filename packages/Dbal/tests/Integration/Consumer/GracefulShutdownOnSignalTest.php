@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration\Consumer;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -36,12 +35,8 @@ final class GracefulShutdownOnSignalTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(200),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(200)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         // Spawn an independent OS process (not a fork) to deliver the signal - forking

@@ -11,7 +11,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
@@ -41,10 +40,9 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TestEventForInMemoryMode::class, TestEventForInMemoryModeConverter::class, $projection::class],
             [$projection, new TestEventForInMemoryModeConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject(EventSourcingConfiguration::createInMemory())
+            extensionObjects: [EventSourcingConfiguration::createInMemory()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // And adding events to event store using withEventStream

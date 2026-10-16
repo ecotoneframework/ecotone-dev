@@ -33,12 +33,5 @@ framework:
 ecotone:
     namespaces:
         - "Fixture"
-    defaultMemoryLimit: 256
-    defaultConnectionExceptionRetry:
-        initialDelay: 1
-        maxAttempts: 4
-        multiplier: 2
-    defaultErrorChannel: "errorChannel"
-    defaultSerializationMediaType: "application/json"
     loadSrcNamespaces: false
     enabledModulePackageNames: ["amqp","jmsConverter"]

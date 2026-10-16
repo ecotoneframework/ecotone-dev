@@ -28,7 +28,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\Projection;
@@ -83,14 +82,12 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 self::$connectionFactory,
                 ClockInterface::class => self::$clock,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
-                ])->addExtensionObject(DbalConfiguration::createForTesting()),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [DbalConfiguration::createForTesting()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket', ],
+            environment: 'prod',
         );
 
         self::$ticketStreamTable = Ticket::STREAM_NAME;
@@ -352,14 +349,12 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
                 DbalConnectionFactory::class => $lateWriterConnectionFactory,
                 ClockInterface::class => self::$clock,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
-                ])->addExtensionObject(DbalConfiguration::createForTesting()),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [DbalConfiguration::createForTesting()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket', ],
+            environment: 'prod',
         );
     }
 

@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -59,21 +58,13 @@ final class MultiTenantDynamicChannelConsumptionTest extends AmqpMessagingTestCa
         $ecotoneLite = $this->bootstrapFlowTesting(
             [$handler::class],
             [$handler, ...$this->getConnectionFactoryReferences()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($tenantAChannel),
-                    AmqpBackedMessageChannelBuilder::create($tenantBChannel),
-                    DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
-                        thisMessageChannelName: 'channel_owner_creation',
-                        headerName: 'tenant',
-                        headerMapping: [
-                            'tenant_a' => $tenantAChannel,
-                            'tenant_b' => $tenantBChannel,
-                        ],
-                    ),
-                ]),
+            extensionObjects: [
+                AmqpBackedMessageChannelBuilder::create($tenantAChannel),
+                AmqpBackedMessageChannelBuilder::create($tenantBChannel),
+                DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(thisMessageChannelName:'channel_owner_creation', headerName:'tenant', headerMapping:['tenant_a' => $tenantAChannel, 'tenant_b' => $tenantBChannel, ], ),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->getCommandBus()->sendWithRouting('owner.create', 'owner_a', metadata: ['tenant' => 'tenant_a']);

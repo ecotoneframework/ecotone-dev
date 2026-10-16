@@ -8,7 +8,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Repository;
 use Ecotone\Api\Attribute\Version;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\StateStoredRepository;
 use Ecotone\Laravel\EloquentRepository;
@@ -83,9 +82,8 @@ class EloquentRepositoryTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$ticket::class, $repository::class],
             [$repository::class => $repository],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([new EloquentRepositoryBuilder()]),
+            extensionObjects: [new EloquentRepositoryBuilder()],
+            enabledModules: [],
         )->sendCommandWithRouting('ticket.close', metadata: ['aggregate.id' => 'ticket-1']);
 
         $this->assertSame([['versionBeforeHandling' => 7, 'version' => 8]], $repository->saved);

@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
@@ -83,9 +82,8 @@ final class DocumentStoreTableCreatedByEcotone1xTest extends DbalMessagingTestCa
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withDocumentStore()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()->withDocumentStore()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         )->getGateway(DocumentStore::class);
     }
 }

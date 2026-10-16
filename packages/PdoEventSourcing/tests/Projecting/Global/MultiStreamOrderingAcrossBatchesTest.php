@@ -12,7 +12,6 @@ use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromStream;
@@ -262,8 +261,7 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [$projection::class, OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -276,8 +274,7 @@ final class MultiStreamOrderingAcrossBatchesTest extends ProjectingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderedStreamA::class, OrderedStreamB::class],
             containerOrAvailableServices: [DbalConnectionFactory::class => $lateWriterConnectionFactory],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

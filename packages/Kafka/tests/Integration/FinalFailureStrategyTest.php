@@ -10,7 +10,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -39,14 +38,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [SingleMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(3000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(3000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -84,14 +80,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -124,14 +117,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RESEND)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -165,14 +155,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [TwoApplicationHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName)->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -212,18 +199,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [IgnoreTestHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'kafka_channel',
-                        topicName: $topicName,
-                        messageGroupId: $sharedGroupId
-                    )
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:$sharedGroupId)->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -268,18 +248,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [IgnoreTestHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'kafka_channel',
-                        topicName: $topicName,
-                        messageGroupId: Uuid::v7()->toRfc4122()
-                    )
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:Uuid::v7()->toRfc4122())->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -306,18 +279,11 @@ final class FinalFailureStrategyTest extends TestCase
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [IgnoreTestHandler::class],
             [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE, ])
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        channelName: 'kafka_channel',
-                        topicName: $topicName,
-                        messageGroupId: Uuid::v7()->toRfc4122()
-                    )
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(10000),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ]),
+            extensionObjects: [
+                KafkaMessageChannelBuilder::create(channelName:'kafka_channel', topicName:$topicName, messageGroupId:Uuid::v7()->toRfc4122())->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)->withReceiveTimeout(10000),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE, ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

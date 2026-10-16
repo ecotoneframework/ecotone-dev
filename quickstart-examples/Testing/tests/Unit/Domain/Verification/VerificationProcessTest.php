@@ -101,15 +101,12 @@ final class VerificationProcessTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [VerificationProcess::class],
             [TokenGenerator::class => $tokenGenerator],
-            ServiceConfiguration::createWithDefaults()
-                /** We want to enable asynchronous package to test delays */
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
-                ]),
-            /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
-            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES,true),
+                PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+            ],
+            enabledModules: [],
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
         );
     }
 }

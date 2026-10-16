@@ -9,7 +9,6 @@ use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
@@ -51,19 +50,13 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                 ConsumerPositionTracker::class => $sharedPositionTracker,
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpQueue::createStreamQueue($queueName),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: $channelName,
-                        startPosition: 'first',
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queueName,
-                    ),
-                ]),
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queueName),
+                AmqpStreamChannelBuilder::create(channelName:$channelName, startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueName, ),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
             testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Send 5 messages
@@ -93,19 +86,13 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                 ConsumerPositionTracker::class => $sharedPositionTracker, // Same shared instance
                 ...$this->getConnectionFactoryReferences(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withExtensionObjects([
-                    AmqpQueue::createStreamQueue($queueName),
-                    AmqpStreamChannelBuilder::create(
-                        channelName: $channelName,
-                        startPosition: 'first', // Will be overridden by committed position
-                        amqpConnectionReferenceName: AmqpLibConnection::class,
-                        queueName: $queueName,
-                    ),
-                ]),
+            extensionObjects: [
+                AmqpQueue::createStreamQueue($queueName),
+                AmqpStreamChannelBuilder::create(channelName:$channelName, startPosition:'first', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueName, ),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
             testConfiguration: TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // Run consumer - should process remaining messages

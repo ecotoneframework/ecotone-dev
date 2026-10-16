@@ -103,10 +103,8 @@ final class CurrentBasketProjectionTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [CurrentBasketProjection::class, Basket::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                // Loading converters, so they can be used for events
-                ->withNamespaces(["App\Testing\Infrastructure\Converter"]),
-            pathToRootCatalog: __DIR__, // can be ignored, needed for running inside ecotone-dev monorepo
+            pathToRootCatalog: __DIR__,
+            namespaces: ["App\Testing\Infrastructure\Converter"],
         );
     }
 }

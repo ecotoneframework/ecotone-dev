@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
@@ -83,11 +82,10 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
     {
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($this->getConnectionFactoryReferences($amqpConfig), $services),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::AMQP_PACKAGE, ])
-                ->withNamespaces($namespaces),
+            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: $namespaces,
+            environment: 'prod',
         );
     }
 }

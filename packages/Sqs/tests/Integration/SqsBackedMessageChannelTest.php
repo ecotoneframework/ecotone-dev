@@ -41,11 +41,8 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
             containerOrAvailableServices: [
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [SqsBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */
@@ -72,11 +69,8 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 new SqsAsyncConsumerExample(),
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
-                ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [SqsBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::SQS_PACKAGE, ],
         );
 
         $ecotoneLite->getCommandBus()->sendWithRouting('sqs_consumer', $messagePayload);
@@ -104,14 +98,11 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:1000&version=latest'),
                 'logger' => $loggerExample,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE, ])
-                ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
-                )
-                ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create('async'),
-                ])
+            extensionObjects: [
+                SqsBackedMessageChannelBuilder::create('async'),
+                ServiceConfiguration::createWithDefaults()->withConnectionRetryTemplate(RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE, ],
         );
 
         $wasFinallyRethrown = false;

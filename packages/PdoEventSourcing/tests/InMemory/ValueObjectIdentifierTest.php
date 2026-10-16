@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
@@ -26,13 +25,10 @@ final class ValueObjectIdentifierTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new ArticleEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier',
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier', ],
+            environment: 'prod',
         );
 
         $articleId = Uuid::fromString('fc6023e7-1d48-4f59-abc9-72a087787d3e');

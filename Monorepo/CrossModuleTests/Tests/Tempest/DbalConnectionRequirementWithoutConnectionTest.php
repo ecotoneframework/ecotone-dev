@@ -23,11 +23,10 @@ final class DbalConnectionRequirementWithoutConnectionTest extends TestCase
 
         EcotoneLite::bootstrap(
             classesToResolve: [],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture\\Counter\\']),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../../../packages/Tempest/',
+            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\Counter\\'],
+            environment: 'prod',
         );
     }
 }

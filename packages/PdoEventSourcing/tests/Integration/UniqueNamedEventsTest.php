@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -27,15 +26,10 @@ final class UniqueNamedEventsTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
-                ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\UniqueEventNames',
-                ]),
+            extensionObjects: [InMemoryRepositoryBuilder::createForAllEventSourcedAggregates()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\UniqueEventNames', ],
         )
             ->getFlowTestSupport()
         ;

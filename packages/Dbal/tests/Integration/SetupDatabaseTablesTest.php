@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -26,9 +25,8 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         $ecotone->getGateway(DocumentStore::class)->addDocument('orders', 'o-1', '{"product":"milk"}');
@@ -41,9 +39,8 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
@@ -62,22 +59,14 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
 
     public function test_the_bootstrap_leaves_out_a_connection_the_test_does_not_register(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
-        );
+        $ecotone = EcotoneLite::bootstrapFlowTesting(extensionObjects: [DbalConfiguration::createWithDefaults()], enabledModules: [ModulePackageList::DBAL_PACKAGE]);
 
         self::assertSame([], $ecotone->popRecordedEvents());
     }
 
     public function test_setting_up_tables_without_a_connection_keeps_the_document_store_in_memory(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
-        );
+        $ecotone = EcotoneLite::bootstrapFlowTesting(extensionObjects: [DbalConfiguration::createWithDefaults()], enabledModules: [ModulePackageList::DBAL_PACKAGE]);
 
         $ecotone->setupDatabaseTables();
         $ecotone->getGateway(DocumentStore::class)->addDocument('orders', 'o-1', ['product' => 'milk']);
@@ -89,9 +78,8 @@ final class SetupDatabaseTablesTest extends DbalMessagingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([CustomDeadLetterGateway::createWith('reportingDeadLetter', 'reporting_connection')]),
+            extensionObjects: [CustomDeadLetterGateway::createWith('reportingDeadLetter', 'reporting_connection')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         try {

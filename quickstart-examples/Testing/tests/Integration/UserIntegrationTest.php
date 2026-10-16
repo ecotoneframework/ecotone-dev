@@ -25,13 +25,10 @@ final class UserIntegrationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [User::class],
             [new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
-            ServiceConfiguration::createWithDefaults()
-                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                ->withEnabledModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
-                ]),
+            extensionObjects: [InMemoryRepositoryBuilder::createForAllStateStoredAggregates()],
+            enabledModules: [ModulePackageList::JMS_CONVERTER_PACKAGE],
             pathToRootCatalog: __DIR__,
+            namespaces: ["App\Testing\Infrastructure\Converter"],
         );
 
         $ecotoneLite->sendCommandWithRouting("user.register", \json_encode([

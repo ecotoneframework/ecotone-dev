@@ -13,7 +13,6 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -52,7 +51,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                 WidgetCountForCrossConnectionDecisionModelTest::class,
                 HandlerInjectingWidgetCountForCrossConnectionDecisionModelTest::class,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -66,7 +65,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                     ArchivedWidgetCountForCrossConnectionDecisionModelTest::class,
                     HandlerInjectingArchivedWidgetCountForCrossConnectionDecisionModelTest::class,
                 ],
-                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
             $this->fail('Expected a ConfigurationException');
@@ -86,7 +85,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                 HandlerInjectingSameConnectionAggregateBackedModelForCrossConnectionDecisionModelTest::class,
                 SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest::class,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -101,7 +100,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                 SameConnectionModelForCrossConnectionDecisionModelTest::class,
                 SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest::class,
             ],
-            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            extensionObjects: [DynamicConsistencyBoundaryConfiguration::createWithDefaults()],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

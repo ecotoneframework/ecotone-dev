@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration\Consumer;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\ChannelTestSupport;
@@ -29,12 +28,8 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(200),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(200)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         /** @var PollableChannel $messageChannel */

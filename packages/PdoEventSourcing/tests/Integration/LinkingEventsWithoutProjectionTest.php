@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -50,15 +49,11 @@ final class LinkingEventsWithoutProjectionTest extends EventSourcingMessagingTes
                 new TicketEventConverter(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnvironment('prod')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection',
-                ])
-                ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            extensionObjects: [EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection', ],
+            environment: 'prod',
         );
         $ecotone->setupDatabaseTables();
 

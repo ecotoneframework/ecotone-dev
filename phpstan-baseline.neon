@@ -181,12 +181,6 @@ parameters:
 			path: packages/Dbal/src/MultiTenant/HeaderBasedMultiTenantConnectionFactory.php
 
 		-
-			message: '#^PHPDoc tag @param for parameter \$className contains unresolvable type\.$#'
-			identifier: parameter.unresolvableType
-			count: 1
-			path: packages/Ecotone/Api/ExtensionObject/ServiceConfiguration.php
-
-		-
 			message: '#^Call to an undefined method Psr\\Container\\ContainerInterface\:\:set\(\)\.$#'
 			identifier: method.notFound
 			count: 1

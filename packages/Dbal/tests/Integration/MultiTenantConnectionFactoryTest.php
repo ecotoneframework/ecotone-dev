@@ -9,7 +9,6 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -174,21 +173,15 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [BetService::class],
             array_merge([new BetService()], $connections),
-            (ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    PollingMetadata::create('bets')
-                        ->withExecutionAmountLimit(1),
-                    $defaultConnectionName
-                        ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class)
-                        : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withDeduplication(false),
-                ]))->addExtensionObject(FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class)),
-            allowGatewaysToBeRegisteredInContainer: true
+            extensionObjects: [
+                PollingMetadata::create('bets')->withExecutionAmountLimit(1),
+                $defaultConnectionName ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class) : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withDeduplication(false),
+                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            allowGatewaysToBeRegisteredInContainer: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

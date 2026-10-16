@@ -103,36 +103,43 @@ abstract class AmqpMessagingTestCase extends TestCase
     }
 
     /**
-     * Bootstrap Ecotone for testing with writable cache directory
-     * This is a wrapper around EcotoneLite::bootstrapFlowTesting that automatically sets the cache directory
+     * @param string[] $classesToResolve
+     * @param object[] $extensionObjects
+     * @param string[]|null $enabledModules
+     * @param array<string,mixed> $configurationVariables
+     * @param string[] $namespaces
      */
     protected function bootstrapFlowTesting(
         array $classesToResolve = [],
         array $containerOrAvailableServices = [],
-        ?\Ecotone\Api\ExtensionObject\ServiceConfiguration $configuration = null,
+        array $extensionObjects = [],
+        ?array $enabledModules = null,
         array $configurationVariables = [],
         ?string $pathToRootCatalog = null,
         bool $allowGatewaysToBeRegisteredInContainer = false,
         bool $addInMemoryStateStoredRepository = true,
         bool $addInMemoryEventSourcedRepository = true,
         ?\Ecotone\Api\ExtensionObject\TestConfiguration $testConfiguration = null,
-        ?string $licenceKey = null
+        ?string $licenceKey = null,
+        array $namespaces = [],
+        string $environment = 'dev',
+        ?string $cacheDirectoryPath = null,
     ): \Ecotone\Api\Lite\Test\FlowTestSupport {
-        if ($configuration === null) {
-            $configuration = \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults();
-        }
-
         return \Ecotone\Api\Lite\EcotoneLite::bootstrapFlowTesting(
             $classesToResolve,
             $containerOrAvailableServices,
-            $configuration,
+            $extensionObjects,
+            $enabledModules,
             $configurationVariables,
             $pathToRootCatalog,
             $allowGatewaysToBeRegisteredInContainer,
             $addInMemoryStateStoredRepository,
             $addInMemoryEventSourcedRepository,
             $testConfiguration,
-            $licenceKey
+            $licenceKey,
+            $namespaces,
+            $environment,
+            $cacheDirectoryPath,
         );
     }
 

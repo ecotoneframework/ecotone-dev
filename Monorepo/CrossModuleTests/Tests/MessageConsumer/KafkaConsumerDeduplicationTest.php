@@ -55,18 +55,13 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 new KafkaConsumerWithDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),
-                    KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper('*'),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                TopicConfiguration::createWithReferenceName('deduplication_topic',$topicName),
+                KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000);
 
@@ -124,18 +119,13 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 new KafkaConsumerWithDefaultDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    TopicConfiguration::createWithReferenceName('default_deduplication_topic', $topicName),
-                    KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper('*'),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                TopicConfiguration::createWithReferenceName('default_deduplication_topic',$topicName),
+                KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** @var MessagePublisher $messagePublisher */
@@ -193,18 +183,13 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 new KafkaConsumerWithDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([
-                    ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),
-                    KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper('*'),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                TopicConfiguration::createWithReferenceName('deduplication_topic',$topicName),
+                KafkaPublisherConfiguration::createWithDefaults($topicName)->withHeaderMapper('*'),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         /** @var MessagePublisher $messagePublisher */

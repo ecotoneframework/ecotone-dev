@@ -10,7 +10,6 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromStream;
@@ -85,9 +84,8 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([EventSourcingConfiguration::createInMemory()]),
+            extensionObjects: [EventSourcingConfiguration::createInMemory()],
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
 
         self::assertFalse($ecotone->getGateway(EventStore::class)->hasStream('nobody_declares_this_stream'));
@@ -106,9 +104,8 @@ final class UndeclaredStreamRefusalTest extends EventSourcingMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: array_map(static fn (object $class) => $class::class, $classes),
             containerOrAvailableServices: [...$classes, DbalConnectionFactory::class => self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([EventSourcingConfiguration::createWithDefaults()]),
+            extensionObjects: [EventSourcingConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
     }
 }

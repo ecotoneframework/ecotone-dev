@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -31,13 +30,9 @@ final class SynchronousEventDrivenSagaTest extends TestCase
     {
         $testSupport = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new SagaProjection(), new SynchronousBasketList(), new SagaEventConverter(), new BasketEventConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Basket',
-                    'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga',
-                ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            pathToRootCatalog: __DIR__ . '/../../',
+            namespaces: ['Test\Ecotone\EventSourcing\Fixture\Basket', 'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga', ],
         );
 
         $testSupport->sendCommand(new CreateBasket('1000'));

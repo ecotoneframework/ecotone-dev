@@ -6,7 +6,6 @@ namespace Test\Ecotone\Dbal\Integration\Consumer;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -31,11 +30,8 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                ])
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         $this->documentStore = $ecotoneLite->getGateway(DocumentStore::class);
@@ -121,11 +117,8 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
-                ])
+            extensionObjects: [DbalConfiguration::createWithDefaults()],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         $newDocumentStore = $newEcotoneLite->getGateway(DocumentStore::class);

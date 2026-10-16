@@ -5,6 +5,7 @@ namespace Monorepo\ExampleAppEventSourcing\Common\Infrastructure;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
 class EcotoneConfiguration
 {
@@ -12,6 +13,12 @@ class EcotoneConfiguration
     public function turnOffTransactions(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults();
+    }
+
+    #[ServiceContext]
+    public function serviceConfiguration(): ServiceConfiguration
+    {
+        return ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel');
     }
 
     #[ServiceContext]

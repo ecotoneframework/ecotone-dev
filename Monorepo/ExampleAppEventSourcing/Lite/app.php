@@ -3,7 +3,6 @@
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Monorepo\ExampleAppEventSourcing\EcotoneProjection\PriceChangeOverTimeProjectionWithEcotoneProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
@@ -13,13 +12,10 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             PriceChangeOverTimeProjectionWithEcotoneProjection::class => new PriceChangeOverTimeProjectionWithEcotoneProjection(),
             DbalConnectionFactory::class => new DbalConnectionFactory($connectionString),
         ],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->doNotLoadCatalog()
-            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'])
-            ->withCacheDirectoryPath(__DIR__ . "/var/cache")
-            ->withDefaultErrorChannel('errorChannel')
-            ->withEnabledModulePackageNames(\json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? []),
+        enabledModules: \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'),true)??[],
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__,
+        namespaces: ['Monorepo\\ExampleAppEventSourcing\\Common\\','Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'],
+        cacheDirectoryPath: __DIR__."/var/cache",
     );
 };

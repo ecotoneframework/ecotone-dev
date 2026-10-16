@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -50,11 +49,8 @@ final class DbalChannelClockAfterTransactionTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapFlowTesting(
             [$handler::class],
             [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1),
-                ])
+            [DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1)],
+            [ModulePackageList::DBAL_PACKAGE],
         );
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'order-1');

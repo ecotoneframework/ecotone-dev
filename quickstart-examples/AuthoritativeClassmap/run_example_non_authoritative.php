@@ -9,12 +9,7 @@ exec("composer update --ignore-platform-reqs --no-dev");
 
 require __DIR__ . "/vendor/autoload.php";
 try {
-    $messagingSystem = EcotoneLite::bootstrap(
-        pathToRootCatalog: __DIR__,
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->doNotLoadCatalog()
-            ->withNamespaces(["App"]),
-    );
+    $messagingSystem = EcotoneLite::bootstrap(pathToRootCatalog: __DIR__, namespaces: ["App"]);
 
     throw new Exception("ERROR: Expected an error to be thrown !");
 } catch (Error $e) {

@@ -53,9 +53,8 @@ function getConfiguredMessagingSystem(string $stageToRun, UuidInterface $userId,
 
     $messagingSystem = EcotoneLite::bootstrap(
         containerOrAvailableServices: $services,
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withNamespaces([$namespace]),
         pathToRootCatalog: __DIR__,
+        namespaces: [$namespace],
     );
     $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 

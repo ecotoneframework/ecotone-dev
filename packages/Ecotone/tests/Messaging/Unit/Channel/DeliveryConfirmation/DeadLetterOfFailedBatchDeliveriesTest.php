@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\BatchMessage;
@@ -53,11 +52,12 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, AsyncOrderSubscriber::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
-                    ->withErrorChannel('dead_letters'),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())->withErrorChannel('dead_letters'),
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('dead_letters'),
+            ],
+            enabledModules: [],
         );
         $ordersChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
@@ -80,11 +80,12 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             [new OrderService($operationsLog), OperationsLog::class => $operationsLog],
-            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
-                    ->withErrorChannel('dead_letters'),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())->withErrorChannel('dead_letters'),
+                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('dead_letters'),
+            ],
+            enabledModules: [],
         );
     }
 

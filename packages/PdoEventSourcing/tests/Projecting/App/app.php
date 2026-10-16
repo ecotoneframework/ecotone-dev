@@ -48,12 +48,11 @@ $services = [
 
 return EcotoneLite::bootstrap(
     containerOrAvailableServices: $services,
-    configuration: ServiceConfiguration::createWithDefaults()
-        ->doNotLoadCatalog()
-        ->withFailFast(false)
-        ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-        ->withDefaultErrorChannel('errorChannel')
-        ->withNamespaces(['Test\\Ecotone\\EventSourcing\\Projecting\\App'])
-        ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-        ->withExtensionObjects([DbalConfiguration::createWithDefaults()]),
+    extensionObjects: [
+        DbalConfiguration::createWithDefaults(),
+        ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
+    ],
+    enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
+    licenceKey: LicenceTesting::VALID_LICENCE,
+    namespaces: ['Test\\Ecotone\\EventSourcing\\Projecting\\App'],
 );

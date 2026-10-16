@@ -6,7 +6,6 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
@@ -52,12 +51,11 @@ final class CommitIntervalTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithCommitInterval::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaConsumerWithCommitInterval()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults($topicName),
-                    TopicConfiguration::createWithReferenceName('testTopic', $topicName),
-                ]),
+            extensionObjects: [
+                KafkaPublisherConfiguration::createWithDefaults($topicName),
+                TopicConfiguration::createWithReferenceName('testTopic', $topicName),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -135,12 +133,11 @@ final class CommitIntervalTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$consumerClass],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $consumerInstance ?? new $consumerClass()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults($topicName),
-                    TopicConfiguration::createWithReferenceName('testTopic', $topicName),
-                ]),
+            extensionObjects: [
+                KafkaPublisherConfiguration::createWithDefaults($topicName),
+                TopicConfiguration::createWithReferenceName('testTopic', $topicName),
+            ],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

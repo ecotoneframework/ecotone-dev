@@ -9,7 +9,6 @@ use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
@@ -30,19 +29,11 @@ final class MultiTenantLicensingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             ['tenant_a_connection' => new FakeConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        ['tenant_a' => 'tenant_a_connection'],
-                        DbalConnectionFactory::class,
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnCommandBus(false)
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withDeduplication(false),
-                ]),
+            extensionObjects: [
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection'], DbalConnectionFactory::class, ),
+                DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withDeduplication(false),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 
@@ -62,8 +53,7 @@ final class MultiTenantLicensingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [$service::class],
             [$service],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 }

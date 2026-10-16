@@ -23,6 +23,7 @@ final class MessageChannelConfiguration
     public function configuration()
     {
         return [
+            ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'),
             InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
             SimpleMessageChannelBuilder::createQueueChannel(
                 'notifications',

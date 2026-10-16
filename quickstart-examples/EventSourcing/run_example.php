@@ -15,8 +15,8 @@ $messagingSystem = EcotoneLite::bootstrap(
         new PriceChangeOverTimeProjection(),
         DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
     ],
-    configuration: ServiceConfiguration::createWithDefaults()->withNamespaces(['App']),
     pathToRootCatalog: __DIR__,
+    namespaces: ['App'],
 );
 $messagingSystem->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
 

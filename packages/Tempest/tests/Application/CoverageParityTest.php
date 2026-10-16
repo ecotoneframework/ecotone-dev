@@ -24,12 +24,12 @@ final class CoverageParityTest extends EcotoneIntegrationTestCase
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\User\\'],
             enabledModulePackageNames: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
-            cacheConfiguration: true,
         );
     }
 
     protected function setUp(): void
     {
+        putenv('DISCOVERY_CACHE=true');
         $this->clearEcotoneTempestCacheDir();
         parent::setUp();
     }
@@ -38,6 +38,7 @@ final class CoverageParityTest extends EcotoneIntegrationTestCase
     {
         parent::tearDown();
         $this->clearEcotoneTempestCacheDir();
+        putenv('DISCOVERY_CACHE');
     }
 
     public function test_handlers_work_on_warm_prod_cache_boot(): void

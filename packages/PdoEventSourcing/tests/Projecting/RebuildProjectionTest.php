@@ -11,7 +11,6 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -439,11 +438,10 @@ final class RebuildProjectionTest extends ProjectingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: (ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->withExtensionObjects(is_array($channels) ? $channels : [])->addExtensionObject(DbalConfiguration::createForTesting()),
+            extensionObjects: array_merge(is_array($channels) ? $channels : [], [DbalConfiguration::createForTesting()]),
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ],
+            testConfiguration: $testConfiguration,
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: $testConfiguration
         );
     }
 }

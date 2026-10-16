@@ -12,7 +12,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -70,12 +69,8 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         EcotoneLite::bootstrapFlowTesting(
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [SqsMessagePublisherConfiguration::create(queueName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
         );
     }
 
@@ -137,13 +132,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [$commandHandler::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsMessagePublisherConfiguration::create(queueName: $queueName)
-                        ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000),
-                    SqsBackedMessageChannelBuilder::create($queueName),
-                ]),
+            extensionObjects: [
+                SqsMessagePublisherConfiguration::create(queueName:$queueName)->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:10000),
+                SqsBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -240,12 +233,8 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')->withHighThroughputPublishing()],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
             licenceKey: $licenceKey,
         );
     }
@@ -260,12 +249,11 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         return EcotoneLite::bootstrapFlowTesting(
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::SQS_PACKAGE])
-                ->withExtensionObjects([
-                    $publisherConfiguration,
-                    SqsBackedMessageChannelBuilder::create($queueName),
-                ]),
+            extensionObjects: [
+                $publisherConfiguration,
+                SqsBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -39,9 +38,8 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting(
@@ -64,10 +62,8 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting(
@@ -89,8 +85,8 @@ final class MetadataPropagatingTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $orderId = '1';
@@ -110,8 +106,8 @@ final class MetadataPropagatingTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $orderId = '1';
@@ -131,15 +127,12 @@ final class MetadataPropagatingTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class],
-            configuration: (ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects(
-                    [
-                        CombinedMessageChannel::create(
-                            'orders',
-                            ['outbox', 'processing']
-                        ),
-                    ]
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('outbox'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('processing'))
+            extensionObjects: [
+                CombinedMessageChannel::create('orders', ['outbox', 'processing']),
+                SimpleMessageChannelBuilder::createQueueChannel('outbox'),
+                SimpleMessageChannelBuilder::createQueueChannel('processing'),
+            ],
+            enabledModules: [],
         );
 
         $orderId = '1';
@@ -161,10 +154,8 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService()],
-            configuration: ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                ])
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->sendCommandWithRouting('sendNotificationViaCommandBus');
@@ -181,8 +172,11 @@ final class MetadataPropagatingTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [Basket::class, ItemInventory::class],
-            configuration: (ServiceConfiguration::createWithDefaults())->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('basket'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory'))
-                ->withEnabledModulePackageNames([])
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('basket'),
+                SimpleMessageChannelBuilder::createQueueChannel('itemInventory'),
+            ],
+            enabledModules: [],
         );
 
         $ecotoneTestSupport->withEventsFor(

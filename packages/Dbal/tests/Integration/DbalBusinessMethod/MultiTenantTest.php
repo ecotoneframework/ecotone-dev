@@ -7,7 +7,6 @@ namespace Integration\DbalBusinessMethod;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -61,37 +60,24 @@ final class MultiTenantTest extends DbalMessagingTestCase
         $this->setupUserTable($this->connectionForTenantB()->createContext()->getDbalConnection());
 
         return $this->bootstrapFlowTesting(
-            containerOrAvailableServices:
-                [
-                    'tenant_a_connection' => $this->connectionForTenantA(),
-                    'tenant_b_connection' => $this->connectionForTenantB(),
-                    PersonRoleConverter::class => new PersonRoleConverter(),
-                    PersonNameDTOConverter::class => new PersonNameDTOConverter(),
-                    'converter' => new PersonNameNormalizer(),
-                    DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
-                    PersonCommandService::class => new PersonCommandService(),
-                ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
-                    'Test\Ecotone\Dbal\Fixture\ORM\Person',
-                    'Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler',
-                ])
-                ->withExtensionObjects([
-                    MultiTenantConfiguration::create(
-                        tenantHeaderName: 'tenant',
-                        tenantToConnectionMapping: [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ],
-                    ),
-                    DbalConfiguration::createWithDefaults()
-                        ->withDoctrineORMRepositories(true, [Person::class]),
-                ]),
+            containerOrAvailableServices: [
+                'tenant_a_connection' => $this->connectionForTenantA(),
+                'tenant_b_connection' => $this->connectionForTenantB(),
+                PersonRoleConverter::class => new PersonRoleConverter(),
+                PersonNameDTOConverter::class => new PersonNameDTOConverter(),
+                'converter' => new PersonNameNormalizer(),
+                DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
+                PersonCommandService::class => new PersonCommandService(),
+            ],
+            extensionObjects: [
+                MultiTenantConfiguration::create(tenantHeaderName:'tenant', tenantToConnectionMapping:['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection', ], ),
+                DbalConfiguration::createWithDefaults()->withDoctrineORMRepositories(true, [Person::class]),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE],
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: false
+            addInMemoryStateStoredRepository: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            namespaces: ['Test\Ecotone\Dbal\Fixture\DbalBusinessInterface', 'Test\Ecotone\Dbal\Fixture\ORM\Person', 'Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler', ],
         );
     }
 }

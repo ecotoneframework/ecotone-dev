@@ -26,6 +26,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -126,7 +127,7 @@ final class MessageHandlerRoutingModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $routingEventHandlers = ExtensionObjectResolver::resolve(RoutingEventHandler::class, $extensionObjects);
-        $isRunningForFlowTesting = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())
+        $isRunningForFlowTesting = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults())
             ->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE);
         $commandBusRoutingConfig = new BusRoutingMapBuilder(true, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {

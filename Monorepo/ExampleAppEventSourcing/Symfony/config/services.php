@@ -11,11 +11,8 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
         'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'],
-        'defaultErrorChannel' => 'errorChannel',
-        'failFast' => false,
         'enabledModulePackageNames' => \json_decode(\getenv('APP_ENABLED_MODULE_PACKAGE_NAMES'), true) ?? [],
     ]);
 

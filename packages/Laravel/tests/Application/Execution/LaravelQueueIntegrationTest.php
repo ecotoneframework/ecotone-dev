@@ -8,7 +8,6 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\MediaType;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -58,10 +57,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName, 'database'),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName, 'database')],
+            enabledModules: [],
         );
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
@@ -80,10 +77,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
         $metadata = [
             MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122(),
@@ -115,13 +110,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create(
-                        $channelName,
-                        'redis'
-                    ),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName, 'redis')],
+            enabledModules: [],
         );
         $metadata = [
             MessageHeaders::MESSAGE_ID => '123',
@@ -153,10 +143,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
@@ -176,11 +164,11 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ])
+            extensionObjects: [
+                LaravelQueueMessageChannelBuilder::create($channelName),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
@@ -199,12 +187,11 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
-                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
-                ])
+            extensionObjects: [
+                LaravelQueueMessageChannelBuilder::create($channelName)->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+            ],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
@@ -222,10 +209,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.noPayload');
@@ -244,10 +229,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.arrayPayload', $payload);
@@ -267,10 +250,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
@@ -292,10 +273,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
@@ -315,10 +294,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncEventHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->publishEvent($messagePayload);
@@ -349,10 +326,8 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    LaravelQueueMessageChannelBuilder::create($channelName),
-                ])
+            extensionObjects: [LaravelQueueMessageChannelBuilder::create($channelName)],
+            enabledModules: [],
         );
 
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [

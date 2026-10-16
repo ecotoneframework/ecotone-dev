@@ -8,7 +8,6 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
@@ -35,12 +34,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new EmailCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -63,11 +61,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new EmailCommandHandler(1),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('email')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $ecotoneLite->sendCommandWithRouting('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122()]);
@@ -96,12 +91,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                DbalBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -124,12 +118,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 60000),
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime:60000),
+                DbalBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -155,12 +148,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime:1, removalBatchSize:1),
+                DbalBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -186,12 +178,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new DeduplicatedEventHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(false),
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [
+                DbalConfiguration::createWithDefaults()->withDeduplication(false),
+                DbalBackedMessageChannelBuilder::create($queueName),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $messageId = Uuid::v7()->toRfc4122();
@@ -215,13 +206,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new EmailCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName)
-                        ->withAutoDeclare(false),
-                    DbalBackedMessageChannelBuilder::create('email'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create($queueName)->withAutoDeclare(false),
+                DbalBackedMessageChannelBuilder::create('email'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $emailId = '123x';
@@ -242,12 +231,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $this->assertEquals(
@@ -267,12 +255,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $this->assertEquals(
@@ -292,12 +279,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $this->assertEquals(
@@ -317,12 +303,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $this->assertEquals(
@@ -343,11 +328,8 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new ExpressionDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName),
-                ])
+            extensionObjects: [DbalBackedMessageChannelBuilder::create($queueName)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         $this->assertEquals(
@@ -368,12 +350,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new TrackingNameDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         // Send same orderId to both tracking contexts
@@ -394,12 +375,11 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 new TrackingNameDeduplicationCommandHandler(),
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email'),
-                    DbalBackedMessageChannelBuilder::create('async_expression'),
-                ])
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('email'),
+                DbalBackedMessageChannelBuilder::create('async_expression'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
         );
 
         // Send same orderId twice to same tracking context

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
@@ -66,12 +65,8 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
-                        ->setConfiguration('message.max.bytes', '4000000'),
-                ]),
+            extensionObjects: [KafkaPublisherConfiguration::createWithDefaults(topicName:Uuid::v7()->toRfc4122())->setConfiguration('message.max.bytes', '4000000')],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $publisher = $messaging->getGateway(MessagePublisher::class);
@@ -86,13 +81,8 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::KAFKA_PACKAGE])
-                ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
-                        ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000)
-                        ->setConfiguration('message.max.bytes', '4000000'),
-                ]),
+            extensionObjects: [KafkaPublisherConfiguration::createWithDefaults(topicName:Uuid::v7()->toRfc4122())->withHighThroughputPublishing(confirmationTimeoutInMilliseconds:10000)->setConfiguration('message.max.bytes', '4000000')],
+            enabledModules: [ModulePackageList::KAFKA_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

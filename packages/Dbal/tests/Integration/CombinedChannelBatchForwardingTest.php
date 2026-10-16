@@ -63,12 +63,11 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -105,14 +104,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing')
-                        ->withHighThroughputPublishing(),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing')->withHighThroughputPublishing(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -141,14 +138,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
-                        ->withMaxForwardingBatchSize(2),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')->withMaxForwardingBatchSize(2),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -175,14 +170,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
-                        ->withMaxForwardingBatchSize(100),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')->withMaxForwardingBatchSize(100),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -219,15 +212,14 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    CombinedMessageChannel::create('otherOrders', ['outbox', 'otherProcessing']),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('otherProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                CombinedMessageChannel::create('otherOrders', ['outbox', 'otherProcessing']),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('otherProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -247,13 +239,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
     }
 
@@ -270,13 +261,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
         );
 
         $messaging->sendCommandWithRouting('order.register', 'espresso');
@@ -308,17 +298,14 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('standardOrders', 'outbox', 'standardProcessing')
-                        ->withMaxForwardingBatchSize(2),
-                    OutboxForwardingMessageChannel::create('priorityOrders', 'outbox', 'priorityProcessing')
-                        ->withMaxForwardingBatchSize(2),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('standardProcessing'),
-                    DbalBackedMessageChannelBuilder::create('priorityProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('standardOrders', 'outbox', 'standardProcessing')->withMaxForwardingBatchSize(2),
+                OutboxForwardingMessageChannel::create('priorityOrders', 'outbox', 'priorityProcessing')->withMaxForwardingBatchSize(2),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('standardProcessing'),
+                DbalBackedMessageChannelBuilder::create('priorityProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -363,11 +350,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('orders'),
-                ]),
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('orders')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -398,18 +382,15 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('standardOrders', 'standardOutbox', 'standardProcessing')
-                        ->withEndpointId('sharedOutboxPublisher'),
-                    OutboxForwardingMessageChannel::create('priorityOrders', 'priorityOutbox', 'priorityProcessing')
-                        ->withEndpointId('sharedOutboxPublisher'),
-                    DbalBackedMessageChannelBuilder::create('standardOutbox'),
-                    DbalBackedMessageChannelBuilder::create('priorityOutbox'),
-                    DbalBackedMessageChannelBuilder::create('standardProcessing'),
-                    DbalBackedMessageChannelBuilder::create('priorityProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('standardOrders', 'standardOutbox', 'standardProcessing')->withEndpointId('sharedOutboxPublisher'),
+                OutboxForwardingMessageChannel::create('priorityOrders', 'priorityOutbox', 'priorityProcessing')->withEndpointId('sharedOutboxPublisher'),
+                DbalBackedMessageChannelBuilder::create('standardOutbox'),
+                DbalBackedMessageChannelBuilder::create('priorityOutbox'),
+                DbalBackedMessageChannelBuilder::create('standardProcessing'),
+                DbalBackedMessageChannelBuilder::create('priorityProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -438,14 +419,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    SimpleMessageChannelBuilder::create('failingProcessing', new FailOnceOnPayloadPollableChannel('cappuccino')),
-                    PollableChannelConfiguration::create('failingProcessing', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                SimpleMessageChannelBuilder::create('failingProcessing', new FailOnceOnPayloadPollableChannel('cappuccino')),
+                PollableChannelConfiguration::create('failingProcessing', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -478,14 +458,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox')
-                        ->withReceiveTimeout(3000),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox')->withReceiveTimeout(3000),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -516,15 +494,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 $orderService,
                 'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -555,15 +531,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 $orderService,
                 'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')->withFinalFailureStrategy(FinalFailureStrategy::STOP),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -597,13 +571,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [$orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'inMemoryOutbox', 'inMemoryProcessing'),
-                    SimpleMessageChannelBuilder::createQueueChannel('inMemoryOutbox'),
-                    SimpleMessageChannelBuilder::createQueueChannel('inMemoryProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'inMemoryOutbox', 'inMemoryProcessing'),
+                SimpleMessageChannelBuilder::createQueueChannel('inMemoryOutbox'),
+                SimpleMessageChannelBuilder::createQueueChannel('inMemoryProcessing'),
+            ],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -623,13 +596,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'misspelled_outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'misspelled_outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -648,14 +620,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             $messaging = $this->bootstrapFlowTesting(
                 [$orderService::class],
                 [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-                ServiceConfiguration::createWithDefaults()
-                    ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                    ->withExtensionObjects([
-                        OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                        DbalBackedMessageChannelBuilder::create('outbox'),
-                        DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                        GlobalPollableChannelConfiguration::createWithDefaults()->withCollector($collectorEnabled),
-                    ]),
+                extensionObjects: [
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    GlobalPollableChannelConfiguration::createWithDefaults()->withCollector($collectorEnabled),
+                ],
+                enabledModules: [ModulePackageList::DBAL_PACKAGE],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
 
@@ -693,13 +664,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -719,13 +689,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -751,13 +720,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -775,13 +743,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -808,13 +775,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    SimpleMessageChannelBuilder::create('failingProcessing', new FailingPollableChannel()),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                SimpleMessageChannelBuilder::create('failingProcessing', new FailingPollableChannel()),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -845,17 +811,15 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                     $orderService,
                     'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
                 ],
-                ServiceConfiguration::createWithDefaults()
-                    ->withDefaultErrorChannel('customErrorChannel')
-                    ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                    ->withExtensionObjects([
-                        OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                        DbalBackedMessageChannelBuilder::create('outbox')
-                            ->withFinalFailureStrategy($finalFailureStrategy),
-                        DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                        SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
-                        SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
-                    ]),
+                extensionObjects: [
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                    DbalBackedMessageChannelBuilder::create('outbox')->withFinalFailureStrategy($finalFailureStrategy),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+                    ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('customErrorChannel'),
+                ],
+                enabledModules: [ModulePackageList::DBAL_PACKAGE],
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
 
@@ -888,17 +852,15 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 $orderService,
                 'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('customErrorChannel')
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox')
-                        ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                    SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
-                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox')->withFinalFailureStrategy(FinalFailureStrategy::STOP),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('customErrorChannel'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -930,13 +892,12 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -1030,14 +991,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 $orderService,
                 'failingDeliveryInterceptor' => new FailOnceOnPayloadChannelInterceptor('cappuccino', $exceptionClass),
             ],
-            ServiceConfiguration::createWithDefaults()
-                ->withEnabledModulePackageNames([ModulePackageList::DBAL_PACKAGE])
-                ->withExtensionObjects([
-                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
-                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'failingDeliveryInterceptor'),
-                ]),
+            extensionObjects: [
+                OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                DbalBackedMessageChannelBuilder::create('outbox'),
+                DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                SimpleChannelInterceptorBuilder::create('orderProcessing', 'failingDeliveryInterceptor'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

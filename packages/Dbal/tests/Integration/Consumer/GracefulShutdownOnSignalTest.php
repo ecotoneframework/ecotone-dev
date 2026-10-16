@@ -32,12 +32,6 @@ final class GracefulShutdownOnSignalTest extends DbalMessagingTestCase
 
         $channelName = Uuid::v7()->toRfc4122();
 
-        // Spawn an independent OS process (not a fork) to deliver the signal - forking
-        // this PHP process would duplicate the already-open DB connection's socket fd
-        // (opened in DbalMessagingTestCase::setUp()) into the child and corrupt it.
-        $parentPid = posix_getpid();
-        exec(sprintf('(sleep 1 && kill -TERM %d) > /dev/null 2>&1 &', $parentPid));
-
         $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -49,6 +43,13 @@ final class GracefulShutdownOnSignalTest extends DbalMessagingTestCase
                         ->withReceiveTimeout(200),
                 ])
         );
+
+        // Spawn an independent OS process (not a fork) to deliver the signal - forking
+        // this PHP process would duplicate the already-open DB connection's socket fd
+        // (opened in DbalMessagingTestCase::setUp()) into the child and corrupt it.
+        // The signal is scheduled after bootstrap, so it cannot reach the process before
+        // run() has installed the consumer's handler and terminate PHPUnit instead.
+        exec(sprintf('(sleep 1 && kill -TERM %d) > /dev/null 2>&1 &', posix_getpid()));
 
         $startedAt = microtime(true);
 

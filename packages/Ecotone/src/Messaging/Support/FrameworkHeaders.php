@@ -66,7 +66,6 @@ final class FrameworkHeaders
             $metadata[MessageHeaders::INBOUND_REQUEST_CHANNEL],
             $metadata[MessageHeaders::CONSUMER_POLLING_METADATA],
             $metadata[MessageHeaders::REPLY_CHANNEL],
-            $metadata[MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER],
         );
 
         return $metadata;
@@ -152,6 +151,8 @@ final class FrameworkHeaders
             MessageHeaders::STREAM_BASED_SOURCED,
             MessagingEntrypointService::ENTRYPOINT,
             MessageHeaders::CHANNEL_SEND_RETRY_NUMBER,
+            MessageHeaders::TRACEPARENT,
+            MessageHeaders::TRACESTATE,
         ];
     }
 }

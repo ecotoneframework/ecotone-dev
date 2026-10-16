@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ecotone\Tracing;
+
+use Ecotone\Api\Tracing\SpanKind;
+
+/**
+ * licence Apache-2.0
+ */
+interface Tracer
+{
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    public function startSpan(string $name, SpanKind $kind, array $attributes = [], ?SpanContext $remoteParent = null): ActiveSpan;
+
+    public function currentSpan(): ?ActiveSpan;
+}

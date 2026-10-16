@@ -72,7 +72,8 @@ final class MessageHeaders
 
     public const CHANNEL_SEND_RETRY_NUMBER = 'channelSendRetryNumber';
 
-    public const TEMPORARY_SPAN_CONTEXT_HEADER = 'ecotone.temporarySpanContext';
+    public const TRACEPARENT = 'traceparent';
+    public const TRACESTATE = 'tracestate';
 
     public const EVENT_AGGREGATE_TYPE = '_aggregate_type';
 

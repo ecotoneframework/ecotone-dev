@@ -127,6 +127,22 @@ final class TraceCompletionTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    public function test_a_synchronous_handler_without_an_explicit_endpoint_id_still_completes_its_route(): void
+    {
+        $notifier = new class () {
+            #[EventHandler('user.registered')]
+            public function notify(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifier]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
     public function test_a_trace_nobody_recorded_is_not_completed(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);

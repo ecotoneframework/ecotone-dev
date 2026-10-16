@@ -3000,6 +3000,43 @@ $ecotone->sendCommand(new PlaceOrder('1'));
 $recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
 ```
 
+### Stored traces answer "has it completed yet?" (Enterprise)
+
+**Before:** an application that wrote through a command and then read through an asynchronous projection had no way
+to know when the projection had caught up: it polled its own read model, or guessed with a delay. Spans existed only
+in an external collector, after the fact.
+
+**Now:** `TracingConfiguration::createWithDefaults()->withStoredTraces()` keeps every span in the database as well,
+in `ecotone_traces` and `ecotone_spans`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
+or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit;
+the root span is written when it ends, after the commit. From those spans the `TraceCompletion` gateway answers
+`isCompleted($traceId)`, true once the root ended and every route the trace sent has an ended handler span,
+`isCompletedFor($traceId, $destination)` for one `endpointId` or projection name, and `await()` / `awaitFor()`,
+which poll until then or throw `TraceCompletionTimedOut` naming what is still pending. A method with
+`#[OnTraceCompleted]` receives a `TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every
+stored span, both after the commit that produced them, so a websocket push or a cache refresh never runs ahead of
+the data. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
+with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the
+store in memory. `ecotone:tracing:remove-expired-traces` deletes traces older than the retention passed to
+`withStoredTraces()`, seven days by default.
+
+```php
+$trace = SpanContext::newTrace();
+$commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+$traceCompletion->awaitFor($trace->traceId, 'orders_list', Duration::seconds(5));
+
+final class OrdersWebsocket
+{
+    #[OnTraceCompleted]
+    public function push(TraceCompleted $event): void
+    {
+    }
+}
+```
+
+**How to adapt:** nothing is required. To use it, register `withStoredTraces()`, run the setup command for the two
+tables, and give each handler you want to ask about an explicit `endpointId`.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
@@ -3323,6 +3360,7 @@ normal section with "How to adapt" steps when it ships.
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
+| Trace completion by depth, and recording only requested traces | Stored traces (§14) answer whether a whole trace or one destination completed. Two parts of the agreed design are not implemented: `#[OnTraceDepthCompleted]`, notified when every handler at one depth of the trace tree ended (the command handler is depth 1, the event handlers it triggered depth 2, and so on), which needs the depth carried in `tracestate` across the asynchronous boundary; and recording only traces that ask for it through a `tracestate` entry, so that an application can keep storing off for ordinary traffic and on for the requests that await completion. Today `withStoredTraces()` stores every trace and relies on the retention command | Design recorded in the conversation that produced §14's tracing sections (the ledger, the unit-of-work flush before commit, publication after commit); no spec file yet |
 | Stateless `#[Apply]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[Apply]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
 
 ---

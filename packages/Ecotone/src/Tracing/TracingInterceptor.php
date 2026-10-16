@@ -46,22 +46,22 @@ final class TracingInterceptor
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, CommandHandler $endpoint): mixed
     {
-        return $this->trace('Command Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes($endpoint->getEndpointId()));
+        return $this->trace('Command Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
     }
 
     public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message, QueryHandler $endpoint): mixed
     {
-        return $this->trace('Query Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes($endpoint->getEndpointId()));
+        return $this->trace('Query Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
     }
 
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, EventHandler $endpoint): mixed
     {
-        return $this->trace('Event Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes($endpoint->getEndpointId()));
+        return $this->trace('Event Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
     }
 
     public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message, InternalHandler $endpoint): mixed
     {
-        return $this->trace('Message Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes($endpoint->getEndpointId()));
+        return $this->trace('Message Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
     }
 
     public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message): mixed

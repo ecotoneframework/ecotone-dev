@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Modelling\Unit\MessageHandling;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StubMethodInvocation;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**

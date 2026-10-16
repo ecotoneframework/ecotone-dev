@@ -144,18 +144,25 @@ Available variables: `payload` (message payload), `headers` (message headers).
 
 ## 6. Repository Pattern
 
-Ecotone auto-generates repositories for aggregates. For custom repositories:
+Ecotone auto-generates repositories for aggregates. To reach one through an interface of your own, put
+`#[Repository]` on each method -- Ecotone generates the implementation:
 
 ```php
 use Ecotone\Api\Attribute\Repository;
 
-#[Repository]
 interface CustomOrderRepository
 {
+    #[Repository]
     public function findOrder(string $orderId): ?Order;
+
+    #[Repository]
     public function saveOrder(Order $order): void;
 }
 ```
+
+A class-level `#[Repository]` means something else: it marks a class you wrote as a custom repository
+implementation (one implementing `Ecotone\Api\Modelling\StateStoredRepository` or
+`Ecotone\Modelling\EventSourcedRepository`). On an interface it is refused at bootstrap.
 
 ## Key Rules
 

@@ -35,7 +35,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Test\StaticMessageBuilder;
 use Exception;
@@ -121,7 +121,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::create($reference, InterfaceToCall::create(CalculatingService::class, 'result'))
+                MessageProcessorActivatorBuilder::createForMethod($reference, InterfaceToCall::create(CalculatingService::class, 'result'))
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -187,7 +187,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::create($reference, InterfaceToCall::create(CalculatingService::class, 'result'))
+                MessageProcessorActivatorBuilder::createForMethod($reference, InterfaceToCall::create(CalculatingService::class, 'result'))
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -234,7 +234,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -276,7 +276,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference($calculatingService, 'result')
+                MessageProcessorActivatorBuilder::createForMethod($calculatingService, 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -313,7 +313,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -353,7 +353,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withEndpointId('endpointId1')
                     ->withInputChannelName('inputChannel1')
             )
@@ -400,12 +400,12 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withEndpointId('endpointId1')
                     ->withInputChannelName('inputChannel1')
             )
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withEndpointId('endpointId2')
                     ->withInputChannelName('inputChannel1')
             )
@@ -450,7 +450,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference($calculatingService, 'result')
+                MessageProcessorActivatorBuilder::createForMethod($calculatingService, 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -482,7 +482,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference($calculatingService, 'result')
+                MessageProcessorActivatorBuilder::createForMethod($calculatingService, 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
@@ -835,7 +835,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             )
-            ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'sum')->withInputChannelName($requestChannelName))
+            ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(2), 'sum')->withInputChannelName($requestChannelName))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
@@ -901,7 +901,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             )
-            ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(ServiceWithReturnValue::create(), 'getName')->withInputChannelName($requestChannelName))
+            ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ServiceWithReturnValue::create(), 'getName')->withInputChannelName($requestChannelName))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
@@ -957,7 +957,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $messagingSystemConfiguration =
             MessagingSystemConfiguration::prepareWithDefaultsForTesting()
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(1), 'sum')
                         ->withInputChannelName($inputChannelName)
                         ->withEndpointId($endpointName)
                 )
@@ -1017,7 +1017,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $messagingSystemConfiguration =
             MessagingSystemConfiguration::prepareWithDefaultsForTesting()
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(StubCallSavingService::createWithReturnType('some'), 'methodWithAnnotationWithReturnType')
+                    MessageProcessorActivatorBuilder::createForMethod(StubCallSavingService::createWithReturnType('some'), 'methodWithAnnotationWithReturnType')
                         ->withInputChannelName($inputChannelName)
                         ->withEndpointId($endpointName)
                 )
@@ -1075,7 +1075,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ServiceCacheConfiguration::noCache()
             )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(1), 'sum')
                         ->withRequiredInterceptorNames([$calculatorWithTwo, CalculatingServiceInterceptorExample::class])
                         ->withInputChannelName($inputChannelName)
                         ->withEndpointId($endpointName)
@@ -1248,7 +1248,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         MessagingSystemConfiguration::prepareWithDefaultsForTesting()
             ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('order.register'))
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(new OrderService(), 'order')
+                MessageProcessorActivatorBuilder::createForMethod(new OrderService(), 'order')
                     ->withInputChannelName('some')
                     ->withEndpointId('order.register')
             )
@@ -1263,7 +1263,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         MessagingSystemConfiguration::prepareWithDefaultsForTesting()
             ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createDirectMessageChannel('order.register'))
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(new OrderService(), 'order')
+                MessageProcessorActivatorBuilder::createForMethod(new OrderService(), 'order')
                     ->withInputChannelName('some')
                     ->withEndpointId('order.register')
             )
@@ -1290,7 +1290,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $messagingSystemConfiguration =
             MessagingSystemConfiguration::prepareWithDefaultsForTesting()
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'sum')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'sum')
                         ->withInputChannelName($inputChannelName)
                 )
                 ->registerBeforeMethodInterceptor(
@@ -1360,7 +1360,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
                 )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerAfterMethodInterceptor(
@@ -1396,7 +1396,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
                 )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerAroundMethodInterceptor(
@@ -1436,7 +1436,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
                 )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerBeforeMethodInterceptor(
@@ -1493,7 +1493,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
                 )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerBeforeMethodInterceptor(
@@ -1578,7 +1578,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                         ->withRequiredInterceptorNames(['interceptor0', 'interceptor1', NoReturnMessageHandler::class, 'interceptor2', 'interceptor3'])
                 )
                 ->registerMessageHandler(
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerBeforeMethodInterceptor(
@@ -1742,7 +1742,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
 
         MessagingSystemConfiguration::prepareWithDefaultsForTesting()
             ->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                MessageProcessorActivatorBuilder::createForMethod(CalculatingService::create(0), 'result')
                     ->withInputChannelName('bridgeExample')
                     ->withOutputMessageChannel('bridgeSum')
             )

@@ -45,7 +45,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\PartitionProviderReference;
@@ -370,7 +370,7 @@ final class EventSourcingProjectingModule implements AnnotationModule
         $handlerChannel = 'projection_v2_get_state';
 
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::create(
+            MessageProcessorActivatorBuilder::createForMethod(
                 ProjectionStateHandler::class,
                 InterfaceToCallReference::create(ProjectionStateHandler::class, 'getProjectionState')
             )

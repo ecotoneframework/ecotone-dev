@@ -18,7 +18,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]
@@ -97,12 +97,12 @@ final class TempestModule extends NoExternalConfigurationModule implements Annot
         );
 
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::create(TempestTenantDatabaseSwitcher::class, 'switchOn')
+            MessageProcessorActivatorBuilder::createForMethod(TempestTenantDatabaseSwitcher::class, 'switchOn')
                 ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_ACTIVATED_CHANNEL_NAME)
         );
 
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::create(TempestTenantDatabaseSwitcher::class, 'switchOff')
+            MessageProcessorActivatorBuilder::createForMethod(TempestTenantDatabaseSwitcher::class, 'switchOff')
                 ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_DEACTIVATED_CHANNEL_NAME)
         );
     }

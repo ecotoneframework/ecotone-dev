@@ -31,7 +31,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -146,7 +146,7 @@ final class DbalBusinessMethodModule implements AnnotationModule
             );
 
             $messagingConfiguration->registerMessageHandler(
-                ServiceActivatorBuilder::create(
+                MessageProcessorActivatorBuilder::createForMethod(
                     $referenceName,
                     $interfaceToCallRegistry->getFor(DbalBusinessMethodHandler::class, 'executeWrite')
                 )
@@ -158,7 +158,7 @@ final class DbalBusinessMethodModule implements AnnotationModule
             );
 
             $messagingConfiguration->registerMessageHandler(
-                ServiceActivatorBuilder::create(
+                MessageProcessorActivatorBuilder::createForMethod(
                     $referenceName,
                     $interfaceToCallRegistry->getFor(DbalBusinessMethodHandler::class, 'executeQuery')
                 )

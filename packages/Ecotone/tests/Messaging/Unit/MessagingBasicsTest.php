@@ -17,7 +17,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow\PollOrThrowMessageHan
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Test\StaticMessageBuilder;
 use Exception;
@@ -321,7 +321,7 @@ final class MessagingBasicsTest extends TestCase
                     ->withInputChannelName('routeChannel')
             )
             ->registerMessageHandler(
-                ServiceActivatorBuilder::create(OrderProcessor::class, InterfaceToCall::create(OrderProcessor::class, 'processOrder'))
+                MessageProcessorActivatorBuilder::createForMethod(OrderProcessor::class, InterfaceToCall::create(OrderProcessor::class, 'processOrder'))
                     ->withInputChannelName($listenChannel)
                     ->withOutputMessageChannel('responseChannel')
                     ->withEndpointId('orderProcessor')

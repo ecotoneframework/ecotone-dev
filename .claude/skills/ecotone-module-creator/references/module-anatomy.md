@@ -127,8 +127,9 @@ interface Configuration
 }
 ```
 
-There is no `registerServiceActivator()` -- a `#[ServiceActivator]`/`#[InternalHandler]` handler is built with
-`ServiceActivatorBuilder` and registered the same way as any other handler, through `registerMessageHandler()`.
+There is no `registerServiceActivator()` -- an `#[InternalHandler]` handler is built with
+`MessageProcessorActivatorBuilder::createForMethod()` and registered the same way as any other handler, through
+`registerMessageHandler()`.
 
 ## AnnotationFinder Interface (Key Methods)
 

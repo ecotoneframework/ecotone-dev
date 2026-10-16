@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -161,7 +161,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ]));
         }
 
-        $messageHandler = ServiceActivatorBuilder::create(
+        $messageHandler = MessageProcessorActivatorBuilder::createForMethod(
             $deadLetterHandlerReference,
             new InterfaceToCallReference(DeadLetterHandler::class, $this->methodName),
         );

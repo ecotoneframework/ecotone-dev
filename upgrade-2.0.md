@@ -1168,13 +1168,12 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `DbalConfiguration::withCleanObjectManagerOnAsynchronousEndpoints()` | `withClearAndFlushObjectManagerOnAsynchronousEndpoints()` |
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
-| `CronExpression::factory()` | `new CronExpression()` |
+| `CronExpression::factory()`, `CronExpression::YEAR` | `new CronExpression()`; the year field was never parsed |
+| `ServiceActivatorBuilder` (internal) | `MessageProcessorActivatorBuilder::createForMethod($objectToInvokeOn, $method)`; invoker options such as changed headers or a custom result converter go on a `MethodInvokerBuilder` passed to `createForMethodInvoker()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 | `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
-Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
-`MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
 
 ### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
 

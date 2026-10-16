@@ -772,9 +772,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
     }
 
-    /**
-     * @TODO requires refactor
-     */
     public function test_commit_interval_with_single_message_polling_metadata(): void
     {
         $this->markTestSkipped('Requires passing PollingMetadata to Inbound Adapters');

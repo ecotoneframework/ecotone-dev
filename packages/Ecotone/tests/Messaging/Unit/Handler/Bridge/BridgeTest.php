@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Bridge;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\InterceptedBridge\AsynchronousBridgeExample;
@@ -31,7 +32,7 @@ final class BridgeTest extends TestCase
 
         $this->assertEquals(
             4,
-            $ecotoneLite->sendMessageDirectToChannel('bridgeExample', StaticMessageBuilder::withPayload(1)->build())
+            ChannelTestSupport::of($ecotoneLite)->sendMessageDirectToChannel('bridgeExample', StaticMessageBuilder::withPayload(1)->build())
         );
     }
 
@@ -44,7 +45,7 @@ final class BridgeTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withEnabledModulePackageNames([])
         );
 
-        $ecotoneLite->sendMessageDirectToChannel('bridgeExample', StaticMessageBuilder::withPayload(1)->build());
+        ChannelTestSupport::of($ecotoneLite)->sendMessageDirectToChannel('bridgeExample', StaticMessageBuilder::withPayload(1)->build());
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(

@@ -16,17 +16,18 @@ use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Messaging\BatchMessage;
-use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
@@ -372,7 +373,7 @@ class HighThroughputPublishingBenchmark
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        return $messaging->getMessageChannel($channelBuilder->getMessageChannelName());
+        return ChannelTestSupport::of($messaging)->getMessageChannel($channelBuilder->getMessageChannelName());
     }
 
     private function bootstrapAmqpPublisher(bool $highThroughputPublishing): MessagePublisher

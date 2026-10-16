@@ -34,8 +34,9 @@ use Ecotone\Api\Projecting\ProjectionName;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -83,7 +84,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
                 ])
         );
 
-        $channel = $ecotone->getMessageChannel('streaming_channel');
+        $channel = ChannelTestSupport::of($ecotone)->getMessageChannel('streaming_channel');
         $channel->send(StaticMessageBuilder::withPayload(new BlueGreenUserCreated('user-1', 'Alice'))
             ->setHeader(MessageHeaders::TYPE_ID, BlueGreenUserCreated::class)
             ->setContentType(MediaType::createApplicationXPHP())

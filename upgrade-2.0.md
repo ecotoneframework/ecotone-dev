@@ -2161,9 +2161,9 @@ use Ecotone\Api\Messaging\Message;
 |---|---|
 | `Ecotone\Messaging\Message` | `Ecotone\Api\Messaging\Message` |
 
-The signatures it closes, all of them methods an application calls: `FlowTestSupport::receiveMessageFrom()`,
-`popRecordedMessagesFrom()`, `sendDirectToChannelWithMessageReply()`, `sendMessageDirectToChannel()` and
-`sendMessageDirectToChannelWithMessageReply()`; the `popRecorded…Messages…()` methods of `MessagingTestSupport`;
+The signatures it closes, all of them methods an application calls: `FlowTestSupport::popRecordedMessagesFrom()`
+and `sendDirectToChannelWithMessageReply()` (its `receiveMessageFrom()`, `sendMessageDirectToChannel()` and
+`sendMessageDirectToChannelWithMessageReply()` were removed later, see §15); the `popRecorded…Messages…()` methods of `MessagingTestSupport`;
 `MessageChannel::send()`, `PollableChannel::receive()` and `MessagePoller::receiveWithTimeout()`; Dbal's
 `DeadLetterGateway::store()` and `show()`; and `getFailedMessage()` on the exceptions an application catches, such as
 `DecisionModelConcurrencyException`.
@@ -2194,8 +2194,8 @@ in the directories §13e lists, because a compiled container records parameter t
 
 **What stays internal:** the implementations — `GenericMessage` and `MessageBuilder`, in
 `Ecotone\Messaging\Support`. An implementation in `src` of an `Api` interface is the permitted direction. One of them
-an application still meets: a test that calls `sendMessageDirectToChannel()` builds its `Message` with
-`MessageBuilder`, since `Api` has no way to construct one — recorded as open, not changed by this move. The third
+an application used to meet: a test that called `sendMessageDirectToChannel()` built its `Message` with
+`MessageBuilder`, since `Api` has no way to construct one — closed by removing that method (§15). The third
 implementation, `ErrorMessage`, is one an application types its error-channel handler's parameter with, so it moved
 into `Api` (§13i).
 
@@ -2999,6 +2999,57 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `Message handling failed on channel \`async\` after 4 failed deliveries (1 initial + 3 retries). RuntimeException: …`
   (the exception now also names the channel and the original exception class). The number of deliveries is unchanged.
   **How to adapt:** update log-based alerts or tests that match the old texts.
+- **Every message is stamped by the clock Ecotone was given, and a message without a timestamp is refused.**
+  **Before:** `MessageHeaders::create()` filled a missing `MessageHeaders::TIMESTAMP` from the global `Clock::get()`
+  in 1.x, and from a fresh `NativeClock` in the first 2.0 betas, so a message built outside a gateway, such as a
+  `#[Scheduled]` method's result or `sendDirectToChannel()` in a flow test, carried real time while the rest of the
+  test ran on the pinned clock. `MessageBuilder::withPayload()`, `fromMessage()` and `fromParentMessage()` were
+  static.
+  **Now:** `MessageBuilder` is a container service holding `EcotoneClockInterface`; `withPayload()`, `fromMessage()`
+  and `fromParentMessage()` are instance methods on it, and `build()` stamps a missing timestamp from that clock.
+  `MessageHeaders::create()` throws `InvalidMessageHeaderException` reading `Message headers have no timestamp. Build
+  messages with MessageBuilder, the container service that stamps them from EcotoneClockInterface; in tests use
+  Ecotone\Test\StaticMessageBuilder.` when no timestamp is given, and `MessageHeaders::createEmpty()` and
+  `GenericMessage::createWithEmptyHeaders()` are gone.
+  **How to adapt:** application code never built messages. A test that did, for a channel interceptor, replaces
+  `MessageBuilder::withPayload(...)` with `Ecotone\Test\StaticMessageBuilder::withPayload(...)`, same chain, same
+  `build()`; a custom channel or interceptor in your codebase that built messages takes `MessageBuilder` as a
+  constructor dependency instead.
+- **A flow test pins its clock at bootstrap, reads it with `now()`, and seeds history at a time.**
+  **Before:** the test clock was frozen only once `changeTimeTo()` or `advanceTimeBy()` was called, so the first
+  message a test sent carried real time; the current time was reachable only by fetching `EcotoneClockInterface` from
+  the container; `withEventsFor()` and `withEventStream()` recorded every seeded event at the clock's current time.
+  **Now:** `TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2024-03-01 10:00:00'))` starts
+  the clock there, so the first message is stamped with it and `changeTimeTo()` to an earlier instant is refused with
+  `Cannot move time backwards`. `FlowTestSupport::now()` returns the clock's `DatePoint`. `withEventsFor()`,
+  `withEventStream()` and `withEvents()` take `at: DateTimeImmutable`, record the events as of that time, and put the
+  clock back afterwards. A `StaticPsrClock` constructed with an explicit time counts as pinned the same way.
+  **How to adapt:** nothing is required. Replace a `changeTimeTo()` placed right after bootstrap with `withTimeAt()`,
+  and a chain of `advanceTimeBy()` calls around seeding with `at:`.
+- **`FlowTestSupport` no longer hands out channels.** `getMessageChannel()`, `getMessageChannelByName()`,
+  `receiveMessageFrom()`, `sendMessageDirectToChannel()` and `sendMessageDirectToChannelWithMessageReply()` are
+  removed.
+  **Before:** a test could fetch a `PollableChannel` and call `send()` or `receive()` on it, which proved the channel
+  rather than the application and skipped every interceptor on the application's path.
+  **Now:** the application reaches a channel through an `#[Asynchronous]` handler, so a test sends the command or
+  event, calls `run('channel')` and asserts on what the handler observed. `sendDirectToChannel()` with a payload and
+  metadata stays for an `#[InternalHandler]` test. Ecotone's own channel suites use the internal
+  `Ecotone\Test\ChannelTestSupport::of($ecotone)`, which carries the removed methods and is not part of the public
+  surface.
+  **How to adapt:** replace `$ecotone->getMessageChannel('orders')->send(...)` with the command or event that reaches
+  that channel, and `receiveMessageFrom('orders')` with `run('orders')` followed by a query or state assertion.
+- **An event appended without a timestamp is stamped by the same clock, in every event store.**
+  **Before:** `EventStore::appendTo()` with metadata lacking `MessageHeaders::TIMESTAMP` wrote `created_at` from real
+  time on DBAL and recorded no timestamp at all in memory, so a `created_at` metadata match behaved differently on the
+  two stores and a flow test on a pinned clock loaded the event back without the time it was pinned to.
+  **Now:** both `DbalEventStore` and `InMemoryEventStore` take `EcotoneClockInterface` and add
+  `MessageHeaders::TIMESTAMP` from it to the event's metadata before recording, so the event loads back with the
+  timestamp that `created_at` holds, on both stores, and `changeTimeTo()` decides it in a test. A timestamp given in
+  the metadata is kept as it is. `DbalReconnectableConnectionFactory` takes the clock as a required constructor argument
+  and a `DbalContext` created straight from a connection factory refuses `getClock()` with a `LogicException` naming
+  the wrapper, since only the wrapper hands the clock over.
+  **How to adapt:** nothing for an application that appends through the `EventStore` gateway. Code that constructed
+  `DbalReconnectableConnectionFactory` itself passes the container's `EcotoneClockInterface` as the second argument.
 - **The test clock stays where the test put it.** After `changeTimeTo()`, `advanceTimeBy()` or a `StaticPsrClock` created
   with a fixed time, `run()` used to move the clock forward by its internal polling waits (about 1 ms per handled
   message and 10 ms at the end), so handlers recorded `13:00:00.010000` instead of `13:00:00.000000` and setting the same

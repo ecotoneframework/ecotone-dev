@@ -15,6 +15,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\SleepInterface;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 
@@ -49,7 +50,7 @@ final class ScheduledEndpointTest extends TestCase
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(1));
 
-        $this->assertSame(ReturningScheduledService::PAYLOAD, $ecotone->receiveMessageFrom(ReturningScheduledService::CHANNEL)->getPayload());
+        $this->assertSame(ReturningScheduledService::PAYLOAD, ChannelTestSupport::of($ecotone)->receiveMessageFrom(ReturningScheduledService::CHANNEL)->getPayload());
     }
 
     public function test_a_custom_fixed_rate_and_execution_time_limit_can_be_registered_for_a_scheduled_endpoint(): void
@@ -70,7 +71,7 @@ final class ScheduledEndpointTest extends TestCase
 
         $ecotone->run(ReturningScheduledService::ENDPOINT_ID);
 
-        $this->assertSame(ReturningScheduledService::PAYLOAD, $ecotone->receiveMessageFrom(ReturningScheduledService::CHANNEL)->getPayload());
+        $this->assertSame(ReturningScheduledService::PAYLOAD, ChannelTestSupport::of($ecotone)->receiveMessageFrom(ReturningScheduledService::CHANNEL)->getPayload());
     }
 
     public function test_a_scheduled_endpoint_runs_on_its_first_poll_without_waiting(): void

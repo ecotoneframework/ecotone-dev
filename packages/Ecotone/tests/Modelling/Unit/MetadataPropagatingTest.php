@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\BasketWithReservations\AddItemToBasket;
 use Test\Ecotone\Modelling\Fixture\BasketWithReservations\Basket;
@@ -172,7 +173,7 @@ final class MetadataPropagatingTest extends TestCase
 
         $this->assertArrayNotHasKey(
             MessageHeaders::CONSUMER_POLLING_METADATA,
-            $ecotoneTestSupport->getMessageChannel('orders')->receive()->getHeaders()->headers()
+            ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel('orders')->receive()->getHeaders()->headers()
         );
     }
 

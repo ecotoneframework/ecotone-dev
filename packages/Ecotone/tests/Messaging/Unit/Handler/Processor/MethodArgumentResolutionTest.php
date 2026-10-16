@@ -14,6 +14,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -68,7 +69,7 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::ORDER_CHANNEL,
             StaticMessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
@@ -89,7 +90,7 @@ final class MethodArgumentResolutionTest extends TestCase
         $this->expectException(MethodInvocationException::class);
 
         try {
-            $ecotone->sendMessageDirectToChannelWithMessageReply(
+            ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
                 MethodResolutionHandler::ORDER_CHANNEL,
                 StaticMessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
                     ->setContentType(MediaType::createApplicationXml())
@@ -106,7 +107,7 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::STRING_CHANNEL,
             StaticMessageBuilder::withPayload('bla')
                 ->setContentType(MediaType::createApplicationXml())
@@ -124,7 +125,7 @@ final class MethodArgumentResolutionTest extends TestCase
     {
         $ecotone = $this->bootstrap();
 
-        $message = $ecotone->sendMessageDirectToChannelWithMessageReply(
+        $message = ChannelTestSupport::of($ecotone)->sendMessageDirectToChannelWithMessageReply(
             MethodResolutionHandler::UNION_CHANNEL,
             StaticMessageBuilder::withPayload('bla')
                 ->setContentType(MediaType::createApplicationXml())

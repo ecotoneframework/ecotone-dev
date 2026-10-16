@@ -15,6 +15,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
@@ -74,7 +75,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('failure_channel'))
                 ->withEnabledModulePackageNames([])
         );
-        $ordersChannel = $ecotoneLite->getMessageChannel('async_orders');
+        $ordersChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 

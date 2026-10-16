@@ -18,8 +18,9 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 
 use function getenv;
@@ -421,7 +422,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
 
         // Send 3 messages to the Kafka topic
-        $channel = $ecotoneLite->getMessageChannel($channelName);
+        $channel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
         $channel->send(StaticMessageBuilder::withPayload('message1')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
         $channel->send(StaticMessageBuilder::withPayload('message2')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
         $channel->send(StaticMessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());

@@ -13,6 +13,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
@@ -29,7 +30,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
     public function test_send_retries_exhaustion_stores_each_failed_batch_delivery_as_separate_dead_letter(): void
     {
         $ecotoneLite = $this->bootstrapWithDeadLetterChannel();
-        $ordersChannel = $ecotoneLite->getMessageChannel('async_orders');
+        $ordersChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesContaining('poison', 'nacked by broker');
 
@@ -42,7 +43,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
 
         $this->assertSame(
             ['first poison order', 'second poison order'],
-            $this->receiveAllPayloads($ecotoneLite->getMessageChannel('dead_letters')),
+            $this->receiveAllPayloads(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('dead_letters')),
         );
     }
 
@@ -58,13 +59,13 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
                 ->withEnabledModulePackageNames([])
         );
-        $ordersChannel = $ecotoneLite->getMessageChannel('async_orders');
+        $ordersChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
-        $deadLetteredPayloads = $this->receiveAllPayloads($ecotoneLite->getMessageChannel('dead_letters'));
+        $deadLetteredPayloads = $this->receiveAllPayloads(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('dead_letters'));
         $this->assertCount(2, $deadLetteredPayloads);
         $this->assertStringContainsString('espresso-1', $deadLetteredPayloads[0]);
         $this->assertStringNotContainsString('espresso-2', $deadLetteredPayloads[0]);

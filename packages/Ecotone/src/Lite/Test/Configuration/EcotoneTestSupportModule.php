@@ -166,7 +166,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             Clock::class,
             [
                 new Reference(ClockInterface::class, ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-                new Definition(StaticPsrClock::class, ['now']),
+                new Definition(StaticPsrClock::class, [$testConfiguration->timeAt?->format('Y-m-d H:i:s.u P') ?? 'now']),
             ],
             factory: [Clock::class, 'createWithFallback']
         ));

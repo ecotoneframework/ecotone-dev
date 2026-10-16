@@ -16,6 +16,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ErrorMessage;
 use Ecotone\Api\Messaging\Future;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use stdClass;
@@ -83,7 +84,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
 
         $ecotone->getGateway(PollableSendOnlyGateway::class)->send('some');
 
-        $this->assertSame('some', $ecotone->receiveMessageFrom(PollableSendOnlyGateway::CHANNEL)->getPayload());
+        $this->assertSame('some', ChannelTestSupport::of($ecotone)->receiveMessageFrom(PollableSendOnlyGateway::CHANNEL)->getPayload());
     }
 
     public function test_future_reply_resolves_to_the_handlers_direct_return_value(): void
@@ -129,7 +130,7 @@ final class GatewayReplyAndErrorHandlingTest extends TestCase
 
         $ecotone->getGateway(ErrorChannelGateway::class)->receiveOnly();
 
-        $errorMessage = $ecotone->receiveMessageFrom(ErrorChannelGateway::ERROR_CHANNEL);
+        $errorMessage = ChannelTestSupport::of($ecotone)->receiveMessageFrom(ErrorChannelGateway::ERROR_CHANNEL);
         $this->assertNotNull($errorMessage);
         $this->assertTrue(ErrorMessage::isErrorMessage($errorMessage));
         $this->assertSame('testing exception', $errorMessage->getHeaders()->get(\Ecotone\Api\Messaging\ErrorContext::EXCEPTION_MESSAGE));

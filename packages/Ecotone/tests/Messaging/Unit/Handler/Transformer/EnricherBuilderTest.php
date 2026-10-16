@@ -25,8 +25,9 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use Test\Ecotone\Messaging\Fixture\Conversion\FakeConverterService;
 use Test\Ecotone\Messaging\Fixture\Dto\OrderExample;
@@ -108,7 +109,7 @@ class EnricherBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->sendMessageDirectToChannel($inputChannel, $inputMessage->build());
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannel, $inputMessage->build());
     }
 
     /**
@@ -169,7 +170,7 @@ class EnricherBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->sendMessageDirectToChannel($inputChannel, $inputMessage->build());
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel($inputChannel, $inputMessage->build());
     }
 
     /**
@@ -317,7 +318,7 @@ class EnricherBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->sendMessageDirectToChannel(
+        ChannelTestSupport::of($messaging)->sendMessageDirectToChannel(
             $inputChannel,
             $inputMessage->build()
         );

@@ -17,6 +17,7 @@ use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use Interop\Amqp\Impl\AmqpQueue;
@@ -55,7 +56,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
         $messageChannel->send(StaticMessageBuilder::withPayload($messagePayload)->build());
 
@@ -85,7 +86,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
         $messageChannel->send(StaticMessageBuilder::withPayload($messagePayload)->build());
 
@@ -228,7 +229,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
         $sendFailed = false;
         try {

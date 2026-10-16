@@ -146,11 +146,20 @@ API moved in 2.0 (`Ecotone\Api\Attribute\CommandHandler`, not the old flat names
   statement counting, no internal service references — fetch a gateway (`$ecotone->getGateway(EventStore::class)`,
   `Ecotone\Api\EventSourcing\EventStore`) and drive the public API. This is the most-corrected rule in the
   repository; see conventions rule 10
-- **A message channel is never driven directly.** No `getMessageChannel()`, no `send()` or `receive()` on a
-  `PollableChannel` in a test. The application reaches a channel through an `#[Asynchronous]` handler, so the test
-  sends the command or event, calls `run('channel')`, and asserts on what that handler observed, through a query
-  handler or the fixture's state. A delayed message is proved the same way: `run()` before `advanceTimeBy()` shows
-  nothing handled, `run()` after it shows the handler ran (conventions rule 10)
+- **A message channel is never driven directly.** `FlowTestSupport` has no `getMessageChannel()`,
+  `receiveMessageFrom()` or `sendMessageDirectToChannel()`. The application reaches a channel through an
+  `#[Asynchronous]` handler, so the test sends the command or event, calls `run('channel')`, and asserts on what that
+  handler observed, through a query handler or the fixture's state. A delayed message is proved the same way: `run()`
+  before `advanceTimeBy()` shows nothing handled, `run()` after it shows the handler ran, on DBAL channels as on
+  in-memory ones. Only Ecotone's own channel and interceptor suites drive a channel, through the internal
+  `Ecotone\Test\ChannelTestSupport::of($ecotone)` (conventions rule 10)
+- **Time is pinned at bootstrap** with `TestConfiguration::createWithDefaults()->withTimeAt(...)`, read with
+  `$ecotone->now()`, moved with `advanceTimeBy()`, and history is seeded with `withEventsFor(..., at: ...)`. One clock
+  stamps every message and event, so a test asserts exact timestamps instead of tolerances
+- **A test that needs a raw `Message` builds it with `Ecotone\Test\StaticMessageBuilder`.** `MessageBuilder` is a
+  container service holding the clock, so it has no static constructors; the helper wraps one on a native clock for
+  the rare internal test that drives a channel interceptor. A message without a timestamp is refused by
+  `MessageHeaders::create()`
 - **Fixtures live in the test file, as inline anonymous classes** — aggregates included, registered through
   `$fixture::class`. Never a shared `Fixture/` directory. A named class below the `TestCase` is for the four cases
   that force one: a class used as a **type declaration** (every command, event and query), a class named inside

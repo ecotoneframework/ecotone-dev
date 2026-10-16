@@ -15,6 +15,7 @@ use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\ChannelTestSupport;
 use Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -66,7 +67,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_2'));
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
+        $messageChannel = ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel('async');
         // For Laravel Queue, resend uses job->release() which puts message back in queue
         // Laravel doesn't distinguish between beginning/end positioning - behavior is transport-specific
         $this->assertNotNull($messageChannel->receive());

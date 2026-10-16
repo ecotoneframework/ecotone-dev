@@ -21,6 +21,7 @@ use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use Psr\Clock\ClockInterface;
@@ -55,7 +56,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $payload = 'some';
         $headerName = 'token';
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
         $messageChannel->send(
             StaticMessageBuilder::withPayload($payload)
                 ->setHeader($headerName, 123)
@@ -88,7 +89,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -121,7 +122,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -156,7 +157,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -186,7 +187,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -217,7 +218,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $messageChannel->send(
             StaticMessageBuilder::withPayload('some')
@@ -249,7 +250,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $messageChannel->send(
             StaticMessageBuilder::withPayload('some')
@@ -283,7 +284,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $messageChannel->send(
             StaticMessageBuilder::withPayload('some')
@@ -319,7 +320,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
         $messageChannel->send(StaticMessageBuilder::withPayload($messagePayload)->build());
 
@@ -368,7 +369,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
         );
 
-        return $ecotoneLite->getMessageChannel($queueName);
+        return ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
     }
 
     public function test_failing_to_consume_due_to_connection_failure()

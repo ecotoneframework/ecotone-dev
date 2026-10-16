@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\PublishSubscribeChannel;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,7 +41,7 @@ final class ImplicitChannelCreationTest extends TestCase
                 ->withEnabledModulePackageNames([]),
         );
 
-        $this->assertInstanceOf(PublishSubscribeChannel::class, $ecotone->getMessageChannel(ImplicitChannelHandler::CHANNEL));
+        $this->assertInstanceOf(PublishSubscribeChannel::class, ChannelTestSupport::of($ecotone)->getMessageChannel(ImplicitChannelHandler::CHANNEL));
     }
 
     public function test_explicitly_registered_queue_channel_replaces_the_implicit_direct_channel(): void

@@ -14,9 +14,10 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use Enqueue\Redis\RedisContext;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Throwable;
@@ -40,7 +41,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
     {
         $this->makeDelayedStorageRejectWrites();
         $messaging = $this->bootstrapEcotoneWithRetryingChannel();
-        $channel = $messaging->getMessageChannel(self::CHANNEL_NAME);
+        $channel = ChannelTestSupport::of($messaging)->getMessageChannel(self::CHANNEL_NAME);
 
         $caughtException = null;
         try {

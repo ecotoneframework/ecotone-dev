@@ -8,6 +8,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\FakeTransactionModule;
@@ -53,11 +54,11 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
             $this->assertEquals(
                 [new OrderWasPlaced('espresso-1'), new OrderWasPlaced('espresso-2')],
                 [
-                    $ecotoneLite->receiveMessageFrom('async_orders')->getPayload(),
-                    $ecotoneLite->receiveMessageFrom('async_orders')->getPayload(),
+                    ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('async_orders')->getPayload(),
+                    ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('async_orders')->getPayload(),
                 ],
             );
-            $this->assertNull($ecotoneLite->receiveMessageFrom('async_orders'));
+            $this->assertNull(ChannelTestSupport::of($ecotoneLite)->receiveMessageFrom('async_orders'));
         }
     }
 

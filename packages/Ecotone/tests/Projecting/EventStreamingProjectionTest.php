@@ -37,8 +37,9 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -74,7 +75,7 @@ class EventStreamingProjectionTest extends TestCase
         );
 
         // When events are sent directly to the streaming channel (bypassing gateway to avoid serialization)
-        $channel = $ecotone->getMessageChannel('streaming_channel');
+        $channel = ChannelTestSupport::of($ecotone)->getMessageChannel('streaming_channel');
         $channel->send(StaticMessageBuilder::withPayload(new UserCreated('user-1', 'John Doe'))
             ->setHeader(MessageHeaders::TYPE_ID, UserCreated::class)
             ->setContentType(MediaType::createApplicationXPHP())
@@ -131,7 +132,7 @@ class EventStreamingProjectionTest extends TestCase
         );
 
         // When events are sent with different routing keys
-        $channel = $ecotone->getMessageChannel('streaming_channel');
+        $channel = ChannelTestSupport::of($ecotone)->getMessageChannel('streaming_channel');
         $channel->send(StaticMessageBuilder::withPayload(['orderId' => 'order-1', 'amount' => 100])
             ->setHeader(MessageHeaders::TYPE_ID, 'order.created')
             ->setContentType(MediaType::createApplicationXPHP())

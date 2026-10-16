@@ -19,6 +19,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -312,8 +313,8 @@ final class MessageBusTest extends TestCase
         $ecotoneLite
             ->publishEvent(new GuestWasAddedToBook('book-1', 'John Doe'));
 
-        $channelAsync = $ecotoneLite->getMessageChannel('async');
-        $channelBackground = $ecotoneLite->getMessageChannel('background');
+        $channelAsync = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async');
+        $channelBackground = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('background');
 
         $message = $channelAsync->receive();
         self::assertNotNull($message);

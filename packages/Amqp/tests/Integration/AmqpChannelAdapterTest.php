@@ -35,8 +35,9 @@ use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use RuntimeException;
 use stdClass;
@@ -231,17 +232,18 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     private function send(ComponentTestBuilder $componentTestBuilder, AmqpOutboundChannelAdapterBuilder $outboundAmqpGatewayBuilder, Message $messageToSend)
     {
-        $componentTestBuilder
-            ->withMessageHandler(
-                $outboundAmqpGatewayBuilder
-                    ->withInputChannelName($inputChannelName = 'inputChannel')
-                    ->withAutoDeclareOnSend(true)
-            )
-            ->build()
-            ->sendMessageDirectToChannel(
-                $inputChannelName,
-                $messageToSend
-            );
+        ChannelTestSupport::of(
+            $componentTestBuilder
+                ->withMessageHandler(
+                    $outboundAmqpGatewayBuilder
+                        ->withInputChannelName($inputChannelName = 'inputChannel')
+                        ->withAutoDeclareOnSend(true)
+                )
+                ->build()
+        )->sendMessageDirectToChannel(
+            $inputChannelName,
+            $messageToSend
+        );
     }
 
     /**
@@ -626,7 +628,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
         $messageChannel->send(
             StaticMessageBuilder::withPayload('some')
                 ->setHeader(MessageHeaders::DELIVERY_DELAY, 1000)
@@ -771,7 +773,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
         $messageChannel->send(
             StaticMessageBuilder::withPayload('some')
                 ->setHeader(MessageHeaders::DELIVERY_DELAY, 10)
@@ -797,10 +799,11 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             []
         );
 
-        return $messaging
-            ->withChannel(AmqpBackedMessageChannelBuilder::create($queueName, $amqpConnectionReferenceName))
-            ->build()
-            ->getMessageChannel($queueName);
+        return ChannelTestSupport::of(
+            $messaging
+                ->withChannel(AmqpBackedMessageChannelBuilder::create($queueName, $amqpConnectionReferenceName))
+                ->build()
+        )->getMessageChannel($queueName);
     }
 
     private function acceptMessage(Message $message): void

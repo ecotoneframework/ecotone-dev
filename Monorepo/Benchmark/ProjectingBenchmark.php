@@ -5,7 +5,6 @@ namespace Monorepo\Benchmark;
 use Closure;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -40,7 +39,6 @@ class ProjectingBenchmark
                 DbalConnectionFactory::class => new DbalConnectionFactory($connectionString),
                 ...$container,
             ],
-            extensionObjects: [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')],
             enabledModules: [ModulePackageList::EVENT_SOURCING_PACKAGE,ModulePackageList::DBAL_PACKAGE,],
             useCachedVersion: true,
             pathToRootCatalog: self::getProjectDir(),

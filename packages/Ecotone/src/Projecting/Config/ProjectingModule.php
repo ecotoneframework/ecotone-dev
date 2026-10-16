@@ -160,7 +160,7 @@ final class ProjectingModule implements AnnotationModule
                             [
                                 HeaderBuilder::createOptional('partitionKeyValue', ProjectingHeaders::PROJECTION_PARTITION_KEY),
                                 HeaderBuilder::create('canInitialize', ProjectingHeaders::PROJECTION_CAN_INITIALIZE),
-                                HeaderBuilder::createOptional('shouldReset', 'projection.shouldReset'),
+                                HeaderBuilder::createOptional('shouldReset', ProjectingHeaders::PROJECTION_SHOULD_RESET),
                             ],
                         )
                     )

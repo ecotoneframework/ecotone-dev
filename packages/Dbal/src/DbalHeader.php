@@ -7,5 +7,5 @@ namespace Ecotone\Dbal;
  */
 interface DbalHeader
 {
-    public const HEADER_ACKNOWLEDGE = 'dbal_acknowledge';
+    public const HEADER_ACKNOWLEDGE = 'ecotone_dbal_consumer_acknowledge';
 }

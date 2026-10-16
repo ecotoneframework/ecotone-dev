@@ -34,7 +34,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class ConsoleCommandModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    public const ECOTONE_COMMAND_PARAMETER_PREFIX = 'ecotone.oneTimeCommand.';
+    public const ECOTONE_COMMAND_PARAMETER_PREFIX = 'ecotone_console_one_time_command_';
 
     /**
      * @var ServiceActivatorBuilder[]

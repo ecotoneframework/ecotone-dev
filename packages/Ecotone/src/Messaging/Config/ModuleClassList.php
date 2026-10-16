@@ -24,6 +24,7 @@ use Ecotone\Dbal\DocumentStore\DbalDocumentStoreModule;
 use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
+use Ecotone\Dbal\Tracing\DbalTracingModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\Config\EventSourcingProjectingModule;
 use Ecotone\EventSourcing\Tagging\Config\EventTaggingModule;
@@ -172,6 +173,7 @@ class ModuleClassList
         DbalBusinessMethodModule::class,
         MultiTenantConnectionFactoryModule::class,
         DatabaseSetupModule::class,
+        DbalTracingModule::class,
     ];
 
     public const REDIS_MODULES = [

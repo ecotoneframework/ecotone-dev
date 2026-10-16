@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -48,9 +49,12 @@ final class FlowTestingDbalConnections
 
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $this->extensionObjects, DbalConfiguration::createWithDefaults());
 
+        $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $this->extensionObjects, TracingConfiguration::createWithDefaults());
+
         return [
-            ...array_filter($this->extensionObjects, fn (object $extensionObject) => ! $extensionObject instanceof DbalConfiguration),
+            ...array_filter($this->extensionObjects, fn (object $extensionObject) => ! $extensionObject instanceof DbalConfiguration && ! $extensionObject instanceof TracingConfiguration),
             $this->inMemoryWhereTheConnectionIsMissing($dbalConfiguration),
+            $this->tracesInMemoryWhereTheConnectionIsMissing($tracingConfiguration, $dbalConfiguration),
         ];
     }
 
@@ -98,6 +102,16 @@ final class FlowTestingDbalConnections
         }
 
         return $dbalConfiguration;
+    }
+
+    private function tracesInMemoryWhereTheConnectionIsMissing(TracingConfiguration $tracingConfiguration, DbalConfiguration $dbalConfiguration): TracingConfiguration
+    {
+        $connectionReferenceName = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+        if (! $tracingConfiguration->storedTraces || $tracingConfiguration->storedTracesInMemory || $this->has($connectionReferenceName)) {
+            return $tracingConfiguration;
+        }
+
+        return $tracingConfiguration->withStoredTraces(inMemory: true, retention: $tracingConfiguration->storedTracesRetention);
     }
 
     private function refuseDbalChannelsWithoutTheirConnection(): void

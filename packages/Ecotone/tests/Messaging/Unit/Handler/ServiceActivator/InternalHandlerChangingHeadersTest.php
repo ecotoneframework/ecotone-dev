@@ -12,8 +12,9 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -76,9 +77,9 @@ final class InternalHandlerChangingHeadersTest extends TestCase
         $handlerB = new CapturingHandlerB();
         $ecotone = $this->bootstrap([EnrichingHandlerA::class, CapturingHandlerB::class], [new EnrichingHandlerA(), $handlerB]);
 
-        $ecotone->sendMessageDirectToChannel(
+        ChannelTestSupport::of($ecotone)->sendMessageDirectToChannel(
             EnrichingHandlerA::INPUT_CHANNEL,
-            MessageBuilder::withPayload('hello')
+            StaticMessageBuilder::withPayload('hello')
                 ->setHeader('enrichedHeader', 'original-value')
                 ->setHeader('preserveMe', 'still-here')
                 ->build(),

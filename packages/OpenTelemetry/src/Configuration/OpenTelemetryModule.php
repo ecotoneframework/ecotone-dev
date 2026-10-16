@@ -28,9 +28,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
@@ -64,7 +64,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
             TracerInterceptor::class,
             new Definition(TracerInterceptor::class, [
                 new Reference(TracerProviderInterface::class),
-                new Reference(LoggingGateway::class),
+                new Reference(MessageBuilder::class),
             ])
         );
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
@@ -91,6 +91,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
             MethodInterceptorBuilder::create(
                 new Definition(TracerInterceptor::class, [
                     Reference::to(TracerProviderInterface::class),
+                    Reference::to(MessageBuilder::class),
                 ]),
                 $interfaceToCallRegistry->getFor(TracerInterceptor::class, 'provideContextForDistributedBus'),
                 0,

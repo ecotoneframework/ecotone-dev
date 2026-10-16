@@ -20,6 +20,7 @@ final class DeadLetterHandler
 {
     public function __construct(
         private DeadLetterStore $deadLetterStore,
+        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -46,7 +47,7 @@ final class DeadLetterHandler
             return $message;
         }
 
-        return MessageBuilder::fromMessage($message)
+        return $this->messageBuilder->fromMessage($message)
             ->removeHeader(MessageHeaders::ROUTING_SLIP)
             ->setHeader(MessageHeaders::REPLY_CHANNEL, $replyChannel)
             ->build();
@@ -109,12 +110,12 @@ final class DeadLetterHandler
             $routingSlip = $message->getHeaders()->resolveRoutingSlip();
             $entrypoint = array_shift($routingSlip);
 
-            $message = MessageBuilder::fromMessage($message)
+            $message = $this->messageBuilder->fromMessage($message)
                 ->setRoutingSlip($routingSlip)
                 ->build();
         }
 
-        $message = MessageBuilder::fromMessage($message)
+        $message = $this->messageBuilder->fromMessage($message)
             ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
             ->setHeader(

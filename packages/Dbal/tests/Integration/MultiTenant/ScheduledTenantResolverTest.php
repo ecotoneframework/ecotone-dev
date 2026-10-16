@@ -22,7 +22,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
@@ -54,7 +54,7 @@ final class ScheduledTenantResolverTest extends TestCase
                     return null;
                 }
                 $event = array_shift($this->pending);
-                return MessageBuilder::withPayload($event['payload'])
+                return StaticMessageBuilder::withPayload($event['payload'])
                     ->setHeader('source', $event['source'])
                     ->build();
             }
@@ -97,7 +97,7 @@ final class ScheduledTenantResolverTest extends TestCase
                 if ($event === null) {
                     return null;
                 }
-                return MessageBuilder::withPayload($event['payload'])
+                return StaticMessageBuilder::withPayload($event['payload'])
                     ->setHeader('source', $event['source'])
                     ->setHeader('tenant', $event['tenant'])
                     ->build();
@@ -125,7 +125,7 @@ final class ScheduledTenantResolverTest extends TestCase
                     return null;
                 }
                 $emitted = true;
-                return MessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
+                return StaticMessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
             }
         };
         $receiver = $this->newReceiver();
@@ -151,7 +151,7 @@ final class ScheduledTenantResolverTest extends TestCase
                     return null;
                 }
                 $emitted = true;
-                return MessageBuilder::withPayload('first')->build();
+                return StaticMessageBuilder::withPayload('first')->build();
             }
         };
         $receiver = $this->newReceiver();
@@ -177,7 +177,7 @@ final class ScheduledTenantResolverTest extends TestCase
                     return null;
                 }
                 $emitted = true;
-                return MessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
+                return StaticMessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
             }
         };
         $receiver = $this->newReceiver();
@@ -223,7 +223,7 @@ final class ScheduledTenantResolverTest extends TestCase
                     return null;
                 }
                 $emitted = true;
-                return MessageBuilder::withPayload(['source' => 'tenant_a'])->build();
+                return StaticMessageBuilder::withPayload(['source' => 'tenant_a'])->build();
             }
         };
         $receiver = $this->newReceiver();

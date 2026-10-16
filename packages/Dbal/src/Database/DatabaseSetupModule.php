@@ -14,6 +14,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -68,6 +69,7 @@ final class DatabaseSetupModule implements AnnotationModule
                 new Definition(DatabaseSetupManager::class, [
                     new Definition(DbalReconnectableConnectionFactory::class, [
                         new Reference($connectionReferenceName),
+                        new Reference(EcotoneClockInterface::class),
                     ]),
                     $tableManagerRefs,
                 ])
@@ -85,7 +87,7 @@ final class DatabaseSetupModule implements AnnotationModule
         }
         $messagingConfiguration->registerServiceDefinition(
             DbalDatabaseTablesSetUp::class,
-            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection])
+            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection, new Reference(EcotoneClockInterface::class)])
         );
 
         $messagingConfiguration->registerServiceDefinition(

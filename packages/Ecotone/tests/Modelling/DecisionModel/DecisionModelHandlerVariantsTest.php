@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -157,7 +158,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
 
         $this->assertCount(1, $ecotone->getEventStreamEvents('ecotone_event_stream'));
 
-        $forwardedMessage = $ecotone->receiveMessageFrom('forwardedChannel');
+        $forwardedMessage = ChannelTestSupport::of($ecotone)->receiveMessageFrom('forwardedChannel');
         $this->assertNotNull($forwardedMessage);
     }
 }

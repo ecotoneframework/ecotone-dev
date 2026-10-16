@@ -31,12 +31,6 @@ parameters:
 			path: Api/Lite/EcotoneLite.php
 
 		-
-			message: '#^Call to an undefined method Ecotone\\Api\\Messaging\\MessageChannel\:\:receive\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: Api/Lite/Test/FlowTestSupport.php
-
-		-
 			message: '#^Method Ecotone\\Api\\Lite\\Test\\FlowTestSupport\:\:popRecordedCommandsWithRouting\(\) should return array\<string\> but returns list\<array\<int, mixed\>\>\.$#'
 			identifier: return.type
 			count: 1

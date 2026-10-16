@@ -27,6 +27,7 @@ use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -286,7 +287,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
         $this->assertCount(2, $messages);
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('customErrorChannel')->receive());
     }
 
     public function test_default_custom_error_channel_on_consumer(): void
@@ -324,7 +325,7 @@ final class KafkaChannelAdapterTest extends TestCase
             executionTimeLimitInMilliseconds: 30000
         )->withStopOnError(false));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('customErrorChannel')->receive());
     }
 
     public function test_convert_and_send(): void
@@ -400,7 +401,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertEquals(2, $attempts[1]['attempt']);
 
         // Verify message was sent to error channel for delayed retry
-        $errorMessage = $ecotoneLite->getMessageChannel('delayedRetryChannel')->receive();
+        $errorMessage = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('delayedRetryChannel')->receive();
         $this->assertNotNull($errorMessage, 'Message should be in delayed retry channel after instant retries exhausted');
 
         // Verify failure count after instant retries

@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -51,7 +52,7 @@ final class TransformerAttributeTest extends TestCase
 
         $ecotone->sendDirectToChannel(TransformerHandler::NULL_CHANNEL, 'test');
 
-        $this->assertNull($ecotone->receiveMessageFrom(TransformerHandler::NULL_OUTPUT_CHANNEL));
+        $this->assertNull(ChannelTestSupport::of($ecotone)->receiveMessageFrom(TransformerHandler::NULL_OUTPUT_CHANNEL));
     }
 
     public function test_array_returned_from_non_array_payload_is_treated_as_header_enrichment(): void

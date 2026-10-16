@@ -25,7 +25,7 @@ use Ecotone\Dbal\Deduplication\DbalHandledMessages;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -63,7 +63,7 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
 
     public static function deadLetterOperations(): iterable
     {
-        yield 'store' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->store(MessageBuilder::withPayload('failed')->build())];
+        yield 'store' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->store(StaticMessageBuilder::withPayload('failed')->build())];
         yield 'list' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->list(10, 0)];
         yield 'count' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->count()];
         yield 'show' => [fn (DeadLetterGateway $deadLetter) => $deadLetter->show('m-1')];
@@ -95,7 +95,7 @@ final class MissingTableRefusalTest extends DbalMessagingTestCase
         );
 
         try {
-            $ecotone->getGateway(DeadLetterGateway::class)->store(MessageBuilder::withPayload('failed')->build());
+            $ecotone->getGateway(DeadLetterGateway::class)->store(StaticMessageBuilder::withPayload('failed')->build());
             self::fail('Expected storing a dead letter without its table to be refused');
         } catch (ConfigurationException $exception) {
             self::assertSame(MissingTableInstructions::build(DeadLetterTableManager::FEATURE_NAME, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, null), $exception->getMessage());

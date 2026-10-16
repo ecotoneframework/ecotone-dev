@@ -13,8 +13,9 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Redis\RedisDestination;
 use Symfony\Component\Uid\Uuid;
@@ -45,9 +46,9 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($queueName);
 
-        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        $messageChannel->send(StaticMessageBuilder::withPayload($messagePayload)->build());
 
         $this->assertEquals(
             $messagePayload,

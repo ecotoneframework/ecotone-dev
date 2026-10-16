@@ -27,8 +27,9 @@ use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\HighThroughputPublishing\OrderWasPlaced;
@@ -103,7 +104,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $this->receiveImmediatelyFrom($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -117,8 +118,8 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        $messaging->getMessageChannel($queueName)->send(
-            MessageBuilder::withPayload(BatchMessage::constructEmpty()->append('first order'))->build()
+        ChannelTestSupport::of($messaging)->getMessageChannel($queueName)->send(
+            StaticMessageBuilder::withPayload(BatchMessage::constructEmpty()->append('first order'))->build()
         );
     }
 
@@ -161,7 +162,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $this->receiveImmediatelyFrom($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveImmediatelyFrom(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -180,7 +181,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
                 ->append('delayed order', [MessageHeaders::DELIVERY_DELAY => 3000])
         );
 
-        $channel = $messaging->getMessageChannel($queueName);
+        $channel = ChannelTestSupport::of($messaging)->getMessageChannel($queueName);
         $this->assertSame('immediate order', $channel->receive()->getPayload());
         $this->assertNull($channel->receiveWithTimeout(PollingMetadata::create('assertNotYetDelivered')->withExecutionTimeLimitInMilliseconds(500)));
 
@@ -201,7 +202,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
         sleep(2);
 
-        $channel = $messaging->getMessageChannel($queueName);
+        $channel = ChannelTestSupport::of($messaging)->getMessageChannel($queueName);
         $this->assertSame('kept order', $channel->receive()->getPayload());
         $this->assertNull($this->receiveImmediatelyFrom($channel));
     }

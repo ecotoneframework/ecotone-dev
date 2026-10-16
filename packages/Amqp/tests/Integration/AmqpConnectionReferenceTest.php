@@ -9,7 +9,8 @@ use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
+use Ecotone\Test\StaticMessageBuilder;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -32,9 +33,9 @@ final class AmqpConnectionReferenceTest extends AmqpMessagingTestCase
             enabledModules: [ModulePackageList::AMQP_PACKAGE],
         );
 
-        $ecotone->getMessageChannel($queue_name)->send(MessageBuilder::withPayload('milk')->build());
+        ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());
 
-        self::assertSame('milk', $ecotone->getMessageChannel($queue_name)->receive()->getPayload());
+        self::assertSame('milk', ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->receive()->getPayload());
     }
 
     public function test_amqp_lib_connection_factory_establishes_a_real_broker_connection(): void

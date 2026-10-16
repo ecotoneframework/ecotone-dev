@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Unit;
 
 use Aws\Result;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Sqs\SqsPendingDelivery;
 use GuzzleHttp\Promise\FulfilledPromise;
 use GuzzleHttp\Promise\RejectedPromise;
@@ -20,8 +20,8 @@ final class SqsPendingDeliveryTest extends TestCase
 {
     public function test_partially_failed_batch_reports_failed_entries_mapped_to_original_messages(): void
     {
-        $deliveredMessage = MessageBuilder::withPayload('delivered order')->build();
-        $rejectedMessage = MessageBuilder::withPayload('rejected order')->build();
+        $deliveredMessage = StaticMessageBuilder::withPayload('delivered order')->build();
+        $rejectedMessage = StaticMessageBuilder::withPayload('rejected order')->build();
         $pendingDelivery = new SqsPendingDelivery(
             [new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']],
@@ -43,8 +43,8 @@ final class SqsPendingDeliveryTest extends TestCase
 
     public function test_rejected_request_reports_all_messages_of_that_request_as_failed(): void
     {
-        $firstMessage = MessageBuilder::withPayload('first order')->build();
-        $secondMessage = MessageBuilder::withPayload('second order')->build();
+        $firstMessage = StaticMessageBuilder::withPayload('first order')->build();
+        $secondMessage = StaticMessageBuilder::withPayload('second order')->build();
         $pendingDelivery = new SqsPendingDelivery(
             [new RejectedPromise(new RuntimeException('connection refused'))],
             [['0' => $firstMessage, '1' => $secondMessage]],
@@ -60,8 +60,8 @@ final class SqsPendingDeliveryTest extends TestCase
 
     public function test_entries_missing_from_successful_and_failed_lists_are_reported_as_failed(): void
     {
-        $confirmedMessage = MessageBuilder::withPayload('confirmed order')->build();
-        $unaccountedMessage = MessageBuilder::withPayload('unaccounted order')->build();
+        $confirmedMessage = StaticMessageBuilder::withPayload('confirmed order')->build();
+        $unaccountedMessage = StaticMessageBuilder::withPayload('unaccounted order')->build();
         $pendingDelivery = new SqsPendingDelivery(
             [new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']],
@@ -83,7 +83,7 @@ final class SqsPendingDeliveryTest extends TestCase
             [new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'first-id'], ['Id' => '1', 'MessageId' => 'second-id']],
             ]))],
-            [['0' => MessageBuilder::withPayload('first order')->build(), '1' => MessageBuilder::withPayload('second order')->build()]],
+            [['0' => StaticMessageBuilder::withPayload('first order')->build(), '1' => StaticMessageBuilder::withPayload('second order')->build()]],
             'orders',
         );
 
@@ -99,7 +99,7 @@ final class SqsPendingDeliveryTest extends TestCase
     {
         $pendingDelivery = new SqsPendingDelivery(
             [new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']]]))],
-            [['0' => MessageBuilder::withPayload('order')->build()]],
+            [['0' => StaticMessageBuilder::withPayload('order')->build()]],
             'orders',
         );
 

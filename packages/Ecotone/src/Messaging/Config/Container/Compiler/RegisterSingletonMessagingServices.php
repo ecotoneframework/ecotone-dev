@@ -30,6 +30,7 @@ use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\NativeClock;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Clock\ClockInterface;
 use Psr\Container\ContainerInterface;
 
@@ -58,6 +59,7 @@ class RegisterSingletonMessagingServices implements CompilerPass
             ],
             factory: [Clock::class, 'createWithFallback']
         ));
+        $this->registerDefault($builder, MessageBuilder::class, new Definition(MessageBuilder::class, [new Reference(EcotoneClockInterface::class)]));
         $this->registerDefault($builder, ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $this->registerDefault($builder, ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
         $this->registerDefault($builder, ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, [new Reference(ReferenceSearchService::class)], 'create'));

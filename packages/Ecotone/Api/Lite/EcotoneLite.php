@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModuleClassList;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
@@ -212,7 +213,7 @@ final class EcotoneLite
         }
 
         if ($enableTesting) {
-            $messagingSystem = new ConfiguredMessagingSystemWithTestSupport($messagingSystem);
+            $messagingSystem = new ConfiguredMessagingSystemWithTestSupport($messagingSystem, $messagingSystem->getServiceFromContainer(MessageBuilder::class));
         }
 
         gc_collect_cycles();

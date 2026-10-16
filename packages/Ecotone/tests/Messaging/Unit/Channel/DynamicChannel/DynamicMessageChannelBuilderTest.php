@@ -15,6 +15,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow\PollOrThrowMessageHan
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
@@ -90,7 +91,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        $this->assertNotNull($ecotoneLite->getMessageChannel($channelName)->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName)->receive());
     }
 
     public function test_throwing_exception_on_polling_from_send_only_channel(): void
@@ -104,7 +105,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
 
-        $ecotoneLite->getMessageChannel($channelName)->receive();
+        ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName)->receive();
     }
 
     public function test_sending_and_receiving_from_multiple_channels(): void

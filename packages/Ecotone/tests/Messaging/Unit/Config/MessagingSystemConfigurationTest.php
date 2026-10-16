@@ -37,7 +37,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use InvalidArgumentException;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
@@ -97,7 +97,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new PollingConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $messagingSystem->getMessageChannelByName($messageChannelName)->send(MessageBuilder::withPayload('a')->build());
+        $messagingSystem->getMessageChannelByName($messageChannelName)->send(StaticMessageBuilder::withPayload('a')->build());
 
         $messagingSystem->run('executor', ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(1));
 
@@ -138,7 +138,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 $reference => $calculatingService,
             ]));
 
-        $message = MessageBuilder::withPayload(2)
+        $message = StaticMessageBuilder::withPayload(2)
             ->build();
 
         /** @var MessageChannel $channel */
@@ -209,7 +209,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var MessageChannel $channel */
         $channel = $configuredMessagingSystem->getMessageChannelByName('inputChannel');
 
-        $channel->send(MessageBuilder::withPayload(2)->build());
+        $channel->send(StaticMessageBuilder::withPayload(2)->build());
         $this->assertNull($calculatingService->getLastResult());
         $configuredMessagingSystem->run($asyncChannelNameOne);
         $this->assertNull($calculatingService->getLastResult());
@@ -253,7 +253,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ]));
 
         $replyChannel = QueueChannel::create();
-        $requestMessage = MessageBuilder::withPayload(2)
+        $requestMessage = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -300,7 +300,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var PollableChannel $channel */
         $channel = $configuredMessagingSystem->getMessageChannelByName('inputChannel');
 
-        $channel->send(MessageBuilder::withPayload(2)->build());
+        $channel->send(StaticMessageBuilder::withPayload(2)->build());
         $this->assertNull($calculatingService->getLastResult());
         $this->assertEquals(3, $configuredMessagingSystem->getMessageChannelByName($asyncChannelOne)->receive()->getPayload());
     }
@@ -331,7 +331,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ]));
 
         $replyChannel = QueueChannel::create();
-        $requestMessage = MessageBuilder::withPayload(2)
+        $requestMessage = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -380,7 +380,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ]));
 
         $replyChannel = QueueChannel::create();
-        $requestMessage = MessageBuilder::withPayload(2)
+        $requestMessage = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -431,7 +431,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ]));
 
         $replyChannel = QueueChannel::create();
-        $requestMessage = MessageBuilder::withPayload(2)
+        $requestMessage = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -459,7 +459,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerPollingMetadata(PollingMetadata::create('fakeAsyncChannel')->withTestingSetup())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $message = MessageBuilder::withPayload(2)
+        $message = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel(QueueChannel::create())
             ->build();
 
@@ -493,7 +493,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith(['ref-name' => $channelInterceptor]));
 
         $replyChannel = QueueChannel::create();
-        $requestMessage = MessageBuilder::withPayload(2)
+        $requestMessage = StaticMessageBuilder::withPayload(2)
             ->setReplyChannel($replyChannel)
             ->build();
 
@@ -529,11 +529,11 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
+        $preSendModifiedMessage = StaticMessageBuilder::withPayload('preSend')->build();
         $channelInterceptor->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
@@ -574,9 +574,9 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
-        $messageFirstModification = MessageBuilder::withPayload('preSend1')->build();
-        $messageSecondModification = MessageBuilder::withPayload('preSend2')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
+        $messageFirstModification = StaticMessageBuilder::withPayload('preSend1')->build();
+        $messageSecondModification = StaticMessageBuilder::withPayload('preSend2')->build();
 
         $channelInterceptorFirstToCall->setReturnMessageOnPreSend($messageFirstModification);
         $channelInterceptorSecondToCall->setReturnMessageOnPreSend($messageSecondModification);
@@ -613,7 +613,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
@@ -650,7 +650,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
@@ -686,7 +686,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
@@ -727,11 +727,11 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName2);
 
-        $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
+        $preSendModifiedMessage = StaticMessageBuilder::withPayload('preSend')->build();
         $channelInterceptor2->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
@@ -765,11 +765,11 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
         );
 
-        $message = MessageBuilder::withPayload('testMessage')->build();
+        $message = StaticMessageBuilder::withPayload('testMessage')->build();
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
+        $preSendModifiedMessage = StaticMessageBuilder::withPayload('preSend')->build();
         $channelInterceptor->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
@@ -996,7 +996,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $messageChannel->send(
-            MessageBuilder::withPayload(0)
+            StaticMessageBuilder::withPayload(0)
                 ->setReplyChannel($outputChannel)
                 ->build()
         );
@@ -1043,7 +1043,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $messageChannel = $messagingSystemConfiguration->getMessageChannelByName($inputChannelName);
         $outputChannel = QueueChannel::create();
 
-        $message = MessageBuilder::withPayload(0)
+        $message = StaticMessageBuilder::withPayload(0)
             ->setReplyChannel($outputChannel)
             ->build();
         $messageChannel->send($message);
@@ -1137,7 +1137,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $messageChannel->send(
-            MessageBuilder::withPayload(0)
+            StaticMessageBuilder::withPayload(0)
                 ->setReplyChannel($outputChannel)
                 ->build()
         );
@@ -1231,7 +1231,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $messagingSystem->getMessageChannelByName('replyChannel')->send(MessageBuilder::withPayload('some')->build());
+        $messagingSystem->getMessageChannelByName('replyChannel')->send(StaticMessageBuilder::withPayload('some')->build());
 
         $combinedGateway = $messagingSystem
             ->getNonProxyGatewayByName($buyGateway->getProxyMethodReference());
@@ -1337,7 +1337,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $outputChannel = QueueChannel::create();
 
         $messageChannel->send(
-            MessageBuilder::withPayload(2)
+            StaticMessageBuilder::withPayload(2)
                 ->setReplyChannel($outputChannel)
                 ->build()
         );

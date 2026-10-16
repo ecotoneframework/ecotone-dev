@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -175,6 +176,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,
+            new Reference(MessageBuilder::class),
             $this->defaultConversionMediaType,
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
@@ -196,6 +198,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
             new Reference(PendingDeliveryRegistry::class),
+            new Reference(MessageBuilder::class),
             $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : new Definition(HeadersExchangeDelayStrategy::class),
             $this->batchPublishing,
             $this->nonBlockingConfirmation,

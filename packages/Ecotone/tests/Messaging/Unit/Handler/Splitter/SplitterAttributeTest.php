@@ -11,7 +11,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -120,7 +120,7 @@ final class SplittingHandler
     {
         $splitMessages = [];
         foreach ($message->getPayload() as $value) {
-            $splitMessages[] = MessageBuilder::withPayload($value)
+            $splitMessages[] = StaticMessageBuilder::withPayload($value)
                 ->setHeader('token', $message->getHeaders()->get('token'))
                 ->build();
         }

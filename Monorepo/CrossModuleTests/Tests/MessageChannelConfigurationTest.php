@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
+use Closure;
 use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
 use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
@@ -16,18 +17,18 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Fixture\FailureHandler\ExampleFailureCommandHandler;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
-use Monorepo\ExampleApp\Symfony\Kernel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -35,21 +36,23 @@ use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 
+/**
+ * @internal
+ */
 final class MessageChannelConfigurationTest extends TestCase
 {
     use ExampleAppCaseTrait;
 
-    const CHANNEL_NAME = "async";
-    const ERROR_CHANNEL = 'customErrorChannel';
+    public const CHANNEL_NAME = 'async';
+    public const ERROR_CHANNEL = 'customErrorChannel';
 
     #[DataProvider('channelProvider')]
     public function test_using_requeuing_on_failure(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
+        Closure                               $closure
+    ): void {
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
@@ -63,10 +66,10 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRouting('handler.fail', ["command" => 2])
+            ->sendCommandWithRouting('handler.fail', ['command' => 2])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false, executionTimeLimitInMilliseconds: 3000));
 
-        $this->assertFalse($ecotoneLite->sendQueryWithRouting("handler.isSuccessful"));
+        $this->assertFalse($ecotoneLite->sendQueryWithRouting('handler.isSuccessful'));
 
         $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false, executionTimeLimitInMilliseconds: 3000));
 
@@ -78,9 +81,8 @@ final class MessageChannelConfigurationTest extends TestCase
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
+        Closure                               $closure
+    ): void {
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
@@ -97,8 +99,8 @@ final class MessageChannelConfigurationTest extends TestCase
 
         $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false, executionTimeLimitInMilliseconds: 3000));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());
-        $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::ERROR_CHANNEL)->receive());
+        $this->assertNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::CHANNEL_NAME)->receive());
     }
 
     #[DataProvider('channelProvider')]
@@ -106,9 +108,8 @@ final class MessageChannelConfigurationTest extends TestCase
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
+        Closure                               $closure
+    ): void {
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
@@ -117,7 +118,7 @@ final class MessageChannelConfigurationTest extends TestCase
                 $messageChannelBuilder,
                 ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
             ],
-            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -126,7 +127,7 @@ final class MessageChannelConfigurationTest extends TestCase
 
         $this->assertEquals(
             MediaType::createApplicationJson(),
-            $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
+            ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
         );
     }
 
@@ -135,17 +136,16 @@ final class MessageChannelConfigurationTest extends TestCase
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
-        Assert::isTrue(method_exists($messageChannelBuilder, 'withDefaultConversionMediaType'), "MessageChannelBuilder should have method withDefaultConversionMediaType");
+        Closure                               $closure
+    ): void {
+        Assert::isTrue(method_exists($messageChannelBuilder, 'withDefaultConversionMediaType'), 'MessageChannelBuilder should have method withDefaultConversionMediaType');
 
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             extensionObjects: [$messageChannelBuilder->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)],
-            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -154,7 +154,7 @@ final class MessageChannelConfigurationTest extends TestCase
 
         $this->assertEquals(
             MediaType::createApplicationJson(),
-            $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
+            ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
         );
     }
 
@@ -163,27 +163,26 @@ final class MessageChannelConfigurationTest extends TestCase
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
+        Closure                               $closure
+    ): void {
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             extensionObjects: [$messageChannelBuilder],
-            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite
             ->sendCommandWithRouting('handler.fail', ['command' => 2], metadata: [
                 'token' => '123',
-                'userId' => '321'
+                'userId' => '321',
             ]);
 
-        $message = $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive();
-        $this->assertEquals(            '123', $message->getHeaders()->get('token'));
-        $this->assertEquals('321',$message->getHeaders()->get('userId'));
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::CHANNEL_NAME)->receive();
+        $this->assertEquals('123', $message->getHeaders()->get('token'));
+        $this->assertEquals('321', $message->getHeaders()->get('userId'));
     }
 
     #[DataProvider('channelProvider')]
@@ -191,49 +190,49 @@ final class MessageChannelConfigurationTest extends TestCase
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
         array                                  $enabledModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
-        Assert::isTrue(method_exists($messageChannelBuilder, 'withHeaderMapping'), "MessageChannelBuilder should have method withDefaultConversionMediaType");
+        Closure                               $closure
+    ): void {
+        Assert::isTrue(method_exists($messageChannelBuilder, 'withHeaderMapping'), 'MessageChannelBuilder should have method withDefaultConversionMediaType');
 
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
             extensionObjects: [$messageChannelBuilder->withHeaderMapping('token')],
-            enabledModules: array_merge($enabledModulePackageNames,[ModulePackageList::JMS_CONVERTER_PACKAGE]),
+            enabledModules: array_merge($enabledModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite
             ->sendCommandWithRouting('handler.fail', ['command' => 2], metadata: [
                 'token' => '123',
-                'userId' => '321'
+                'userId' => '321',
             ]);
 
-        $message = $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive();
-        $this->assertEquals(            '123', $message->getHeaders()->get('token'));
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel(self::CHANNEL_NAME)->receive();
+        $this->assertEquals('123', $message->getHeaders()->get('token'));
     }
 
     public static function channelProvider()
     {
-        yield "in memory" => [
+        yield 'in memory' => [
             SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
             [],
             [],
-            function() {}
+            function () {
+            },
         ];
-        yield "dbal" => [
+        yield 'dbal' => [
             DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
             [DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection()],
             [ModulePackageList::DBAL_PACKAGE],
-            function() {
+            function () {
                 MessagingTestCase::cleanUpDbal();
-            }
+            },
         ];
         $amqpConnectionFactory = AmqpMessagingTestCase::getRabbitConnectionFactory();
-        yield "amqp" => [
+        yield 'amqp' => [
             AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
             [
@@ -241,35 +240,35 @@ final class MessageChannelConfigurationTest extends TestCase
                 AmqpLibConnectionFactory::class => $amqpConnectionFactory,
             ],
             [ModulePackageList::AMQP_PACKAGE],
-            function() {
+            function () {
                 MessagingTestCase::cleanRabbitMQ();
-            }
+            },
         ];
-        yield "redis" => [
+        yield 'redis' => [
             RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
             [RedisConnectionFactory::class => \Test\Ecotone\Redis\ConnectionTestCase::getConnection()],
             [ModulePackageList::REDIS_PACKAGE],
-            function() {
+            function () {
                 MessagingTestCase::cleanUpRedis();
-            }
+            },
         ];
-        yield "sqs" => [
+        yield 'sqs' => [
             SqsBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
             [SqsConnectionFactory::class => ConnectionTestCase::getConnection()],
             [ModulePackageList::SQS_PACKAGE],
-            function() {
+            function () {
                 MessagingTestCase::cleanUpSqs();
-            }
+            },
         ];
-        yield "kafka" => [
+        yield 'kafka' => [
             KafkaMessageChannelBuilder::create(self::CHANNEL_NAME, topicName: Uuid::uuid4()->toString())
                 ->withReceiveTimeout(100),
             [KafkaBrokerConfiguration::class => \Test\Ecotone\Kafka\ConnectionTestCase::getConnection()],
             [ModulePackageList::KAFKA_PACKAGE],
-            function() {
-            }
+            function () {
+            },
         ];
     }
 }

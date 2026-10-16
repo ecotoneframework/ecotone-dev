@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -276,7 +276,7 @@ final class DeadLetterConformanceTest extends DbalMessagingTestCase
      */
     private function failedMessage(string $messageId, string $payload, int $failedAt, array $headers = []): Message
     {
-        return MessageBuilder::withPayload($payload)
+        return StaticMessageBuilder::withPayload($payload)
             ->setMultipleHeaders([
                 MessageHeaders::MESSAGE_ID => $messageId,
                 MessageHeaders::TIMESTAMP => $failedAt,

@@ -22,6 +22,7 @@ class InboundMessageConverter
         private HeaderMapper $headerMapper,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
+        private MessageBuilder $messageBuilder,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
 
@@ -35,7 +36,7 @@ class InboundMessageConverter
     public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer, ConversionService $conversionService, CachedConnectionFactory $connectionFactory): MessageBuilder
     {
         $enqueueMessageHeaders = $source->getProperties();
-        $messageBuilder = MessageBuilder::withPayload($source->getBody())
+        $messageBuilder = $this->messageBuilder->withPayload($source->getBody())
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders, $conversionService));
 
         $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::create(

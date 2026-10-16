@@ -16,6 +16,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\MessageDispatchingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -181,7 +182,7 @@ final class ErrorChannelTest extends TestCase
         ));
 
         /** @var PollableChannel $errorChannel */
-        $errorChannel = $ecotone->getMessageChannel('customErrorChannel');
+        $errorChannel = ChannelTestSupport::of($ecotone)->getMessageChannel('customErrorChannel');
         $errorMessage = $errorChannel->receive();
         $this->assertNotNull($errorMessage, 'Expected failed message to be delivered to default error channel');
 
@@ -241,9 +242,9 @@ final class ErrorChannelTest extends TestCase
         ));
 
         /** @var PollableChannel $errorChannelA */
-        $errorChannelA = $ecotone->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
+        $errorChannelA = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
         /** @var PollableChannel $errorChannelB */
-        $errorChannelB = $ecotone->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_B);
+        $errorChannelB = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_B);
 
         $this->assertNotNull($errorChannelA->receive(), 'Handler A failure must be routed to its declared error channel');
         $this->assertNull($errorChannelB->receive(), 'Handler B error channel must remain empty when only handler A failed');
@@ -273,9 +274,9 @@ final class ErrorChannelTest extends TestCase
         ));
 
         /** @var PollableChannel $errorChannelA */
-        $errorChannelA = $ecotone->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
+        $errorChannelA = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
         /** @var PollableChannel $errorChannelB */
-        $errorChannelB = $ecotone->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_B);
+        $errorChannelB = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_B);
 
         $messageInA = $errorChannelA->receive();
         $messageInB = $errorChannelB->receive();
@@ -309,9 +310,9 @@ final class ErrorChannelTest extends TestCase
         ));
 
         /** @var PollableChannel $globalDefault */
-        $globalDefault = $ecotone->getMessageChannel('globalDefaultErrorChannel');
+        $globalDefault = ChannelTestSupport::of($ecotone)->getMessageChannel('globalDefaultErrorChannel');
         /** @var PollableChannel $errorChannelA */
-        $errorChannelA = $ecotone->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
+        $errorChannelA = ChannelTestSupport::of($ecotone)->getMessageChannel(AsyncFailingHandler::ERROR_CHANNEL_A);
 
         $this->assertNotNull($errorChannelA->receive(), 'Per-handler #[ErrorChannel] must override the default error channel');
         $this->assertNull($globalDefault->receive(), 'Default error channel must not receive the failure when handler declares its own');
@@ -375,7 +376,7 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(3, $ecotone->sendQueryWithRouting('retryHandler.attemptsDeadLetter'), 'Handler invoked maxRetries+1 times before exhaustion');
 
         /** @var PollableChannel $deadLetter */
-        $deadLetter = $ecotone->getMessageChannel(DelayedRetryHandler::DEAD_LETTER_CHANNEL);
+        $deadLetter = ChannelTestSupport::of($ecotone)->getMessageChannel(DelayedRetryHandler::DEAD_LETTER_CHANNEL);
         $this->assertNotNull($deadLetter->receive(), 'Failed message must land in the dead letter channel after retries are exhausted');
         $this->assertNull($deadLetter->receive(), 'Only one failed message expected in the dead letter channel');
     }
@@ -409,9 +410,9 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(2, $ecotone->sendQueryWithRouting('retryHandler.attemptsOverride'));
 
         /** @var PollableChannel $deadLetter */
-        $deadLetter = $ecotone->getMessageChannel(DelayedRetryHandler::DEAD_LETTER_CHANNEL);
+        $deadLetter = ChannelTestSupport::of($ecotone)->getMessageChannel(DelayedRetryHandler::DEAD_LETTER_CHANNEL);
         /** @var PollableChannel $globalDefault */
-        $globalDefault = $ecotone->getMessageChannel('globalDefaultErrorChannel');
+        $globalDefault = ChannelTestSupport::of($ecotone)->getMessageChannel('globalDefaultErrorChannel');
 
         $this->assertNotNull($deadLetter->receive(), '#[DelayedRetry] must route the failure to its own dead letter channel');
         $this->assertNull($globalDefault->receive(), 'Global default error channel must not receive the failure when handler declares #[DelayedRetry]');
@@ -521,7 +522,7 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice (retryTimes: 2) before succeeding on the third attempt');
 
         /** @var PollableChannel $errorChannel */
-        $errorChannel = $ecotone->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
+        $errorChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
         $this->assertNull($errorChannel->receive(), 'Error channel must remain empty when InstantRetry recovers within retry budget');
     }
 
@@ -565,7 +566,7 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice before forwarding to Error Channel');
 
         /** @var PollableChannel $errorChannel */
-        $errorChannel = $ecotone->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
+        $errorChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
         $this->assertNotNull($errorChannel->receive(), 'Failed message must land in the configured Error Channel after InstantRetry retries are exhausted');
     }
 

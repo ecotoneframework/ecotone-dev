@@ -38,6 +38,7 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
     public function __construct(
         private HeaderMapper $headerMapper,
         private ConversionService $conversionService,
+        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -73,7 +74,7 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
             return null;
         }
 
-        return MessageBuilder::withPayload($this->messages[$messageId]['payload'])
+        return $this->messageBuilder->withPayload($this->messages[$messageId]['payload'])
             ->setMultipleHeaders($this->messages[$messageId]['headers'])
             ->build();
     }

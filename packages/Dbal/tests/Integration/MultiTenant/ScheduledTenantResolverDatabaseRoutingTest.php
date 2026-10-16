@@ -21,7 +21,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -126,7 +126,7 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                     return null;
                 }
                 $event = array_shift($this->pending);
-                return MessageBuilder::withPayload($event['personId'])
+                return StaticMessageBuilder::withPayload($event['personId'])
                     ->setHeader('person_name', $event['name'])
                     ->setHeader('source', $event['source'])
                     ->build();

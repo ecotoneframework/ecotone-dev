@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\ChannelTestSupport;
 use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
@@ -57,7 +58,7 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
         $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_2'));
         $ecotoneTestSupport->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $messageChannel = $ecotoneTestSupport->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel($channelName);
         // For Symfony Messenger, resend uses transport->send() + transport->reject()
         // Symfony doesn't distinguish between beginning/end positioning - behavior is transport-specific
         $this->assertNotNull($messageChannel->receive());

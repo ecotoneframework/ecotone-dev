@@ -18,7 +18,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
@@ -329,7 +329,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $otherSession->executeStatement($platform instanceof PostgreSQLPlatform ? "SELECT pg_terminate_backend({$sessionId})" : "KILL {$sessionId}");
         $otherSession->close();
 
-        $deadLetter->store(MessageBuilder::withPayload('failed')->build());
+        $deadLetter->store(StaticMessageBuilder::withPayload('failed')->build());
 
         self::assertSame(1, $deadLetter->count());
         self::assertSame(['Storing Error Message in dead letter failed. Trying to self-heal and retry.'], $logger->getInfo());

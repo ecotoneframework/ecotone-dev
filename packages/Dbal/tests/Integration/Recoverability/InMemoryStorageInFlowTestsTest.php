@@ -16,7 +16,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -116,7 +116,7 @@ final class InMemoryStorageInFlowTestsTest extends DbalMessagingTestCase
 
     private function failedMessage(string $messageId): Message
     {
-        return MessageBuilder::withPayload('order coffee')
+        return StaticMessageBuilder::withPayload('order coffee')
             ->setMultipleHeaders([
                 MessageHeaders::MESSAGE_ID => $messageId,
                 ErrorContext::EXCEPTION_MESSAGE => 'failed',

@@ -11,7 +11,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -60,7 +60,7 @@ final class GatewayReturnTypeConversionTest extends TestCase
             enabledModules: [],
         );
 
-        $sentMessage = MessageBuilder::withPayload('some')->build();
+        $sentMessage = StaticMessageBuilder::withPayload('some')->build();
         $replyMessage = $ecotone->getGateway(EchoMessageGateway::class)->execute($sentMessage);
 
         $this->assertSame('some', $replyMessage->getPayload());

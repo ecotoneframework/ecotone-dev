@@ -14,6 +14,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
 use Interop\Queue\Exception\InvalidMessageException;
@@ -34,6 +35,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
+        MessageBuilder $messageBuilder,
         private PendingDeliveryRegistry $pendingDeliveryRegistry,
         private bool $batchPublishing = false,
         private bool $nonBlockingConfirmation = false,
@@ -46,6 +48,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
+            $messageBuilder,
             $batchPublishing,
             $queueName,
         );

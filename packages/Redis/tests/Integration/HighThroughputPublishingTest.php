@@ -25,6 +25,7 @@ use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Redis\RedisContext;
 use Symfony\Component\Uid\Uuid;
@@ -110,7 +111,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -145,7 +146,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -165,7 +166,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         );
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         $this->assertSame(['immediate order'], $receivedPayloads);
@@ -189,7 +190,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
 
         sleep(2);
 
-        $channel = $messaging->getMessageChannel($queueName);
+        $channel = ChannelTestSupport::of($messaging)->getMessageChannel($queueName);
         $this->assertSame('kept order', $channel->receive()->getPayload());
         $this->assertNull($this->receiveWithinOneSecond($channel));
     }
@@ -240,7 +241,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $this->assertTrue($publishFailed);
 
         $context->getRedis()->del($queueName . ':delayed');
-        $this->assertSame('immediate order', $messaging->getMessageChannel($queueName)->receive()->getPayload());
+        $this->assertSame('immediate order', ChannelTestSupport::of($messaging)->getMessageChannel($queueName)->receive()->getPayload());
     }
 
     private function createOrderService(): object

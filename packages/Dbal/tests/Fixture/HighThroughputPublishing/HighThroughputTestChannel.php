@@ -11,7 +11,7 @@ use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -34,7 +34,7 @@ final class HighThroughputTestChannel implements PollableChannel, BatchSupportin
 
         if ($payload instanceof BatchMessage) {
             foreach ($payload->entries as $entry) {
-                $this->queue[] = MessageBuilder::withPayload($entry['payload'])
+                $this->queue[] = StaticMessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();
             }

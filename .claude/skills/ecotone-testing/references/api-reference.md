@@ -74,15 +74,15 @@ public static function bootstrap(
 |--------|---------|-------------|
 | `getAggregate(string $class, string\|int\|array\|object $ids)` | `object` | Load aggregate by ID |
 | `getSaga(string $class, string\|array $ids)` | `object` | Load saga by ID |
-| `withEventsFor(string\|object\|array $ids, string $class, array $events, int $version = 0)` | `self` | Set up event-sourced aggregate state |
+| `withEventsFor(string\|object\|array $ids, string $class, array $events, int $aggregateVersion = 0, ?DateTimeImmutable $at = null)` | `self` | Set up event-sourced aggregate state; `at` records the events as of that time |
 | `withStateFor(object $aggregate)` | `self` | Set up state-stored aggregate |
 
 ### Event Store
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `withEventStream(string $streamName, array $events)` | `self` | Append events to named stream |
-| `withEvents(array $events)` | `self` | Append events to default stream |
+| `withEventStream(string $streamName, array $events, ?DateTimeImmutable $at = null)` | `self` | Append events to named stream; `at` records them as of that time |
+| `withEvents(array $events, ?DateTimeImmutable $at = null)` | `self` | Append events to default stream |
 | `deleteEventStream(string $streamName)` | `self` | Delete event stream |
 | `getEventStreamEvents(string $streamName)` | `Event[]` | Load events from stream |
 
@@ -91,8 +91,10 @@ public static function bootstrap(
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `run(string $channelOrEndpointName, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer; delivers messages due at the test clock's current time, earliest due first; never moves the clock |
-| `getMessageChannel(string $channelName)` | `MessageChannel` | Get channel instance |
-| `receiveMessageFrom(string $channelName)` | `?Message` | Receive from pollable channel |
+
+A channel is never fetched or drained directly: `getMessageChannel()`, `receiveMessageFrom()` and
+`sendMessageDirectToChannel()` were removed in 2.0. Send the command or event, `run()` the channel, and assert on
+what the handler observed.
 
 ### Projections
 
@@ -112,6 +114,10 @@ calling `->run($endpointId)` again; a synchronous or async-channel projection ha
 |--------|---------|-------------|
 | `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time (same or later instant) |
 | `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
+| `now()` | `DatePoint` | The clock's current time |
+
+`TestConfiguration::createWithDefaults()->withTimeAt(DateTimeImmutable $time)` pins the clock before bootstrap, so
+the first message is already stamped with it; `changeTimeTo()` earlier than that start is refused.
 
 ### Infrastructure
 

@@ -26,8 +26,10 @@ use Throwable;
  */
 final class TracerInterceptor
 {
-    public function __construct(private TracerProviderInterface $tracerProvider)
-    {
+    public function __construct(
+        private TracerProviderInterface $tracerProvider,
+        private MessageBuilder $messageBuilder,
+    ) {
     }
 
     public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message)
@@ -61,7 +63,7 @@ final class TracerInterceptor
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
 
-        return MessageBuilder::fromMessage($message)
+        return $this->messageBuilder->fromMessage($message)
             ->setHeader(TracingChannelInterceptor::TRACING_CARRIER_HEADER, json_encode($carrier))
             ->build();
     }

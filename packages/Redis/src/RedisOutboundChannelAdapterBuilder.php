@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -61,6 +62,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,
+            new Reference(MessageBuilder::class),
             $this->defaultConversionMediaType,
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
@@ -74,6 +76,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            new Reference(MessageBuilder::class),
             $this->batchPublishing,
         ]);
     }

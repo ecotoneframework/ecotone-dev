@@ -8,8 +8,9 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisConnectionReference;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
+use Ecotone\Test\StaticMessageBuilder;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 
@@ -35,8 +36,8 @@ final class RedisConnectionReferenceTest extends ConnectionTestCase
             enabledModules: [ModulePackageList::REDIS_PACKAGE],
         );
 
-        $ecotone->getMessageChannel($queue_name)->send(MessageBuilder::withPayload('milk')->build());
+        ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->send(StaticMessageBuilder::withPayload('milk')->build());
 
-        self::assertSame('milk', $ecotone->getMessageChannel($queue_name)->receive()->getPayload());
+        self::assertSame('milk', ChannelTestSupport::of($ecotone)->getMessageChannel($queue_name)->receive()->getPayload());
     }
 }

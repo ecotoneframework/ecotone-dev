@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
@@ -233,7 +234,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('customErrorChannel')->receive());
     }
 
     public function test_consuming_multiple_messages_from_queue(): void

@@ -27,6 +27,7 @@ use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -98,7 +99,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         }
 
         $this->assertTrue($publishFailed);
-        $this->assertNull($messaging->getMessageChannel('verificationChannel')->receiveWithTimeout(PollingMetadata::create('verification')->withExecutionTimeLimitInMilliseconds(1000)));
+        $this->assertNull(ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel')->receiveWithTimeout(PollingMetadata::create('verification')->withExecutionTimeLimitInMilliseconds(1000)));
     }
 
     public function test_publish_deferred_confirms_delivery_on_future_resolve(): void
@@ -144,7 +145,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
 
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
-        $verificationChannel = $messaging->getMessageChannel('verificationChannel');
+        $verificationChannel = ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel');
         $receivedPayloads = [
             $verificationChannel->receive()->getPayload(),
             $verificationChannel->receive()->getPayload(),
@@ -165,7 +166,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
                 ->append('delayed order', [MessageHeaders::DELIVERY_DELAY => 2000])
         )->resolve();
 
-        $verificationChannel = $messaging->getMessageChannel('verificationChannel');
+        $verificationChannel = ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel');
         $this->assertSame('immediate order', $verificationChannel->receive()->getPayload());
         $this->assertNull($verificationChannel->receiveWithTimeout(PollingMetadata::create('assertNotYetDelivered')->withExecutionTimeLimitInMilliseconds(500)));
 
@@ -186,7 +187,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
 
         usleep(300000);
 
-        $verificationChannel = $messaging->getMessageChannel('verificationChannel');
+        $verificationChannel = ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel');
         $this->assertSame('kept order', $verificationChannel->receive()->getPayload());
         $this->assertNull($verificationChannel->receiveWithTimeout(PollingMetadata::create('assertExpired')->withExecutionTimeLimitInMilliseconds(500)));
     }
@@ -233,7 +234,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
                 ->append('second order')
         );
 
-        $verificationChannel = $messaging->getMessageChannel('verificationChannel');
+        $verificationChannel = ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel');
         $receivedPayloads = [
             $verificationChannel->receive()->getPayload(),
             $verificationChannel->receive()->getPayload(),
@@ -283,7 +284,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         $future = $messaging->getGateway(MessagePublisher::class)->publishDeferred('single order');
 
         $this->assertNull($future->resolve());
-        $this->assertSame('single order', $messaging->getMessageChannel('verificationChannel')->receive()->getPayload());
+        $this->assertSame('single order', ChannelTestSupport::of($messaging)->getMessageChannel('verificationChannel')->receive()->getPayload());
     }
 
     private function createOrderService(string $channelName): object

@@ -31,6 +31,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService,
+        private MessageBuilder $messageBuilder,
         private bool $batchPublishing = false,
         private string $channelName = '',
     ) {
@@ -77,7 +78,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     protected function convertBatchEntryToMessage(array $entry): Message
     {
-        return MessageBuilder::withPayload($entry['payload'])
+        return $this->messageBuilder->withPayload($entry['payload'])
             ->setMultipleHeaders($entry['headers'])
             ->build();
     }

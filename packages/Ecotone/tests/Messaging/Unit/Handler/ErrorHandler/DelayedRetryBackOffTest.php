@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -56,7 +57,7 @@ final class DelayedRetryBackOffTest extends TestCase
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->assertSame(4, $sender->attempts);
-        $this->assertNotNull($ecotone->getMessageChannel('deadLetter')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotone)->getMessageChannel('deadLetter')->receive());
     }
 
     public function test_exponential_back_off_accepts_zero_initial_delay(): void

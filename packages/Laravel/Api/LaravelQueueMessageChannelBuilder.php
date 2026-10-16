@@ -17,6 +17,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -109,9 +110,11 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
                 $this->acknowledgeMode,
                 new Definition(OutboundMessageConverter::class, [
                     $this->headerMapper->getDefinition(),
+                    new Reference(MessageBuilder::class),
                     $this->defaultOutboundConversionMediaType?->getDefinition(),
                 ]),
                 new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(MessageBuilder::class),
                 $this->finalFailureStrategy,
             ]
         );

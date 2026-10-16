@@ -40,6 +40,7 @@ use Ecotone\Api\Projecting\ProjectionExecution;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use stdClass;
@@ -318,7 +319,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
 
         self::assertEquals(1, $collector->callCount);
 
-        $notification = $ecotone->getMessageChannel('notifications')->receive();
+        $notification = ChannelTestSupport::of($ecotone)->getMessageChannel('notifications')->receive();
         self::assertNotNull($notification, 'Event published during projection should bypass collector and be sent directly to channel');
     }
 

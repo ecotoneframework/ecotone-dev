@@ -14,6 +14,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -94,7 +95,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         );
 
 
-        $failedMessage = $ecotoneLite->getMessageChannel('someErrorChannel')->receive();
+        $failedMessage = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('someErrorChannel')->receive();
         $messagingException = $failedMessage->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE);
         $this->assertSame('test', $messagingException);
         /** It should be converted to serializable payload */
@@ -134,7 +135,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         );
 
 
-        $message = $ecotoneLite->getMessageChannel('async')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('async')->receive();
         $this->assertNotNull($message);
     }
 
@@ -179,7 +180,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             'Handler ran and produced side effects with no rollback boundary in place.'
         );
         $this->assertNull(
-            $ecotoneLite->getMessageChannel('handlerLevelErrorChannel')->receive(),
+            ChannelTestSupport::of($ecotoneLite)->getMessageChannel('handlerLevelErrorChannel')->receive(),
             '#[ErrorChannel] on the handler is silently ignored — no message routed. '
             . 'Place it on the gateway entry-point (CommandBus/EventBus/BusinessMethod) so the framework can capture failures '
             . 'after gateway-level interceptors (e.g. transactional rollback) have fully unwound.'
@@ -234,7 +235,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         );
 
         /** @var PollableChannel $retryChannel */
-        $retryChannel = $ecotoneLite->getMessageChannel($generatedRetryChannel);
+        $retryChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($generatedRetryChannel);
         $this->assertNotNull(
             $retryChannel->receive(),
             "#[DelayedRetry] on a CommandBus gateway must route failures to the auto-generated channel `{$generatedRetryChannel}`"

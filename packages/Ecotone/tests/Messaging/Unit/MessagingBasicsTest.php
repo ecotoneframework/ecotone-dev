@@ -19,7 +19,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Behat\Booking\Booking;
@@ -241,7 +241,7 @@ final class MessagingBasicsTest extends TestCase
             ]
         );
 
-        $requestMessage = MessageBuilder::withPayload(2)->build();
+        $requestMessage = StaticMessageBuilder::withPayload(2)->build();
         $replyMessage = $messagingSystem->getGatewayByName(CalculateGatewayExampleWithMessages::class)->calculate($requestMessage);
         $this->assertEquals(76, $replyMessage->getPayload());
     }

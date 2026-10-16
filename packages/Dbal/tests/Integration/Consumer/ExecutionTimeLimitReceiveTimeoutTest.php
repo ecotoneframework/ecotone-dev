@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -32,7 +33,7 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel = ChannelTestSupport::of($ecotoneLite)->getMessageChannel($channelName);
 
         $startedAt = microtime(true);
 

@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Test\ChannelTestSupport;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,7 +31,7 @@ final class DefaultSerializationMediaTypeTest extends TestCase
 
         $ecotone->sendCommandWithRouting('order.place', ['orderId' => 'order-1']);
 
-        $this->assertSame(MediaType::APPLICATION_JSON, $ecotone->getMessageChannel('async')->receive()->getHeaders()->getContentType()->toString());
+        $this->assertSame(MediaType::APPLICATION_JSON, ChannelTestSupport::of($ecotone)->getMessageChannel('async')->receive()->getHeaders()->getContentType()->toString());
     }
 
     public function test_the_media_type_chosen_on_service_configuration_wins_over_the_jms_converter_default(): void
@@ -47,7 +48,7 @@ final class DefaultSerializationMediaTypeTest extends TestCase
 
         $ecotone->sendCommandWithRouting('order.place', ['orderId' => 'order-1']);
 
-        $this->assertSame(MediaType::APPLICATION_X_PHP_SERIALIZED, $ecotone->getMessageChannel('async')->receive()->getHeaders()->getContentType()->toString());
+        $this->assertSame(MediaType::APPLICATION_X_PHP_SERIALIZED, ChannelTestSupport::of($ecotone)->getMessageChannel('async')->receive()->getHeaders()->getContentType()->toString());
     }
 
     private function handler(): object

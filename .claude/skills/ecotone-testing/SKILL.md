@@ -94,6 +94,15 @@ public function test_closing_ticket(): void
 }
 ```
 
+Seeded events are recorded at the test clock's time. Give history its own time with `at:`, on `withEventsFor()`,
+`withEventStream()` and `withEvents()`; the clock returns to where it was afterwards:
+
+```php
+$ecotone
+    ->withEventsFor('ticket-1', Ticket::class, [new TicketWasRegistered('ticket-1', 'alert')], at: new DateTimeImmutable('2025-01-01 09:00:00'))
+    ->withEventsFor('ticket-1', Ticket::class, [new TicketWasEscalated('ticket-1')], aggregateVersion: 1, at: new DateTimeImmutable('2025-01-03 09:00:00'));
+```
+
 ### Async-Tested-Synchronously
 
 `bootstrapFlowTesting()` gives every `#[Asynchronous('x')]` channel you did not configure an in-memory, delayable queue.
@@ -116,18 +125,30 @@ public function test_async_handler(): void
 
 ### Time and Delayed Messages
 
+Pin the clock at bootstrap, so the first message the test sends is already stamped deterministically:
+
 ```php
-$ecotone = EcotoneLite::bootstrapFlowTesting([OrderExpiry::class], [new OrderExpiry()]);   // #[Delayed(hours: 24)]
-$ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 12:00:00'));
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [OrderExpiry::class],
+    [new OrderExpiry()],                                                                   // #[Delayed(hours: 24)]
+    testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-03-01 12:00:00')),
+);
 $ecotone->publishEvent(new OrderPlaced('order-1'))->run('async');   // not due yet
 
 $ecotone->advanceTimeBy(TimeSpan::withHours(24))->run('async');     // due now, handled
+$ecotone->now();                                                    // DatePoint 2026-03-02 12:00:00
 ```
 
+- One clock stamps everything: message timestamps, delayed and retried deliveries, dead letters, scheduled endpoints,
+  and the event store's `created_at`, on in-memory and DBAL channels alike. The pattern above is the proof for a delay
+  on a `DbalBackedMessageChannelBuilder` channel too: `run()` before the advance shows nothing handled, after it shows
+  the handler ran.
+- Without `withTimeAt()` the clock runs on real time until the first `changeTimeTo()` or `advanceTimeBy()`.
 - The test clock stays where the test put it: handlers inside `run()` see exactly that time, and `run()` never moves it.
 - `advanceTimeBy()` calls add up; `changeTimeTo()` accepts the same or a later instant.
 - `run()` delivers what is due at the clock's current time, earliest due first. It has no time argument.
-- Services that read time must get the test clock: register `ClockInterface::class => new StaticPsrClock()`.
+- `now()` returns the clock's current `DatePoint`, for an assertion such as "expires 24 hours from now".
+- A service that reads time takes `EcotoneClockInterface` as a dependency; the test bootstrap provides the pinned one.
 
 ### Recorded Messages
 

@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\Message;
+use Ecotone\Test\ChannelTestSupport;
 use Exception;
 
 /**
@@ -40,7 +41,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
-        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
+        $messageChannel = ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel('async');
         $this->assertNull($messageChannel->receive());
     }
 
@@ -63,7 +64,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
-        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
+        $messageChannel = ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel('async');
         $this->assertSame('some_2', $messageChannel->receive()->getPayload());
     }
 
@@ -86,7 +87,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
-        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
+        $messageChannel = ChannelTestSupport::of($ecotoneTestSupport)->getMessageChannel('async');
         $this->assertSame('some_1', $messageChannel->receive()->getPayload());
     }
 }

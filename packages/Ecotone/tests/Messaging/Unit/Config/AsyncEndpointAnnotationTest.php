@@ -19,6 +19,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -274,7 +275,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         } catch (RuntimeException) {
         }
 
-        $message = $ecotoneLite->getMessageChannel('events')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('events')->receive();
         self::assertNull($message, 'Collector should discard events when handler fails');
     }
 
@@ -317,7 +318,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         } catch (RuntimeException) {
         }
 
-        $message = $ecotoneLite->getMessageChannel('events')->receive();
+        $message = ChannelTestSupport::of($ecotoneLite)->getMessageChannel('events')->receive();
         self::assertNotNull($message, 'Without collector, events should be sent directly and survive handler failure');
     }
 }

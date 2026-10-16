@@ -15,6 +15,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
+use Ecotone\Test\ChannelTestSupport;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -48,7 +49,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
 
         $this->assertNotNull($ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]));
-        $this->assertNotNull($ecotoneLite->getMessageChannel('notifications')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotoneLite)->getMessageChannel('notifications')->receive());
     }
 
     public function test_failure_during_sending_should_rollback_transaction()

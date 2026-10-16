@@ -13,6 +13,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\ChannelTestSupport;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -54,7 +55,7 @@ final class ServiceConfigurationFromServiceContextTest extends TestCase
             ->sendCommandWithRouting('handler.fail')
             ->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $this->assertNotNull($ecotone->getMessageChannel('customErrorChannel')->receive());
+        $this->assertNotNull(ChannelTestSupport::of($ecotone)->getMessageChannel('customErrorChannel')->receive());
     }
 
     public function test_two_service_context_methods_returning_service_configuration_are_refused_at_bootstrap(): void

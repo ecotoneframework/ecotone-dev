@@ -11,7 +11,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\MessageDeliveryException;
-use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ChannelTestSupport;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -35,7 +36,7 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
         $ecotone->sendDirectToChannel(RequestReplyHandler::WITH_OUTPUT_CHANNEL, 'a');
 
         /** @var PollableChannel $outputChannel */
-        $outputChannel = $ecotone->getMessageChannel(RequestReplyHandler::OUTPUT_CHANNEL);
+        $outputChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(RequestReplyHandler::OUTPUT_CHANNEL);
         $this->assertSame('some result', $outputChannel->receive()->getPayload());
     }
 
@@ -69,7 +70,7 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
         ]);
 
         /** @var PollableChannel $nextChannel */
-        $nextChannel = $ecotone->getMessageChannel(RequestReplyHandler::NEXT_CHANNEL);
+        $nextChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(RequestReplyHandler::NEXT_CHANNEL);
         $message = $nextChannel->receive();
 
         $this->assertNotNull($message);
@@ -86,18 +87,18 @@ final class RequestReplyAndRoutingSlipTest extends TestCase
         ]);
 
         /** @var PollableChannel $nextChannel */
-        $nextChannel = $ecotone->getMessageChannel(RequestReplyHandler::NEXT_CHANNEL);
+        $nextChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(RequestReplyHandler::NEXT_CHANNEL);
         $firstHopMessage = $nextChannel->receive();
         $this->assertNotNull($firstHopMessage);
         $this->assertTrue($firstHopMessage->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP), 'Second hop must remain on the routing slip');
 
-        $ecotone->sendMessageDirectToChannel(
+        ChannelTestSupport::of($ecotone)->sendMessageDirectToChannel(
             RequestReplyHandler::NO_OUTPUT_CHANNEL,
-            MessageBuilder::fromMessage($firstHopMessage)->removeHeader(MessagingEntrypointService::ENTRYPOINT)->build()
+            StaticMessageBuilder::fromMessage($firstHopMessage)->removeHeader(MessagingEntrypointService::ENTRYPOINT)->build()
         );
 
         /** @var PollableChannel $finalChannel */
-        $finalChannel = $ecotone->getMessageChannel(RequestReplyHandler::FINAL_CHANNEL);
+        $finalChannel = ChannelTestSupport::of($ecotone)->getMessageChannel(RequestReplyHandler::FINAL_CHANNEL);
         $this->assertNotNull($finalChannel->receive());
     }
 

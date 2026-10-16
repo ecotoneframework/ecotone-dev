@@ -25,6 +25,7 @@ use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
@@ -87,7 +88,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         }
 
         $this->assertTrue($publishFailed);
-        $this->assertNull($this->receiveWithinOneSecond($messaging->getMessageChannel($queueName)));
+        $this->assertNull($this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName)));
     }
 
     public function test_publish_deferred_confirms_delivery_on_future_resolve(): void
@@ -107,7 +108,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $this->assertNull($batchFuture->resolve());
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -142,7 +143,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         sort($receivedPayloads);
@@ -163,7 +164,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
         $this->assertNull($publisher->publishDeferred($batch)->resolve());
 
         $receivedPayloads = [];
-        while ($message = $this->receiveWithinOneSecond($messaging->getMessageChannel($queueName))) {
+        while ($message = $this->receiveWithinOneSecond(ChannelTestSupport::of($messaging)->getMessageChannel($queueName))) {
             $receivedPayloads[] = $message->getPayload();
         }
         $this->assertCount(25, $receivedPayloads);
@@ -182,7 +183,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
                 ->append('delayed order', [MessageHeaders::DELIVERY_DELAY => 1000])
         )->resolve();
 
-        $channel = $messaging->getMessageChannel($queueName);
+        $channel = ChannelTestSupport::of($messaging)->getMessageChannel($queueName);
         $receivedAt = [];
         $deadline = microtime(true) + 15;
         while (count($receivedAt) < 2 && microtime(true) < $deadline) {

@@ -34,6 +34,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -139,6 +140,7 @@ final class DbalBusinessMethodModule implements AnnotationModule
                         Reference::to($connectionReference),
                         Reference::to(ConversionService::REFERENCE_NAME),
                         Reference::to(ExpressionEvaluationService::REFERENCE),
+                        Reference::to(MessageBuilder::class),
                     ]
                 )
             );

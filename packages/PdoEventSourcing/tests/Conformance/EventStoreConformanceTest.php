@@ -20,8 +20,10 @@ use Ecotone\Api\EventSourcing\Operator;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -87,6 +89,25 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             );
             self::assertSame(['web', 'phone'], [$events[0]->metadata['source'], $events[1]->metadata['source']]);
             self::assertSame([TicketOpenedForEventStoreConformance::class, TicketClosedForEventStoreConformance::class], [$events[0]->eventName, $events[1]->eventName]);
+        });
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_event_appended_without_a_timestamp_is_stamped_by_the_clock_ecotone_was_given(string $implementation): void
+    {
+        $this->conformanceCase($implementation, function (EventStore $eventStore, Closure $setup, FlowTestSupport $ecotone): void {
+            $setup();
+            $ecotone->changeTimeTo(new DatePoint('2024-03-01 10:00:00'));
+
+            $eventStore->appendTo(self::STREAM, [
+                Event::create(new TicketOpenedForEventStoreConformance('t-1', 'Printer jam'), ['source' => 'web']),
+                Event::create(new TicketClosedForEventStoreConformance('t-1'), [MessageHeaders::TIMESTAMP => 1_700_000_000]),
+            ]);
+
+            self::assertSame(
+                [(new DatePoint('2024-03-01 10:00:00'))->getTimestamp(), 1_700_000_000],
+                array_map(fn (Event $event): int => $event->metadata[MessageHeaders::TIMESTAMP], $eventStore->load(self::STREAM)),
+            );
         });
     }
 
@@ -673,7 +694,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
     }
 
     /**
-     * @return array{0: EventStore, 1: Closure(): void}
+     * @return array{0: EventStore, 1: Closure(): void, 2: FlowTestSupport}
      */
     private function bootstrap(string $implementation): array
     {
@@ -718,13 +739,16 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
         };
 
         if ($implementation === 'in-memory-without-event-sourcing-module') {
+            $ecotone = EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [$converter::class, $secondStream::class],
+                containerOrAvailableServices: [$converter],
+            );
+
             return [
-                EcotoneLite::bootstrapFlowTesting(
-                    classesToResolve: [$converter::class, $secondStream::class],
-                    containerOrAvailableServices: [$converter],
-                )->getGateway(EventStore::class),
+                $ecotone->getGateway(EventStore::class),
                 function (): void {
                 },
+                $ecotone,
             ];
         }
 
@@ -737,7 +761,7 @@ final class EventStoreConformanceTest extends EventSourcingMessagingTestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE],
         );
 
-        return [$ecotone->getGateway(EventStore::class), fn () => $ecotone->setupDatabaseTables()];
+        return [$ecotone->getGateway(EventStore::class), fn () => $ecotone->setupDatabaseTables(), $ecotone];
     }
 
     private function ticketEvent(object $payload, string $ticketId, int $version): Event

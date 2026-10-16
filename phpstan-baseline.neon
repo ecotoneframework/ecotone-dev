@@ -64,7 +64,7 @@ parameters:
 			message: '#^Property Ecotone\\Api\\Dbal\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
 			identifier: assign.propertyType
 			count: 1
-			path: packages/Dbal/src/Connection/DbalConnectionFactory.php
+			path: packages/Dbal/Api/DbalConnectionFactory.php
 
 		-
 			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$deliveryDelay \(int\) does not accept null\.$#'

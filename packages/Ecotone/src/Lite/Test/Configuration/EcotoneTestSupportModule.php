@@ -185,24 +185,16 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
         $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class, new Definition(AllowMissingDestination::class));
         $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
-        /** @TODO Ecotone 2.0, reconsider if needed */
-        if (! $testConfiguration->failOnCommandHandlerNotFound) {
-            $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-                    AllowMissingDestination::class,
-                    $allowMissingDestinationInterfaceToCall,
-                    Precedence::DEFAULT_PRECEDENCE,
-                    CommandBus::class
-                ));
-        }
-        if (! $testConfiguration->failOnQueryHandlerNotFound) {
-            $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
-                    AllowMissingDestination::class,
-                    $allowMissingDestinationInterfaceToCall,
-                    Precedence::DEFAULT_PRECEDENCE,
-                    QueryBus::class
-                ));
+        if (! $testConfiguration->failOnNotFoundHandler) {
+            foreach ([CommandBus::class, QueryBus::class] as $busWithOptionalDestination) {
+                $messagingConfiguration
+                    ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+                        AllowMissingDestination::class,
+                        $allowMissingDestinationInterfaceToCall,
+                        Precedence::DEFAULT_PRECEDENCE,
+                        $busWithOptionalDestination
+                    ));
+            }
         }
 
         if ($testConfiguration->pollableChannelMediaTypeConversion) {

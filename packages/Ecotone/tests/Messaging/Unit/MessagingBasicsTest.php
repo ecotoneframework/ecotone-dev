@@ -10,6 +10,7 @@ use Ecotone\Api\Messaging\PollableChannel;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
@@ -327,9 +328,11 @@ final class MessagingBasicsTest extends TestCase
                     ->withEndpointId('orderProcessor')
             );
 
-        return $config
+        return ContainerConfig::buildMessagingSystemInMemoryContainer(
+            $config
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
-            ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
-            ->buildMessagingSystemFromConfiguration($container);
+            ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder()),
+            $container,
+        );
     }
 }

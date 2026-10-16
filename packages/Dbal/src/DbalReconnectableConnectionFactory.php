@@ -7,7 +7,6 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
@@ -23,7 +22,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private ConnectionFactory $connectionFactory;
     private EcotoneClockInterface $clock;
 
-    public function __construct(ConnectionFactory $dbalConnectionFactory, EcotoneClockInterface $clock = new NativeClock())
+    public function __construct(ConnectionFactory $dbalConnectionFactory, EcotoneClockInterface $clock)
     {
         $this->connectionFactory = $dbalConnectionFactory;
         $this->clock = $clock;

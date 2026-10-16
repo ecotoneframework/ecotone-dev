@@ -6,7 +6,9 @@ namespace Test\Ecotone\Dbal\Fixture\InstantRetryTransaction;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -31,9 +33,9 @@ final class CommandDispatchingAsyncHandler
     }
 
     #[CommandHandler('execute.sql.command')]
-    public function executeSqlCommand(string $payload): void
+    public function executeSqlCommand(string $payload, #[Reference] EcotoneClockInterface $clock): void
     {
-        $connection = $this->getTransactionalConnection();
+        $connection = $this->getTransactionalConnection($clock);
 
         $this->commandHandlerCallCount++;
         if ($this->commandHandlerCallCount === 1) {
@@ -51,10 +53,10 @@ final class CommandDispatchingAsyncHandler
         return $this->commandHandlerCallCount;
     }
 
-    private function getTransactionalConnection(): \Doctrine\DBAL\Connection
+    private function getTransactionalConnection(EcotoneClockInterface $clock): \Doctrine\DBAL\Connection
     {
         $factory = CachedConnectionFactory::createFor(
-            new DbalReconnectableConnectionFactory($this->connectionFactory),
+            new DbalReconnectableConnectionFactory($this->connectionFactory, $clock),
         );
 
         /** @var DbalContext $context */

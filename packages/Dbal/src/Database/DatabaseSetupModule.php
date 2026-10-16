@@ -87,7 +87,7 @@ final class DatabaseSetupModule implements AnnotationModule
         }
         $messagingConfiguration->registerServiceDefinition(
             DbalDatabaseTablesSetUp::class,
-            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection])
+            new Definition(DbalDatabaseTablesSetUp::class, [$connectionFactories, $tableManagerRefsByConnection, new Reference(EcotoneClockInterface::class)])
         );
 
         $messagingConfiguration->registerServiceDefinition(

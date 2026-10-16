@@ -12,7 +12,7 @@ use Doctrine\ORM\Tools\Setup;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

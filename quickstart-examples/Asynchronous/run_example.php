@@ -2,7 +2,7 @@
 
 use App\Asynchronous\NotificationService;
 use App\Asynchronous\OrderWasPlaced;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 

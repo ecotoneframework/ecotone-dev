@@ -9,8 +9,8 @@ use App\Microservices\CustomerService\Infrastructure\UuidConverter;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

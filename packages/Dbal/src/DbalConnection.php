@@ -4,7 +4,7 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Queue\ConnectionFactory;
 

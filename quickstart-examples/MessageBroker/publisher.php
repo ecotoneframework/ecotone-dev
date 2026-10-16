@@ -5,7 +5,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
 require __DIR__ . "/vendor/autoload.php";

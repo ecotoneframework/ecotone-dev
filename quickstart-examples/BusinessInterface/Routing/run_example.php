@@ -5,7 +5,7 @@ use App\BusinessInterface\FileSystem\FileSystemCache;
 use App\BusinessInterface\InMemory\InMemoryCache;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";

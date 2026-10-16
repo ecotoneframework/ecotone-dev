@@ -12,7 +12,7 @@ use App\Schedule\ScheduledJob\ScheduledJob\NotificationService;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLite::bootstrap(

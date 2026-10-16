@@ -1058,18 +1058,18 @@ seam is unchanged and is what lets the underlying transport be replaced later wi
 
 | Package | Before (Enqueue class you typed) | Now (Ecotone class you type) | Default reference name |
 |---|---|---|---|
-| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
-| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
-| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
-| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
-| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
+| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
+| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
+| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
+| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
+| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
 
 `DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
 `defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
 each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
 `TempestConnectionReference`. The four transport references are new in 2.0; the three framework ones existed in 1.x.
 There they resolved to `Enqueue\Dbal\DbalConnectionFactory::class`; they now resolve to
-`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Dbal\Connection\DbalConnectionFactory'`. Code that builds
+`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Api\Dbal\DbalConnectionFactory'`. Code that builds
 them with `defaultConnection()` or the constructor follows on its own; a lookup of the old string id does not (see
 below).
 
@@ -1097,8 +1097,8 @@ below).
 
   | 1.x | 2.0 |
   |---|---|
-  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` |
-  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` |
+  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
   | `Enqueue\Dbal\DbalContext` | `Ecotone\Dbal\Connection\DbalContext` |
   | `Enqueue\Dbal\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` | `Ecotone\Dbal\Connection\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` |
   | `Enqueue\Dbal\DbalDestination`, `DbalMessage` | `Ecotone\Dbal\Connection\DbalDestination`, `DbalMessage` |
@@ -2370,6 +2370,33 @@ deploy, since the compiled container records class names. **One container id cha
 gateway registered under its class name, so its id is now `Ecotone\Api\EventSourcing\EventStreamEmitter`. A handler
 parameter typed with it, and `$container->get(EventStreamEmitter::class)` with the new import, follow on their own; a
 lookup by the old id as a string no longer finds it. None of the other types is a service.
+
+### 13k. The connection factories moved into `Api`
+
+**Before:** the connection factory an application constructs and registers in its container (§5) lived under each
+package's `src`: `Ecotone\Dbal\Connection\DbalConnectionFactory` and `ManagerRegistryConnectionFactory`,
+`Ecotone\Amqp\Connection\AmqpExtConnectionFactory` and `AmqpLibConnectionFactory`,
+`Ecotone\Sqs\Connection\SqsConnectionFactory`, `Ecotone\Redis\Connection\RedisConnectionFactory`.
+
+**Now:** each is in its package's `Api` namespace, with the same constructor:
+
+| Pre-release 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+| `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` |
+| `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` |
+| `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` |
+
+`DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
+`SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
+values move with them: `DbalConnectionReference::DEFAULT` is now `'Ecotone\Api\Dbal\DbalConnectionFactory'`. A
+container that registers the factory under the `::DEFAULT` constant, or that passes the reference object, follows on its
+own. One that registers it under the literal pre-release string has to use the constant.
+
+**How to adapt:** change the import; `upgrade/namespace-map-2.0.csv` has every row. The transport internals
+(`DbalContext`, `DbalConsumer`, the Enqueue contexts) stay where §5 lists them.
 
 ## 14. Smaller behaviour changes
 

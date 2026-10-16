@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection\NotificationService;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection\OrderEventsConverter;

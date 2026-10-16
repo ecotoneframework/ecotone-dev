@@ -7,9 +7,9 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

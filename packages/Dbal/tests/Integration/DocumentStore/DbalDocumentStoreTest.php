@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Store\Document\DocumentException;
 

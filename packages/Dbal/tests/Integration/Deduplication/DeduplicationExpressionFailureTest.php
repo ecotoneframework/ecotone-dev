@@ -6,8 +6,8 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

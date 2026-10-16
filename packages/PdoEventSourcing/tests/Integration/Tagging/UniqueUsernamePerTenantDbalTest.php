@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
@@ -24,7 +25,6 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\Test\LicenceTesting;
 

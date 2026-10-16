@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
 use Doctrine\DBAL\Schema\Table;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;

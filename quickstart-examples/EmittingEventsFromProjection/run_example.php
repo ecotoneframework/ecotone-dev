@@ -8,7 +8,7 @@ use App\ReadModel\NotificationService;
 use App\ReadModel\WalletBalance\WalletBalanceProjection;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
 $messagingSystem = EcotoneLite::bootstrap(

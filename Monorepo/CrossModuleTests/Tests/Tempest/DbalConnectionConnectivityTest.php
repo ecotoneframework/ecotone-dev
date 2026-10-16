@@ -6,7 +6,7 @@ namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Tempest\EcotoneConfig;
 use Tempest\Discovery\DiscoveryLocation;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;

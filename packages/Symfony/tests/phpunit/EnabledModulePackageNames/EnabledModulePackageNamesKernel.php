@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\EnabledModulePackageNames;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;

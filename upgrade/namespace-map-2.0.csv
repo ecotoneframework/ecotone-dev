@@ -163,8 +163,8 @@ Ecotone\Modelling\Api\Distribution\DistributedServiceMap,Ecotone\Api\ExtensionOb
 Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\DistributedBusHeader
 Ecotone\Kafka\Api\KafkaHeader,Ecotone\Api\Kafka\KafkaHeader
 Ecotone\EventSourcing\Config\ProophProjectingModule,Ecotone\EventSourcing\Config\EventSourcingProjectingModule
-Enqueue\Dbal\DbalConnectionFactory,Ecotone\Dbal\Connection\DbalConnectionFactory
-Enqueue\Dbal\ManagerRegistryConnectionFactory,Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory
+Enqueue\Dbal\DbalConnectionFactory,Ecotone\Api\Dbal\DbalConnectionFactory
+Enqueue\Dbal\ManagerRegistryConnectionFactory,Ecotone\Api\Dbal\ManagerRegistryConnectionFactory
 Enqueue\Dbal\DbalContext,Ecotone\Dbal\Connection\DbalContext
 Enqueue\Dbal\DbalConsumer,Ecotone\Dbal\Connection\DbalConsumer
 Enqueue\Dbal\DbalProducer,Ecotone\Dbal\Connection\DbalProducer
@@ -174,10 +174,10 @@ Enqueue\Dbal\DbalMessage,Ecotone\Dbal\Connection\DbalMessage
 Enqueue\Dbal\DbalConsumerHelperTrait,Ecotone\Dbal\Connection\DbalConsumerHelperTrait
 Enqueue\Dbal\DbalType,Ecotone\Dbal\Connection\DbalType
 Enqueue\Dbal\JSON,Ecotone\Dbal\Connection\JSON
-Enqueue\AmqpExt\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpExtConnectionFactory
-Enqueue\AmqpLib\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpLibConnectionFactory
-Enqueue\Sqs\SqsConnectionFactory,Ecotone\Sqs\Connection\SqsConnectionFactory
-Enqueue\Redis\RedisConnectionFactory,Ecotone\Redis\Connection\RedisConnectionFactory
+Enqueue\AmqpExt\AmqpConnectionFactory,Ecotone\Api\Amqp\AmqpExtConnectionFactory
+Enqueue\AmqpLib\AmqpConnectionFactory,Ecotone\Api\Amqp\AmqpLibConnectionFactory
+Enqueue\Sqs\SqsConnectionFactory,Ecotone\Api\Sqs\SqsConnectionFactory
+Enqueue\Redis\RedisConnectionFactory,Ecotone\Api\Redis\RedisConnectionFactory
 Ecotone\Modelling\WithEvents,Ecotone\Api\Modelling\WithEvents
 Ecotone\Modelling\WithAggregateVersioning,Ecotone\Api\Modelling\WithAggregateVersioning
 Ecotone\Modelling\Event,Ecotone\Api\EventSourcing\Event
@@ -227,3 +227,9 @@ Ecotone\DataProtection\Configuration\DataProtectionConfiguration,Ecotone\Api\Dat
 Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration,Ecotone\Api\DataProtection\ChannelProtectionConfiguration
 Ecotone\DataProtection\Encryption\Key,Ecotone\Api\DataProtection\Key
 Ecotone\EventSourcing\EventStreamEmitter,Ecotone\Api\EventSourcing\EventStreamEmitter
+Ecotone\Dbal\Connection\DbalConnectionFactory,Ecotone\Api\Dbal\DbalConnectionFactory
+Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory,Ecotone\Api\Dbal\ManagerRegistryConnectionFactory
+Ecotone\Sqs\Connection\SqsConnectionFactory,Ecotone\Api\Sqs\SqsConnectionFactory
+Ecotone\Redis\Connection\RedisConnectionFactory,Ecotone\Api\Redis\RedisConnectionFactory
+Ecotone\Amqp\Connection\AmqpLibConnectionFactory,Ecotone\Api\Amqp\AmqpLibConnectionFactory
+Ecotone\Amqp\Connection\AmqpExtConnectionFactory,Ecotone\Api\Amqp\AmqpExtConnectionFactory

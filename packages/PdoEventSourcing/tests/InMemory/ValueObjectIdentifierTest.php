@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\ArticleEventConverter;

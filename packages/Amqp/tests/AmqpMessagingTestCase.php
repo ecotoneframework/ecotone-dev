@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpExtConnection;
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpExtConnection;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;

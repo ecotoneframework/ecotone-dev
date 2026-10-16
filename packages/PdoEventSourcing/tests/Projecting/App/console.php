@@ -20,10 +20,10 @@
  */
 declare(strict_types=1);
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\Messaging\ConcurrencyException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

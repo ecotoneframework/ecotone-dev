@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
@@ -11,7 +12,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;

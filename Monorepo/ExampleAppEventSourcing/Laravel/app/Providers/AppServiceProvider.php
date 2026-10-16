@@ -2,7 +2,7 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Laravel\app\Providers;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Illuminate\Support\ServiceProvider;
 use Monorepo\ExampleAppEventSourcing\EcotoneProjection\PriceChangeOverTimeProjectionWithEcotoneProjection;
 use Psr\Log\NullLogger;

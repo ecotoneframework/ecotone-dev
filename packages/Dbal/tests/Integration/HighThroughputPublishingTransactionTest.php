@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Test\ChannelTestSupport;

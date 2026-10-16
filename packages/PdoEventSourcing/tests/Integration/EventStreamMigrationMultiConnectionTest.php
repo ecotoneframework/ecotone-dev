@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Console\ConsoleCommandResultSet;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;

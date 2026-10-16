@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Sqs\Connection;
+namespace Ecotone\Api\Sqs;
 
 use Aws\Sdk;
 use Aws\Sqs\SqsClient as AwsSqsClient;

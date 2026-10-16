@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 
 /**
  * licence Apache-2.0

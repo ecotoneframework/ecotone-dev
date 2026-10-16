@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\Stream;
@@ -14,7 +15,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 

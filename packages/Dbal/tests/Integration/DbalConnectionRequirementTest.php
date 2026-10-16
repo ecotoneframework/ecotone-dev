@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +21,7 @@ final class DbalConnectionRequirementTest extends TestCase
     public function test_throws_configuration_exception_when_dbal_connection_factory_is_not_configured(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Dbal\Connection\DbalConnectionFactory' to be configured");
+        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Api\Dbal\DbalConnectionFactory' to be configured");
 
         EcotoneLite::bootstrap(
             classesToResolve: [Meeting::class],

@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -14,7 +15,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\StaticMessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;

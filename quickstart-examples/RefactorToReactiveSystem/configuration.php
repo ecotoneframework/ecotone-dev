@@ -4,7 +4,7 @@ use App\ReactiveSystem\OrderController;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 

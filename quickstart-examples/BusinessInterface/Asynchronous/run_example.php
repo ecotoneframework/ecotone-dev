@@ -8,7 +8,7 @@ use App\WorkingWithAggregateDirectly\ProductRepository;
 use App\WorkingWithAggregateDirectly\ProductService;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

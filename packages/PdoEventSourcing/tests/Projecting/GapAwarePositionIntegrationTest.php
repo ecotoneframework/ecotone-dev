@@ -24,6 +24,7 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -32,7 +33,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;

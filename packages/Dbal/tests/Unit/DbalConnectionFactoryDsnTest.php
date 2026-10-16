@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Unit;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

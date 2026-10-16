@@ -85,10 +85,10 @@ from `FullAppBenchmarkCaseTrait`, not the `executeFor*` callbacks.
 
 The original attempt stopped on `57d2e463` before changing framework code.
 The AMQP publishing benchmark registered `Enqueue\AmqpExt\AmqpConnectionFactory`, while container
-resolution requested `Ecotone\Amqp\Connection\AmqpExtConnectionFactory`. The resulting exception was:
+resolution requested `Ecotone\Api\Amqp\AmqpExtConnectionFactory`. The resulting exception was:
 
 ```text
-Reference Ecotone\Amqp\Connection\AmqpExtConnectionFactory was not found in definitions
+Reference Ecotone\Api\Amqp\AmqpExtConnectionFactory was not found in definitions
 /data/app/packages/Ecotone/src/SymfonyContainer/ExternalReferenceResolver.php:30
 ```
 

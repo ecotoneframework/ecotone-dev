@@ -23,11 +23,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 

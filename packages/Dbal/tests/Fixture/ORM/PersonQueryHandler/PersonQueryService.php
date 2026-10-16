@@ -6,7 +6,7 @@ namespace Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler;
 
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 
 /**

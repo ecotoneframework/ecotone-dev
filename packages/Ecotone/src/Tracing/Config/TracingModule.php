@@ -79,6 +79,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 ? new Definition(EcotoneTracer::class, [new Reference(EcotoneClockInterface::class), new Reference(SpanRecorder::class)])
                 : new Reference($tracerReferences[0]->referenceName)
         );
+        $messagingConfiguration->addCompilerPass(new RegisterSpanEventLoggerCompilerPass());
         $messagingConfiguration->registerServiceDefinition(
             TracingInterceptor::class,
             new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class)])

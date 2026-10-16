@@ -66,7 +66,7 @@ final class TracingInterceptor
             default => 'Endpoint: ' . $headers->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId() . ' produced Message',
         };
 
-        return $this->trace($name, $methodInvocation, $message, SpanKind::Consumer, self::remoteParentOf($message));
+        return $this->trace($name, $methodInvocation, $message, SpanKind::Consumer);
     }
 
     public function traceDistributedBus(MethodInvocation $methodInvocation, Message $message): mixed
@@ -93,9 +93,9 @@ final class TracingInterceptor
         return SpanContext::fromTraceparent($headers->containsKey(MessageHeaders::TRACEPARENT) ? $headers->get(MessageHeaders::TRACEPARENT) : null);
     }
 
-    private function trace(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind = SpanKind::Server, ?SpanContext $remoteParent = null): mixed
+    private function trace(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind = SpanKind::Server): mixed
     {
-        $span = $this->tracer->startSpan($name, $kind, MessageSpanAttributes::from($message), $remoteParent);
+        $span = $this->tracer->startSpan($name, $kind, MessageSpanAttributes::from($message), $this->tracer->currentSpan() === null ? self::remoteParentOf($message) : null);
 
         try {
             $result = $methodInvocation->proceed();

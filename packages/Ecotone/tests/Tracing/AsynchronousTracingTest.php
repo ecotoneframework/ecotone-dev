@@ -252,6 +252,55 @@ final class AsynchronousTracingTest extends TracingTestCase
         $this->assertCount(1, array_unique(array_map(fn (Span $span): string => $span->traceId, $recorder->recordedSpans())));
     }
 
+    public function test_adding_logs_as_events_in_span(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $users = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('user.register', endpointId: 'user.register.endpoint')]
+            public function register(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.registered', $userId);
+            }
+        };
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.registered.endpoint')]
+            public function notify(string $userId): void
+            {
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$users::class, $notifier::class],
+            [$users, $notifier, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+        )
+            ->sendCommandWithRouting('user.register', '1')
+            ->run('async_channel');
+
+        $eventBus = self::getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus'],
+                'child' => [
+                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'child' => [
+                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'child' => [
+                            'details' => ['name' => 'Command Handler: ' . $users::class . '::register'],
+                            'child' => ['details' => ['name' => 'Event Bus']],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($recorder->recordedSpans())
+        );
+
+        $eventNames = array_map(fn ($event): string => $event->name, $eventBus['details']['events']);
+        $this->assertNotEmpty(array_filter($eventNames, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
+        $this->assertNotEmpty(array_filter($eventNames, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
+    }
+
     public function test_tracing_scheduled_handler(): void
     {
         $recorder = new InMemorySpanRecorder();

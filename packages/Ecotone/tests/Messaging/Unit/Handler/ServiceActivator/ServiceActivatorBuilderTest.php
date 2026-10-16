@@ -6,8 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceReturningMessage;

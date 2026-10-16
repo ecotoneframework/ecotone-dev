@@ -52,8 +52,8 @@
     "require": {
         "php": "^8.2",
         "ext-openssl": "*",
-        "ecotone/ecotone": "~2.0.0-beta.3",
-        "ecotone/jms-converter": "~2.0.0-beta.3",
+        "ecotone/ecotone": "~2.0.0-beta.4",
+        "ecotone/jms-converter": "~2.0.0-beta.4",
         "paragonie/random_compat": "^2.0"
     },
     "require-dev": {
@@ -92,6 +92,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-15 19:58:13"
+        "release-time": "2026-10-16 19:22:11"
     }
 }

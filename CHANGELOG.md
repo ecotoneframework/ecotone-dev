@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.4] - 2026-10-16
+
+## What's Changed
+* fix: stamp every message and event from the one clock Ecotone was given, and pin the test clock at bootstrap by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/717
+* feat: ServiceConfiguration comes from one #[ServiceContext], framework configuration keeps only discovery keys by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/718
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.3...2.0.0-beta.4
+
 ## [2.0.0-beta.3] - 2026-10-15
 
 ## What's Changed

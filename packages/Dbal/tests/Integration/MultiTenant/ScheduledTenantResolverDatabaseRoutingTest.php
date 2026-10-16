@@ -21,8 +21,8 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

@@ -22,9 +22,9 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~2.0.0-beta.3",
-        "ecotone/jms-converter": "~2.0.0-beta.3",
-        "ecotone/laravel": "~2.0.0-beta.3",
+        "ecotone/dbal": "~2.0.0-beta.4",
+        "ecotone/jms-converter": "~2.0.0-beta.4",
+        "ecotone/laravel": "~2.0.0-beta.4",
         "laravel/laravel": "^12.0"
     },
     "require-dev": {

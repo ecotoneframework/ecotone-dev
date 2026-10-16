@@ -50,14 +50,14 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~2.0.0-beta.3",
+        "ecotone/ecotone": "~2.0.0-beta.4",
         "jms/serializer": "^3.32",
         "symfony/cache": "^6.4|^7.0|^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",
         "phpstan/phpstan": "^2.1",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.3"
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.4"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -87,7 +87,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-15 19:58:13"
+        "release-time": "2026-10-16 19:22:11"
     },
     "config": {
         "sort-packages": true

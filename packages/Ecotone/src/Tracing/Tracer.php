@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 
 /**

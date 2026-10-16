@@ -10,6 +10,7 @@ use function count;
 
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanRecorder;
 

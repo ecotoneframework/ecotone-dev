@@ -12,6 +12,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;

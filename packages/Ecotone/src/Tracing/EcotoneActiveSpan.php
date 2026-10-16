@@ -7,6 +7,7 @@ namespace Ecotone\Tracing;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanEvent;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;

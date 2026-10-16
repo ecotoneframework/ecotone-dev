@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Api\Tracing;
 
 use function bin2hex;
 use function random_bytes;

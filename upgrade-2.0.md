@@ -1531,7 +1531,7 @@ test needs nothing: its bootstrap sets the table up.
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
-| Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
+| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
@@ -1542,6 +1542,11 @@ Test-suite impact of the new defaults:
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
+- Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
+  handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
+  `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
+  The dead-letter log line and the final `MessageHandlingException` name both budgets: `4 failed deliveries (1 initial + 3
+  retries), each delivery tried up to 4 times by instant retry (InstantRetryConfiguration): up to 16 handler invocations`.
 
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
 clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)

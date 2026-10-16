@@ -103,6 +103,12 @@ class OrderService
 
 - `ErrorHandlerConfiguration` only runs once its `errorChannelName` actually receives failures -- wire that with
   `ServiceConfiguration::withDefaultErrorChannel()` or a per-endpoint `PollingMetadata::withErrorChannelName()`
+- Two retry budgets multiply. Instant retries (`InstantRetryConfiguration`, on by default for asynchronous endpoints
+  with 3 retries) re-run the handler in the same process before the failure reaches the error channel; the
+  `RetryTemplateBuilder` in `ErrorHandlerConfiguration` then counts *deliveries*. The default pair runs an always-failing
+  handler 16 times (4 deliveries x 4 invocations) before the dead letter; the dead-letter log and the final
+  `MessageHandlingException` state both numbers. To keep one budget, pass
+  `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
 - Use `RetryTemplateBuilder` to define retry strategies (fixed, exponential, exponential with cap)
 - Use `ErrorHandlerConfiguration` for global error handling with optional dead letter
 - Use `PollingMetadata::withErrorChannelName()` for per-endpoint error routing

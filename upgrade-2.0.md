@@ -1168,13 +1168,14 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `DbalConfiguration::withCleanObjectManagerOnAsynchronousEndpoints()` | `withClearAndFlushObjectManagerOnAsynchronousEndpoints()` |
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
-| `CronExpression::factory()` | `new CronExpression()` |
+| `TestConfiguration::withFailOnCommandHandlerNotFound()`, `withFailOnQueryHandlerNotFound()` | `withFailOnNotFoundHandler()`, one switch for both buses, `true` by default: a flow test sending a command or query nobody handles fails unless it opts out |
+| `AmqpStreamChannelBuilder::create($channel, 'next')` | `first`, `last`, an absolute offset or a timestamp. A `next` consumer receives only what RabbitMQ sees published after it attaches, so messages published before the first poll or between two runs were lost; bootstrap now refuses it with a message naming the positions that replay |
+| `CronExpression::factory()`, `CronExpression::YEAR` | `new CronExpression()`; the year field was never parsed |
+| `ServiceActivatorBuilder` (internal) | `MessageProcessorActivatorBuilder::createForMethod($objectToInvokeOn, $method)`; invoker options such as changed headers or a custom result converter go on a `MethodInvokerBuilder` passed to `createForMethodInvoker()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 | `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
-Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
-`MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
 
 ### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
 
@@ -2427,8 +2428,10 @@ lookup by the old id as a string no longer finds it. None of the other types is 
   second `subscribe()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withEnabledModulePackageNames()`, and the framework key
   `skippedModulePackageNames` → `enabledModulePackageNames`, each listing packages to load rather than skip (see §1/§9).
-- **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
-  check. Not done yet — the header still exists; nothing to change.
+- `MessageHeaders::STREAM_BASED_SOURCED` is removed. Projections set it on every projected event, and nothing read
+  it: a stream-sourced endpoint is recognised by the `#[StreamBasedSource]` attribute `#[Projection]` extends.
+  **How to adapt:** delete any reference to the constant; a handler reading the `streamBasedSourced` header no longer
+  receives it.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
 - **`#[Asynchronous]` requires an explicit `endpointId` on `#[InternalHandler]`**, as it
@@ -2779,7 +2782,6 @@ message carries one, and nothing needs migrating. Code that reads them through t
 | `MessageHeaders::REPLY_CONTENT_TYPE` | `replyContentType` | `ecotone_messaging_reply_content_type` |
 | `MessageHeaders::CONSUMER_ACK_HEADER_LOCATION` | `consumerAcknowledgeCallbackHeader` | `ecotone_messaging_consumer_acknowledge_header` |
 | `MessageHeaders::CONSUMER_POLLING_METADATA` | `consumerPollingMetadata` | `ecotone_messaging_consumer_polling_metadata` |
-| `MessageHeaders::STREAM_BASED_SOURCED` | `streamBasedSourced` | `ecotone_messaging_stream_based_sourced` |
 | `KafkaHeader::ACKNOWLEDGE_HEADER_NAME` | `kafka_acknowledge` | `ecotone_kafka_consumer_acknowledge` |
 | the DBAL, Enqueue (AMQP, SQS, Redis), Laravel queue and in-memory acknowledge headers | `dbal_acknowledge`, `enqueue_acknowledge`, `ecotone.laravel.acknowledge`, `ecotone.in_memory_queue.ack`, `ecotone.in_memory_shared.ack` | `ecotone_dbal_consumer_acknowledge`, `ecotone_enqueue_consumer_acknowledge`, `ecotone_laravel_consumer_acknowledge`, `ecotone_in_memory_queue_consumer_acknowledge`, `ecotone_in_memory_shared_consumer_acknowledge` |
 | the headers `#[ProjectionState]` and `#[ProjectionName]` read | `projection.state`, `projection.name` | `ecotone_projection_state`, `ecotone_projection_name` |
@@ -2877,7 +2879,7 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\Messaging\BatchMessage` | `getEntries()` | `$entries` |
 | `Ecotone\Api\ExtensionObject\DistributedServiceMap` | `getCommandMapping()`, `getDistributedBusAnnotations()` | `$commandMapping`, `$distributedBusAnnotations` |
 | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | `keys()` | `$keys` |
-| `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()`, `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnCommandHandlerNotFound`, `$failOnQueryHandlerNotFound`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
+| `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()` (merged into one flag, see §7), `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnNotFoundHandler`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
 | `Ecotone\Api\ExtensionObject\ExecutionPollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getStopOnError()`, `getFinishWhenNoMessages()`, `getExecutionAmountLimit()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$stopOnError`, `$finishWhenNoMessages`, `$executionAmountLimit` |
 | `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `getServiceName()`, `getEnvironment()`, `getNamespaces()`, `getCacheDirectoryPath()`, `getLoadedCatalog()`, `failFast()`, `isFailingFast()`, `getLicenceKey()`, `getConnectionRetryTemplate()`, `getExtensionObjects()`, `getDefaultMemoryLimitInMegabytes()`, `getDefaultErrorChannel()`, `getDefaultSerializationMediaType()`, `getPollableEndpointAnnotations()` | `$serviceName`, `$environment`, `$namespaces`, `$cacheDirectoryPath`, `$loadCatalog`, `$failFast` (both methods), `$licenceKey`, `$connectionRetryTemplate`, `$extensionObjects`, `$defaultMemoryLimitInMegabytes`, `$defaultErrorChannel`, `$defaultSerializationMediaType`, `$pollableEndpointAnnotations` |
 | `Ecotone\Api\ExtensionObject\PollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getExecutionAmountLimit()`, `getConnectionRetryTemplate()`, `isErrorChannelEnabled()`, `isStoppedOnError()`, `isWithSignalInterceptors()`, `getMaxMessagePerPoll()`, `getTriggerReferenceName()`, `getTaskExecutorName()`, `getFixedRateInMilliseconds()`, `getInitialDelayInMilliseconds()`, `finishWhenNoMessages()`, `getFixedRateExpression()`, `getCronExpression()`, `getPolledChannelName()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$executionAmountLimit`, `$connectionRetryTemplate`, `$isErrorChannelEnabled`, `$stopOnError`, `$withSignalInterceptors`, `$maxMessagePerPoll`, `$triggerReferenceName`, `$taskExecutorName`, `$fixedRateInMilliseconds`, `$initialDelayInMilliseconds`, `$finishWhenNoMessages`, `$fixedRateExpression`, `$cronExpression`, `$polledChannelName` |
@@ -3304,7 +3306,6 @@ normal section with "How to adapt" steps when it ships.
 
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
-| `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |

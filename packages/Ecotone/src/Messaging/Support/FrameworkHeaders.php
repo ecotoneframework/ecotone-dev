@@ -148,7 +148,6 @@ final class FrameworkHeaders
             MessageHeaders::POLLED_CHANNEL_NAME,
             MessageHeaders::INBOUND_REQUEST_CHANNEL,
             MessageHeaders::REPLY_CONTENT_TYPE,
-            MessageHeaders::STREAM_BASED_SOURCED,
             MessagingEntrypointService::ENTRYPOINT,
         ];
     }

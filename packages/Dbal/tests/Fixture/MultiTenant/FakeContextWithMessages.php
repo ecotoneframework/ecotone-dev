@@ -45,47 +45,38 @@ final class FakeContextWithMessages implements Context, PollableChannel
 
     public function createMessage(string $body = '', array $properties = [], array $headers = []): Message
     {
-        // TODO: Implement createMessage() method.
     }
 
     public function createTopic(string $topicName): Topic
     {
-        // TODO: Implement createTopic() method.
     }
 
     public function createQueue(string $queueName): Queue
     {
-        // TODO: Implement createQueue() method.
     }
 
     public function createTemporaryQueue(): Queue
     {
-        // TODO: Implement createTemporaryQueue() method.
     }
 
     public function createProducer(): Producer
     {
-        // TODO: Implement createProducer() method.
     }
 
     public function createConsumer(Destination $destination): Consumer
     {
-        // TODO: Implement createConsumer() method.
     }
 
     public function createSubscriptionConsumer(): SubscriptionConsumer
     {
-        // TODO: Implement createSubscriptionConsumer() method.
     }
 
     public function purgeQueue(Queue $queue): void
     {
-        // TODO: Implement purgeQueue() method.
     }
 
     public function close(): void
     {
-        // TODO: Implement close() method.
     }
 
     public function onConsumerStop(): void

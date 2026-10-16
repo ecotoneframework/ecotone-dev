@@ -23,7 +23,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -37,7 +37,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
     public const ECOTONE_COMMAND_PARAMETER_PREFIX = 'ecotone_console_one_time_command_';
 
     /**
-     * @var ServiceActivatorBuilder[]
+     * @var MessageProcessorActivatorBuilder[]
      */
     private array $oneTimeCommandHandlers;
     /**
@@ -81,7 +81,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
 
         $inputChannel                = 'ecotone.channel.' . $commandName;
 
-        $messageHandlerBuilder       = ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotatedMethod), $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $methodName))
+        $messageHandlerBuilder       = MessageProcessorActivatorBuilder::createForMethod(AnnotatedDefinitionReference::getReferenceFor($annotatedMethod), $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $methodName))
             ->withEndpointId('ecotone.endpoint.' . $commandName)
             ->withInputChannelName($inputChannel)
             ->withMethodParameterConverters($parameterConverters);
@@ -100,7 +100,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         [$parameterConverters, $parameters] = self::prepareParameter($interfaceToCallRegistry, $className, $methodName, $parameterConverters, $parameters);
 
         $inputChannel                = 'ecotone.channel.' . $commandName;
-        $messageHandlerBuilder       = ServiceActivatorBuilder::create($reference->getId(), $interfaceToCallReference)
+        $messageHandlerBuilder       = MessageProcessorActivatorBuilder::createForMethod($reference->getId(), $interfaceToCallReference)
             ->withEndpointId('ecotone.endpoint.' . $commandName)
             ->withEndpointAnnotations($discoverableByConsoleCommandAttribute ? [new AttributeDefinition(ConsoleCommand::class, [$commandName])] : [])
             ->withInputChannelName($inputChannel)

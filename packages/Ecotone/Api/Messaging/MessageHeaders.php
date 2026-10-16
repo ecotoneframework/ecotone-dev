@@ -68,8 +68,6 @@ final class MessageHeaders
     public const REPLY_CONTENT_TYPE = 'ecotone_messaging_reply_content_type';
     public const REVISION = 'revision';
 
-    public const STREAM_BASED_SOURCED = 'ecotone_messaging_stream_based_sourced';
-
     public const EVENT_AGGREGATE_TYPE = '_aggregate_type';
 
     public const EVENT_AGGREGATE_ID = '_aggregate_id';

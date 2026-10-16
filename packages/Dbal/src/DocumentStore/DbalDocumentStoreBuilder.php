@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 
 /**
@@ -56,7 +56,7 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
         }
 
 
-        return ServiceActivatorBuilder::create(
+        return MessageProcessorActivatorBuilder::createForMethod(
             $documentStoreReference,
             new InterfaceToCallReference(DbalDocumentStore::class, $this->method),
         )

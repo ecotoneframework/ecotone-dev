@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 
 /**
  * licence Apache-2.0
@@ -39,7 +39,7 @@ final class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return ServiceActivatorBuilder::create(
+        return MessageProcessorActivatorBuilder::createForMethod(
             $this->eventStoreReference->getId(),
             new InterfaceToCallReference(EventStore::class, $this->methodName)
         )

@@ -68,8 +68,6 @@ final class MessageHeaders
     public const REPLY_CONTENT_TYPE = 'replyContentType';
     public const REVISION = 'revision';
 
-    public const STREAM_BASED_SOURCED = 'streamBasedSourced';
-
     public const CHANNEL_SEND_RETRY_NUMBER = 'channelSendRetryNumber';
 
     public const TEMPORARY_SPAN_CONTEXT_HEADER = 'ecotone.temporarySpanContext';

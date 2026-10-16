@@ -7,7 +7,7 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use InvalidArgumentException;
+use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +27,8 @@ final class EnabledModulePackageNamesTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(enabledModules: []);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Gateway `' . DeadLetterGateway::class . '` is not registered.');
 
         $ecotone->getGateway(DeadLetterGateway::class);
     }

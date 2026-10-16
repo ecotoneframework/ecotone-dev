@@ -32,9 +32,9 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
  */
 final class DbalDocumentStoreModule implements AnnotationModule
 {
-    public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone.dbal.documentStore.collectionName';
-    public const ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID = 'ecotone.dbal.documentStore.documentId';
-    public const ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION = 'ecotone.dbal.documentStore.expectedVersion';
+    public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone_dbal_document_store_collection_name';
+    public const ECOTONE_DBAL_DOCUMENT_STORE_DOCUMENT_ID = 'ecotone_dbal_document_store_document_id';
+    public const ECOTONE_DBAL_DOCUMENT_STORE_EXPECTED_VERSION = 'ecotone_dbal_document_store_expected_version';
     public const COLLECTION_NAME_PARAMETER = 'collectionName';
     public const DOCUMENT_ID_PARAMETER = 'documentId';
     public const DOCUMENT_PARAMETER = 'document';

@@ -2768,6 +2768,38 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
 
+### Framework headers that never leave the process are renamed to `ecotone_{module}_{feature}_{action}`
+
+**Before:** the headers Ecotone adds for its own use inside one process were named in five styles —
+`ecotone.modelling.called_aggregate_class`, `projection.partitionKey`, `dbal_acknowledge`, `replyChannel`,
+`ecotone.dbal.business_method.sql`. **Now:** each is lower snake_case under the reserved `ecotone_` prefix. None of
+these headers is written to a queue, the outbox, the dead letter table or the event store, so no stored or in-flight
+message carries one, and nothing needs migrating. Code that reads them through their constant is unaffected.
+
+| Constant | 1.x value | 2.0 value |
+|---|---|---|
+| `MessageHeaders::REPLY_CHANNEL` | `replyChannel` | `ecotone_messaging_reply_channel` |
+| `MessageHeaders::REPLY_CONTENT_TYPE` | `replyContentType` | `ecotone_messaging_reply_content_type` |
+| `MessageHeaders::CONSUMER_ACK_HEADER_LOCATION` | `consumerAcknowledgeCallbackHeader` | `ecotone_messaging_consumer_acknowledge_header` |
+| `MessageHeaders::CONSUMER_POLLING_METADATA` | `consumerPollingMetadata` | `ecotone_messaging_consumer_polling_metadata` |
+| `KafkaHeader::ACKNOWLEDGE_HEADER_NAME` | `kafka_acknowledge` | `ecotone_kafka_consumer_acknowledge` |
+| the DBAL, Enqueue (AMQP, SQS, Redis), Laravel queue and in-memory acknowledge headers | `dbal_acknowledge`, `enqueue_acknowledge`, `ecotone.laravel.acknowledge`, `ecotone.in_memory_queue.ack`, `ecotone.in_memory_shared.ack` | `ecotone_dbal_consumer_acknowledge`, `ecotone_enqueue_consumer_acknowledge`, `ecotone_laravel_consumer_acknowledge`, `ecotone_in_memory_queue_consumer_acknowledge`, `ecotone_in_memory_shared_consumer_acknowledge` |
+| the headers `#[ProjectionState]` and `#[ProjectionName]` read | `projection.state`, `projection.name` | `ecotone_projection_state`, `ecotone_projection_name` |
+| the other projection execution headers | `projection.event_name`, `projection.live`, `projection.partitionKey`, `projection.canInitialize`, `projection.manual_initialization`, `projection.shouldReset` | `ecotone_projection_event_name`, `ecotone_projection_live`, `ecotone_projection_partition_key`, `ecotone_projection_can_initialize`, `ecotone_projection_manual_initialization`, `ecotone_projection_should_reset` |
+| a console command's parameters, as headers | `ecotone.oneTimeCommand.{parameter}` | `ecotone_console_one_time_command_{parameter}` |
+| aggregate, decision model, DBAL business method, document store, dead letter gateway and serializer plumbing | `ecotone.modelling.*`, `ecotone.modeling.test_setup.*`, `ecotone.eventSourcing.tagging.*`, `ecotone.dbal.business_method.*`, `ecotone.dbal.documentStore.*`, `ecotone.dbal.deadletter.limit` / `.offset`, `ecotone.serializer.*`, `ecotone.consoleCommand.name` | the same names as `ecotone_modelling_*`, `ecotone_modelling_test_setup_*`, `ecotone_event_sourcing_tagging_*`, `ecotone_dbal_business_method_*`, `ecotone_dbal_document_store_*`, `ecotone_dbal_deadletter_limit` / `_offset`, `ecotone_serializer_*`, `ecotone_console_command_name` |
+
+`MessageHeaders::CHANNEL_SEND_RETRY_NUMBER` and `MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER` are removed: nothing
+set either header.
+
+Headers that do leave the process keep their names: `id`, `timestamp`, `correlationId`, `parentId`,
+`polledChannelName`, `inboundRequestChannel`, `routingSlip`, `ecotone.distributed.*`, `aggregate.id`,
+`ecotone_retry_number`, and the dead letter's `exception-*` headers.
+
+**How to adapt:** only code that wrote one of the old values as a string literal changes — a `#[Header('replyChannel')]`,
+a `#[Header('projection.name')]` in place of `#[ProjectionName]`, or an expression such as
+`headers['ecotone.oneTimeCommand.userId']`. Use the constant, or the 2.0 value from the table.
+
 ### Renamed parameters and methods that have no entry of their own
 
 **Before:** each name in the left column worked in 1.x. **Now:** each is renamed with no alias, or changed as

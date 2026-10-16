@@ -26,7 +26,7 @@ use function json_encode;
  */
 final class LaravelQueueMessageChannel implements PollableChannel
 {
-    public const ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER = 'ecotone.laravel.acknowledge';
+    public const ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER = 'ecotone_laravel_consumer_acknowledge';
 
     private const PAYLOAD = 'payload';
     private const HEADERS = 'headers';

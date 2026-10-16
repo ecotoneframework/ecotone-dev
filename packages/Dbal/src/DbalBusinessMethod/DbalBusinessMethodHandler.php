@@ -27,11 +27,11 @@ use InvalidArgumentException;
  */
 final class DbalBusinessMethodHandler
 {
-    public const SQL_HEADER = 'ecotone.dbal.business_method.sql';
-    public const IS_INTERFACE_NULLABLE = 'ecotone.dbal.business_method.return_type_is_nullable';
-    public const HEADER_FETCH_MODE = 'ecotone.dbal.business_method.fetch_mode';
-    public const HEADER_PARAMETER_VALUE_PREFIX = 'ecotone.dbal.business_method.parameter.value.';
-    public const HEADER_PARAMETER_TYPE_PREFIX = 'ecotone.dbal.business_method.parameter.type.';
+    public const SQL_HEADER = 'ecotone_dbal_business_method_sql';
+    public const IS_INTERFACE_NULLABLE = 'ecotone_dbal_business_method_return_type_is_nullable';
+    public const HEADER_FETCH_MODE = 'ecotone_dbal_business_method_fetch_mode';
+    public const HEADER_PARAMETER_VALUE_PREFIX = 'ecotone_dbal_business_method_parameter_value_';
+    public const HEADER_PARAMETER_TYPE_PREFIX = 'ecotone_dbal_business_method_parameter_type_';
 
     private const SQL_EXPRESSION_PARAMETERS_REGEX = '#:\(([^\)]+)\)#';
 

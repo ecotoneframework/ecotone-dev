@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 final class MessagingCommandsModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const ECOTONE_EXECUTE_CONSOLE_COMMAND_EXECUTOR = 'ecotone.consoleCommand.execute';
-    public const ECOTONE_CONSOLE_COMMAND_NAME = 'ecotone.consoleCommand.name';
+    public const ECOTONE_CONSOLE_COMMAND_NAME = 'ecotone_console_command_name';
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {

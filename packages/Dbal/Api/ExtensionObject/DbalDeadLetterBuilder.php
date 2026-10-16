@@ -24,8 +24,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
-    public const LIMIT_HEADER  = 'ecotone.dbal.deadletter.limit';
-    public const OFFSET_HEADER = 'ecotone.dbal.deadletter.offset';
+    public const LIMIT_HEADER  = 'ecotone_dbal_deadletter_limit';
+    public const OFFSET_HEADER = 'ecotone_dbal_deadletter_offset';
 
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';

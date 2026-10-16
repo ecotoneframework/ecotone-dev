@@ -9,5 +9,5 @@ namespace Ecotone\Enqueue;
  */
 interface EnqueueHeader
 {
-    public const HEADER_ACKNOWLEDGE = 'enqueue_acknowledge';
+    public const HEADER_ACKNOWLEDGE = 'ecotone_enqueue_consumer_acknowledge';
 }

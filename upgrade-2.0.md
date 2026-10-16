@@ -1600,7 +1600,9 @@ ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChanne
 The keys Ecotone reads in config/ecotone.php are: enabledModulePackageNames, licenceKey, loadAppNamespaces, namespaces, test.`
 
 `EcotoneLite` takes the discovery settings as parameters instead of a `configuration:` object: `extensionObjects:`,
-`enabledModules:`, `licenceKey:`, `namespaces:`, `environment:` and `cacheDirectoryPath:`.
+`enabledModules:`, `licenceKey:`, `namespaces:`, `environment:` and `cacheDirectoryPath:`. There is no catalog
+parameter: `withLoadCatalog('src')` becomes `namespaces: ['App']`, the namespace your composer autoload maps to that
+directory, and the scan reads the same files.
 
 **How to adapt:**
 

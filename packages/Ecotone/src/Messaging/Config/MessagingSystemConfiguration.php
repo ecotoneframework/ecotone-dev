@@ -72,6 +72,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Exception;
 
@@ -518,13 +519,14 @@ final class MessagingSystemConfiguration implements Configuration
                     $generatedEndpointId = Uuid::v7()->toRfc4122();
                     $this->registerMessageHandler(
                         UninterruptibleServiceActivator::create(
-                            RoutingSlipPrepender::create(
+                            new Definition(RoutingSlipPrepender::class, [
                                 $consequentialChannels,
                                 [
                                     MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME,
                                     MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME,
-                                ]
-                            ),
+                                ],
+                                Reference::to(MessageBuilder::class),
+                            ]),
                             'transform',
                         )
                             ->withEndpointId($generatedEndpointId)

@@ -26,7 +26,7 @@ class GenericMessageTest extends MessagingTestCase
         $headerName = 'token';
         $headerValue = '123';
 
-        $message = GenericMessage::createWithArrayHeaders($payload, [$headerName => $headerValue]);
+        $message = GenericMessage::createWithArrayHeaders($payload, [MessageHeaders::TIMESTAMP => 1700000000, $headerName => $headerValue]);
 
         $this->assertEquals(
             $headerValue,

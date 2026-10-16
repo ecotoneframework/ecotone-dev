@@ -30,6 +30,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -139,6 +140,7 @@ final class DbalDeadLetterModule implements AnnotationModule
                 ? new Definition(InMemoryDeadLetterStore::class, [
                     DefaultHeaderMapper::createAllHeadersMapping(),
                     Reference::to(ConversionService::REFERENCE_NAME),
+                    Reference::to(MessageBuilder::class),
                 ])
                 : new Definition(DbalDeadLetterStore::class, [
                     new Definition(CachedConnectionFactory::class, [
@@ -151,6 +153,7 @@ final class DbalDeadLetterModule implements AnnotationModule
                     Reference::to(ConversionService::REFERENCE_NAME),
                     Reference::to(RetryRunner::class),
                     Reference::to(DeadLetterTableManager::class),
+                    Reference::to(MessageBuilder::class),
                 ])
         );
 

@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -132,6 +133,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             new Reference(EcotoneClockInterface::class),
             $outboxForwardingChannel->getMaxForwardingBatchSize(),
             $outboxForwardingChannel->getFinalFailureStrategy() ?? $inboundChannelAdapter->getFinalFailureStrategy(),
+            new Reference(MessageBuilder::class),
         ]);
     }
 }

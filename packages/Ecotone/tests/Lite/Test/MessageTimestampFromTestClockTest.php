@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
@@ -39,7 +40,7 @@ final class MessageTimestampFromTestClockTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service]);
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 13:00:00'));
 
-        $ecotone->run('tick');
+        $ecotone->run('tick', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 0));
 
         $this->assertSame((new DateTimeImmutable('2026-03-01 13:00:00'))->getTimestamp(), $service->timestamp);
     }

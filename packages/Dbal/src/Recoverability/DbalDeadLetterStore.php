@@ -41,6 +41,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
         private ConversionService $conversionService,
         private RetryRunner $retryRunner,
         private DeadLetterTableManager $tableManager,
+        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -96,7 +97,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
             return null;
         }
 
-        return MessageBuilder::withPayload($message['payload'])
+        return $this->messageBuilder->withPayload($message['payload'])
             ->setMultipleHeaders($this->decodeHeaders($message))
             ->build();
     }

@@ -39,6 +39,7 @@ final class DbalBusinessMethodHandler
         private ConnectionFactory $connectionFactory,
         private ConversionService $conversionService,
         private ExpressionEvaluationService $expressionEvaluationService,
+        private MessageBuilder $messageBuilder,
     ) {
 
     }
@@ -68,7 +69,7 @@ final class DbalBusinessMethodHandler
             return null;
         }
 
-        return MessageBuilder::withPayload($result)
+        return $this->messageBuilder->withPayload($result)
                     ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($result)->toString()))
                     ->build();
     }

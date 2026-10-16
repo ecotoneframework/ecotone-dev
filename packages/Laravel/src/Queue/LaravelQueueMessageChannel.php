@@ -38,6 +38,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
         private string $acknowledgeMode,
         private OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService,
+        private MessageBuilder $messageBuilder,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND
     ) {
 
@@ -82,7 +83,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
 
         $message = json_decode($job->getRawBody(), true, 512, JSON_THROW_ON_ERROR);
         $message = json_decode($message['data'], true, 512, JSON_THROW_ON_ERROR);
-        $messageBuilder = MessageBuilder::withPayload($message[self::PAYLOAD])
+        $messageBuilder = $this->messageBuilder->withPayload($message[self::PAYLOAD])
             ->setMultipleHeaders($message[self::HEADERS]);
 
         $messageBuilder = $messageBuilder

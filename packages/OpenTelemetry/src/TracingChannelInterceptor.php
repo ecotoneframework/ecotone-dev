@@ -29,8 +29,11 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     /** @var ChannelSendSpan[] */
     private array $openSpans = [];
 
-    public function __construct(private string $channelName, private TracerProviderInterface $tracerProvider)
-    {
+    public function __construct(
+        private string $channelName,
+        private TracerProviderInterface $tracerProvider,
+        private MessageBuilder $messageBuilder,
+    ) {
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
@@ -45,7 +48,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
 
-        return MessageBuilder::fromMessage($message)
+        return $this->messageBuilder->fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))
                 ->build();
     }

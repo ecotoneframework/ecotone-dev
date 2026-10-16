@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -40,6 +41,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE,
             Reference::to(LoggingGateway::class),
+            Reference::to(MessageBuilder::class),
             $this->finalFailureStrategy,
         ]);
 

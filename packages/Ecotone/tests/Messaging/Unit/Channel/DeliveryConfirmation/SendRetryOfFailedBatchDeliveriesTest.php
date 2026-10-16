@@ -17,8 +17,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Test\StaticMessageBuilder;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -70,6 +71,8 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
 
     private function createInterceptor(): SendRetryChannelInterceptor
     {
+        $clock = StubUTCClock::createWithCurrentTime('2025-01-01 00:00:00');
+
         return new SendRetryChannelInterceptor(
             'orders',
             RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build(),
@@ -79,10 +82,12 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
                 $this->createStub(OutboundMessageConverter::class),
                 $this->createStub(ConversionService::class),
                 new MessageHeadersPropagatorInterceptor(),
+                new MessageBuilder($clock),
             ),
             $this->createStub(ConfiguredMessagingSystem::class),
             new NullLogger(),
-            StubUTCClock::createWithCurrentTime('2025-01-01 00:00:00'),
+            $clock,
+            new MessageBuilder($clock),
         );
     }
 

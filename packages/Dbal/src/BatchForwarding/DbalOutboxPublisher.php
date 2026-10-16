@@ -58,6 +58,7 @@ final class DbalOutboxPublisher
         private EcotoneClockInterface $clock,
         private int $maxBatchSize,
         private FinalFailureStrategy $finalFailureStrategy,
+        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -279,7 +280,7 @@ final class DbalOutboxPublisher
         if ($this->supportsBatchMessages($targetChannel)) {
             try {
                 $targetChannel->send(
-                    MessageBuilder::withPayload(
+                    $this->messageBuilder->withPayload(
                         BatchMessage::fromEntries(array_map(
                             fn (array $groupedRecord) => ['payload' => $groupedRecord['payload'], 'headers' => $groupedRecord['headers']],
                             $groupedRecords,
@@ -301,7 +302,7 @@ final class DbalOutboxPublisher
         foreach ($groupedRecords as $groupedRecord) {
             try {
                 $targetChannel->send(
-                    MessageBuilder::withPayload($groupedRecord['payload'])
+                    $this->messageBuilder->withPayload($groupedRecord['payload'])
                         ->setMultipleHeaders($groupedRecord['headers'])
                         ->build(),
                 );

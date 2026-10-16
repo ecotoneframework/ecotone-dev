@@ -113,8 +113,8 @@ class LoggingInterceptorTest extends TestCase
         $this->assertEquals($payload, $logs[0]->message);
         $this->assertEquals([
             'headers' => json_encode([
-                'id' => $message->getHeaders()->get(MessageHeaders::MESSAGE_ID),
                 'timestamp' => $message->getHeaders()->get(MessageHeaders::TIMESTAMP),
+                'id' => $message->getHeaders()->get(MessageHeaders::MESSAGE_ID),
                 'correlationId' => $message->getHeaders()->getCorrelationId(),
             ]),
         ], $logs[0]->context);

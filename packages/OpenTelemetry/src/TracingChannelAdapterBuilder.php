@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Support\MessageBuilder;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 /**
@@ -35,6 +36,7 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
         return new Definition(TracingChannelInterceptor::class, [
             $this->channelName,
             new Reference(TracerProviderInterface::class),
+            new Reference(MessageBuilder::class),
         ]);
     }
 }

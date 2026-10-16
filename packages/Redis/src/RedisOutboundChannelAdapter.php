@@ -13,6 +13,7 @@ use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
 use Enqueue\Redis\RedisMessage;
@@ -53,6 +54,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
+        MessageBuilder $messageBuilder,
         bool $batchPublishing = false,
     ) {
         parent::__construct(
@@ -61,6 +63,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
+            $messageBuilder,
             $batchPublishing,
             $queueName,
         );

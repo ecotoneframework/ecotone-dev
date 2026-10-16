@@ -15,6 +15,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Queue\Context;
 use Throwable;
 
@@ -29,6 +30,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
+        MessageBuilder $messageBuilder,
         private EnqueueTableManager $tableManager,
         bool $batchPublishing = false,
     ) {
@@ -38,6 +40,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
+            $messageBuilder,
             $batchPublishing,
             $this->queueName,
         );

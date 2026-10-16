@@ -32,6 +32,7 @@ final class SymfonyMessageConverter
         private HeaderMapper $headerMapper,
         private string $acknowledgeMode,
         private ConversionService $conversionService,
+        private MessageBuilder $messageBuilder,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND
     ) {
 
@@ -99,7 +100,7 @@ final class SymfonyMessageConverter
         if ($payload instanceof WrappedPayload) {
             $payload = $payload->getPayload();
         }
-        $messageBuilder = MessageBuilder::withPayload($payload)
+        $messageBuilder = $this->messageBuilder->withPayload($payload)
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers, $this->conversionService));
 
         if (array_key_exists(MessageHeaders::CONTENT_TYPE, $headers)) {

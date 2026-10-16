@@ -15,6 +15,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
@@ -107,6 +108,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
     {
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
             $this->headerMapper,
+            new Reference(MessageBuilder::class),
             $this->defaultConversionMediaType,
         ]);
 
@@ -116,6 +118,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
             new Reference(ConversionService::REFERENCE_NAME),
             $outboundMessageConverter,
             new Reference(PendingDeliveryRegistry::class),
+            new Reference(MessageBuilder::class),
         ]);
     }
 

@@ -20,6 +20,7 @@ Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test en
 | Method | Use When |
 |--------|----------|
 | `EcotoneLite::bootstrapFlowTesting()` | Every flow test. Every installed package loads; each runs in memory until the test gives it a connection |
+| `bootstrapFlowTesting(namespaces: ['App\Domain'])` | A flow test that must pick up every handler under a namespace, so a handler added later is found without editing the class list |
 
 ```php
 use Ecotone\Api\Lite\EcotoneLite;
@@ -28,6 +29,12 @@ use Ecotone\Api\Lite\EcotoneLite;
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     classesToResolve: [MyHandler::class],
     containerOrAvailableServices: [new MyHandler()],
+);
+
+// Whole-namespace testing: every attributed class under App\Domain is registered, classesToResolve stays empty
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    containerOrAvailableServices: [new MyHandler()],
+    namespaces: ['App\Domain'],
 );
 
 // Event sourcing testing: in memory, as no connection is given; pass DbalConnectionFactory::class => ... to use the database

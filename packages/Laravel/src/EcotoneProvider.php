@@ -4,10 +4,10 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Console\ConsoleWriter;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\FrameworkConfigurationKeys;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -136,7 +136,7 @@ class EcotoneProvider extends ServiceProvider
                         );
 
                         if ($result) {
-                            $self->table($result->getColumnHeaders(), $result->getRows());
+                            $self->table($result->columnHeaders, $result->rows);
                         }
 
                         return 0;

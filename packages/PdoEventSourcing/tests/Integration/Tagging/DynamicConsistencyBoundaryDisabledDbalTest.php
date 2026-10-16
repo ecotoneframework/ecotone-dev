@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -20,7 +21,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -86,7 +86,7 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
-        self::assertNotContains(TagTableManager::FEATURE_NAME, array_column($result->getRows(), 0));
+        self::assertNotContains(TagTableManager::FEATURE_NAME, array_column($result->rows, 0));
     }
 
     public function test_loading_by_criteria_throws(): void

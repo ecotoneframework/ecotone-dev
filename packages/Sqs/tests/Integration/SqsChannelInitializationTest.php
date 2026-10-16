@@ -68,7 +68,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
 
         // Verify the command output shows initialization
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Initialized'], $rows[0]);
 
@@ -104,7 +104,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         // Now delete the channel
         $result = $runner->execute('ecotone:migration:channel:delete', ['force' => true]);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Deleted'], $rows[0]);
 
@@ -127,7 +127,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         // Check status before initialization
         $result = $runner->execute('ecotone:migration:channel:setup', []);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'No'], $rows[0]);
 
@@ -137,7 +137,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         // Check status after initialization
         $result = $runner->execute('ecotone:migration:channel:setup', []);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Yes'], $rows[0]);
     }
@@ -160,7 +160,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(2, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Initialized'], $rows[0]);
         self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Initialized'], $rows[1]);
@@ -199,7 +199,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(2, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Deleted'], $rows[0]);
         self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Deleted'], $rows[1]);

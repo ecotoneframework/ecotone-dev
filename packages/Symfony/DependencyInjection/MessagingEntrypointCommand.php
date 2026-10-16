@@ -2,8 +2,8 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\SymfonyConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -71,7 +71,7 @@ class MessagingEntrypointCommand extends Command
         );
 
         if ($result) {
-            $writer->table($result->getColumnHeaders(), $result->getRows());
+            $writer->table($result->columnHeaders, $result->rows);
         }
 
         return 0;

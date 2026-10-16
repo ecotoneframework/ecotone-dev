@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -13,7 +14,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -40,8 +40,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
-        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->getColumnHeaders());
-        $featureNames = array_column($result->getRows(), 0);
+        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->columnHeaders);
+        $featureNames = array_column($result->rows, 0);
         self::assertContains('dead_letter', $featureNames);
 
         // Verify dead_letter shows as used and not initialized
@@ -73,11 +73,11 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
-        self::assertEquals(['Feature', 'Connection', 'Status'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Status'], $result->columnHeaders);
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
 
         // Verify result contains the feature
-        $featureNames = array_column($result->getRows(), 0);
+        $featureNames = array_column($result->rows, 0);
         self::assertContains('dead_letter', $featureNames);
     }
 
@@ -87,8 +87,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => true]);
 
-        self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
-        $allSql = implode(' ', array_column($result->getRows(), 0));
+        self::assertEquals(['SQL Statement'], $result->columnHeaders);
+        $allSql = implode(' ', array_column($result->rows, 0));
         self::assertStringContainsString('CREATE TABLE', $allSql);
         self::assertStringContainsString(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $allSql);
     }
@@ -104,7 +104,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         // Delete tables
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => true]);
 
-        self::assertEquals(['Feature', 'Connection', 'Status'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Status'], $result->columnHeaders);
         self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 
@@ -119,7 +119,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         // Try to delete without force
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', []);
 
-        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->columnHeaders);
         // Tables should still exist
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
@@ -154,8 +154,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'initialize' => true,
         ]);
 
-        self::assertEquals(['Feature', 'Connection', 'Status'], $result->getColumnHeaders());
-        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Created']], $result->getRows());
+        self::assertEquals(['Feature', 'Connection', 'Status'], $result->columnHeaders);
+        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Created']], $result->rows);
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 
@@ -174,8 +174,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'feature' => ['dead_letter'],
         ]);
 
-        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->getColumnHeaders());
-        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Yes', 'Yes']], $result->getRows());
+        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->columnHeaders);
+        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Yes', 'Yes']], $result->rows);
     }
 
     public function test_database_setup_returns_sql_for_specific_features(): void
@@ -187,9 +187,9 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'sql' => true,
         ]);
 
-        self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
-        self::assertCount(1, $result->getRows());
-        $sql = $result->getRows()[0][0];
+        self::assertEquals(['SQL Statement'], $result->columnHeaders);
+        self::assertCount(1, $result->rows);
+        $sql = $result->rows[0][0];
         self::assertStringContainsString('CREATE TABLE', $sql);
         self::assertStringContainsString(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $sql);
     }
@@ -208,8 +208,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'force' => true,
         ]);
 
-        self::assertEquals(['Feature', 'Connection', 'Status'], $result->getColumnHeaders());
-        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Deleted']], $result->getRows());
+        self::assertEquals(['Feature', 'Connection', 'Status'], $result->columnHeaders);
+        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Deleted']], $result->rows);
         self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 
@@ -226,8 +226,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'feature' => ['dead_letter'],
         ]);
 
-        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->getColumnHeaders());
-        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Would be deleted (use --force to confirm)']], $result->getRows());
+        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->columnHeaders);
+        self::assertEquals([['dead_letter', DbalConnectionFactory::class, 'Would be deleted (use --force to confirm)']], $result->rows);
         // Table should still exist
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
@@ -238,8 +238,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true]);
 
-        self::assertEquals(['Feature', 'Connection'], $result->getColumnHeaders());
-        $featureNames = array_column($result->getRows(), 0);
+        self::assertEquals(['Feature', 'Connection'], $result->columnHeaders);
+        $featureNames = array_column($result->rows, 0);
         self::assertContains('dead_letter', $featureNames);
     }
 
@@ -251,7 +251,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true]);
 
-        $featureNames = array_column($result->getRows(), 0);
+        $featureNames = array_column($result->rows, 0);
         self::assertNotContains('dead_letter', $featureNames);
     }
 
@@ -263,8 +263,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true, 'sql' => true]);
 
-        self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
-        $allSql = implode(' ', array_column($result->getRows(), 0));
+        self::assertEquals(['SQL Statement'], $result->columnHeaders);
+        $allSql = implode(' ', array_column($result->rows, 0));
         self::assertStringNotContainsString(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE, $allSql);
     }
 
@@ -278,7 +278,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
     private function findRowByFeature(ConsoleCommandResultSet $result, string $featureName): ?array
     {
-        foreach ($result->getRows() as $row) {
+        foreach ($result->rows as $row) {
             if ($row[0] === $featureName) {
                 return $row;
             }
@@ -323,7 +323,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => 'false']);
 
         // Should show status, not initialize
-        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->columnHeaders);
         self::assertFalse($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 
@@ -335,7 +335,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => 'false']);
 
         // Should show status, not SQL
-        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Used', 'Initialized'], $result->columnHeaders);
     }
 
     public function test_database_delete_respects_string_false_for_force(): void
@@ -350,7 +350,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => 'false']);
 
         // Should show warning, not delete
-        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Connection', 'Warning'], $result->columnHeaders);
         self::assertTrue($this->tableExists(DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE));
     }
 }

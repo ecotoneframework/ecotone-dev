@@ -124,7 +124,7 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
         /** @var ConsoleCommandRunner $console */
         $console = $ecotone->getGateway(ConsoleCommandRunner::class);
 
-        $createStatements = implode("\n", array_column($console->execute('ecotone:migration:database:setup', ['sql' => true])->getRows(), 0));
+        $createStatements = implode("\n", array_column($console->execute('ecotone:migration:database:setup', ['sql' => true])->rows, 0));
         self::assertStringContainsString('ledger_events', $createStatements);
         self::assertStringNotContainsString('ecotone_event_stream', $createStatements);
 

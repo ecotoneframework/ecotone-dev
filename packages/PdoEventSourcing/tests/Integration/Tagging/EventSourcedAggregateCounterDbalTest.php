@@ -202,7 +202,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
 
         $result = $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:setup', []);
 
-        self::assertContains(TagTableManager::FEATURE_NAME, array_column($result->getRows(), 0));
+        self::assertContains(TagTableManager::FEATURE_NAME, array_column($result->rows, 0));
     }
 
     private function armBenToDepositDuringAnnasCommand(FlowTestSupport $anna, FlowTestSupport $ben): void

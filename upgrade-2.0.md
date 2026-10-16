@@ -2194,6 +2194,12 @@ configuration changes, so a stale one names a type that no longer exists. Run `e
 `SymfonyConsoleWriter`, Tempest's `TempestConsoleWriter` and their progress bars. An application never names them;
 they implement the `Api` interfaces.
 
+**`ConsoleCommandResultSet` moved with them.** A `#[ConsoleCommand]` that prints a table returns
+`Ecotone\Messaging\Config\ConsoleCommandResultSet`; it is now `Ecotone\Api\Console\ConsoleCommandResultSet`, built
+with the same `ConsoleCommandResultSet::create($columnHeaders, $rows)`. Its `getColumnHeaders()` and `getRows()` are the
+public readonly properties `columnHeaders` and `rows`, which matters to a test that reads the result a console command
+returned: `$result->getRows()` becomes `$result->rows`.
+
 ### 13g. `Message` moved into `Api`
 
 **Before:** the message itself was internal, although an application meets it whenever it works below the buses — a

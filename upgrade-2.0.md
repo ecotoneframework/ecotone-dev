@@ -2340,6 +2340,8 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | 1.x and early 2.0 | 2.0 | Why an application names it |
 |---|---|---|
 | `Ecotone\Modelling\StandardRepository` (1.x; `Ecotone\Modelling\StateStoredRepository` in pre-release 2.0) | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+| `Ecotone\Modelling\EventSourcedRepository` | `Ecotone\Api\Modelling\EventSourcedRepository` | a custom event-sourced `#[Repository]` implements it |
+| `Ecotone\Modelling\EventStream` | `Ecotone\Api\Modelling\EventStream` | a custom event-sourced `#[Repository]` returns it from `findBy()` |
 | `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
 | `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |

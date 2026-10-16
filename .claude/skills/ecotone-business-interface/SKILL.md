@@ -162,7 +162,7 @@ interface CustomOrderRepository
 
 A class-level `#[Repository]` means something else: it marks a class you wrote as a custom repository
 implementation (one implementing `Ecotone\Api\Modelling\StateStoredRepository` or
-`Ecotone\Modelling\EventSourcedRepository`). On an interface it is refused at bootstrap.
+`Ecotone\Api\Modelling\EventSourcedRepository`). On an interface it is refused at bootstrap.
 
 ## Key Rules
 

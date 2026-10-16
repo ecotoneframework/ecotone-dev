@@ -22,7 +22,7 @@ final class RepositoryAttributeOnInterfaceTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(
             '#[Repository] is placed on the interface Test\Ecotone\Modelling\Unit\BasketRepositoryWithClassLevelAttribute. '
-            . 'A class-level #[Repository] marks a custom repository implementation, a class implementing Ecotone\Api\Modelling\StateStoredRepository or Ecotone\Modelling\EventSourcedRepository, and an interface cannot be one. '
+            . 'A class-level #[Repository] marks a custom repository implementation, a class implementing Ecotone\Api\Modelling\StateStoredRepository or Ecotone\Api\Modelling\EventSourcedRepository, and an interface cannot be one. '
             . 'To have Ecotone generate the repository for Test\Ecotone\Modelling\Unit\BasketRepositoryWithClassLevelAttribute, remove the class-level attribute and put #[Repository] on each of its methods, for example `#[Repository] public function save(Basket $basket): void;` and `#[Repository] public function get(string $basketId): ?Basket;`. '
             . 'To provide your own storage, put the class-level #[Repository] on a class implementing one of those two interfaces instead.'
         );

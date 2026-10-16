@@ -24,11 +24,11 @@ use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -309,7 +309,7 @@ class HighThroughputPublishingBenchmark
     private function publishBatchSynchronously(): void
     {
         $this->batchChannel->send(
-            MessageBuilder::withPayload($this->buildBatch(self::AMOUNT_OF_PUBLISHED_MESSAGES))->build()
+            StaticMessageBuilder::withPayload($this->buildBatch(self::AMOUNT_OF_PUBLISHED_MESSAGES))->build()
         );
     }
 
@@ -322,7 +322,7 @@ class HighThroughputPublishingBenchmark
     {
         for ($batchNumber = 0; $batchNumber < self::AMOUNT_OF_BATCHES; $batchNumber++) {
             $this->batchChannel->send(
-                MessageBuilder::withPayload($this->buildBatch(self::MESSAGES_PER_BATCH))->build()
+                StaticMessageBuilder::withPayload($this->buildBatch(self::MESSAGES_PER_BATCH))->build()
             );
         }
     }
@@ -356,7 +356,7 @@ class HighThroughputPublishingBenchmark
     private function warmUpBatchChannel(): void
     {
         $this->batchChannel->send(
-            MessageBuilder::withPayload(self::MESSAGE_PAYLOAD)
+            StaticMessageBuilder::withPayload(self::MESSAGE_PAYLOAD)
                 ->setContentType(MediaType::createTextPlain())
                 ->build()
         );

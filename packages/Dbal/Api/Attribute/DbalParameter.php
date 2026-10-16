@@ -29,7 +29,7 @@ final class DbalParameter implements DefinedObject, WithExpression
 
     public function getHeaderName(): string
     {
-        return 'ecotone.dbal.business_method.' . $this->name;
+        return 'ecotone_dbal_business_method_' . $this->name;
     }
 
     public function getType(): int|ArrayParameterType|ParameterType|null

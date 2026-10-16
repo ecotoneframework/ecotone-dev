@@ -2,6 +2,7 @@
 
 namespace Ecotone\JMSConverter;
 
+use DateTimeInterface;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -9,6 +10,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
+use JMS\Serializer\Handler\DateHandler;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
@@ -19,6 +21,8 @@ use JMS\Serializer\SerializerBuilder;
  */
 class JMSConverterBuilder implements CompilableBuilder
 {
+    public const DATE_TIME_FORMAT_WITH_MICROSECONDS = 'Y-m-d\\TH:i:s.uP';
+
     /**
      * @param JMSHandlerAdapterBuilder[] $converterHandlerBuilders
      */
@@ -41,6 +45,7 @@ class JMSConverterBuilder implements CompilableBuilder
             ->enableEnumSupport($jmsConverterConfiguration->isEnumSupportEnabled())
             ->addDefaultHandlers()
             ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
+                $registry->registerSubscribingHandler(new DateHandler(self::DATE_TIME_FORMAT_WITH_MICROSECONDS, 'UTC', true, [self::DATE_TIME_FORMAT_WITH_MICROSECONDS, DateTimeInterface::ATOM]));
                 foreach ($convertersHandlers as $converterHandler) {
                     $registry->registerHandler(
                         $converterHandler->getDirection(),

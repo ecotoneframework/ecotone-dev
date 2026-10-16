@@ -1527,6 +1527,7 @@ test needs nothing: its bootstrap sets the table up.
 |---|---|---|---|
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
+| JMS: `DateTime` / `DateTimeImmutable` format | `Y-m-d\TH:i:sP` (seconds) | `Y-m-d\TH:i:s.uP` (microseconds); payloads stored in the old format still deserialize | a `#[Converter]` for `DateTimeInterface`, as before |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
@@ -1535,6 +1536,9 @@ test needs nothing: its bootstrap sets the table up.
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
+- A `DateTimeImmutable` round-trips through a JSON-serialized channel, event store or document store with its microseconds, so
+  a comparison such as `$updatedAt > $createdAt` holds on both sides of an asynchronous channel. A test asserting the serialized
+  string sees `2021-01-01T12:00:00.000000+00:00` where it saw `2021-01-01T12:00:00+00:00`.
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or

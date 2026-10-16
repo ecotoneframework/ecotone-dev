@@ -16,7 +16,7 @@ paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
 mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
-12a, 13a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
+12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
 > or documentation you edit must be checked against the current tree first. The 2.0 API moved
@@ -1049,6 +1049,31 @@ public function backfill(
 gives `--batchSize` and `--skipUndeserializable`. Writing `--skip-undeserializable` in an exception message or a
 document is a bug: `5fa0024b2` fixed exactly that, in a hint that told users to run an option that did not exist.
 See also `packages/Dbal/src/Database/DatabaseSetupCommand.php` (`--onlyUsed`, `--initialize`, `--connection`).
+
+### 14a. A framework header is named `ecotone_{module}_{feature}_{action}`
+
+A header Ecotone adds for itself is lower snake_case, carries the `ecotone_` prefix, and names its module, then the
+feature, then what it holds: `ecotone_dbal_deadletter_limit`, `ecotone_modelling_aggregate_target_version`,
+`ecotone_projection_partition_key`, `ecotone_kafka_consumer_acknowledge`. A prefix built on at runtime ends in `_`:
+`ecotone_dbal_business_method_parameter_value_`. The value lives in one constant, and code reads the constant, never
+the literal.
+
+- **The prefix keeps framework headers apart from application headers.** An application header can be named
+  anything; `ecotone_` is reserved for Ecotone.
+- **No dots.** The event store builds a JSON path from a metadata key (`JSON_EXTRACT(metadata, '$.{$field}')` in
+  `MySqlEventStreamSchema` and `SqliteEventStreamSchema`), so `a.b.c` is read there as a nested path and matches
+  nothing, while PostgreSQL's `->>` reads it literally — a dotted key works on one engine and silently fails on the
+  others.
+- **Exempt, and kept as they are:** the core message headers shared with Spring Integration (`id`, `timestamp`,
+  `correlationId`, `parentId`, `contentType`, `routingSlip`, `errorChannel`, `priority`, …), the event store's
+  `_aggregate_*` and `_stream_name` keys (generated columns and the unique index are built on them), and the
+  `amqp_*` / `kafka_*` copies of broker properties.
+- **A header that leaves the process is renamed only with a read path for its old name.** One that is written to a
+  queue, the outbox, the dead letter table or the event store — `polledChannelName` and `inboundRequestChannel`
+  among them, which dead-letter replay reads back from the stored message — is still there under its 1.x name after
+  an upgrade. Headers that never leave the process can be renamed freely.
+
+Channel names are not headers and are not covered by this rule.
 
 ---
 

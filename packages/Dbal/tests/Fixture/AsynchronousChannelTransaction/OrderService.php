@@ -9,8 +9,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ManagerRegistryConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 use InvalidArgumentException;
 

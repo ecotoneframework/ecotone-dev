@@ -1058,18 +1058,18 @@ seam is unchanged and is what lets the underlying transport be replaced later wi
 
 | Package | Before (Enqueue class you typed) | Now (Ecotone class you type) | Default reference name |
 |---|---|---|---|
-| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
-| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
-| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
-| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
-| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
+| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
+| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
+| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
+| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
+| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
 
 `DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
 `defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
 each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
 `TempestConnectionReference`. The four transport references are new in 2.0; the three framework ones existed in 1.x.
 There they resolved to `Enqueue\Dbal\DbalConnectionFactory::class`; they now resolve to
-`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Dbal\Connection\DbalConnectionFactory'`. Code that builds
+`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Api\Dbal\DbalConnectionFactory'`. Code that builds
 them with `defaultConnection()` or the constructor follows on its own; a lookup of the old string id does not (see
 below).
 
@@ -1097,8 +1097,8 @@ below).
 
   | 1.x | 2.0 |
   |---|---|
-  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` |
-  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` |
+  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
   | `Enqueue\Dbal\DbalContext` | `Ecotone\Dbal\Connection\DbalContext` |
   | `Enqueue\Dbal\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` | `Ecotone\Dbal\Connection\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` |
   | `Enqueue\Dbal\DbalDestination`, `DbalMessage` | `Ecotone\Dbal\Connection\DbalDestination`, `DbalMessage` |
@@ -1528,14 +1528,18 @@ test needs nothing: its bootstrap sets the table up.
 |---|---|---|---|
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
+| JMS: `DateTime` / `DateTimeImmutable` format | `Y-m-d\TH:i:sP` (seconds) | `Y-m-d\TH:i:s.uP` (microseconds); payloads stored in the old format still deserialize | a `#[Converter]` for `DateTimeInterface`, as before |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
-| Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
+| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
+- A `DateTimeImmutable` round-trips through a JSON-serialized channel, event store or document store with its microseconds, so
+  a comparison such as `$updatedAt > $createdAt` holds on both sides of an asynchronous channel. A test asserting the serialized
+  string sees `2021-01-01T12:00:00.000000+00:00` where it saw `2021-01-01T12:00:00+00:00`.
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
@@ -1543,6 +1547,11 @@ Test-suite impact of the new defaults:
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
+- Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
+  handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
+  `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
+  The dead-letter log line and the final `MessageHandlingException` name both budgets: `4 failed deliveries (1 initial + 3
+  retries), each delivery tried up to 4 times by instant retry (InstantRetryConfiguration): up to 16 handler invocations`.
 
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
 clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)
@@ -2186,6 +2195,12 @@ configuration changes, so a stale one names a type that no longer exists. Run `e
 `SymfonyConsoleWriter`, Tempest's `TempestConsoleWriter` and their progress bars. An application never names them;
 they implement the `Api` interfaces.
 
+**`ConsoleCommandResultSet` moved with them.** A `#[ConsoleCommand]` that prints a table returns
+`Ecotone\Messaging\Config\ConsoleCommandResultSet`; it is now `Ecotone\Api\Console\ConsoleCommandResultSet`, built
+with the same `ConsoleCommandResultSet::create($columnHeaders, $rows)`. Its `getColumnHeaders()` and `getRows()` are the
+public readonly properties `columnHeaders` and `rows`, which matters to a test that reads the result a console command
+returned: `$result->getRows()` becomes `$result->rows`.
+
 ### 13g. `Message` moved into `Api`
 
 **Before:** the message itself was internal, although an application meets it whenever it works below the buses — a
@@ -2332,6 +2347,8 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | 1.x and early 2.0 | 2.0 | Why an application names it |
 |---|---|---|
 | `Ecotone\Modelling\StandardRepository` (1.x; `Ecotone\Modelling\StateStoredRepository` in pre-release 2.0) | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+| `Ecotone\Modelling\EventSourcedRepository` | `Ecotone\Api\Modelling\EventSourcedRepository` | a custom event-sourced `#[Repository]` implements it |
+| `Ecotone\Modelling\EventStream` | `Ecotone\Api\Modelling\EventStream` | a custom event-sourced `#[Repository]` returns it from `findBy()` |
 | `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
 | `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
@@ -2354,6 +2371,33 @@ deploy, since the compiled container records class names. **One container id cha
 gateway registered under its class name, so its id is now `Ecotone\Api\EventSourcing\EventStreamEmitter`. A handler
 parameter typed with it, and `$container->get(EventStreamEmitter::class)` with the new import, follow on their own; a
 lookup by the old id as a string no longer finds it. None of the other types is a service.
+
+### 13k. The connection factories moved into `Api`
+
+**Before:** the connection factory an application constructs and registers in its container (§5) lived under each
+package's `src`: `Ecotone\Dbal\Connection\DbalConnectionFactory` and `ManagerRegistryConnectionFactory`,
+`Ecotone\Amqp\Connection\AmqpExtConnectionFactory` and `AmqpLibConnectionFactory`,
+`Ecotone\Sqs\Connection\SqsConnectionFactory`, `Ecotone\Redis\Connection\RedisConnectionFactory`.
+
+**Now:** each is in its package's `Api` namespace, with the same constructor:
+
+| Pre-release 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+| `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` |
+| `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` |
+| `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` |
+
+`DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
+`SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
+values move with them: `DbalConnectionReference::DEFAULT` is now `'Ecotone\Api\Dbal\DbalConnectionFactory'`. A
+container that registers the factory under the `::DEFAULT` constant, or that passes the reference object, follows on its
+own. One that registers it under the literal pre-release string has to use the constant.
+
+**How to adapt:** change the import; `upgrade/namespace-map-2.0.csv` has every row. The transport internals
+(`DbalContext`, `DbalConsumer`, the Enqueue contexts) stay where §5 lists them.
 
 ## 14. Smaller behaviour changes
 

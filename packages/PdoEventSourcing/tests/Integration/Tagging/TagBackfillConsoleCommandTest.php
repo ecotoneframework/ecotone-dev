@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -20,7 +21,6 @@ use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
@@ -266,7 +266,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
     private function rowValue(ConsoleCommandResultSet $result, string $metric): string
     {
-        foreach ($result->getRows() as $row) {
+        foreach ($result->rows as $row) {
             if ($row[0] === $metric) {
                 return $row[1];
             }

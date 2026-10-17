@@ -6,8 +6,8 @@ namespace Ecotone\Dbal\Database;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use InvalidArgumentException;
 
 /**

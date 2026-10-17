@@ -6,11 +6,11 @@ namespace Ecotone\EventSourcing\Console;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
 use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Interop\Queue\ConnectionFactory;
 
 /**

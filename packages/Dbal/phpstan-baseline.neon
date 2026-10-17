@@ -7,10 +7,10 @@ parameters:
 			path: Api/ExtensionObject/DbalBackedMessageChannelBuilder.php
 
 		-
-			message: '#^Property Ecotone\\Dbal\\Connection\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
+			message: '#^Property Ecotone\\Api\\Dbal\\DbalConnectionFactory\:\:\$connection \(Doctrine\\DBAL\\Connection\) does not accept null\.$#'
 			identifier: assign.propertyType
 			count: 1
-			path: src/Connection/DbalConnectionFactory.php
+			path: Api/DbalConnectionFactory.php
 
 		-
 			message: '#^Property Ecotone\\Dbal\\Connection\\DbalMessage\:\:\$deliveryDelay \(int\) does not accept null\.$#'

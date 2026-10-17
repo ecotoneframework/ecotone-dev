@@ -2,10 +2,10 @@
 
 namespace Ecotone\Dbal\Recoverability;
 
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 /**
  * licence Apache-2.0

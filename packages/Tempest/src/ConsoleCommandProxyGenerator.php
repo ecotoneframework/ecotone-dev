@@ -121,7 +121,7 @@ final class ConsoleCommandProxyGenerator
 
             use Ecotone\Api\Console\ConsoleWriter;
             use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-            use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+            use Ecotone\Api\Console\ConsoleCommandResultSet;
             use Ecotone\Messaging\Console\DelegatingConsoleWriter;
             use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
             use Ecotone\Tempest\TempestConsoleWriter;
@@ -158,7 +158,7 @@ final class ConsoleCommandProxyGenerator
                         fn () => \$runner->execute('{$escapedCommandName}', \$allArgs)
                     );
                     if (\$result instanceof ConsoleCommandResultSet) {
-                        \$writer->table(\$result->getColumnHeaders(), \$result->getRows());
+                        \$writer->table(\$result->columnHeaders, \$result->rows);
                     }
                     return ExitCode::SUCCESS;
                 }

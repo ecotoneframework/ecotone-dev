@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Amqp\Connection;
+namespace Ecotone\Api\Amqp;
 
 use AMQPChannel;
 use AMQPConnection;

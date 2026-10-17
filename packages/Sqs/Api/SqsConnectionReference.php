@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\Sqs;
 
 use Ecotone\Api\ExtensionObject\ConnectionReference;
-use Ecotone\Sqs\Connection\SqsConnectionFactory;
 
 /**
  * licence Apache-2.0

@@ -13,7 +13,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\DataProtection\Encryption\Crypto;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -18,7 +19,6 @@ use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -62,7 +62,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone([]);
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
-        $featureNames = array_column($result->getRows(), 0);
+        $featureNames = array_column($result->rows, 0);
 
         self::assertNotContains(TagTableManager::FEATURE_NAME, $featureNames);
     }
@@ -72,7 +72,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
-        $featureNames = array_column($result->getRows(), 0);
+        $featureNames = array_column($result->rows, 0);
         self::assertContains(TagTableManager::FEATURE_NAME, $featureNames);
 
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
@@ -88,7 +88,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['feature' => [TagTableManager::FEATURE_NAME], 'sql' => true]);
-        $sql = implode("\n", array_column($result->getRows(), 0));
+        $sql = implode("\n", array_column($result->rows, 0));
 
         self::assertStringContainsString(TagTableManager::TAGGED_EVENTS_TABLE, $sql);
         self::assertStringContainsString(TagTableManager::TAG_VERSIONS_TABLE, $sql);

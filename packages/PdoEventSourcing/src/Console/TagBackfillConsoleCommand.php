@@ -6,10 +6,10 @@ namespace Ecotone\EventSourcing\Console;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\Tag\TagBackfillReport;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 use function is_bool;
 

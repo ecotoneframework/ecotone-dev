@@ -11,7 +11,7 @@ namespace Workflows {
     use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
     use Ecotone\Messaging\Handler\Logger\EchoLogger;
     use Ecotone\Dbal\DbalConnection;
-    use Ecotone\Dbal\Connection\DbalConnectionFactory;
+    use Ecotone\Api\Dbal\DbalConnectionFactory;
 
     /** Setup */
     function bootstrapEcotone(string $rootDirectory, array $services = []): ConfiguredMessagingSystem

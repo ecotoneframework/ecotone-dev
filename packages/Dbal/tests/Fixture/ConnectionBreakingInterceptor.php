@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 

@@ -6,13 +6,13 @@ namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;

@@ -12,7 +12,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;

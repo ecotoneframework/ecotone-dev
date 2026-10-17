@@ -20,8 +20,8 @@ $app->singleton(
 );
 
 $app->singleton(
-    Ecotone\Dbal\Connection\DbalConnectionFactory::class,
-    fn () => new Ecotone\Dbal\Connection\DbalConnectionFactory(
+    Ecotone\Api\Dbal\DbalConnectionFactory::class,
+    fn () => new Ecotone\Api\Dbal\DbalConnectionFactory(
         getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'
     )
 );

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -20,7 +21,6 @@ use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -111,7 +111,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->triggerProjection($projection::NAME);
 
-        self::assertContains(ProjectionStateTableManager::FEATURE_NAME, array_column($result->getRows(), 0));
+        self::assertContains(ProjectionStateTableManager::FEATURE_NAME, array_column($result->rows, 0));
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 

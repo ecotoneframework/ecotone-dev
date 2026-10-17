@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +22,7 @@ final class DbalConnectionRequirementTest extends TestCase
         require_once __DIR__ . '/DbalConnectionRequirement/src/Kernel.php';
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Dbal\Connection\DbalConnectionFactory' to be configured");
+        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Api\Dbal\DbalConnectionFactory' to be configured");
 
         $kernel = new Kernel('test', true);
         $kernel->boot();

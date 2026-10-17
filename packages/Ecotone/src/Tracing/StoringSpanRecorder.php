@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\Span;
@@ -12,6 +14,7 @@ use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -40,6 +43,8 @@ final class StoringSpanRecorder implements SpanRecorder
     private array $endedSpansToPublish = [];
     /** @var string[] */
     private array $completedTracesToPublish = [];
+    private const NOTIFICATION_RETRY_DELAY_IN_SECONDS = 30;
+    private const NOTIFICATION_RETRY_BATCH = 10;
     private bool $publishing = false;
     /** @var array<string, true> */
     private array $spansWrappingAFailedUnitOfWork = [];
@@ -50,6 +55,7 @@ final class StoringSpanRecorder implements SpanRecorder
         private bool $publishesEndedSpans,
         private bool $publishesCompletedTraces,
         private bool $storesFailuresOutsideTransaction,
+        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -68,8 +74,9 @@ final class StoringSpanRecorder implements SpanRecorder
             return;
         }
 
-        $this->write([...$this->buffer, $span], true);
+        $spans = [...$this->buffer, $span];
         $this->buffer = [];
+        $this->write($spans, true);
         $this->publish();
     }
 
@@ -88,8 +95,9 @@ final class StoringSpanRecorder implements SpanRecorder
         foreach (self::outerParentsOf($this->buffer) as $spanId) {
             unset($this->spansWrappingAFailedUnitOfWork[$spanId]);
         }
-        $this->write($this->buffer, false);
+        $spans = $this->buffer;
         $this->buffer = [];
+        $this->write($spans, false);
     }
 
     public function closeScope(): void
@@ -178,7 +186,7 @@ final class StoringSpanRecorder implements SpanRecorder
     {
         $completed = [];
         foreach (array_unique(array_map(fn (Span $span): string => $span->traceId, $spans)) as $traceId) {
-            if ($this->traceStore->markCompletedIfDone($traceId)) {
+            if ($this->traceStore->markCompletedIfDone($traceId, $this->clock->now())) {
                 $completed[] = $traceId;
             }
         }
@@ -201,11 +209,24 @@ final class StoringSpanRecorder implements SpanRecorder
             foreach ($endedSpans as $span) {
                 $this->messagingEntrypoint->send(new SpanEnded($span), OnSpanEnded::CHANNEL);
             }
-            foreach ($completedTraces as $traceId) {
-                $this->messagingEntrypoint->send(new TraceCompleted($traceId), OnTraceCompleted::CHANNEL);
+            if ($this->publishesCompletedTraces) {
+                $completedTraces = [...$completedTraces, ...$this->traceStore->completedButNotNotifiedBefore($this->clock->now()->sub(Duration::seconds(self::NOTIFICATION_RETRY_DELAY_IN_SECONDS)), self::NOTIFICATION_RETRY_BATCH)];
+            }
+            foreach (array_unique($completedTraces) as $traceId) {
+                $this->notify($traceId);
             }
         } finally {
             $this->publishing = false;
         }
+    }
+
+    private function notify(string $traceId): void
+    {
+        try {
+            $this->messagingEntrypoint->send(new TraceCompleted($traceId), OnTraceCompleted::CHANNEL);
+        } catch (Throwable) {
+            return;
+        }
+        $this->traceStore->markNotified($traceId);
     }
 }

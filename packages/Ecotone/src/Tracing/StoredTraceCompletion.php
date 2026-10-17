@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
+use Ecotone\Messaging\Config\ConfigurationException;
 
 /**
  * licence Enterprise
@@ -33,9 +34,13 @@ final class StoredTraceCompletion
     public const TIMEOUT_HEADER = 'ecotone_tracing_completion_timeout';
     private const POLL_INTERVAL_IN_MILLISECONDS = 50;
 
+    /**
+     * @param string[] $pollingProjectionNames
+     */
     public function __construct(
         private TraceStore $traceStore,
         private EcotoneClockInterface $clock,
+        private array $pollingProjectionNames,
     ) {
     }
 
@@ -46,6 +51,8 @@ final class StoredTraceCompletion
 
     public function isCompletedFor(string $traceId, #[Header(self::DESTINATION_HEADER)] string $destination): bool
     {
+        $this->refusePollingProjection($destination);
+
         return $this->traceStore->progressOf($traceId)->isCompletedFor($destination);
     }
 
@@ -68,6 +75,7 @@ final class StoredTraceCompletion
 
     public function awaitFor(string $traceId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
     {
+        $this->refusePollingProjection($destination);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
             $progress = $this->traceStore->progressOf($traceId);
@@ -82,6 +90,13 @@ final class StoredTraceCompletion
                 };
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
+        }
+    }
+
+    private function refusePollingProjection(string $destination): void
+    {
+        if (in_array($destination, $this->pollingProjectionNames, true)) {
+            throw ConfigurationException::create(sprintf('Projection %s runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].', $destination));
         }
     }
 }

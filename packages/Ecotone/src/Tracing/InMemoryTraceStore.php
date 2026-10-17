@@ -27,41 +27,67 @@ use Ecotone\Api\Tracing\Span;
  */
 final class InMemoryTraceStore implements TraceStore
 {
-    /** @var array<string, Span[]> */
+    /** @var array<string, array<string, Span>> */
     private array $spansByTrace = [];
+    /** @var array<string, DatePoint> */
+    private array $completedAt = [];
     /** @var array<string, true> */
-    private array $completedTraces = [];
+    private array $notified = [];
 
     public function append(array $spans): void
     {
         foreach ($spans as $span) {
-            $this->spansByTrace[$span->traceId][] = $span;
+            if (isset($this->spansByTrace[$span->traceId][$span->spanId])) {
+                continue;
+            }
+            $this->spansByTrace[$span->traceId][$span->spanId] = $span;
+            unset($this->completedAt[$span->traceId], $this->notified[$span->traceId]);
         }
     }
 
-    public function markCompletedIfDone(string $traceId): bool
+    public function markCompletedIfDone(string $traceId, DatePoint $now): bool
     {
-        if (isset($this->completedTraces[$traceId]) || ! $this->progressOf($traceId)->isCompleted()) {
+        if (isset($this->completedAt[$traceId]) || ! $this->progressOf($traceId)->isCompleted()) {
             return false;
         }
-        $this->completedTraces[$traceId] = true;
+        $this->completedAt[$traceId] = $now;
 
         return true;
     }
 
-    public function progressOf(string $traceId): TraceProgress
+    public function markNotified(string $traceId): void
     {
-        return TraceLedger::progressOf($traceId, $this->spansByTrace[$traceId] ?? []);
+        if (isset($this->completedAt[$traceId])) {
+            $this->notified[$traceId] = true;
+        }
     }
 
-    public function removeTracesStartedBefore(DatePoint $threshold): void
+    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array
+    {
+        $traceIds = [];
+        foreach ($this->completedAt as $traceId => $completedAt) {
+            if (count($traceIds) === $limit) {
+                break;
+            }
+            if (! isset($this->notified[$traceId]) && $completedAt < $completedBefore) {
+                $traceIds[] = $traceId;
+            }
+        }
+
+        return $traceIds;
+    }
+
+    public function progressOf(string $traceId): TraceProgress
+    {
+        return TraceLedger::progressOf($traceId, array_values($this->spansByTrace[$traceId] ?? []));
+    }
+
+    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void
     {
         foreach ($this->spansByTrace as $traceId => $spans) {
-            foreach ($spans as $span) {
-                if ($span->startedAt < $threshold) {
-                    unset($this->spansByTrace[$traceId], $this->completedTraces[$traceId]);
-                    continue 2;
-                }
+            $startedAt = min(array_map(fn (Span $span): DatePoint => $span->startedAt, $spans));
+            if ($startedAt < $anyTraceStartedBefore || (isset($this->completedAt[$traceId]) && $startedAt < $completedTracesStartedBefore)) {
+                unset($this->spansByTrace[$traceId], $this->completedAt[$traceId], $this->notified[$traceId]);
             }
         }
     }

@@ -10,6 +10,8 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -23,6 +25,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
@@ -585,6 +588,59 @@ final class TraceCompletionTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+    }
+
+    public function test_awaiting_a_polling_projection_is_refused_because_it_runs_outside_the_trace(): void
+    {
+        $projection = new #[Projection('orders_list'), FromStream('orders_stream'), Polling('orders_list_polling')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].");
+
+        $this->completion($ecotone)->awaitFor('0af7651916cd43dd8448eb211c80319c', 'orders_list', Duration::milliseconds(10));
+    }
+
+    public function test_a_handler_can_read_the_trace_id_it_runs_in(): void
+    {
+        $users = new class () {
+            public ?string $traceId = null;
+
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->traceId = $currentTrace->traceId();
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame($trace->traceId, $users->traceId);
+        $this->assertTrue($this->completion($ecotone)->isCompleted($users->traceId));
+    }
+
+    public function test_reading_the_current_trace_without_tracing_names_how_to_enable_it(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $currentTrace->traceId();
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or ->withStoredTraces() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
     }
 
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void

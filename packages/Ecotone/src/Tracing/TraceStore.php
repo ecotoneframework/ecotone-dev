@@ -32,9 +32,16 @@ interface TraceStore
      */
     public function append(array $spans): void;
 
-    public function markCompletedIfDone(string $traceId): bool;
+    public function markCompletedIfDone(string $traceId, DatePoint $now): bool;
+
+    public function markNotified(string $traceId): void;
+
+    /**
+     * @return string[]
+     */
+    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array;
 
     public function progressOf(string $traceId): TraceProgress;
 
-    public function removeTracesStartedBefore(DatePoint $threshold): void;
+    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void;
 }

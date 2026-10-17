@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -25,6 +26,8 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanRecorder;
@@ -59,8 +62,10 @@ use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\StoredTraceCompletion;
 use Ecotone\Tracing\StoringSpanRecorder;
 use Ecotone\Tracing\Tracer;
+use Ecotone\Tracing\TracerCurrentTrace;
 use Ecotone\Tracing\TraceRecordingInterceptor;
 use Ecotone\Tracing\TraceStore;
+use Ecotone\Tracing\TracingDisabledCurrentTrace;
 use Ecotone\Tracing\TracingInterceptor;
 use Ecotone\Tracing\UnavailableTraceCompletion;
 
@@ -83,11 +88,13 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
      * @param string[] $traceCompletedSubscribers
      * @param string[] $spanEndedSubscribers
      * @param array<string, string> $endpointIdsByHandler
+     * @param string[] $pollingProjectionNames
      */
     private function __construct(
         private array $traceCompletedSubscribers,
         private array $spanEndedSubscribers,
         private array $endpointIdsByHandler,
+        private array $pollingProjectionNames,
     ) {
     }
 
@@ -97,7 +104,23 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             self::placementsOf($annotationRegistrationService, OnTraceCompleted::class),
             self::placementsOf($annotationRegistrationService, OnSpanEnded::class),
             self::endpointIdsByHandler($annotationRegistrationService),
+            self::pollingProjectionNames($annotationRegistrationService),
         );
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function pollingProjectionNames(AnnotationFinder $annotationFinder): array
+    {
+        $names = [];
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $projectionClass) {
+            if ($annotationFinder->findAttributeForClass($projectionClass, Polling::class) !== null) {
+                $names[] = $annotationFinder->getAttributeForClass($projectionClass, Projection::class)->name;
+            }
+        }
+
+        return $names;
     }
 
     private static function registerCompletionGateway(Configuration $messagingConfiguration, string $serviceClass, Definition $service): void
@@ -144,8 +167,11 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             self::registerCompletionGateway($messagingConfiguration, UnavailableTraceCompletion::class, new Definition(UnavailableTraceCompletion::class));
         }
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && ! $tracingConfiguration->storedTraces) {
+            $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
+
             return;
         }
+        $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracerCurrentTrace::class, [new Reference(Tracer::class)]));
 
         $spanRecorders = array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames);
         if ($tracingConfiguration->storedTraces) {
@@ -260,6 +286,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 $this->spanEndedSubscribers !== [],
                 $this->traceCompletedSubscribers !== [],
                 $tracingConfiguration->storedFailuresOutsideTransaction,
+                new Reference(EcotoneClockInterface::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -277,7 +304,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnTraceCompleted::CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnSpanEnded::CHANNEL));
 
-        self::registerCompletionGateway($messagingConfiguration, StoredTraceCompletion::class, new Definition(StoredTraceCompletion::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class)]));
+        self::registerCompletionGateway($messagingConfiguration, StoredTraceCompletion::class, new Definition(StoredTraceCompletion::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $this->pollingProjectionNames]));
 
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,

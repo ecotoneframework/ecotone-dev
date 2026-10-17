@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
@@ -77,11 +76,36 @@ final class DbalTraceStore implements TraceStore
         }
     }
 
-    public function markCompletedIfDone(string $traceId): bool
+    public function markCompletedIfDone(string $traceId, DatePoint $now): bool
     {
         $connection = $this->connection();
 
-        return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId));
+        return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId, $now));
+    }
+
+    public function markNotified(string $traceId): void
+    {
+        $connection = $this->connection();
+        $this->onTables(fn (): int => $connection->executeStatement(
+            "UPDATE {$this->tracesTableManager->getTableName()} SET notified_at = :notifiedAt WHERE trace_id = :traceId AND completed_at IS NOT NULL AND notified_at IS NULL",
+            ['notifiedAt' => $this->clock->now()->unixTime()->inMicroseconds(), 'traceId' => $traceId],
+            ['notifiedAt' => Types::BIGINT],
+        ));
+    }
+
+    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array
+    {
+        return $this->onTables(fn (): array => $this->connection()->createQueryBuilder()
+            ->select('trace_id')
+            ->from($this->tracesTableManager->getTableName())
+            ->andWhere('completed_at IS NOT NULL')
+            ->andWhere('notified_at IS NULL')
+            ->andWhere('completed_at < :completedBefore')
+            ->setParameter('completedBefore', $completedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
+            ->orderBy('completed_at')
+            ->setMaxResults($limit)
+            ->executeQuery()
+            ->fetchFirstColumn());
     }
 
     public function progressOf(string $traceId): TraceProgress
@@ -89,28 +113,15 @@ final class DbalTraceStore implements TraceStore
         return $this->onTables(fn (): TraceProgress => TraceLedger::progressOf($traceId, $this->spansOf($this->connection(), $traceId)));
     }
 
-    public function removeTracesStartedBefore(DatePoint $threshold): void
+    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void
     {
         $connection = $this->connection();
-        $this->onTables(function () use ($connection, $threshold): void {
-            $traceIds = $connection->createQueryBuilder()
-                ->select('trace_id')
-                ->from($this->tracesTableManager->getTableName())
-                ->andWhere('started_at < :threshold')
-                ->setParameter('threshold', $threshold->unixTime()->inMicroseconds(), Types::BIGINT)
-                ->executeQuery()
-                ->fetchFirstColumn();
-            if ($traceIds === []) {
-                return;
-            }
-
-            foreach ([$this->spansTableManager->getTableName(), $this->tracesTableManager->getTableName()] as $tableName) {
-                $connection->createQueryBuilder()
-                    ->delete($tableName)
-                    ->andWhere('trace_id IN (:traceIds)')
-                    ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
-                    ->executeStatement();
-            }
+        $this->onTables(function () use ($connection, $completedTracesStartedBefore, $anyTraceStartedBefore): void {
+            $expired = "SELECT trace_id FROM {$this->tracesTableManager->getTableName()} WHERE started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)";
+            $parameters = ['anyStartedBefore' => $anyTraceStartedBefore->unixTime()->inMicroseconds(), 'completedStartedBefore' => $completedTracesStartedBefore->unixTime()->inMicroseconds()];
+            $types = ['anyStartedBefore' => Types::BIGINT, 'completedStartedBefore' => Types::BIGINT];
+            $connection->executeStatement("DELETE FROM {$this->spansTableManager->getTableName()} WHERE trace_id IN ({$expired})", $parameters, $types);
+            $connection->executeStatement("DELETE FROM {$this->tracesTableManager->getTableName()} WHERE started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)", $parameters, $types);
         });
     }
 
@@ -122,24 +133,24 @@ final class DbalTraceStore implements TraceStore
         $startedAt = min(array_map(fn (Span $span): int => $span->startedAt->unixTime()->inMicroseconds(), $traceSpans));
         $tableName = $this->tracesTableManager->getTableName();
         $sql = $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform
-            ? "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON DUPLICATE KEY UPDATE trace_id = trace_id"
-            : "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON CONFLICT (trace_id) DO NOTHING";
+            ? "INSERT INTO {$tableName} (trace_id, started_at, completed_at, notified_at) VALUES (:traceId, :startedAt, NULL, NULL) ON DUPLICATE KEY UPDATE completed_at = NULL, notified_at = NULL"
+            : "INSERT INTO {$tableName} (trace_id, started_at, completed_at, notified_at) VALUES (:traceId, :startedAt, NULL, NULL) ON CONFLICT (trace_id) DO UPDATE SET completed_at = NULL, notified_at = NULL";
 
         $connection->executeStatement($sql, ['traceId' => $traceId, 'startedAt' => $startedAt], ['startedAt' => Types::BIGINT]);
     }
 
-    private function markCompleted(Connection $connection, string $traceId): bool
+    private function markCompleted(Connection $connection, string $traceId, DatePoint $now): bool
     {
         return $connection->executeStatement(
             "UPDATE {$this->tracesTableManager->getTableName()} SET completed_at = :completedAt WHERE trace_id = :traceId AND completed_at IS NULL",
-            ['completedAt' => $this->clock->now()->unixTime()->inMicroseconds(), 'traceId' => $traceId],
+            ['completedAt' => $now->unixTime()->inMicroseconds(), 'traceId' => $traceId],
             ['completedAt' => Types::BIGINT],
         ) === 1;
     }
 
     private function insertSpan(Connection $connection, Span $span): void
     {
-        $connection->insert($this->spansTableManager->getTableName(), [
+        $columns = [
             'span_id' => $span->spanId,
             'trace_id' => $span->traceId,
             'parent_span_id' => $span->parentSpanId,
@@ -155,10 +166,12 @@ final class DbalTraceStore implements TraceStore
             ], $span->events), JSON_THROW_ON_ERROR),
             'started_at' => $span->startedAt->unixTime()->inMicroseconds(),
             'ended_at' => $span->endedAt->unixTime()->inMicroseconds(),
-        ], [
-            'started_at' => Types::BIGINT,
-            'ended_at' => Types::BIGINT,
-        ]);
+        ];
+        $placeholders = implode(', ', array_map(fn (string $column): string => ':' . $column, array_keys($columns)));
+        $sql = sprintf('INSERT INTO %s (%s) VALUES (%s)', $this->spansTableManager->getTableName(), implode(', ', array_keys($columns)), $placeholders);
+        $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE span_id = span_id' : ' ON CONFLICT (trace_id, span_id) DO NOTHING';
+
+        $connection->executeStatement($sql, $columns, ['started_at' => Types::BIGINT, 'ended_at' => Types::BIGINT]);
     }
 
     /**

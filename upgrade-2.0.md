@@ -3122,14 +3122,22 @@ method, so it records the handler's own failure even when an error channel or a 
 `TraceCompletionTimedOut` names the handlers whose last attempt failed, the channels still holding a message, a
 trace nobody recorded, and a destination the trace never reached. `TraceCompletion` is always injectable; without
 `withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a
-`TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every stored span, both after the commit
-that produced them, so a websocket push or a cache refresh never runs ahead of the data. Work a subscriber does
+`TraceCompleted` each time the trace reaches completion, so a trace that is handed more work after completing, as
+when a request sends two commands under one `traceparent`, notifies again once that work is done; one with
+`#[OnSpanEnded]` receives every stored span. Both run after the commit that produced them, so a websocket push or
+a cache refresh never runs ahead of the data. A completion notification is durable: the store remembers it was
+delivered, a subscriber that throws does not fail the command that already committed, and any later unit of work
+in any process re-delivers a notification left undelivered for thirty seconds. A handler that needs the id of the
+trace it runs in injects `Ecotone\Api\Tracing\CurrentTrace` and reads `traceId()`. `isCompletedFor()` and
+`awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the trace that appended
+its events. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
 command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
 with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the
 store in memory; an application that enables stored traces with no DBAL package and no `inMemory: true` is refused
-at bootstrap, because a store per process could never see a consumer's progress. `ecotone:tracing:remove-expired-traces` deletes traces older than the retention passed to
-`withStoredTraces()`, seven days by default.
+at bootstrap, because a store per process could never see a consumer's progress. `ecotone:tracing:remove-expired-traces` deletes completed traces older than the retention passed to
+`withStoredTraces()`, seven days by default, and any trace older than twice that, so a message delayed past the
+retention still completes the trace it belongs to; the deletion runs as two statements, whatever the volume.
 
 ```php
 $trace = SpanContext::newTrace();

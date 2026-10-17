@@ -21,13 +21,14 @@ final class TracedRouteProcessor implements MessageProcessor
         private string $routeName,
         private MessageProcessor $routeProcessor,
         private Tracer $tracer,
+        private MessageSpanAttributes $messageSpanAttributes,
     ) {
     }
 
     public function process(Message $message): ?Message
     {
         $span = $this->tracer->startSpan($this->spanName(), SpanKind::Producer, [
-            ...MessageSpanAttributes::from($message),
+            ...$this->messageSpanAttributes->from($message),
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->routeName,
             ...$this->destinationAttributes(),

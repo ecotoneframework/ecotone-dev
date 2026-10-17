@@ -3056,7 +3056,12 @@ its route. An event-driven projection run is a CONSUMER span. And every span car
 attributes: `messaging.system` is `ecotone`, `messaging.operation.type` is `send` for buses, routes and channel sends
 and `process` for handlers, consumers and projections, `messaging.destination.name` names the route or channel, and
 `ecotone.endpoint.id` or `ecotone.projection.name` name the handler; the names are constants on
-`Ecotone\Api\Tracing\SpanAttribute`. The tracing interceptors are registered only when a recorder is configured or a
+`Ecotone\Api\Tracing\SpanAttribute`. Every scalar user header of the message is a span attribute as well, unless
+`TracingConfiguration::createWithDefaults()->withSpanAttributesFromHeaders('tenant', 'orderId')` names the ones to
+report, which an application holding tokens or personal data in headers should do; a header whose name starts with
+`ecotone.`, `messaging.` or `code.` is never reported, so a message cannot forge the attributes the framework sets.
+A flow entered through an application's own `#[MessageGateway]` or `#[OrchestratorGateway]` is traced from that
+call, `send <requestChannel>` or `send orchestrator`, so an orchestrator's steps share one trace. The tracing interceptors are registered only when a recorder is configured or a
 tracing package hands over its `Tracer`, so an application without tracing pays nothing. `ecotone/open-telemetry`
 becomes an implementation of that `Tracer`: it starts live SDK spans with the same ids Core reports, keeps the
 forced flush and the Dynamic Consistency Boundary spans, and records nothing when a flow test is given no
@@ -3115,7 +3120,8 @@ that produced them, so a websocket push or a cache refresh never runs ahead of t
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
 command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
 with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the
-store in memory. `ecotone:tracing:remove-expired-traces` deletes traces older than the retention passed to
+store in memory; an application that enables stored traces with no DBAL package and no `inMemory: true` is refused
+at bootstrap, because a store per process could never see a consumer's progress. `ecotone:tracing:remove-expired-traces` deletes traces older than the retention passed to
 `withStoredTraces()`, seven days by default.
 
 ```php

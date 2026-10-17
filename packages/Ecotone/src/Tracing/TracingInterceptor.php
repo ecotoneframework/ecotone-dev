@@ -30,6 +30,7 @@ final class TracingInterceptor
     public function __construct(
         private Tracer $tracer,
         private MessageBuilder $messageBuilder,
+        private MessageSpanAttributes $messageSpanAttributes,
         private array $endpointIdsByHandler,
     ) {
     }
@@ -161,7 +162,7 @@ final class TracingInterceptor
         if ($isLocalRoot && $kind !== SpanKind::Consumer) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;
         }
-        $span = $this->tracer->startSpan($name, $kind, [...MessageSpanAttributes::from($message), ...$attributes], $isLocalRoot ? self::remoteParentOf($message) : null);
+        $span = $this->tracer->startSpan($name, $kind, [...$this->messageSpanAttributes->from($message), ...$attributes], $isLocalRoot ? self::remoteParentOf($message) : null);
 
         try {
             $result = $methodInvocation->proceed();

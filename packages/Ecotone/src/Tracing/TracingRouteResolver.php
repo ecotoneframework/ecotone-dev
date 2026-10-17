@@ -15,11 +15,12 @@ final class TracingRouteResolver implements RouteResolver
     public function __construct(
         private RouteResolver $routeResolver,
         private Tracer $tracer,
+        private MessageSpanAttributes $messageSpanAttributes,
     ) {
     }
 
     public function resolve(string $routeName): MessageProcessor
     {
-        return new TracedRouteProcessor($routeName, $this->routeResolver->resolve($routeName), $this->tracer);
+        return new TracedRouteProcessor($routeName, $this->routeResolver->resolve($routeName), $this->tracer, $this->messageSpanAttributes);
     }
 }

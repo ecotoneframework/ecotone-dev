@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracingChannelInterceptor;
 
@@ -38,6 +39,7 @@ final class TracingChannelInterceptorBuilder implements ChannelInterceptorBuilde
             $this->channelName,
             new Reference(Tracer::class),
             new Reference(MessageBuilder::class),
+            new Reference(MessageSpanAttributes::class),
         ]);
     }
 }

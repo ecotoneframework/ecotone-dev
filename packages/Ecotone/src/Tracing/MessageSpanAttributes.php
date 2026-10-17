@@ -16,14 +16,25 @@ use function is_scalar;
  */
 final class MessageSpanAttributes
 {
+    private const RESERVED_PREFIXES = ['ecotone.', 'messaging.', 'code.'];
+
+    /**
+     * @param string[] $headerNames
+     */
+    public function __construct(
+        private bool $fromAllHeaders,
+        private array $headerNames,
+    ) {
+    }
+
     /**
      * @return array<string, scalar>
      */
-    public static function from(Message $message): array
+    public function from(Message $message): array
     {
         $attributes = [];
         foreach (FrameworkHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers()) as $key => $value) {
-            if (is_scalar($value)) {
+            if (is_scalar($value) && $this->isReported((string) $key)) {
                 $attributes[$key] = $value;
             }
         }
@@ -38,5 +49,16 @@ final class MessageSpanAttributes
         $attributes[SpanAttribute::MESSAGING_SYSTEM] = SpanAttribute::ECOTONE;
 
         return $attributes;
+    }
+
+    private function isReported(string $headerName): bool
+    {
+        foreach (self::RESERVED_PREFIXES as $prefix) {
+            if (str_starts_with($headerName, $prefix)) {
+                return false;
+            }
+        }
+
+        return $this->fromAllHeaders || in_array($headerName, $this->headerNames, true);
     }
 }

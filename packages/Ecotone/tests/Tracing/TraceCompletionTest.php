@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -540,6 +541,20 @@ final class TraceCompletionTest extends TestCase
 
         $this->assertSame(['send command' => SpanStatus::Error], $subscriber->endedSpans);
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_stored_traces_without_a_trace_store_are_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() needs a trace store and none is registered. Enable the DBAL package with a connection to store traces in the database, or call withStoredTraces(inMemory: true) to keep them in this process only.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [],
+            [TracingConfiguration::createWithDefaults()->withStoredTraces()],
+            enabledModules: [ModulePackageList::CORE_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     public function test_stored_traces_require_an_enterprise_licence(): void

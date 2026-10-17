@@ -55,6 +55,7 @@ use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
 use Ecotone\Tracing\ExpiredTraceRemover;
 use Ecotone\Tracing\InMemoryTraceStore;
+use Ecotone\Tracing\MessageSpanAttributes;
 use Ecotone\Tracing\StoredTraceCompletion;
 use Ecotone\Tracing\StoringSpanRecorder;
 use Ecotone\Tracing\Tracer;
@@ -143,7 +144,11 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
         $messagingConfiguration->registerServiceDefinition(
             TracingInterceptor::class,
-            new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class), $this->endpointIdsByHandler])
+            new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class), new Reference(MessageSpanAttributes::class), $this->endpointIdsByHandler])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            MessageSpanAttributes::class,
+            new Definition(MessageSpanAttributes::class, [$tracingConfiguration->spanAttributesFromAllHeaders, $tracingConfiguration->spanAttributeHeaders])
         );
 
         foreach ([
@@ -218,6 +223,9 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     private function registerStoredTraces(Configuration $messagingConfiguration, array $extensionObjects, TracingConfiguration $tracingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $traceStoreReferences = ExtensionObjectResolver::resolve(TraceStoreReference::class, $extensionObjects);
+        if ($traceStoreReferences === [] && ! $tracingConfiguration->storedTracesInMemory) {
+            throw ConfigurationException::create('TracingConfiguration::withStoredTraces() needs a trace store and none is registered. Enable the DBAL package with a connection to store traces in the database, or call withStoredTraces(inMemory: true) to keep them in this process only.');
+        }
         $messagingConfiguration->registerServiceDefinition(
             TraceStore::class,
             $traceStoreReferences === [] || $tracingConfiguration->storedTracesInMemory

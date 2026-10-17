@@ -44,7 +44,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -236,7 +236,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         ] as $method => $parameterConverters) {
             $channel = 'ecotone.tracing.completion.' . $method;
             $messagingConfiguration
-                ->registerMessageHandler(ServiceActivatorBuilder::create(StoredTraceCompletion::class, $method)->withInputChannelName($channel))
+                ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(StoredTraceCompletion::class, $method)->withInputChannelName($channel))
                 ->registerGatewayBuilder(GatewayProxyBuilder::create(TraceCompletion::class, TraceCompletion::class, $method, $channel)->withParameterConverters($parameterConverters));
         }
 
@@ -245,7 +245,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $tracingConfiguration->storedTracesRetention->inMilliseconds()])
         );
         $messagingConfiguration
-            ->registerMessageHandler(ServiceActivatorBuilder::create(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL))
+            ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL))
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(self::REMOVE_EXPIRED_TRACES_CHANNEL, 'ecotone:tracing:remove-expired-traces', [], 'Removes stored traces older than the configured retention'));
     }
 

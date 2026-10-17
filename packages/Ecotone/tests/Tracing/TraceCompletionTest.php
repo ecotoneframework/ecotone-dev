@@ -237,8 +237,8 @@ final class TraceCompletionTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1');
 
-        $this->assertContains('Command Bus', $subscriber->spanNames);
-        $this->assertContains('Command Handler: ' . $users::class . '::register', $subscriber->spanNames);
+        $this->assertContains('send command', $subscriber->spanNames);
+        $this->assertContains('process class@anonymous::register', $subscriber->spanNames);
     }
 
     public function test_an_asynchronous_command_keeps_the_trace_pending_until_its_consumer_ran(): void
@@ -399,7 +399,7 @@ final class TraceCompletionTest extends TestCase
         } catch (RuntimeException) {
         }
 
-        $this->assertSame(['Command Bus' => SpanStatus::Error], $subscriber->endedSpans);
+        $this->assertSame(['send command' => SpanStatus::Error], $subscriber->endedSpans);
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 

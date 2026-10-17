@@ -2965,15 +2965,19 @@ synchronous span came from OpenTelemetry's ambient context, and without that pac
 the W3C `traceparent` and `tracestate` headers (`MessageHeaders::TRACEPARENT`, `MessageHeaders::TRACESTATE`), which
 are framework headers: they are not copied into the next message as user metadata, are not reported as span
 attributes, and a root span continues the trace a message already carries, so a command sent with a `traceparent`
-header from an HTTP request becomes a child of that request's span. Span names, kinds, the message attributes and the
-`exception` event are unchanged, and three things are added. Every route the event bus resolves is a PRODUCER span,
-`Routing to: <endpointId>` or `Routing to Projection: <name>`, between the `Event Bus` span and the handler it
-leads to, synchronous or asynchronous, so a trace shows which handlers an event was dispatched to and a failing
-synchronous handler fails its route. An event-driven projection run is a CONSUMER span, `Projection: <name>`. And
-every span carries the OpenTelemetry messaging attributes: `messaging.system` is `ecotone`,
-`messaging.operation.type` is `send` for buses, routes and channel sends and `process` for handlers, consumers and
-projections, `messaging.destination.name` names the route or channel, and `ecotone.endpoint.id` or
-`ecotone.projection.name` name the handler; the names are constants on `Ecotone\Api\Tracing\SpanAttribute`. The tracing interceptors are registered only when a recorder is configured or a
+header from an HTTP request becomes a child of that request's span. Span kinds, the message attributes and the
+`exception` event are unchanged. Span names follow the OpenTelemetry messaging convention, `{operation} {target}`,
+short and in lower case, with the detail in attributes: a bus call is `send command`, `send event`, `send query` or
+`send distributed`; a channel send is `send <channel>` and its consumption `receive <channel>`; a handler is
+`process <Class::method>` with the short class name, the fully qualified one in `code.function.name`; a projection
+run is `process <projection>`. Three spans are added. Every route the event bus resolves is a PRODUCER span,
+`route <endpointId>` or `route <projection>`, between the `send event` span and the handler it leads to, synchronous
+or asynchronous, so a trace shows which handlers an event was dispatched to and a failing synchronous handler fails
+its route. An event-driven projection run is a CONSUMER span. And every span carries the OpenTelemetry messaging
+attributes: `messaging.system` is `ecotone`, `messaging.operation.type` is `send` for buses, routes and channel sends
+and `process` for handlers, consumers and projections, `messaging.destination.name` names the route or channel, and
+`ecotone.endpoint.id` or `ecotone.projection.name` name the handler; the names are constants on
+`Ecotone\Api\Tracing\SpanAttribute`. The tracing interceptors are registered only when a recorder is configured or a
 tracing package hands over its `Tracer`, so an application without tracing pays nothing. `ecotone/open-telemetry`
 becomes an implementation of that `Tracer`: it starts live SDK spans with the same ids Core reports, keeps the
 forced flush and the Dynamic Consistency Boundary spans, and records nothing when a flow test is given no
@@ -2981,8 +2985,11 @@ forced flush and the Dynamic Consistency Boundary spans, and records nothing whe
 to `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; the never-settable tracing level is gone.
 `MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER`, which nothing set, is removed.
 
-**How to adapt:** a trace tree asserted in a test gains the `Routing to:` level under `Event Bus`; give the handler
-an explicit `endpointId` to make that span's name stable. Rename `Ecotone\OpenTelemetry\Configuration\TracingConfiguration` to
+**How to adapt:** rename dashboards and alerts keyed on the 1.x span names: `Command Bus` is `send command`,
+`Event Bus` is `send event`, `Query Bus` is `send query`, `Sending to Channel: orders` is `send orders`,
+`Receiving from channel: orders` is `receive orders`, `Command Handler: App\OrderService::place` is
+`process OrderService::place`, and `Projection: orders` is `process orders`. A trace tree asserted in a test gains
+the `route` level under `send event`; give the handler an explicit `endpointId` to make that span's name stable. Rename `Ecotone\OpenTelemetry\Configuration\TracingConfiguration` to
 `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; `withForceFlushOnBusExecution()` and
 `withForceFlushOnAsynchronousMessageHandled()` keep their names. A consumer outside Ecotone that read the
 `ecotoneTracingCarrier` header reads `traceparent` instead, which any OpenTelemetry propagator already does. To

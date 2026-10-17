@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 abstract class TracingTestCase extends TestCase
 {
-    private const INTERNAL_NOISE_SPAN_NAME_PREFIX = 'Message Handler: Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor::';
+    private const INTERNAL_NOISE_SPAN_NAME_PREFIX = 'process MessageHeadersPropagatorInterceptor::';
 
     protected static function recordingSpansInto(InMemorySpanRecorder $recorder): array
     {

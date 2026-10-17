@@ -47,10 +47,10 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus', 'kind' => SpanKind::Server, 'parent_id' => null],
+                    'details' => ['name' => 'send command', 'kind' => SpanKind::Server, 'parent_id' => null],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . $users::class . '::register', 'kind' => SpanKind::Server],
+                            'details' => ['name' => 'process class@anonymous::register', 'kind' => SpanKind::Server],
                             'children' => [],
                         ],
                     ],
@@ -86,10 +86,10 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
-                        ['details' => ['name' => 'Command Handler: ' . $handler::class . '::handleCommand'], 'children' => []],
-                        ['details' => ['name' => 'Message Handler: ' . $handler::class . '::handle'], 'children' => []],
+                        ['details' => ['name' => 'process class@anonymous::handleCommand'], 'children' => []],
+                        ['details' => ['name' => 'process class@anonymous::handle'], 'children' => []],
                     ],
                 ],
             ],
@@ -113,18 +113,18 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Routing to: merchant.to.user', 'kind' => SpanKind::Producer],
+                            'details' => ['name' => 'route merchant.to.user', 'kind' => SpanKind::Producer],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
+                                    'details' => ['name' => 'process class@anonymous::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Bus'],
+                                            'details' => ['name' => 'send command'],
                                             'children' => [
-                                                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
                                             ],
                                         ],
                                     ],
@@ -159,23 +159,23 @@ final class TracingTreeTest extends TracingTestCase
             ->publishEventWithRouting('merchant.created', '1');
 
         $commandBusChild = [
-            'details' => ['name' => 'Command Bus'],
+            'details' => ['name' => 'send command'],
             'children' => [
-                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
             ],
         ];
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Routing to: merchant.to.user'],
-                            'children' => [['details' => ['name' => 'Event Handler: ' . $subscriberOne::class . '::merchantToUser'], 'children' => [$commandBusChild]]],
+                            'details' => ['name' => 'route merchant.to.user'],
+                            'children' => [['details' => ['name' => 'process class@anonymous::merchantToUser'], 'children' => [$commandBusChild]]],
                         ],
                         [
-                            'details' => ['name' => 'Routing to: merchant.to.second.user'],
-                            'children' => [['details' => ['name' => 'Event Handler: ' . $subscriberTwo::class . '::merchantToUser'], 'children' => [$commandBusChild]]],
+                            'details' => ['name' => 'route merchant.to.second.user'],
+                            'children' => [['details' => ['name' => 'process class@anonymous::merchantToUser'], 'children' => [$commandBusChild]]],
                         ],
                     ],
                 ],
@@ -208,24 +208,24 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . $merchants::class . '::create'],
+                            'details' => ['name' => 'process class@anonymous::create'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Event Bus'],
+                                    'details' => ['name' => 'send event'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Routing to: merchant.to.user'],
+                                            'details' => ['name' => 'route merchant.to.user'],
                                             'children' => [
                                                 [
-                                                    'details' => ['name' => 'Event Handler: ' . $subscriber::class . '::merchantToUser'],
+                                                    'details' => ['name' => 'process class@anonymous::merchantToUser'],
                                                     'children' => [
                                                         [
-                                                            'details' => ['name' => 'Command Bus'],
+                                                            'details' => ['name' => 'send command'],
                                                             'children' => [
-                                                                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                                                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
                                                             ],
                                                         ],
                                                     ],
@@ -277,15 +277,15 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '1']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '1']],
                     'children' => [
-                        ['details' => ['name' => 'Command Handler: ' . $users::class . '::register', 'attributes' => ['flowId' => '1']], 'children' => []],
+                        ['details' => ['name' => 'process class@anonymous::register', 'attributes' => ['flowId' => '1']], 'children' => []],
                     ],
                 ],
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '2']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '2']],
                     'children' => [
-                        ['details' => ['name' => 'Command Handler: ' . $users::class . '::register', 'attributes' => ['flowId' => '2']], 'children' => []],
+                        ['details' => ['name' => 'process class@anonymous::register', 'attributes' => ['flowId' => '2']], 'children' => []],
                     ],
                 ],
             ],
@@ -307,7 +307,7 @@ final class TracingTreeTest extends TracingTestCase
         )
             ->sendCommandWithRouting('user.register', '1', metadata: ['tokens' => ['123'], 'user' => new stdClass(), 'user_id' => '123']);
 
-        $node = self::getNodeAtTargetedSpan(['details' => ['name' => 'Command Bus']], self::buildTree($recorder->recordedSpans()));
+        $node = self::getNodeAtTargetedSpan(['details' => ['name' => 'send command']], self::buildTree($recorder->recordedSpans()));
 
         $this->assertArrayNotHasKey('user', $node['details']['attributes']);
         $this->assertArrayNotHasKey('tokens', $node['details']['attributes']);
@@ -337,11 +337,11 @@ final class TracingTreeTest extends TracingTestCase
         $spans = $recorder->recordedSpans();
         $this->assertCount(5, $spans);
 
-        $this->assertChildSpan('Command Handler: ' . $users::class . '::register', $spans[0], $messageId, $correlationId);
-        $this->assertChildSpan('Command Bus', $spans[1], $messageId, $correlationId);
-        $this->assertSpanWith('Event Handler: ' . $subscriber::class . '::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Routing to: merchant.to.user', $spans[3], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Event Bus', $spans[4], $messageId, $correlationId, $timestamp);
+        $this->assertChildSpan('process class@anonymous::register', $spans[0], $messageId, $correlationId);
+        $this->assertChildSpan('send command', $spans[1], $messageId, $correlationId);
+        $this->assertSpanWith('process class@anonymous::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('route merchant.to.user', $spans[3], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('send event', $spans[4], $messageId, $correlationId, $timestamp);
     }
 
     public function test_a_failing_handler_marks_its_span_and_the_bus_span_as_failed_with_the_exception_recorded(): void
@@ -393,9 +393,9 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Query Bus'],
+                    'details' => ['name' => 'send query'],
                     'children' => [
-                        ['details' => ['name' => 'Query Handler: ' . $users::class . '::isRegistered'], 'children' => []],
+                        ['details' => ['name' => 'process class@anonymous::isRegistered'], 'children' => []],
                     ],
                 ],
             ],

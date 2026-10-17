@@ -49,12 +49,12 @@ final class TracingEdgeCasesTest extends TracingTestCase
         $caught = $this->runConsumer($ecotone);
         $this->assertStringContainsString('Exception on send', $caught?->getMessage() ?? '');
 
-        self::assertEverySpanNamedHasStatus('Sending to Channel: failing_channel', SpanStatus::Error, $recorder);
+        self::assertEverySpanNamedHasStatus('send failing_channel', SpanStatus::Error, $recorder);
 
         $recorder->clear();
         $ecotone->sendCommandWithRouting('user.register', '2');
         $this->assertCount(1, array_filter($recorder->recordedSpans(), fn (Span $span): bool => $span->isRoot()));
-        $this->assertSame('Command Bus', self::rootSpan($recorder)->name);
+        $this->assertSame('send command', self::rootSpan($recorder)->name);
     }
 
     public function test_a_channel_interceptor_failing_before_send_leaves_no_open_span_behind(): void
@@ -78,7 +78,7 @@ final class TracingEdgeCasesTest extends TracingTestCase
 
         $recorder->clear();
         $ecotone->sendCommandWithRouting('user.register', '2');
-        $this->assertSame('Command Bus', self::rootSpan($recorder)->name);
+        $this->assertSame('send command', self::rootSpan($recorder)->name);
     }
 
     public function test_a_message_filtered_out_by_a_channel_interceptor_leaves_no_open_span_behind(): void
@@ -101,7 +101,7 @@ final class TracingEdgeCasesTest extends TracingTestCase
 
         $recorder->clear();
         $ecotone->sendCommandWithRouting('user.register', '2');
-        $this->assertSame('Command Bus', self::rootSpan($recorder)->name);
+        $this->assertSame('send command', self::rootSpan($recorder)->name);
     }
 
     public function test_a_consumer_receiving_a_message_without_a_trace_carrier_starts_its_own_trace(): void
@@ -124,7 +124,7 @@ final class TracingEdgeCasesTest extends TracingTestCase
 
         $this->assertNull($this->runConsumer($ecotone, 'failing_channel'));
 
-        $receivingSpan = self::singleSpanNamed('Receiving from channel: failing_channel', $recorder);
+        $receivingSpan = self::singleSpanNamed('receive failing_channel', $recorder);
         $this->assertTrue($receivingSpan->isRoot());
     }
 
@@ -153,7 +153,7 @@ final class TracingEdgeCasesTest extends TracingTestCase
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $this->assertTrue(self::singleSpanNamed('Receiving from channel: async_channel', $recorder)->isRoot());
+        $this->assertTrue(self::singleSpanNamed('receive async_channel', $recorder)->isRoot());
     }
 
     public function test_a_command_carrying_a_trace_carrier_continues_that_trace_as_a_child(): void
@@ -173,10 +173,10 @@ final class TracingEdgeCasesTest extends TracingTestCase
         )
             ->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01']);
 
-        $commandBus = self::singleSpanNamed('Command Bus', $recorder);
+        $commandBus = self::singleSpanNamed('send command', $recorder);
         $this->assertSame('0af7651916cd43dd8448eb211c80319c', $commandBus->traceId);
         $this->assertSame('b7ad6b7169203331', $commandBus->parentSpanId);
-        $this->assertSame($commandBus->spanId, self::singleSpanNamed('Command Handler: ' . $users::class . '::register', $recorder)->parentSpanId);
+        $this->assertSame($commandBus->spanId, self::singleSpanNamed('process class@anonymous::register', $recorder)->parentSpanId);
     }
 
     public function test_the_trace_carrier_of_the_incoming_command_does_not_leak_into_the_handler_span_parent(): void
@@ -196,7 +196,7 @@ final class TracingEdgeCasesTest extends TracingTestCase
         )
             ->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01']);
 
-        $handler = self::singleSpanNamed('Command Handler: ' . $users::class . '::register', $recorder);
+        $handler = self::singleSpanNamed('process class@anonymous::register', $recorder);
         $this->assertNotSame('b7ad6b7169203331', $handler->parentSpanId);
     }
 
@@ -232,12 +232,12 @@ final class TracingEdgeCasesTest extends TracingTestCase
             $this->assertStringContainsString('Exception on send', $failure->getMessage());
         }
 
-        self::assertEverySpanNamedHasStatus('Command Handler: ' . $users::class . '::register', SpanStatus::Error, $recorder);
-        self::assertEverySpanNamedHasStatus('Sending to Channel: error_channel', SpanStatus::Error, $recorder);
+        self::assertEverySpanNamedHasStatus('process class@anonymous::register', SpanStatus::Error, $recorder);
+        self::assertEverySpanNamedHasStatus('send error_channel', SpanStatus::Error, $recorder);
 
         $recorder->clear();
         $ecotone->sendCommandWithRouting('user.register', '2');
-        $this->assertSame('Command Bus', self::rootSpan($recorder)->name);
+        $this->assertSame('send command', self::rootSpan($recorder)->name);
     }
 
     public function test_distributed_bus_send_is_a_producer_span_carrying_the_trace_to_the_other_service(): void
@@ -266,9 +266,9 @@ final class TracingEdgeCasesTest extends TracingTestCase
         )
             ->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address');
 
-        $distributedBus = self::singleSpanNamed('Distributed Bus', $recorder);
+        $distributedBus = self::singleSpanNamed('send distributed', $recorder);
         $this->assertSame(SpanKind::Producer, $distributedBus->kind);
-        $this->assertSame($distributedBus->spanId, self::singleSpanNamed('Sending to Channel: distributed_channel', $recorder)->parentSpanId);
+        $this->assertSame($distributedBus->spanId, self::singleSpanNamed('send distributed_channel', $recorder)->parentSpanId);
     }
 
     public function test_a_failing_distributed_bus_send_fails_the_span_and_leaves_no_open_span_behind(): void
@@ -299,10 +299,10 @@ final class TracingEdgeCasesTest extends TracingTestCase
             $this->assertStringContainsString('Exception on send', $failure->getMessage());
         }
 
-        $this->assertSame(SpanStatus::Error, self::singleSpanNamed('Distributed Bus', $recorder)->status);
+        $this->assertSame(SpanStatus::Error, self::singleSpanNamed('send distributed', $recorder)->status);
         $recorder->clear();
         $ecotone->sendCommandWithRouting('user.register', '1');
-        $this->assertSame('Command Bus', self::rootSpan($recorder)->name);
+        $this->assertSame('send command', self::rootSpan($recorder)->name);
     }
 
     private function bootstrapWithEventForwardedToSecondChannel(InMemorySpanRecorder $recorder, array $channelsToRegister, array $servicesToRegister = []): FlowTestSupport

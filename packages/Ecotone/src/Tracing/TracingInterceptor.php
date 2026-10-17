@@ -31,46 +31,46 @@ final class TracingInterceptor
 
     public function traceCommandBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('Command Bus', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->trace('send command', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceEventBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('Event Bus', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->trace('send event', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceQueryBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('Query Bus', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->trace('send query', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, CommandHandler $endpoint): mixed
     {
-        return $this->trace('Command Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
+        return $this->traceHandler($methodInvocation, $message, TraceState::destinationOf($message) ?? $endpoint->getEndpointId());
     }
 
     public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message, QueryHandler $endpoint): mixed
     {
-        return $this->trace('Query Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
+        return $this->traceHandler($methodInvocation, $message, TraceState::destinationOf($message) ?? $endpoint->getEndpointId());
     }
 
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, EventHandler $endpoint): mixed
     {
-        return $this->trace('Event Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
+        return $this->traceHandler($methodInvocation, $message, TraceState::destinationOf($message) ?? $endpoint->getEndpointId());
     }
 
     public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message, InternalHandler $endpoint): mixed
     {
-        return $this->trace('Message Handler: ' . $methodInvocation->getName(), $methodInvocation, $message, SpanKind::Server, self::processAttributes(TraceState::destinationOf($message) ?? $endpoint->getEndpointId()));
+        return $this->traceHandler($methodInvocation, $message, TraceState::destinationOf($message) ?? $endpoint->getEndpointId());
     }
 
     public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $headers = $message->getHeaders();
         $name = match (true) {
-            $headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) => 'Receiving from channel: ' . $headers->get(MessageHeaders::POLLED_CHANNEL_NAME),
-            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) => 'Receiving from inbound channel adapter: ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
-            default => 'Endpoint: ' . $headers->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId() . ' produced Message',
+            $headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) => 'receive ' . $headers->get(MessageHeaders::POLLED_CHANNEL_NAME),
+            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) => 'receive ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
+            default => 'poll ' . $headers->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId(),
         };
 
         $attributes = [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS];
@@ -83,7 +83,7 @@ final class TracingInterceptor
 
     public function traceProjection(MethodInvocation $methodInvocation, Message $message, ProjectionTriggerEndpoint $trigger): mixed
     {
-        return $this->trace('Projection: ' . $trigger->projectionName, $methodInvocation, $message, SpanKind::Consumer, [
+        return $this->trace('process ' . $trigger->projectionName, $methodInvocation, $message, SpanKind::Consumer, [
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
             SpanAttribute::PROJECTION_NAME => $trigger->projectionName,
         ]);
@@ -91,7 +91,7 @@ final class TracingInterceptor
 
     public function traceDistributedBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('Distributed Bus', $methodInvocation, $message, SpanKind::Producer, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->trace('send distributed', $methodInvocation, $message, SpanKind::Producer, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function provideContextForDistributedBus(Message $message): Message
@@ -113,17 +113,25 @@ final class TracingInterceptor
         return SpanContext::fromTraceparent($headers->containsKey(MessageHeaders::TRACEPARENT) ? $headers->get(MessageHeaders::TRACEPARENT) : null);
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private static function processAttributes(string $endpointId): array
+    private function traceHandler(MethodInvocation $methodInvocation, Message $message, string $endpointId): mixed
     {
-        $attributes = [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS];
+        $attributes = [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
+            SpanAttribute::CODE_FUNCTION_NAME => $methodInvocation->getName(),
+        ];
         if ($endpointId !== '') {
             $attributes[SpanAttribute::ENDPOINT_ID] = $endpointId;
         }
 
-        return $attributes;
+        return $this->trace('process ' . self::shortNameOf($methodInvocation->getName()), $methodInvocation, $message, SpanKind::Server, $attributes);
+    }
+
+    private static function shortNameOf(string $classAndMethod): string
+    {
+        [$class, $method] = explode('::', $classAndMethod, 2);
+        $class = explode("\0", $class, 2)[0];
+
+        return substr($class, (int) strrpos('\\' . $class, '\\')) . '::' . $method;
     }
 
     /**

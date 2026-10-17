@@ -42,15 +42,15 @@ final class AsynchronousTracingTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Sending to Channel: async_channel', 'kind' => SpanKind::Producer],
+                            'details' => ['name' => 'send async_channel', 'kind' => SpanKind::Producer],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Receiving from channel: async_channel', 'kind' => SpanKind::Consumer],
+                                    'details' => ['name' => 'receive async_channel', 'kind' => SpanKind::Consumer],
                                     'children' => [
-                                        ['details' => ['name' => 'Command Handler: ' . $users::class . '::register'], 'children' => []],
+                                        ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
                                     ],
                                 ],
                             ],
@@ -99,10 +99,10 @@ final class AsynchronousTracingTest extends TracingTestCase
 
         $node = self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
-                    'child' => ['details' => ['name' => 'Receiving from channel: async_channel']],
+                    'details' => ['name' => 'send async_channel'],
+                    'child' => ['details' => ['name' => 'receive async_channel']],
                 ],
             ],
             self::buildTree($recorder->recordedSpans())
@@ -130,15 +130,15 @@ final class AsynchronousTracingTest extends TracingTestCase
             ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         $expectedFlow = fn (string $flowId): array => [
-            'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => $flowId]],
+            'details' => ['name' => 'send command', 'attributes' => ['flowId' => $flowId]],
             'children' => [
                 [
-                    'details' => ['name' => 'Sending to Channel: async_channel', 'attributes' => ['flowId' => $flowId]],
+                    'details' => ['name' => 'send async_channel', 'attributes' => ['flowId' => $flowId]],
                     'children' => [
                         [
-                            'details' => ['name' => 'Receiving from channel: async_channel', 'attributes' => ['flowId' => $flowId]],
+                            'details' => ['name' => 'receive async_channel', 'attributes' => ['flowId' => $flowId]],
                             'children' => [
-                                ['details' => ['name' => 'Command Handler: ' . $users::class . '::register', 'attributes' => ['flowId' => $flowId]], 'children' => []],
+                                ['details' => ['name' => 'process class@anonymous::register', 'attributes' => ['flowId' => $flowId]], 'children' => []],
                             ],
                         ],
                     ],
@@ -162,7 +162,7 @@ final class AsynchronousTracingTest extends TracingTestCase
             ->sendCommandWithRouting('user.register', '1', metadata: ['user_id' => '123'])
             ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        foreach (['Command Bus', 'Sending to Channel: async_channel', 'Receiving from channel: async_channel', 'Command Handler: ' . $users::class . '::register'] as $spanName) {
+        foreach (['send command', 'send async_channel', 'receive async_channel', 'process class@anonymous::register'] as $spanName) {
             $spans = array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => $span->name === $spanName));
             $this->assertCount(1, $spans, $spanName);
             $this->assertSame('123', $spans[0]->attributes['user_id'], $spanName);
@@ -216,16 +216,16 @@ final class AsynchronousTracingTest extends TracingTestCase
 
         self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'details' => ['name' => 'send async_channel'],
                     'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'details' => ['name' => 'receive async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Sending to Channel: async_channel'],
+                            'details' => ['name' => 'send async_channel'],
                             'child' => [
-                                'details' => ['name' => 'Receiving from channel: async_channel'],
-                                'child' => ['details' => ['name' => 'Event Handler: ' . $notifier::class . '::notify']],
+                                'details' => ['name' => 'receive async_channel'],
+                                'child' => ['details' => ['name' => 'process class@anonymous::notify']],
                             ],
                         ],
                     ],
@@ -235,14 +235,14 @@ final class AsynchronousTracingTest extends TracingTestCase
         );
         self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'details' => ['name' => 'send async_channel'],
                     'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'details' => ['name' => 'receive async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Command Handler: ' . $users::class . '::register'],
-                            'child' => ['details' => ['name' => 'Event Bus']],
+                            'details' => ['name' => 'process class@anonymous::register'],
+                            'child' => ['details' => ['name' => 'send event']],
                         ],
                     ],
                 ],
@@ -281,14 +281,14 @@ final class AsynchronousTracingTest extends TracingTestCase
 
         $eventBus = self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'details' => ['name' => 'send async_channel'],
                     'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'details' => ['name' => 'receive async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Command Handler: ' . $users::class . '::register'],
-                            'child' => ['details' => ['name' => 'Event Bus']],
+                            'details' => ['name' => 'process class@anonymous::register'],
+                            'child' => ['details' => ['name' => 'send event']],
                         ],
                     ],
                 ],
@@ -300,7 +300,7 @@ final class AsynchronousTracingTest extends TracingTestCase
         $this->assertNotEmpty(array_filter($eventBusEvents, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
 
         $route = $eventBus['children'][array_key_first($eventBus['children'])];
-        $this->assertSame('Routing to: user.registered.endpoint', $route['details']['name']);
+        $this->assertSame('route user.registered.endpoint', $route['details']['name']);
         $routeEvents = array_map(fn ($event): string => $event->name, $route['details']['events']);
         $this->assertNotEmpty(array_filter($routeEvents, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
     }
@@ -325,8 +325,8 @@ final class AsynchronousTracingTest extends TracingTestCase
 
         self::compareTreesByDetails(
             [
-                ['details' => ['name' => 'Receiving from inbound channel adapter: nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
-                ['details' => ['name' => 'Receiving from inbound channel adapter: nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
+                ['details' => ['name' => 'receive nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
+                ['details' => ['name' => 'receive nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
             ],
             self::buildTree($recorder->recordedSpans())
         );
@@ -346,9 +346,9 @@ final class AsynchronousTracingTest extends TracingTestCase
             ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
 
         $expectedRun = [
-            'details' => ['name' => 'Receiving from inbound channel adapter: add'],
+            'details' => ['name' => 'receive add'],
             'children' => [
-                ['details' => ['name' => 'Message Handler: ' . $workflow::class . '::add'], 'children' => []],
+                ['details' => ['name' => 'process class@anonymous::add'], 'children' => []],
             ],
         ];
         self::compareTreesByDetails([$expectedRun, $expectedRun], self::buildTree($recorder->recordedSpans()));

@@ -46,16 +46,16 @@ final class RouteTracingTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
                             'details' => [
-                                'name' => 'Routing to: merchant.notifier',
+                                'name' => 'route merchant.notifier',
                                 'kind' => SpanKind::Producer,
                                 'attributes' => ['messaging.destination.name' => 'merchant.notifier.target', 'ecotone.endpoint.id' => 'merchant.notifier'],
                             ],
                             'children' => [
-                                ['details' => ['name' => 'Event Handler: ' . $subscriber::class . '::notify', 'attributes' => ['ecotone.endpoint.id' => 'merchant.notifier']], 'children' => []],
+                                ['details' => ['name' => 'process class@anonymous::notify', 'attributes' => ['ecotone.endpoint.id' => 'merchant.notifier']], 'children' => []],
                             ],
                         ],
                     ],
@@ -87,7 +87,7 @@ final class RouteTracingTest extends TracingTestCase
         } catch (RuntimeException) {
         }
 
-        $this->assertSame(SpanStatus::Error, self::spanNamed('Routing to: merchant.notifier', $recorder)->status);
+        $this->assertSame(SpanStatus::Error, self::spanNamed('route merchant.notifier', $recorder)->status);
     }
 
     public function test_an_asynchronous_event_route_leads_through_the_channel_to_its_handler(): void
@@ -111,14 +111,14 @@ final class RouteTracingTest extends TracingTestCase
 
         self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Event Bus'],
+                'details' => ['name' => 'send event'],
                 'child' => [
-                    'details' => ['name' => 'Routing to: merchant.notifier'],
+                    'details' => ['name' => 'route merchant.notifier'],
                     'child' => [
-                        'details' => ['name' => 'Sending to Channel: async_channel', 'attributes' => ['messaging.destination.name' => 'async_channel']],
+                        'details' => ['name' => 'send async_channel', 'attributes' => ['messaging.destination.name' => 'async_channel']],
                         'child' => [
-                            'details' => ['name' => 'Receiving from channel: async_channel', 'attributes' => ['messaging.destination.name' => 'async_channel']],
-                            'child' => ['details' => ['name' => 'Event Handler: ' . $subscriber::class . '::notify']],
+                            'details' => ['name' => 'receive async_channel', 'attributes' => ['messaging.destination.name' => 'async_channel']],
+                            'child' => ['details' => ['name' => 'process class@anonymous::notify']],
                         ],
                     ],
                 ],
@@ -149,12 +149,12 @@ final class RouteTracingTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Routing to Projection: orders', 'kind' => SpanKind::Producer, 'attributes' => ['ecotone.projection.name' => 'orders']],
+                            'details' => ['name' => 'route orders', 'kind' => SpanKind::Producer, 'attributes' => ['ecotone.projection.name' => 'orders']],
                             'children' => [
-                                ['details' => ['name' => 'Projection: orders', 'kind' => SpanKind::Consumer, 'attributes' => ['ecotone.projection.name' => 'orders']], 'children' => []],
+                                ['details' => ['name' => 'process orders', 'kind' => SpanKind::Consumer, 'attributes' => ['ecotone.projection.name' => 'orders']], 'children' => []],
                             ],
                         ],
                     ],
@@ -187,14 +187,14 @@ final class RouteTracingTest extends TracingTestCase
 
         self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Event Bus'],
+                'details' => ['name' => 'send event'],
                 'child' => [
-                    'details' => ['name' => 'Routing to Projection: orders'],
+                    'details' => ['name' => 'route orders'],
                     'child' => [
-                        'details' => ['name' => 'Sending to Channel: async_channel'],
+                        'details' => ['name' => 'send async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Receiving from channel: async_channel'],
-                            'child' => ['details' => ['name' => 'Projection: orders', 'kind' => SpanKind::Consumer]],
+                            'details' => ['name' => 'receive async_channel'],
+                            'child' => ['details' => ['name' => 'process orders', 'kind' => SpanKind::Consumer]],
                         ],
                     ],
                 ],
@@ -223,7 +223,7 @@ final class RouteTracingTest extends TracingTestCase
         foreach ($recorder->recordedSpans() as $span) {
             $this->assertSame('ecotone', $span->attributes['messaging.system'], $span->name);
         }
-        $this->assertSame('user.registration', self::spanNamed('Command Handler: ' . $users::class . '::register', $recorder)->attributes['ecotone.endpoint.id']);
+        $this->assertSame('user.registration', self::spanNamed('process class@anonymous::register', $recorder)->attributes['ecotone.endpoint.id']);
     }
 
     private static function spanNamed(string $name, InMemorySpanRecorder $recorder): Span

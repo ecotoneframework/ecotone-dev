@@ -32,7 +32,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $span = $this->tracer->startSpan('Sending to Channel: ' . $this->channelName, SpanKind::Producer, [
+        $span = $this->tracer->startSpan('send ' . $this->channelName, SpanKind::Producer, [
             ...MessageSpanAttributes::from($message),
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
@@ -72,7 +72,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         }
 
         $this->tracer
-            ->startSpan('Asynchronous Channel: ' . $this->channelName, SpanKind::Consumer, [
+            ->startSpan('receive ' . $this->channelName, SpanKind::Consumer, [
                 ...MessageSpanAttributes::from($message),
                 SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
                 SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,

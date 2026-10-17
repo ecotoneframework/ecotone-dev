@@ -273,7 +273,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         } catch (RuntimeException) {
         }
 
-        self::assertSame(SpanStatus::Error, $subscriber->endedSpans['Receiving from channel: async_channel']);
+        self::assertSame(SpanStatus::Error, $subscriber->endedSpans['receive async_channel']);
         self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 

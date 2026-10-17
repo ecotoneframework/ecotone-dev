@@ -60,10 +60,10 @@ final class TracedRouteProcessor implements MessageProcessor
     {
         $projectionName = ProjectingModule::projectionNameOfTriggerChannel($this->routeName);
         if ($projectionName !== null) {
-            return 'Routing to Projection: ' . $projectionName;
+            return 'route ' . $projectionName;
         }
 
-        return 'Routing to: ' . (BusRoutingMapBuilder::endpointIdOfDestinationChannel($this->routeName) ?? $this->routeName);
+        return 'route ' . (BusRoutingMapBuilder::endpointIdOfDestinationChannel($this->routeName) ?? $this->routeName);
     }
 
     private function destination(): ?string

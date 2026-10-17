@@ -14,12 +14,14 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ConsoleCommandReference;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
+use Ecotone\Messaging\Config\Flow\MessageFlowGraphBuilder;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -157,5 +159,10 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         }
 
         return implode(', ', array_unique($described));
+    }
+
+    public function getMessageFlowGraph(): MessageFlowGraph
+    {
+        return $this->container->get(MessageFlowGraphBuilder::class)->build();
     }
 }

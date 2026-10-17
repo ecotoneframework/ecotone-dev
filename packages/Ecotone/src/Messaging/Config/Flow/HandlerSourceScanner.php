@@ -1,0 +1,232 @@
+<?php
+
+/*
+ * licence Apache-2.0
+ */
+declare(strict_types=1);
+
+namespace Ecotone\Messaging\Config\Flow;
+
+use PhpToken;
+use ReflectionMethod;
+
+final class HandlerSourceScanner
+{
+    private const IGNORED_NAMES = ['parent', 'class'];
+
+    public function scan(string $className, string $methodName): MethodSourceFacts
+    {
+        $method = new ReflectionMethod($className, $methodName);
+        $fileName = $method->getFileName();
+        if ($fileName === false || $method->getStartLine() === false || $method->getEndLine() === false) {
+            return MethodSourceFacts::none();
+        }
+
+        $tokens = array_values(array_filter(
+            PhpToken::tokenize((string) file_get_contents($fileName)),
+            fn (PhpToken $token) => ! $token->isIgnorable()
+        ));
+        [$namespace, $imports] = $this->importsOf($tokens);
+        $body = array_values(array_filter(
+            $tokens,
+            fn (PhpToken $token) => $token->line >= $method->getStartLine() && $token->line <= $method->getEndLine()
+        ));
+
+        return $this->factsOf($body, $className, $namespace, $imports);
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array{string, array<string, string>}
+     */
+    private function importsOf(array $tokens): array
+    {
+        $namespace = '';
+        $imports = [];
+        $braceDepth = 0;
+        foreach ($tokens as $index => $token) {
+            if ($token->text === '{') {
+                $braceDepth++;
+            } elseif ($token->text === '}') {
+                $braceDepth--;
+            } elseif ($token->is(T_NAMESPACE) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
+                $namespace = $tokens[$index + 1]->text;
+            } elseif ($token->is(T_USE) && $braceDepth === 0) {
+                $imports = array_merge($imports, $this->importStatementAt($tokens, $index + 1));
+            }
+        }
+
+        return [$namespace, $imports];
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array<string, string>
+     */
+    private function importStatementAt(array $tokens, int $index): array
+    {
+        $imports = [];
+        if (isset($tokens[$index]) && ($tokens[$index]->is(T_FUNCTION) || $tokens[$index]->is(T_CONST))) {
+            return $imports;
+        }
+        $groupPrefix = '';
+        $current = '';
+        for ($i = $index; isset($tokens[$i]) && $tokens[$i]->text !== ';'; $i++) {
+            $token = $tokens[$i];
+            if ($this->isName($token)) {
+                $current = $groupPrefix . ltrim($token->text, '\\');
+                $imports[strtolower($this->shortName($current))] = $current;
+            } elseif ($token->is(T_NS_SEPARATOR) || $token->text === '{') {
+                $groupPrefix = rtrim($current, '\\') . '\\';
+                unset($imports[strtolower($this->shortName($current))]);
+            } elseif ($token->is(T_AS) && isset($tokens[$i + 1])) {
+                unset($imports[strtolower($this->shortName($current))]);
+                $imports[strtolower($tokens[$i + 1]->text)] = $current;
+                $i++;
+            }
+        }
+
+        return $imports;
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, string> $imports
+     */
+    private function factsOf(array $tokens, string $className, string $namespace, array $imports): MethodSourceFacts
+    {
+        $instantiations = [];
+        $calls = [];
+        $literals = [];
+        $enclosingCalls = [];
+        foreach ($tokens as $index => $token) {
+            if ($token->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
+                $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
+                if ($resolved !== null) {
+                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
+                }
+            } elseif ($token->is(T_DOUBLE_COLON) && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
+                $resolved = $this->resolve($tokens[$index - 1], $className, $namespace, $imports);
+                if ($resolved !== null && $resolved !== $className) {
+                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
+                }
+            } elseif ($token->text === '(') {
+                $call = $this->callBefore($tokens, $index);
+                $enclosingCalls[] = $call['method'] ?? null;
+                if ($call !== null) {
+                    $calls[] = $call + $this->firstArgumentAt($tokens, $index + 1, $className, $namespace, $imports);
+                }
+            } elseif ($token->text === ')') {
+                array_pop($enclosingCalls);
+            } elseif ($token->is(T_CONSTANT_ENCAPSED_STRING)) {
+                $literals[] = $this->literal($token);
+            }
+        }
+
+        return new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @return array{receiver: string|null, method: string}|null
+     */
+    private function callBefore(array $tokens, int $parenthesisIndex): ?array
+    {
+        $name = $tokens[$parenthesisIndex - 1] ?? null;
+        $operator = $tokens[$parenthesisIndex - 2] ?? null;
+        if ($name === null || $operator === null || ! $name->is(T_STRING)) {
+            return null;
+        }
+        if (! ($operator->is(T_OBJECT_OPERATOR) || $operator->is(T_NULLSAFE_OBJECT_OPERATOR) || $operator->is(T_DOUBLE_COLON))) {
+            return null;
+        }
+        $receiver = null;
+        $subject = $tokens[$parenthesisIndex - 3] ?? null;
+        $subjectOperator = $tokens[$parenthesisIndex - 4] ?? null;
+        $subjectOwner = $tokens[$parenthesisIndex - 5] ?? null;
+        if ($subject?->is(T_VARIABLE)) {
+            $receiver = ltrim($subject->text, '$');
+        } elseif ($subject?->is(T_STRING) && $subjectOperator?->is(T_OBJECT_OPERATOR) && $subjectOwner?->text === '$this') {
+            $receiver = 'this.' . $subject->text;
+        }
+
+        return ['receiver' => $receiver, 'method' => $name->text];
+    }
+
+    /**
+     * @param list<PhpToken> $tokens
+     * @param array<string, string> $imports
+     * @return array{firstArgumentLiteral: string|null, firstArgumentClass: string|null}
+     */
+    private function firstArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
+    {
+        $first = $tokens[$index] ?? null;
+        if ($first?->is(T_CONSTANT_ENCAPSED_STRING)) {
+            return ['firstArgumentLiteral' => $this->literal($first), 'firstArgumentClass' => null];
+        }
+        if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
+            return ['firstArgumentLiteral' => null, 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+        }
+
+        return ['firstArgumentLiteral' => null, 'firstArgumentClass' => null];
+    }
+
+    /**
+     * @param list<string|null> $enclosingCalls
+     */
+    private function innermostCall(array $enclosingCalls): ?string
+    {
+        for ($i = count($enclosingCalls) - 1; $i >= 0; $i--) {
+            if ($enclosingCalls[$i] !== null) {
+                return $enclosingCalls[$i];
+            }
+        }
+
+        return null;
+    }
+
+    private function isName(PhpToken $token): bool
+    {
+        return $token->is([T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE, T_STATIC]);
+    }
+
+    /**
+     * @param array<string, string> $imports
+     */
+    private function resolve(PhpToken $token, string $className, string $namespace, array $imports): ?string
+    {
+        $name = $token->text;
+        if (in_array(strtolower($name), ['self', 'static'], true)) {
+            return $className;
+        }
+        if (in_array(strtolower($name), self::IGNORED_NAMES, true)) {
+            return null;
+        }
+        if ($token->is(T_NAME_FULLY_QUALIFIED)) {
+            return ltrim($name, '\\');
+        }
+        if ($token->is(T_NAME_RELATIVE)) {
+            return $namespace . '\\' . substr($name, strlen('namespace\\'));
+        }
+        $firstSegment = strtolower(explode('\\', $name)[0]);
+        if (isset($imports[$firstSegment])) {
+            $rest = substr($name, strlen(explode('\\', $name)[0]));
+
+            return $imports[$firstSegment] . $rest;
+        }
+
+        return $namespace === '' ? $name : $namespace . '\\' . $name;
+    }
+
+    private function literal(PhpToken $token): string
+    {
+        return stripcslashes(substr($token->text, 1, -1));
+    }
+
+    private function shortName(string $name): string
+    {
+        $segments = explode('\\', $name);
+
+        return end($segments);
+    }
+}

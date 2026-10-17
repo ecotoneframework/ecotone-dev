@@ -17,6 +17,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\DatePoint;
@@ -525,6 +526,11 @@ final class FlowTestSupport
     public function getInMemoryConsoleWriter(): InMemoryConsoleWriter
     {
         return $this->configuredMessagingSystem->getServiceFromContainer(InMemoryConsoleWriter::class);
+    }
+
+    public function getMessageFlowGraph(): MessageFlowGraph
+    {
+        return $this->configuredMessagingSystem->getMessageFlowGraph();
     }
 
     /**

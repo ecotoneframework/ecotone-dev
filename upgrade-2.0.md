@@ -3018,7 +3018,9 @@ for one `endpointId` or projection name; and `await()` / `awaitFor()`, which pol
 trace in this process, a bus call or a handler reached outside any other span, never a consumer: a trace whose
 producer stored nothing is never completed by its consumers alone. A unit of work that fails discards the spans it
 buffered, so a handler that succeeded inside a rolled-back transaction, and a message whose send rolled back with
-it, are not counted; the failed outer span is still stored. A method with `#[OnTraceCompleted]` receives a
+it, are not counted. By default nothing of a failed unit of work is stored, because the only moment left to store it
+is after the rollback, outside any transaction; `withStoredTraces(storeFailuresOutsideTransaction: true)` opts in
+to storing the failed outer span then, so a failed trace shows its error and counts as complete. A method with `#[OnTraceCompleted]` receives a
 `TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every stored span, both after the commit
 that produced them, so a websocket push or a cache refresh never runs ahead of the data. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a

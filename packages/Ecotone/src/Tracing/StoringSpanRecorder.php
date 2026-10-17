@@ -9,6 +9,7 @@ use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 
@@ -46,6 +47,7 @@ final class StoringSpanRecorder implements SpanRecorder
         private MessagingEntrypointService $messagingEntrypoint,
         private bool $publishesEndedSpans,
         private bool $publishesCompletedTraces,
+        private bool $storesFailuresOutsideTransaction,
     ) {
     }
 
@@ -54,6 +56,9 @@ final class StoringSpanRecorder implements SpanRecorder
         if ($this->scopeActive) {
             $this->buffer[] = $span;
 
+            return;
+        }
+        if ($span->status === SpanStatus::Error && ! $this->storesFailuresOutsideTransaction) {
             return;
         }
 

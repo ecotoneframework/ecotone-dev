@@ -22,6 +22,7 @@ use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanEnded;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
@@ -365,6 +366,43 @@ final class TraceCompletionTest extends TestCase
         $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
     }
 
+    public function test_a_failed_unit_of_work_stores_nothing_by_default(): void
+    {
+        $subscriber = $this->spanEndedSubscriber();
+        $ecotone = $this->bootstrap([$this->failingUsers(), $subscriber]);
+        $trace = SpanContext::newTrace();
+
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $this->fail('Expected the registration failure to propagate');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame([], $subscriber->endedSpans);
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_failed_unit_of_work_stores_its_failed_root_span_when_failures_may_be_stored_outside_the_transaction(): void
+    {
+        $subscriber = $this->spanEndedSubscriber();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->failingUsers()::class, $subscriber::class],
+            [$this->failingUsers(), $subscriber],
+            [TracingConfiguration::createWithDefaults()->withStoredTraces(storeFailuresOutsideTransaction: true)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $this->fail('Expected the registration failure to propagate');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame(['Command Bus' => SpanStatus::Error], $subscriber->endedSpans);
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
     public function test_stored_traces_require_an_enterprise_licence(): void
     {
         $this->expectException(LicensingException::class);
@@ -422,6 +460,31 @@ final class TraceCompletionTest extends TestCase
             public function register(string $userId, EventBus $eventBus): void
             {
                 $eventBus->publishWithRouting('user.registered', $userId);
+            }
+        };
+    }
+
+    private function failingUsers(): object
+    {
+        return new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId): void
+            {
+                throw new RuntimeException('Registration failed');
+            }
+        };
+    }
+
+    private function spanEndedSubscriber(): object
+    {
+        return new class () {
+            /** @var array<string, SpanStatus> */
+            public array $endedSpans = [];
+
+            #[OnSpanEnded]
+            public function whenEnded(SpanEnded $event): void
+            {
+                $this->endedSpans[$event->span->name] = $event->span->status;
             }
         };
     }

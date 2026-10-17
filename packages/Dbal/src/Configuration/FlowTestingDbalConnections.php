@@ -111,7 +111,7 @@ final class FlowTestingDbalConnections
             return $tracingConfiguration;
         }
 
-        return $tracingConfiguration->withStoredTraces(inMemory: true, retention: $tracingConfiguration->storedTracesRetention);
+        return $tracingConfiguration->withStoredTraces(inMemory: true, retention: $tracingConfiguration->storedTracesRetention, storeFailuresOutsideTransaction: $tracingConfiguration->storedFailuresOutsideTransaction);
     }
 
     private function refuseDbalChannelsWithoutTheirConnection(): void

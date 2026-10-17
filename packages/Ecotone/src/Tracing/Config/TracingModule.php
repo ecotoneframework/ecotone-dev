@@ -200,6 +200,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 new Reference(MessagingEntrypointService::class),
                 $this->spanEndedSubscribers !== [],
                 $this->traceCompletedSubscribers !== [],
+                $tracingConfiguration->storedFailuresOutsideTransaction,
             ])
         );
         $messagingConfiguration->registerServiceDefinition(

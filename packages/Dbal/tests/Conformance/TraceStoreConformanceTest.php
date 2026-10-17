@@ -16,8 +16,11 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
+use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Api\Tracing\SpanEnded;
+use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
@@ -241,6 +244,39 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    #[DataProvider('implementations')]
+    public function test_a_failing_asynchronous_handler_stores_nothing_by_default(string $implementation): void
+    {
+        $subscriber = $this->spanEndedSubscriber();
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->sendCommandWithRouting('user.register', '1');
+        $storedBeforeTheConsumerRan = $subscriber->endedSpans;
+
+        try {
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (RuntimeException) {
+        }
+
+        self::assertSame($storedBeforeTheConsumerRan, $subscriber->endedSpans);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_failing_asynchronous_handler_stores_its_failed_consumer_span_when_failures_may_be_stored_outside_the_transaction(string $implementation): void
+    {
+        $subscriber = $this->spanEndedSubscriber();
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')], storeFailuresOutsideTransaction: true);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        try {
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (RuntimeException) {
+        }
+
+        self::assertSame(SpanStatus::Error, $subscriber->endedSpans['Receiving from channel: async_channel']);
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void
     {
         $producer = $this->bootstrap('dbal', [$this->users()]);
@@ -256,12 +292,12 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
      * @param object[] $services
      * @param object[] $extensionObjects
      */
-    private function bootstrap(string $implementation, array $services, array $extensionObjects = [], ?Duration $retention = null): FlowTestSupport
+    private function bootstrap(string $implementation, array $services, array $extensionObjects = [], ?Duration $retention = null, bool $storeFailuresOutsideTransaction = false): FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service): string => $service::class, $services),
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: $implementation === 'in-memory', retention: $retention), ...$extensionObjects],
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: $implementation === 'in-memory', retention: $retention, storeFailuresOutsideTransaction: $storeFailuresOutsideTransaction), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
@@ -279,6 +315,32 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             public function register(string $userId, EventBus $eventBus): void
             {
                 $eventBus->publishWithRouting('user.registered', $userId);
+            }
+        };
+    }
+
+    private function failingNotifier(): object
+    {
+        return new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                throw new RuntimeException('Notification failed');
+            }
+        };
+    }
+
+    private function spanEndedSubscriber(): object
+    {
+        return new class () {
+            /** @var array<string, SpanStatus> */
+            public array $endedSpans = [];
+
+            #[OnSpanEnded]
+            public function whenEnded(SpanEnded $event): void
+            {
+                $this->endedSpans[$event->span->name] = $event->span->status;
             }
         };
     }

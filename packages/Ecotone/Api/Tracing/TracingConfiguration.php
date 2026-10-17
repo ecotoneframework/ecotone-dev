@@ -19,12 +19,13 @@ final class TracingConfiguration
         public readonly bool $storedTraces,
         public readonly bool $storedTracesInMemory,
         public readonly Duration $storedTracesRetention,
+        public readonly bool $storedFailuresOutsideTransaction,
     ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self([], false, false, Duration::minutes(60 * 24 * 7));
+        return new self([], false, false, Duration::minutes(60 * 24 * 7), false);
     }
 
     public function withSpanRecorder(string $referenceName): self
@@ -32,8 +33,8 @@ final class TracingConfiguration
         return new self(...[...get_object_vars($this), 'spanRecorderReferenceNames' => [...$this->spanRecorderReferenceNames, $referenceName]]);
     }
 
-    public function withStoredTraces(bool $inMemory = false, ?Duration $retention = null): self
+    public function withStoredTraces(bool $inMemory = false, ?Duration $retention = null, bool $storeFailuresOutsideTransaction = false): self
     {
-        return new self(...[...get_object_vars($this), 'storedTraces' => true, 'storedTracesInMemory' => $inMemory, 'storedTracesRetention' => $retention ?? $this->storedTracesRetention]);
+        return new self(...[...get_object_vars($this), 'storedTraces' => true, 'storedTracesInMemory' => $inMemory, 'storedTracesRetention' => $retention ?? $this->storedTracesRetention, 'storedFailuresOutsideTransaction' => $storeFailuresOutsideTransaction]);
     }
 }

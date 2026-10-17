@@ -206,13 +206,13 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
 
         /** Command Handler */
         $this->assertSame(StatusCode::STATUS_ERROR, $spans[0]->getStatus()->getCode());
-        $event = $spans[0]->getEvents()[1];
+        $event = current(array_filter($spans[0]->getEvents(), fn ($event): bool => $event->getName() === 'exception'));
         $this->assertSame('exception', $event->getName());
         $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
 
         /** Command Bus */
         $this->assertSame(StatusCode::STATUS_ERROR, $spans[1]->getStatus()->getCode());
-        $event = $spans[1]->getEvents()[1];
+        $event = current(array_filter($spans[1]->getEvents(), fn ($event): bool => $event->getName() === 'exception'));
         $this->assertSame('exception', $event->getName());
         $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
     }

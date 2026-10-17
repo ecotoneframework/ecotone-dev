@@ -3114,7 +3114,14 @@ producer stored nothing is never completed by its consumers alone. A unit of wor
 buffered, so a handler that succeeded inside a rolled-back transaction, and a message whose send rolled back with
 it, are not counted. By default nothing of a failed unit of work is stored, because the only moment left to store it
 is after the rollback, outside any transaction; `withStoredTraces(storeFailuresOutsideTransaction: true)` opts in
-to storing the failed outer span then, so a failed trace shows its error and counts as complete. A method with `#[OnTraceCompleted]` receives a
+to storing the failed outer span then, so a failed trace shows its error and counts as complete. A destination counts a message as dispatched and as processed by
+its message id, so a redelivery of the same message satisfies the delivery it belongs to and no other, and a
+message sent to an asynchronous handler is attributed to that handler's `endpointId` whether it was routed by the
+event bus, the command bus or an `outputChannelName`. The handler span is the innermost interceptor around the
+method, so it records the handler's own failure even when an error channel or a retry handles it, and
+`TraceCompletionTimedOut` names the handlers whose last attempt failed, the channels still holding a message, a
+trace nobody recorded, and a destination the trace never reached. `TraceCompletion` is always injectable; without
+`withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a
 `TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every stored span, both after the commit
 that produced them, so a websocket push or a cache refresh never runs ahead of the data. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a

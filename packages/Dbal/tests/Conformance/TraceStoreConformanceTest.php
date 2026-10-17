@@ -9,7 +9,10 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -97,7 +100,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage('Still pending: user.notifier, async_channel.');
+        $this->expectExceptionMessage('Still pending: user.notifier, async_channel. Run the consumer of the pending channel');
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -288,6 +291,38 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_lettered_message_replayed_later_completes_the_trace_it_came_from(string $implementation): void
+    {
+        $notifier = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('Notification failed once');
+                }
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $notifier], [
+            SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+            ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+        ]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(2, $notifier->attempts);
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void

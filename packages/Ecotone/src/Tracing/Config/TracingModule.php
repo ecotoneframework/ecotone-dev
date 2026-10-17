@@ -62,6 +62,7 @@ use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TraceRecordingInterceptor;
 use Ecotone\Tracing\TraceStore;
 use Ecotone\Tracing\TracingInterceptor;
+use Ecotone\Tracing\UnavailableTraceCompletion;
 
 use function implode;
 
@@ -99,6 +100,22 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         );
     }
 
+    private static function registerCompletionGateway(Configuration $messagingConfiguration, string $serviceClass, Definition $service): void
+    {
+        $messagingConfiguration->registerServiceDefinition($serviceClass, $service);
+        foreach ([
+            'isCompleted' => [GatewayPayloadBuilder::create('traceId')],
+            'isCompletedFor' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('destination', StoredTraceCompletion::DESTINATION_HEADER)],
+            'await' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('timeout', StoredTraceCompletion::TIMEOUT_HEADER)],
+            'awaitFor' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('destination', StoredTraceCompletion::DESTINATION_HEADER), GatewayHeaderBuilder::create('timeout', StoredTraceCompletion::TIMEOUT_HEADER)],
+        ] as $method => $parameterConverters) {
+            $channel = 'ecotone.tracing.completion.' . $method;
+            $messagingConfiguration
+                ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod($serviceClass, $method)->withInputChannelName($channel))
+                ->registerGatewayBuilder(GatewayProxyBuilder::create(TraceCompletion::class, TraceCompletion::class, $method, $channel)->withParameterConverters($parameterConverters));
+        }
+    }
+
     /**
      * @return array<string, string>
      */
@@ -123,6 +140,9 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         }
         $this->refuseMisconfiguredStoredTraces($messagingConfiguration, $tracingConfiguration);
 
+        if (! $tracingConfiguration->storedTraces) {
+            self::registerCompletionGateway($messagingConfiguration, UnavailableTraceCompletion::class, new Definition(UnavailableTraceCompletion::class));
+        }
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && ! $tracingConfiguration->storedTraces) {
             return;
         }
@@ -152,24 +172,24 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         );
 
         foreach ([
-            'traceCommandHandler' => CommandHandler::class,
-            'traceQueryHandler' => QueryHandler::class,
-            'traceEventHandler' => EventHandler::class,
-            'traceMessageHandler' => InternalHandler::class . '&&not(' . MessageHeadersPropagatorInterceptor::class . ')&&not(' . OnTraceCompleted::class . ')&&not(' . OnSpanEnded::class . ')',
-            'traceCommandBus' => CommandBus::class,
-            'traceQueryBus' => QueryBus::class,
-            'traceEventBus' => EventBus::class,
-            'traceAsynchronousEndpoint' => AsynchronousRunningEndpoint::class,
-            'traceDistributedBus' => DistributedBus::class,
-            'traceProjection' => ProjectionTriggerEndpoint::class,
-            'traceMessageGateway' => self::USER_MESSAGE_GATEWAYS_POINTCUT,
-            'traceOrchestratorGateway' => OrchestratorGateway::class,
-        ] as $method => $pointcut) {
+            'traceCommandHandler' => [CommandHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceQueryHandler' => [QueryHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceEventHandler' => [EventHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceMessageHandler' => [InternalHandler::class . '&&not(' . MessageHeadersPropagatorInterceptor::class . ')&&not(' . OnTraceCompleted::class . ')&&not(' . OnSpanEnded::class . ')', Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceProjection' => [ProjectionTriggerEndpoint::class, Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceCommandBus' => [CommandBus::class, Precedence::TRACING_PRECEDENCE],
+            'traceQueryBus' => [QueryBus::class, Precedence::TRACING_PRECEDENCE],
+            'traceEventBus' => [EventBus::class, Precedence::TRACING_PRECEDENCE],
+            'traceAsynchronousEndpoint' => [AsynchronousRunningEndpoint::class, Precedence::TRACING_PRECEDENCE],
+            'traceDistributedBus' => [DistributedBus::class, Precedence::TRACING_PRECEDENCE],
+            'traceMessageGateway' => [self::USER_MESSAGE_GATEWAYS_POINTCUT, Precedence::TRACING_PRECEDENCE],
+            'traceOrchestratorGateway' => [OrchestratorGateway::class, Precedence::TRACING_PRECEDENCE],
+        ] as $method => [$pointcut, $precedence]) {
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorBuilder::create(
                     TracingInterceptor::class,
                     $interfaceToCallRegistry->getFor(TracingInterceptor::class, $method),
-                    Precedence::TRACING_PRECEDENCE,
+                    $precedence,
                     $pointcut
                 )
             );
@@ -250,28 +270,14 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             AroundInterceptorBuilder::create(
                 TraceRecordingInterceptor::class,
                 $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'recordUnitOfWork'),
-                Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
+                Precedence::TRACE_RECORDING_PRECEDENCE,
                 CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
             )
         );
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnTraceCompleted::CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnSpanEnded::CHANNEL));
 
-        $messagingConfiguration->registerServiceDefinition(
-            StoredTraceCompletion::class,
-            new Definition(StoredTraceCompletion::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class)])
-        );
-        foreach ([
-            'isCompleted' => [GatewayPayloadBuilder::create('traceId')],
-            'isCompletedFor' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('destination', StoredTraceCompletion::DESTINATION_HEADER)],
-            'await' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('timeout', StoredTraceCompletion::TIMEOUT_HEADER)],
-            'awaitFor' => [GatewayPayloadBuilder::create('traceId'), GatewayHeaderBuilder::create('destination', StoredTraceCompletion::DESTINATION_HEADER), GatewayHeaderBuilder::create('timeout', StoredTraceCompletion::TIMEOUT_HEADER)],
-        ] as $method => $parameterConverters) {
-            $channel = 'ecotone.tracing.completion.' . $method;
-            $messagingConfiguration
-                ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(StoredTraceCompletion::class, $method)->withInputChannelName($channel))
-                ->registerGatewayBuilder(GatewayProxyBuilder::create(TraceCompletion::class, TraceCompletion::class, $method, $channel)->withParameterConverters($parameterConverters));
-        }
+        self::registerCompletionGateway($messagingConfiguration, StoredTraceCompletion::class, new Definition(StoredTraceCompletion::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class)]));
 
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,

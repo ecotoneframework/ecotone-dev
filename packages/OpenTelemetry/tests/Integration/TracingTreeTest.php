@@ -275,10 +275,7 @@ final class TracingTreeTest extends TracingTestCase
             self::buildTree($exporter)
         );
 
-        $this->assertSame(
-            'exception',
-            $node['details']['events'][1]->getName()
-        );
+        $this->assertContains('exception', array_map(fn ($event): string => $event->getName(), $node['details']['events']));
     }
 
     public function test_separate_traces()

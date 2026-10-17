@@ -102,7 +102,9 @@ final class StoringSpanRecorder implements SpanRecorder
         foreach (self::outerParentsOf($this->buffer) as $spanId) {
             $this->spansWrappingAFailedUnitOfWork[$spanId] = true;
         }
-        $this->buffer = [];
+        if (! $this->storesFailuresOutsideTransaction) {
+            $this->buffer = [];
+        }
     }
 
     /**

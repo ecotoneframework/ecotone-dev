@@ -49,28 +49,27 @@ final class TraceLedger
             if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {
                 $rootEnded = true;
             }
+            $delivery = self::deliveryOf($span);
+            if ($delivery !== null) {
+                [$channel, $messageId] = $delivery;
+                if ($span->kind === SpanKind::Producer && $span->status !== SpanStatus::Error) {
+                    $sentDeliveries[$channel][$messageId] = true;
+                } elseif ($span->kind === SpanKind::Consumer) {
+                    $processedDeliveries[$channel][$messageId] = true;
+                }
+            }
             $destination = self::destinationOf($span);
             if ($destination === null) {
-                $delivery = self::deliveryOf($span);
-                if ($delivery === null || $span->status === SpanStatus::Error) {
-                    continue;
-                }
-                [$channel, $messageId] = $delivery;
-                if ($span->kind === SpanKind::Producer) {
-                    $sentDeliveries[$channel][$messageId] = ($sentDeliveries[$channel][$messageId] ?? 0) + 1;
-                } elseif ($span->kind === SpanKind::Consumer) {
-                    $processedDeliveries[$channel][$messageId] = ($processedDeliveries[$channel][$messageId] ?? 0) + 1;
-                }
-
                 continue;
             }
             $operation = $span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null;
+            $messageId = (string) ($span->attributes[MessageHeaders::MESSAGE_ID] ?? $span->spanId);
             if ($operation === SpanAttribute::OPERATION_SEND) {
-                $sent[$destination] = ($sent[$destination] ?? 0) + 1;
+                $sent[$destination][$messageId] = true;
             } elseif ($operation === SpanAttribute::OPERATION_PROCESS && $span->status === SpanStatus::Error) {
-                $failed[$destination] = ($failed[$destination] ?? 0) + 1;
+                $failed[$destination][$messageId] = true;
             } elseif ($operation === SpanAttribute::OPERATION_PROCESS) {
-                $processed[$destination] = ($processed[$destination] ?? 0) + 1;
+                $processed[$destination][$messageId] = true;
             }
         }
 
@@ -89,7 +88,7 @@ final class TraceLedger
      */
     private static function deliveryOf(Span $span): ?array
     {
-        $channel = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
+        $channel = $span->attributes[SpanAttribute::CHANNEL_NAME] ?? null;
         $messageId = $span->attributes[MessageHeaders::MESSAGE_ID] ?? null;
 
         return $channel === null || $messageId === null ? null : [(string) $channel, (string) $messageId];

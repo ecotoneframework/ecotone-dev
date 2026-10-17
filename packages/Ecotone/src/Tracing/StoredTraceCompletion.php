@@ -58,7 +58,9 @@ final class StoredTraceCompletion
                 return;
             }
             if ($this->clock->now() >= $deadline) {
-                throw TraceCompletionTimedOut::forTrace($traceId, $timeout, $progress->pendingDestinations());
+                throw $progress->recorded
+                    ? TraceCompletionTimedOut::forTrace($traceId, $timeout, $progress->pendingDestinations(), $progress->failedDestinations())
+                    : TraceCompletionTimedOut::forUnrecordedTrace($traceId, $timeout);
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
@@ -68,11 +70,16 @@ final class StoredTraceCompletion
     {
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
-            if ($this->traceStore->progressOf($traceId)->isCompletedFor($destination)) {
+            $progress = $this->traceStore->progressOf($traceId);
+            if ($progress->isCompletedFor($destination)) {
                 return;
             }
             if ($this->clock->now() >= $deadline) {
-                throw TraceCompletionTimedOut::forDestination($traceId, $destination, $timeout);
+                throw match (true) {
+                    ! $progress->recorded => TraceCompletionTimedOut::forUnrecordedTrace($traceId, $timeout),
+                    ! $progress->reached($destination) => TraceCompletionTimedOut::forUnreachedDestination($traceId, $destination, $timeout, $progress->destinations()),
+                    default => TraceCompletionTimedOut::forDestination($traceId, $destination, $timeout, in_array($destination, $progress->failedDestinations(), true)),
+                };
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }

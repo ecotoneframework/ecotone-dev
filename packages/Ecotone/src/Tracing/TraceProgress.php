@@ -27,11 +27,11 @@ use function array_keys;
 final class TraceProgress
 {
     /**
-     * @param array<string, int> $sent
-     * @param array<string, int> $processed
-     * @param array<string, int> $failed
-     * @param array<string, array<string, int>> $sentDeliveries
-     * @param array<string, array<string, int>> $processedDeliveries
+     * @param array<string, array<string, true>> $sent message ids dispatched to each destination
+     * @param array<string, array<string, true>> $processed message ids each destination processed
+     * @param array<string, array<string, true>> $failed message ids each destination failed on
+     * @param array<string, array<string, true>> $sentDeliveries message ids sent to each channel
+     * @param array<string, array<string, true>> $processedDeliveries message ids consumed from each channel
      */
     public function __construct(
         public readonly string $traceId,
@@ -60,9 +60,9 @@ final class TraceProgress
         if (! $this->recorded) {
             return false;
         }
-        $processed = $this->processed[$destination] ?? 0;
+        $processed = $this->processed[$destination] ?? [];
 
-        return $processed > 0 && $processed >= ($this->sent[$destination] ?? 0);
+        return $processed !== [] && array_diff_key($this->sent[$destination] ?? [], $processed) === [];
     }
 
     /**
@@ -72,20 +72,37 @@ final class TraceProgress
     {
         $pending = [];
         foreach ($this->sent as $destination => $sent) {
-            if (($this->processed[$destination] ?? 0) < $sent) {
+            if (array_diff_key($sent, $this->processed[$destination] ?? []) !== []) {
                 $pending[] = $destination;
             }
         }
         foreach ($this->sentDeliveries as $channel => $messages) {
-            foreach ($messages as $messageId => $sent) {
-                if (($this->processedDeliveries[$channel][$messageId] ?? 0) < $sent) {
-                    $pending[] = $channel;
-                    break;
-                }
+            if (array_diff_key($messages, $this->processedDeliveries[$channel] ?? []) !== []) {
+                $pending[] = $channel;
             }
         }
 
         return array_values(array_unique($pending));
+    }
+
+    /**
+     * @return string[]
+     */
+    public function failedDestinations(): array
+    {
+        $failed = [];
+        foreach ($this->failed as $destination => $failedMessages) {
+            if (array_diff_key($failedMessages, $this->processed[$destination] ?? []) !== []) {
+                $failed[] = $destination;
+            }
+        }
+
+        return $failed;
+    }
+
+    public function reached(string $destination): bool
+    {
+        return isset($this->sent[$destination]) || isset($this->processed[$destination]) || isset($this->failed[$destination]);
     }
 
     /**

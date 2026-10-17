@@ -115,9 +115,11 @@ final class AsynchronousModule implements AnnotationModule
         return $handlerChannelName;
     }
 
+    public const HANDLER_EXECUTION_CHANNEL_SUFFIX = '.execute';
+
     public static function getHandlerExecutionChannel(string $originalInputChannelName): string
     {
-        return $originalInputChannelName . '.execute';
+        return $originalInputChannelName . self::HANDLER_EXECUTION_CHANNEL_SUFFIX;
     }
 
     /**

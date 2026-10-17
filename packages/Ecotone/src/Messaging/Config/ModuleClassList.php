@@ -88,6 +88,7 @@ use Ecotone\Sqs\Configuration\SqsMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsModule;
 use Ecotone\SymfonyBundle\Config\SymfonyConnectionModule;
 use Ecotone\Tempest\Config\TempestModule;
+use Ecotone\Tracing\Config\StoredTracesModule;
 use Ecotone\Tracing\Config\TracingModule;
 
 /**
@@ -119,6 +120,7 @@ class ModuleClassList
         ScheduledModule::class,
         CollectorModule::class,
         TracingModule::class,
+        StoredTracesModule::class,
         DeliveryConfirmationModule::class,
         ChannelSetupModule::class,
         SerializerModule::class,

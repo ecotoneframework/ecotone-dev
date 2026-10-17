@@ -29,8 +29,8 @@ use Ecotone\Api\Tracing\TraceCompletionTimedOut;
  */
 final class StoredTraceCompletion
 {
-    public const DESTINATION_HEADER = 'ecotone.tracing.destination';
-    public const TIMEOUT_HEADER = 'ecotone.tracing.timeout';
+    public const DESTINATION_HEADER = 'ecotone_tracing_completion_destination';
+    public const TIMEOUT_HEADER = 'ecotone_tracing_completion_timeout';
     private const POLL_INTERVAL_IN_MILLISECONDS = 50;
 
     public function __construct(

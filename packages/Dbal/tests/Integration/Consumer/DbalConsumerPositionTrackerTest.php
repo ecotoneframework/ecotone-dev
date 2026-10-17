@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

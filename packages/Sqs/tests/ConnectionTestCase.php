@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Sqs;
 
+use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
-use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Exception;
 use PHPUnit\Framework\TestCase;
 

@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;

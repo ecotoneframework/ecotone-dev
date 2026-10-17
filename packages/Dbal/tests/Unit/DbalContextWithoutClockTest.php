@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Unit;
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Scheduling\NativeClock;

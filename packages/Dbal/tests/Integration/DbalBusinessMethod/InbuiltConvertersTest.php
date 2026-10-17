@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Integration\DbalBusinessMethod;
 
 use DateTimeImmutable;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ActivityService;

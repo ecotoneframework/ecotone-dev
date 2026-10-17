@@ -6,12 +6,12 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Api\Attribute\ErrorChannel;
 use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Test\LicenceTesting;

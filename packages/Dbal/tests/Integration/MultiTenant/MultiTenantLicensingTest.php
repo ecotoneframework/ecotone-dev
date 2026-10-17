@@ -6,11 +6,11 @@ namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Support\LicensingException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;

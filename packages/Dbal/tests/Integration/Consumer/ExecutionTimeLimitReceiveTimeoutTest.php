@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Messaging\PollableChannel;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\ChannelTestSupport;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;

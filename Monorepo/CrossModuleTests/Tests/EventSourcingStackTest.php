@@ -7,7 +7,7 @@ namespace Monorepo\CrossModuleTests\Tests;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\StreamTableRegistry;

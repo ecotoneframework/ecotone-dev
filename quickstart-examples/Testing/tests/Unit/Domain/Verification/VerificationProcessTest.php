@@ -106,7 +106,7 @@ final class VerificationProcessTest extends TestCase
                 PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
             ],
             enabledModules: [],
-            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnNotFoundHandler(false),
         );
     }
 }

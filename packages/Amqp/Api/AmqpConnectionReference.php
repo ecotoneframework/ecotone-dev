@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Amqp;
 
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
 
 /**

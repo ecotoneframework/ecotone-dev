@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpConnectionReference;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\StaticMessageBuilder;

@@ -5,11 +5,11 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Modelling\EventSourcedRepository;
+use Ecotone\Api\Modelling\EventStream;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateIdString;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
-use Ecotone\Modelling\EventSourcedRepository;
-use Ecotone\Modelling\EventStream;
 
 /**
  * licence Apache-2.0

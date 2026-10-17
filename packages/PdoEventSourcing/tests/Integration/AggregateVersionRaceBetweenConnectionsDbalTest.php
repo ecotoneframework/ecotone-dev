@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
@@ -15,7 +16,6 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Throwable;

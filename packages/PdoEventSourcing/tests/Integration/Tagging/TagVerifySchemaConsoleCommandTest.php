@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -15,7 +16,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -63,8 +63,8 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $result = $this->runVerify($ecotone, []);
 
-        self::assertSame('Status', $result->getColumnHeaders()[0]);
-        self::assertStringContainsString('consistent', $result->getRows()[0][0]);
+        self::assertSame('Status', $result->columnHeaders[0]);
+        self::assertStringContainsString('consistent', $result->rows[0][0]);
     }
 
     public function test_a_missing_tag_table_is_reported_with_the_command_that_creates_it(): void
@@ -75,7 +75,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $result = $this->runVerify($ecotone, []);
 
-        $problems = implode("\n", array_column($result->getRows(), 0));
+        $problems = implode("\n", array_column($result->rows, 0));
         self::assertStringContainsString(TagTableManager::TAG_VERSIONS_TABLE, $problems);
         self::assertStringContainsString('does not exist', $problems);
         self::assertStringContainsString('ecotone:migration:database:setup', $problems);
@@ -94,7 +94,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $result = $this->runVerify($ecotone, []);
 
-        $problems = implode("\n", array_column($result->getRows(), 0));
+        $problems = implode("\n", array_column($result->rows, 0));
         self::assertStringContainsString('collation', $problems);
         self::assertStringContainsString(TagTableManager::TAG_VERSIONS_TABLE, $problems);
     }
@@ -108,7 +108,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $result = $this->runVerify($ecotone, ['legacyStream' => [self::LEGACY_STREAM]]);
 
-        $problems = implode("\n", array_column($result->getRows(), 0));
+        $problems = implode("\n", array_column($result->rows, 0));
         self::assertStringContainsString(self::LEGACY_STREAM, $problems);
         self::assertStringContainsString('DROP CONSTRAINT', $problems);
         self::assertStringContainsString('aggregate_version_not_null', $problems);
@@ -127,7 +127,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $result = $this->runVerify($ecotone, ['legacyStream' => [self::LEGACY_STREAM]]);
 
-        $problems = implode("\n", array_column($result->getRows(), 0));
+        $problems = implode("\n", array_column($result->rows, 0));
         self::assertStringNotContainsString(self::LEGACY_STREAM, $problems);
     }
 

@@ -7,7 +7,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";

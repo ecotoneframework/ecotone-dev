@@ -1058,18 +1058,18 @@ seam is unchanged and is what lets the underlying transport be replaced later wi
 
 | Package | Before (Enqueue class you typed) | Now (Ecotone class you type) | Default reference name |
 |---|---|---|---|
-| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
-| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
-| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
-| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
-| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
+| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
+| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
+| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
+| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
+| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
 
 `DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
 `defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
 each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
 `TempestConnectionReference`. The four transport references are new in 2.0; the three framework ones existed in 1.x.
 There they resolved to `Enqueue\Dbal\DbalConnectionFactory::class`; they now resolve to
-`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Dbal\Connection\DbalConnectionFactory'`. Code that builds
+`DbalConnectionReference::DEFAULT`, whose value is `'Ecotone\Api\Dbal\DbalConnectionFactory'`. Code that builds
 them with `defaultConnection()` or the constructor follows on its own; a lookup of the old string id does not (see
 below).
 
@@ -1097,8 +1097,8 @@ below).
 
   | 1.x | 2.0 |
   |---|---|
-  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` |
-  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` |
+  | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+  | `Enqueue\Dbal\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
   | `Enqueue\Dbal\DbalContext` | `Ecotone\Dbal\Connection\DbalContext` |
   | `Enqueue\Dbal\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` | `Ecotone\Dbal\Connection\DbalConsumer`, `DbalProducer`, `DbalSubscriptionConsumer` |
   | `Enqueue\Dbal\DbalDestination`, `DbalMessage` | `Ecotone\Dbal\Connection\DbalDestination`, `DbalMessage` |
@@ -1168,13 +1168,14 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `DbalConfiguration::withCleanObjectManagerOnAsynchronousEndpoints()` | `withClearAndFlushObjectManagerOnAsynchronousEndpoints()` |
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
-| `CronExpression::factory()` | `new CronExpression()` |
+| `TestConfiguration::withFailOnCommandHandlerNotFound()`, `withFailOnQueryHandlerNotFound()` | `withFailOnNotFoundHandler()`, one switch for both buses, `true` by default: a flow test sending a command or query nobody handles fails unless it opts out |
+| `AmqpStreamChannelBuilder::create($channel, 'next')` | `first`, `last`, an absolute offset or a timestamp. A `next` consumer receives only what RabbitMQ sees published after it attaches, so messages published before the first poll or between two runs were lost; bootstrap now refuses it with a message naming the positions that replay |
+| `CronExpression::factory()`, `CronExpression::YEAR` | `new CronExpression()`; the year field was never parsed |
+| `ServiceActivatorBuilder` (internal) | `MessageProcessorActivatorBuilder::createForMethod($objectToInvokeOn, $method)`; invoker options such as changed headers or a custom result converter go on a `MethodInvokerBuilder` passed to `createForMethodInvoker()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |
 | `#[Transactional]` and the rest of `Ecotone\Messaging\Transaction` | `DbalConfiguration` transactions and `#[WithoutDatabaseTransaction]` (§7b) |
 | `Configuration::registerMessageConverter()`, with `Ecotone\Messaging\MessageConverter\MessageConverter`, `MessageConverterRegistry` and `MessageConvertingException` | a module's `registerMessageConverter($referenceName)` made every gateway run that service's `toMessage()` on each call and `fromMessage()` on each reply. Nothing in Ecotone called it. Shape the request with `#[Payload]` / `#[Header]` gateway parameters and convert payloads and replies with `#[Converter]` or a `#[MediaTypeConverter]`. `HeaderMapper` and `DefaultHeaderMapper`, in the same namespace, are unchanged |
 
-Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
-`MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
 
 ### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
 
@@ -1527,14 +1528,18 @@ test needs nothing: its bootstrap sets the table up.
 |---|---|---|---|
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
+| JMS: `DateTime` / `DateTimeImmutable` format | `Y-m-d\TH:i:sP` (seconds) | `Y-m-d\TH:i:s.uP` (microseconds); payloads stored in the old format still deserialize | a `#[Converter]` for `DateTimeInterface`, as before |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
 | `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | `ExecutionPollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
 | `PollingMetadata::withTestingSetup()` messages handled | 1 | 100 | `withTestingSetup(handledMessageLimit: 1)` |
-| Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
+| Instant retries on asynchronous endpoints | disabled | enabled (3 retries, so up to 4 handler invocations per delivery) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withEnabledModulePackageNames()` lists; with no call, all installed packages load | `ServiceConfiguration::withEnabledModulePackageNames([...])` |
 
 Test-suite impact of the new defaults:
+- A `DateTimeImmutable` round-trips through a JSON-serialized channel, event store or document store with its microseconds, so
+  a comparison such as `$updatedAt > $createdAt` holds on both sides of an asynchronous channel. A test asserting the serialized
+  string sees `2021-01-01T12:00:00.000000+00:00` where it saw `2021-01-01T12:00:00+00:00`.
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
   `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)`, or
   `->withTestingSetup(handledMessageLimit: 1)` on an `ExecutionPollingMetadata` it already builds (or
@@ -1542,6 +1547,11 @@ Test-suite impact of the new defaults:
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
+- Instant retries multiply the delayed ones: `ErrorHandlerConfiguration` counts *deliveries*, and each delivery runs the
+  handler up to `1 + asynchronousRetryTimes` times before the error channel sees it. With the default of 3 instant retries and a
+  `RetryTemplateBuilder` of 3 retries, a message that always fails runs its handler 16 times before it reaches the dead letter.
+  The dead-letter log line and the final `MessageHandlingException` name both budgets: `4 failed deliveries (1 initial + 3
+  retries), each delivery tried up to 4 times by instant retry (InstantRetryConfiguration): up to 16 handler invocations`.
 
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
 clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)
@@ -2185,6 +2195,12 @@ configuration changes, so a stale one names a type that no longer exists. Run `e
 `SymfonyConsoleWriter`, Tempest's `TempestConsoleWriter` and their progress bars. An application never names them;
 they implement the `Api` interfaces.
 
+**`ConsoleCommandResultSet` moved with them.** A `#[ConsoleCommand]` that prints a table returns
+`Ecotone\Messaging\Config\ConsoleCommandResultSet`; it is now `Ecotone\Api\Console\ConsoleCommandResultSet`, built
+with the same `ConsoleCommandResultSet::create($columnHeaders, $rows)`. Its `getColumnHeaders()` and `getRows()` are the
+public readonly properties `columnHeaders` and `rows`, which matters to a test that reads the result a console command
+returned: `$result->getRows()` becomes `$result->rows`.
+
 ### 13g. `Message` moved into `Api`
 
 **Before:** the message itself was internal, although an application meets it whenever it works below the buses — a
@@ -2331,6 +2347,8 @@ extends `EnqueueMessageChannelBuilder`, as `AmqpBackedMessageChannelBuilder` alr
 | 1.x and early 2.0 | 2.0 | Why an application names it |
 |---|---|---|
 | `Ecotone\Modelling\StandardRepository` (1.x; `Ecotone\Modelling\StateStoredRepository` in pre-release 2.0) | `Ecotone\Api\Modelling\StateStoredRepository` | a custom `#[Repository]` implements it |
+| `Ecotone\Modelling\EventSourcedRepository` | `Ecotone\Api\Modelling\EventSourcedRepository` | a custom event-sourced `#[Repository]` implements it |
+| `Ecotone\Modelling\EventStream` | `Ecotone\Api\Modelling\EventStream` | a custom event-sourced `#[Repository]` returns it from `findBy()` |
 | `Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint` | `Ecotone\Api\Attribute\AsynchronousRunningEndpoint` | the pointcut that targets every asynchronously running handler: `#[Around(pointcut: AsynchronousRunningEndpoint::class)]` |
 | `Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute` | `Ecotone\Api\Attribute\AsynchronousEndpointAttribute` | a custom attribute passed in `#[Asynchronous(asynchronousExecution: [...])]` implements it |
 | `Ecotone\Messaging\BatchMessage` | `Ecotone\Api\Messaging\BatchMessage` | an application builds one and hands it to `MessagePublisher` to deliver a set of messages as one unit |
@@ -2353,6 +2371,33 @@ deploy, since the compiled container records class names. **One container id cha
 gateway registered under its class name, so its id is now `Ecotone\Api\EventSourcing\EventStreamEmitter`. A handler
 parameter typed with it, and `$container->get(EventStreamEmitter::class)` with the new import, follow on their own; a
 lookup by the old id as a string no longer finds it. None of the other types is a service.
+
+### 13k. The connection factories moved into `Api`
+
+**Before:** the connection factory an application constructs and registers in its container (§5) lived under each
+package's `src`: `Ecotone\Dbal\Connection\DbalConnectionFactory` and `ManagerRegistryConnectionFactory`,
+`Ecotone\Amqp\Connection\AmqpExtConnectionFactory` and `AmqpLibConnectionFactory`,
+`Ecotone\Sqs\Connection\SqsConnectionFactory`, `Ecotone\Redis\Connection\RedisConnectionFactory`.
+
+**Now:** each is in its package's `Api` namespace, with the same constructor:
+
+| Pre-release 2.0 | 2.0 |
+|---|---|
+| `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\DbalConnectionFactory` |
+| `Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory` | `Ecotone\Api\Dbal\ManagerRegistryConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpExtConnectionFactory` |
+| `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpLibConnectionFactory` |
+| `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionFactory` |
+| `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionFactory` |
+
+`DbalConnectionReference::DEFAULT`, `AmqpConnectionReference::DEFAULT` / `DEFAULT_STREAM`,
+`SqsConnectionReference::DEFAULT` and `RedisConnectionReference::DEFAULT` are the factory class names, so their string
+values move with them: `DbalConnectionReference::DEFAULT` is now `'Ecotone\Api\Dbal\DbalConnectionFactory'`. A
+container that registers the factory under the `::DEFAULT` constant, or that passes the reference object, follows on its
+own. One that registers it under the literal pre-release string has to use the constant.
+
+**How to adapt:** change the import; `upgrade/namespace-map-2.0.csv` has every row. The transport internals
+(`DbalContext`, `DbalConsumer`, the Enqueue contexts) stay where §5 lists them.
 
 ## 14. Smaller behaviour changes
 
@@ -2427,8 +2472,10 @@ lookup by the old id as a string no longer finds it. None of the other types is 
   second `subscribe()`.
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withEnabledModulePackageNames()`, and the framework key
   `skippedModulePackageNames` → `enabledModulePackageNames`, each listing packages to load rather than skip (see §1/§9).
-- **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
-  check. Not done yet — the header still exists; nothing to change.
+- `MessageHeaders::STREAM_BASED_SOURCED` is removed. Projections set it on every projected event, and nothing read
+  it: a stream-sourced endpoint is recognised by the `#[StreamBasedSource]` attribute `#[Projection]` extends.
+  **How to adapt:** delete any reference to the constant; a handler reading the `streamBasedSourced` header no longer
+  receives it.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
 - **`#[Asynchronous]` requires an explicit `endpointId` on `#[InternalHandler]`**, as it
@@ -2765,6 +2812,38 @@ hand-built `AppendCondition::forAggregate()` may now see the refusal it was alwa
 3. Add `#[Version]` to each document-store aggregate or saga that is changed concurrently.
 4. Fix flow tests that create one aggregate id twice.
 
+### Framework headers that never leave the process are renamed to `ecotone_{module}_{feature}_{action}`
+
+**Before:** the headers Ecotone adds for its own use inside one process were named in five styles —
+`ecotone.modelling.called_aggregate_class`, `projection.partitionKey`, `dbal_acknowledge`, `replyChannel`,
+`ecotone.dbal.business_method.sql`. **Now:** each is lower snake_case under the reserved `ecotone_` prefix. None of
+these headers is written to a queue, the outbox, the dead letter table or the event store, so no stored or in-flight
+message carries one, and nothing needs migrating. Code that reads them through their constant is unaffected.
+
+| Constant | 1.x value | 2.0 value |
+|---|---|---|
+| `MessageHeaders::REPLY_CHANNEL` | `replyChannel` | `ecotone_messaging_reply_channel` |
+| `MessageHeaders::REPLY_CONTENT_TYPE` | `replyContentType` | `ecotone_messaging_reply_content_type` |
+| `MessageHeaders::CONSUMER_ACK_HEADER_LOCATION` | `consumerAcknowledgeCallbackHeader` | `ecotone_messaging_consumer_acknowledge_header` |
+| `MessageHeaders::CONSUMER_POLLING_METADATA` | `consumerPollingMetadata` | `ecotone_messaging_consumer_polling_metadata` |
+| `KafkaHeader::ACKNOWLEDGE_HEADER_NAME` | `kafka_acknowledge` | `ecotone_kafka_consumer_acknowledge` |
+| the DBAL, Enqueue (AMQP, SQS, Redis), Laravel queue and in-memory acknowledge headers | `dbal_acknowledge`, `enqueue_acknowledge`, `ecotone.laravel.acknowledge`, `ecotone.in_memory_queue.ack`, `ecotone.in_memory_shared.ack` | `ecotone_dbal_consumer_acknowledge`, `ecotone_enqueue_consumer_acknowledge`, `ecotone_laravel_consumer_acknowledge`, `ecotone_in_memory_queue_consumer_acknowledge`, `ecotone_in_memory_shared_consumer_acknowledge` |
+| the headers `#[ProjectionState]` and `#[ProjectionName]` read | `projection.state`, `projection.name` | `ecotone_projection_state`, `ecotone_projection_name` |
+| the other projection execution headers | `projection.event_name`, `projection.live`, `projection.partitionKey`, `projection.canInitialize`, `projection.manual_initialization`, `projection.shouldReset` | `ecotone_projection_event_name`, `ecotone_projection_live`, `ecotone_projection_partition_key`, `ecotone_projection_can_initialize`, `ecotone_projection_manual_initialization`, `ecotone_projection_should_reset` |
+| a console command's parameters, as headers | `ecotone.oneTimeCommand.{parameter}` | `ecotone_console_one_time_command_{parameter}` |
+| aggregate, decision model, DBAL business method, document store, dead letter gateway and serializer plumbing | `ecotone.modelling.*`, `ecotone.modeling.test_setup.*`, `ecotone.eventSourcing.tagging.*`, `ecotone.dbal.business_method.*`, `ecotone.dbal.documentStore.*`, `ecotone.dbal.deadletter.limit` / `.offset`, `ecotone.serializer.*`, `ecotone.consoleCommand.name` | the same names as `ecotone_modelling_*`, `ecotone_modelling_test_setup_*`, `ecotone_event_sourcing_tagging_*`, `ecotone_dbal_business_method_*`, `ecotone_dbal_document_store_*`, `ecotone_dbal_deadletter_limit` / `_offset`, `ecotone_serializer_*`, `ecotone_console_command_name` |
+
+`MessageHeaders::CHANNEL_SEND_RETRY_NUMBER` and `MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER` are removed: nothing
+set either header.
+
+Headers that do leave the process keep their names: `id`, `timestamp`, `correlationId`, `parentId`,
+`polledChannelName`, `inboundRequestChannel`, `routingSlip`, `ecotone.distributed.*`, `aggregate.id`,
+`ecotone_retry_number`, and the dead letter's `exception-*` headers.
+
+**How to adapt:** only code that wrote one of the old values as a string literal changes — a `#[Header('replyChannel')]`,
+a `#[Header('projection.name')]` in place of `#[ProjectionName]`, or an expression such as
+`headers['ecotone.oneTimeCommand.userId']`. Use the constant, or the 2.0 value from the table.
+
 ### Renamed parameters and methods that have no entry of their own
 
 **Before:** each name in the left column worked in 1.x. **Now:** each is renamed with no alias, or changed as
@@ -2844,7 +2923,7 @@ which were already public and writable. A call to a removed method fails with PH
 | `Ecotone\Api\Messaging\BatchMessage` | `getEntries()` | `$entries` |
 | `Ecotone\Api\ExtensionObject\DistributedServiceMap` | `getCommandMapping()`, `getDistributedBusAnnotations()` | `$commandMapping`, `$distributedBusAnnotations` |
 | `Ecotone\Api\DataProtection\DataProtectionConfiguration` | `keys()` | `$keys` |
-| `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()`, `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnCommandHandlerNotFound`, `$failOnQueryHandlerNotFound`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
+| `Ecotone\Api\ExtensionObject\TestConfiguration` | `isFailingOnCommandHandlerNotFound()`, `isFailingOnQueryHandlerNotFound()` (merged into one flag, see §7), `getPollableChannelMediaTypeConversion()`, `getChannelToConvertOn()`, `getSpiedChannels()`, `isInMemoryConsumerPositionTrackerEnabled()`, `isSettingUpDatabaseTablesOnBootstrap()` | `$failOnNotFoundHandler`, `$pollableChannelMediaTypeConversion`, `$channelToConvertOn`, `$spiedChannelNames`, `$inMemoryConsumerPositionTracker`, `$databaseTablesSetUpOnBootstrap` |
 | `Ecotone\Api\ExtensionObject\ExecutionPollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getStopOnError()`, `getFinishWhenNoMessages()`, `getExecutionAmountLimit()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$stopOnError`, `$finishWhenNoMessages`, `$executionAmountLimit` |
 | `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `getServiceName()`, `getEnvironment()`, `getNamespaces()`, `getCacheDirectoryPath()`, `getLoadedCatalog()`, `failFast()`, `isFailingFast()`, `getLicenceKey()`, `getConnectionRetryTemplate()`, `getExtensionObjects()`, `getDefaultMemoryLimitInMegabytes()`, `getDefaultErrorChannel()`, `getDefaultSerializationMediaType()`, `getPollableEndpointAnnotations()` | `$serviceName`, `$environment`, `$namespaces`, `$cacheDirectoryPath`, `$loadCatalog`, `$failFast` (both methods), `$licenceKey`, `$connectionRetryTemplate`, `$extensionObjects`, `$defaultMemoryLimitInMegabytes`, `$defaultErrorChannel`, `$defaultSerializationMediaType`, `$pollableEndpointAnnotations` |
 | `Ecotone\Api\ExtensionObject\PollingMetadata` | `getCron()`, `getHandledMessageLimit()`, `getMemoryLimitInMegabytes()`, `getExecutionTimeLimitInMilliseconds()`, `getExecutionAmountLimit()`, `getConnectionRetryTemplate()`, `isErrorChannelEnabled()`, `isStoppedOnError()`, `isWithSignalInterceptors()`, `getMaxMessagePerPoll()`, `getTriggerReferenceName()`, `getTaskExecutorName()`, `getFixedRateInMilliseconds()`, `getInitialDelayInMilliseconds()`, `finishWhenNoMessages()`, `getFixedRateExpression()`, `getCronExpression()`, `getPolledChannelName()` | `$cron`, `$handledMessageLimit`, `$memoryLimitInMegabytes`, `$executionTimeLimitInMilliseconds`, `$executionAmountLimit`, `$connectionRetryTemplate`, `$isErrorChannelEnabled`, `$stopOnError`, `$withSignalInterceptors`, `$maxMessagePerPoll`, `$triggerReferenceName`, `$taskExecutorName`, `$fixedRateInMilliseconds`, `$initialDelayInMilliseconds`, `$finishWhenNoMessages`, `$fixedRateExpression`, `$cronExpression`, `$polledChannelName` |
@@ -3372,7 +3451,6 @@ normal section with "How to adapt" steps when it ships.
 
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
-| `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |

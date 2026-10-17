@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Console\ConsoleCommandResultSet;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -14,7 +15,6 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -55,7 +55,7 @@ final class DatabaseSetupMultiTenantTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $sql = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => true])->getRows()[0][0];
+        $sql = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => true])->rows[0][0];
 
         $this->assertStringContainsString("-- connection 'tenant_a_connection'", $sql);
         $this->assertStringContainsString("-- connection 'tenant_b_connection'", $sql);
@@ -82,7 +82,7 @@ final class DatabaseSetupMultiTenantTest extends DbalMessagingTestCase
     private function initializationOf(FlowTestSupport $ecotone): array
     {
         return array_values(array_unique(array_column(
-            $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [])->getRows(),
+            $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [])->rows,
             3,
         )));
     }

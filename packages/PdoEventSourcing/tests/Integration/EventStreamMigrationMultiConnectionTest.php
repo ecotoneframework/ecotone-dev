@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Console\ConsoleCommandResultSet;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\SecondaryConnectionStream\PlaceSecondaryOrder;
@@ -30,7 +30,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
-        self::assertSame(['Feature', 'Connection', 'Used', 'Initialized'], $result->getColumnHeaders());
+        self::assertSame(['Feature', 'Connection', 'Used', 'Initialized'], $result->columnHeaders);
         self::assertNotNull($this->findRow($result, 'event_stream', SecondaryOrder::CONNECTION_REFERENCE));
     }
 
@@ -40,7 +40,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => true]);
 
-        $allSql = implode(' ', array_column($result->getRows(), 0));
+        $allSql = implode(' ', array_column($result->rows, 0));
         self::assertStringContainsString(SecondaryOrder::STREAM, $allSql);
     }
 
@@ -50,7 +50,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true]);
 
-        self::assertSame(['Feature', 'Connection'], $result->getColumnHeaders());
+        self::assertSame(['Feature', 'Connection'], $result->columnHeaders);
         self::assertNotNull($this->findRow($result, 'event_stream', SecondaryOrder::CONNECTION_REFERENCE));
     }
 
@@ -77,7 +77,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
             'connection' => SecondaryOrder::CONNECTION_REFERENCE,
         ]);
 
-        foreach ($result->getRows() as $row) {
+        foreach ($result->rows as $row) {
             self::assertSame(SecondaryOrder::CONNECTION_REFERENCE, $row[1]);
         }
         self::assertNotNull($this->findRow($result, 'event_stream', SecondaryOrder::CONNECTION_REFERENCE));
@@ -127,7 +127,7 @@ final class EventStreamMigrationMultiConnectionTest extends EventSourcingMessagi
 
     private function findRow(ConsoleCommandResultSet $result, string $feature, string $connection): ?array
     {
-        foreach ($result->getRows() as $row) {
+        foreach ($result->rows as $row) {
             if ($row[0] === $feature && $row[1] === $connection) {
                 return $row;
             }

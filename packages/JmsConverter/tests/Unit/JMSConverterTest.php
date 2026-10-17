@@ -327,9 +327,25 @@ class JMSConverterTest extends TestCase
     public function test_serializing_with_default_time_handler(): void
     {
         $toSerialize = new ObjectWithDate(new DateTimeImmutable('2021-01-01 12:00:00'));
-        $expectedSerializationString = '{"date":"2021-01-01T12:00:00+00:00"}';
+        $expectedSerializationString = '{"date":"2021-01-01T12:00:00.000000+00:00"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
+    }
+
+    public function test_default_time_handler_round_trips_microseconds(): void
+    {
+        $toSerialize = new ObjectWithDate(new DateTimeImmutable('2021-01-01 12:00:00.123456'));
+        $expectedSerializationString = '{"date":"2021-01-01T12:00:00.123456+00:00"}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
+    }
+
+    public function test_default_time_handler_reads_a_date_serialized_without_microseconds(): void
+    {
+        $this->assertEquals(
+            new ObjectWithDate(new DateTimeImmutable('2021-01-01 12:00:00')),
+            $this->deserialize('{"date":"2021-01-01T12:00:00+00:00"}', ObjectWithDate::class, [])
+        );
     }
 
     public function test_overriding_custom_time_handler(): void

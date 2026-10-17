@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests\Tempest;
 
 use Ecotone\Api\Tempest\TempestConnectionReference;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

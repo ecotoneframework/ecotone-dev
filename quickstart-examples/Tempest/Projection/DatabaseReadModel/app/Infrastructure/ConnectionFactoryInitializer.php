@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Infrastructure;
 
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;

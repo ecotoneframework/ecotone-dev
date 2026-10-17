@@ -8,10 +8,10 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Delayed;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

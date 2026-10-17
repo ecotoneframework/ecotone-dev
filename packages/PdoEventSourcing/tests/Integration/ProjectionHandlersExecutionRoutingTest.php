@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest\{AnAggregate,
     AnEvent,

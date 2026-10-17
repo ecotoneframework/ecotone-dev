@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Monorepo\ExampleAppEventSourcing\EcotoneProjection\PriceChangeOverTimeProjectionWithEcotoneProjection;

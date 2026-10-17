@@ -4,8 +4,8 @@ namespace Ecotone\Amqp;
 
 use AMQPBasicProperties;
 use AMQPConnection;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;

@@ -16,7 +16,7 @@ use Assert\Assert;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 

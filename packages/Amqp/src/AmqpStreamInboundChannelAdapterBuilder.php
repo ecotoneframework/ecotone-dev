@@ -42,7 +42,7 @@ use Symfony\Component\Uid\Uuid;
  */
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    private string $streamOffset = 'next';
+    private string $streamOffset = 'first';
     private int $prefetchCount = 100;
     private int $commitInterval = 100;
     private string $channelName;

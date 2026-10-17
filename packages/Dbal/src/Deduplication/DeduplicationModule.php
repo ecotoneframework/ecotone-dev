@@ -28,7 +28,7 @@ use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilde
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
 
@@ -118,7 +118,7 @@ final class DeduplicationModule implements AnnotationModule
                 )
             )
             ->registerMessageHandler(
-                ServiceActivatorBuilder::create(
+                MessageProcessorActivatorBuilder::createForMethod(
                     DeduplicationInterceptor::class,
                     'removeExpiredMessages'
                 )->withInputChannelName($inputChannelName = 'ecotone.deduplication.removeExpiredMessages')

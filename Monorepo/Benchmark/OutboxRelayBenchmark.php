@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -19,11 +19,11 @@ use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Redis\Connection\RedisConnectionFactory;
-use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Api\Redis\RedisConnectionFactory;
+use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;

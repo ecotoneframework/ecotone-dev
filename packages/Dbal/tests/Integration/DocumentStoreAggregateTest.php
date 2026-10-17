@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\Person;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;

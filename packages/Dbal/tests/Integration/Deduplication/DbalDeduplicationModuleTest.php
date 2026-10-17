@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;

@@ -8,8 +8,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 
 final class NestedDbalHandlers

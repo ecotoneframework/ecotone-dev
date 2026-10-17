@@ -6,7 +6,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
 

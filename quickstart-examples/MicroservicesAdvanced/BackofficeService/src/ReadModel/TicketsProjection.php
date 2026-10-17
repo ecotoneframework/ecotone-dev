@@ -15,7 +15,7 @@ use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 #[Projection("tickets_projection")]

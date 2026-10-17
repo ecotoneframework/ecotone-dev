@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
 use Ecotone\Api\Amqp\AmqpQueue;
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 
@@ -15,7 +15,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithCustomDeduplicationExample;

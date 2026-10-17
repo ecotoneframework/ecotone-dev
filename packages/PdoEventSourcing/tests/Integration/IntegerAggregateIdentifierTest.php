@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
@@ -19,7 +20,6 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 

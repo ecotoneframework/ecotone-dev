@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -23,7 +24,6 @@ use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
@@ -124,7 +124,7 @@ final class DefaultEventStreamTableNameTest extends EventSourcingMessagingTestCa
         /** @var ConsoleCommandRunner $console */
         $console = $ecotone->getGateway(ConsoleCommandRunner::class);
 
-        $createStatements = implode("\n", array_column($console->execute('ecotone:migration:database:setup', ['sql' => true])->getRows(), 0));
+        $createStatements = implode("\n", array_column($console->execute('ecotone:migration:database:setup', ['sql' => true])->rows, 0));
         self::assertStringContainsString('ledger_events', $createStatements);
         self::assertStringNotContainsString('ecotone_event_stream', $createStatements);
 

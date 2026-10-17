@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\NestedDbalHandlers;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\TestCountingLogger;

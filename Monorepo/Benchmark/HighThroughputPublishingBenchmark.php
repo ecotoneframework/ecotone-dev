@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
@@ -23,9 +23,9 @@ use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Redis\Connection\RedisConnectionFactory;
-use Ecotone\Sqs\Connection\SqsConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Redis\RedisConnectionFactory;
+use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;

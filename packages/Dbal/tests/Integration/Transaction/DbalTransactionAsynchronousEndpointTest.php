@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -15,7 +16,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\AggregateNotFoundException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\Database\EnqueueTableManager;

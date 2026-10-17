@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -25,7 +26,6 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
@@ -202,7 +202,7 @@ final class EventSourcedAggregateCounterDbalTest extends EventSourcingMessagingT
 
         $result = $ecotone->getGateway(ConsoleCommandRunner::class)->execute('ecotone:migration:database:setup', []);
 
-        self::assertContains(TagTableManager::FEATURE_NAME, array_column($result->getRows(), 0));
+        self::assertContains(TagTableManager::FEATURE_NAME, array_column($result->rows, 0));
     }
 
     private function armBenToDepositDuringAnnasCommand(FlowTestSupport $anna, FlowTestSupport $ben): void

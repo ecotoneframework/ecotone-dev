@@ -6,11 +6,11 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception\NoActiveTransaction;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Messaging\ConcurrencyException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Aggregate\Customer;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;

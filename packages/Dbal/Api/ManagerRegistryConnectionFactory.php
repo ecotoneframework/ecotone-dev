@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Dbal\Connection;
+namespace Ecotone\Api\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Dbal\Connection\DbalContext;
 use Exception;
 use Interop\Queue\Context;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Redis\Connection;
+namespace Ecotone\Api\Redis;
 
 use Enqueue\Dsn\Dsn;
 use Enqueue\Redis\PhpRedis;

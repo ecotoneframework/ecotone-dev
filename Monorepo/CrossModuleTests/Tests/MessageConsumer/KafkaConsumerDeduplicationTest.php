@@ -13,7 +13,7 @@ use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;

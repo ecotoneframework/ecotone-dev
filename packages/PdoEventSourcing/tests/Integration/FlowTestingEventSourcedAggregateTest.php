@@ -10,9 +10,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**

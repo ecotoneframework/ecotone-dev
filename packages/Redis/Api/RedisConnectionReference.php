@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\Redis;
 
 use Ecotone\Api\ExtensionObject\ConnectionReference;
-use Ecotone\Redis\Connection\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Unit;
 
 use Aws\Result;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Sqs\SqsPendingDelivery;
+use Ecotone\Test\StaticMessageBuilder;
 use GuzzleHttp\Promise\FulfilledPromise;
 use GuzzleHttp\Promise\RejectedPromise;
 use PHPUnit\Framework\TestCase;

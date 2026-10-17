@@ -17,7 +17,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 use Interop\Queue\ConnectionFactory;
 
@@ -92,11 +92,11 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
             )
         );
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::create(LaravelTenantDatabaseSwitcher::class, 'switchOn')
+            MessageProcessorActivatorBuilder::createForMethod(LaravelTenantDatabaseSwitcher::class, 'switchOn')
                 ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_ACTIVATED_CHANNEL_NAME)
         );
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::create(LaravelTenantDatabaseSwitcher::class, 'switchOff')
+            MessageProcessorActivatorBuilder::createForMethod(LaravelTenantDatabaseSwitcher::class, 'switchOff')
                 ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_DEACTIVATED_CHANNEL_NAME)
         );
     }

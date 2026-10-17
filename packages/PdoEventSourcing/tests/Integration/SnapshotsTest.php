@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;

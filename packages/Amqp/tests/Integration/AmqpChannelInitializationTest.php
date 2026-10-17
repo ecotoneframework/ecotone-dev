@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\ExtensionObject\ChannelInitializationConfiguration;
@@ -72,7 +72,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Verify the command output shows initialization
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Initialized'], $rows[0]);
 
@@ -108,7 +108,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         // Now delete the channel
         $result = $runner->execute('ecotone:migration:channel:delete', ['force' => true]);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Deleted'], $rows[0]);
 
@@ -131,7 +131,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         // Check status before initialization
         $result = $runner->execute('ecotone:migration:channel:setup', []);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'No'], $rows[0]);
 
@@ -141,7 +141,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         // Check status after initialization
         $result = $runner->execute('ecotone:migration:channel:setup', []);
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Yes'], $rows[0]);
     }
@@ -164,7 +164,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(2, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Initialized'], $rows[0]);
         self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Initialized'], $rows[1]);
@@ -203,7 +203,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(2, $rows);
         self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Deleted'], $rows[0]);
         self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Deleted'], $rows[1]);
@@ -235,7 +235,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_STREAM_CHANNEL_NAME, 'Initialized'], $rows[0]);
 
@@ -253,7 +253,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         ]);
 
         self::assertNotNull($result);
-        $rows = $result->getRows();
+        $rows = $result->rows;
         self::assertCount(1, $rows);
         self::assertEquals([self::TEST_STREAM_CHANNEL_NAME, 'Deleted'], $rows[0]);
     }

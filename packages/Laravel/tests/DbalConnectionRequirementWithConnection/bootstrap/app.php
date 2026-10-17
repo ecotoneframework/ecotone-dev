@@ -19,6 +19,6 @@ $app->singleton(
     Illuminate\Foundation\Exceptions\Handler::class
 );
 
-$app->singleton(Ecotone\Dbal\Connection\DbalConnectionFactory::class, fn () => new Ecotone\Dbal\Connection\DbalConnectionFactory('pgsql://ecotone:secret@localhost:5432/ecotone'));
+$app->singleton(Ecotone\Api\Dbal\DbalConnectionFactory::class, fn () => new Ecotone\Api\Dbal\DbalConnectionFactory('pgsql://ecotone:secret@localhost:5432/ecotone'));
 
 return $app;

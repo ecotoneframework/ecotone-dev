@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -19,10 +20,9 @@ use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
-use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StaticMessageBuilder;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

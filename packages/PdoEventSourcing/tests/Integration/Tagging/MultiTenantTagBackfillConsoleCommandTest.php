@@ -146,7 +146,7 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
 
         $result = $runner->execute('ecotone:event-store:verify-schema', ['header' => ["tenant:{$tenant}"]]);
 
-        return implode("\n", array_column($result->getRows(), 0));
+        return implode("\n", array_column($result->rows, 0));
     }
 
     private function breakPrimaryKey(Connection $connection): void

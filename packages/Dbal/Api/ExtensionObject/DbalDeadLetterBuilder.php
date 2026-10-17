@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -24,8 +24,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
-    public const LIMIT_HEADER  = 'ecotone.dbal.deadletter.limit';
-    public const OFFSET_HEADER = 'ecotone.dbal.deadletter.offset';
+    public const LIMIT_HEADER  = 'ecotone_dbal_deadletter_limit';
+    public const OFFSET_HEADER = 'ecotone_dbal_deadletter_offset';
 
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';
@@ -161,7 +161,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ]));
         }
 
-        $messageHandler = ServiceActivatorBuilder::create(
+        $messageHandler = MessageProcessorActivatorBuilder::createForMethod(
             $deadLetterHandlerReference,
             new InterfaceToCallReference(DeadLetterHandler::class, $this->methodName),
         );

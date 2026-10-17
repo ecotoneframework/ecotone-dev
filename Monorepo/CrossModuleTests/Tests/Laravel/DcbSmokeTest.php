@@ -7,7 +7,7 @@ namespace Monorepo\CrossModuleTests\Tests\Laravel;
 use App\DcbSmoke\Laravel\Application\IssueCoupon;
 use App\DcbSmoke\Laravel\Application\RedeemCoupon;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Messaging\Config\ConfigurationException;

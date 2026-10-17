@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
+use Ecotone\Api\Amqp\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Api\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -191,47 +191,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(['bread', 'cheese'], $orders);
     }
 
-    public function test_consuming_from_empty_stream_with_next_offset()
-    {
-        $channelName = 'orders';
-        $queueName = 'stream_queue_empty_next_' . Uuid::v7()->toRfc4122();
-
-        $ecotoneLite = $this->bootstrapFlowTesting(
-            [OrderService::class],
-            [
-                new OrderService(),
-                ...$this->getConnectionFactoryReferences(),
-            ],
-            extensionObjects: [
-                AmqpQueue::createStreamQueue($queueName),
-                AmqpStreamChannelBuilder::create($channelName, 'next', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueName, ),
-            ],
-            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        // Try to consume from empty stream with 'next' offset - should timeout gracefully
-        $ecotoneLite->run(
-            $channelName,
-            ExecutionPollingMetadata::createWithDefaults()
-            ->withTestingSetup()
-            ->withHandledMessageLimit(1)
-            ->withExecutionTimeLimitInMilliseconds(1000)
-        );
-
-        // Verify no messages were consumed (stream was empty)
-        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
-
-        // Send a message - 'next' offset means it will be available for future consumers
-        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
-
-        /** @TODO if we can't make this work, we should disallow `next` */
-        // Note: With 'next' offset, the consumer is already positioned at the "next" offset
-        // from the first run. Messages sent after that are not consumed in the same consumer instance
-        // This test verifies that consuming from empty stream with 'next' doesn't fail
-        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
-    }
-
     public function test_consuming_from_empty_stream_with_first_offset()
     {
         $channelName = 'orders';
@@ -301,42 +260,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
         $this->assertCount(50, $orders);
         $this->assertEquals($expectedOrders, $orders);
-    }
-
-    public function test_consuming_with_next_offset_ignores_existing_messages()
-    {
-        $channelName = 'orders';
-        $queueName = 'stream_queue_next_' . Uuid::v7()->toRfc4122();
-
-        $ecotoneLite = $this->bootstrapFlowTesting(
-            [OrderService::class],
-            [
-                new OrderService(),
-                ...$this->getConnectionFactoryReferences(),
-            ],
-            extensionObjects: [
-                AmqpQueue::createStreamQueue($queueName),
-                AmqpStreamChannelBuilder::create($channelName, 'next', amqpConnectionReferenceName:AmqpLibConnection::class, queueName:$queueName, ),
-            ],
-            enabledModules: [ModulePackageList::AMQP_PACKAGE, ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        // Send messages before consumer starts
-        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'old_milk');
-        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'old_bread');
-
-        // Start consumer with 'next' offset - should ignore existing messages
-        $ecotoneLite->run(
-            $channelName,
-            ExecutionPollingMetadata::createWithDefaults()
-            ->withTestingSetup()
-            ->withHandledMessageLimit(3)
-            ->withExecutionTimeLimitInMilliseconds(1000)
-        );
-
-        // Verify no old messages were consumed (next offset skips existing messages)
-        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
     public function test_consuming_single_message_from_stream()
@@ -849,9 +772,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
     }
 
-    /**
-     * @TODO requires refactor
-     */
     public function test_commit_interval_with_single_message_polling_metadata(): void
     {
         $this->markTestSkipped('Requires passing PollingMetadata to Inbound Adapters');

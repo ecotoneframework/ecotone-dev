@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
@@ -364,6 +365,76 @@ final class TraceCompletionTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
+    }
+
+    public function test_a_consumer_that_swallowed_its_handler_failure_leaves_the_trace_pending(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                throw new RuntimeException('Placing failed');
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+    }
+
+    public function test_a_consumer_that_swallowed_its_handler_failure_stores_a_failed_consumer_span_when_failures_may_be_stored(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                throw new RuntimeException('Placing failed');
+            }
+        };
+        $subscriber = $this->spanEndedSubscriber();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$orders::class, $subscriber::class],
+            [$orders, $subscriber],
+            [TracingConfiguration::createWithDefaults()->withStoredTraces(storeFailuresOutsideTransaction: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertSame(SpanStatus::Error, $subscriber->endedSpans['receive async_channel']);
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_consumer_whose_handler_failed_once_and_succeeded_on_the_instant_retry_completes_the_trace(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('Placing failed once');
+                }
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertSame(2, $orders->attempts);
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void

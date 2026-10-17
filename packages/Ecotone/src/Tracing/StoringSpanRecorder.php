@@ -41,6 +41,8 @@ final class StoringSpanRecorder implements SpanRecorder
     /** @var string[] */
     private array $completedTracesToPublish = [];
     private bool $publishing = false;
+    /** @var array<string, true> */
+    private array $spansWrappingAFailedUnitOfWork = [];
 
     public function __construct(
         private TraceStore $traceStore,
@@ -57,6 +59,10 @@ final class StoringSpanRecorder implements SpanRecorder
             $this->buffer[] = $span;
 
             return;
+        }
+        if (isset($this->spansWrappingAFailedUnitOfWork[$span->spanId])) {
+            unset($this->spansWrappingAFailedUnitOfWork[$span->spanId]);
+            $span = self::failedByItsUnitOfWork($span);
         }
         if ($span->status === SpanStatus::Error && ! $this->storesFailuresOutsideTransaction) {
             return;
@@ -79,6 +85,9 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function flush(): void
     {
+        foreach (self::outerParentsOf($this->buffer) as $spanId) {
+            unset($this->spansWrappingAFailedUnitOfWork[$spanId]);
+        }
         $this->write($this->buffer);
         $this->buffer = [];
     }
@@ -90,7 +99,51 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function discard(): void
     {
+        foreach (self::outerParentsOf($this->buffer) as $spanId) {
+            $this->spansWrappingAFailedUnitOfWork[$spanId] = true;
+        }
         $this->buffer = [];
+    }
+
+    /**
+     * @param Span[] $spans
+     * @return string[]
+     */
+    private static function outerParentsOf(array $spans): array
+    {
+        $spanIds = [];
+        foreach ($spans as $span) {
+            $spanIds[$span->spanId] = true;
+        }
+        $parents = [];
+        foreach ($spans as $span) {
+            if ($span->parentSpanId !== null && ! isset($spanIds[$span->parentSpanId])) {
+                $parents[$span->parentSpanId] = true;
+            }
+        }
+
+        return array_keys($parents);
+    }
+
+    private static function failedByItsUnitOfWork(Span $span): Span
+    {
+        if ($span->status === SpanStatus::Error) {
+            return $span;
+        }
+
+        return new Span(
+            $span->traceId,
+            $span->spanId,
+            $span->parentSpanId,
+            $span->name,
+            $span->kind,
+            $span->attributes,
+            SpanStatus::Error,
+            'The unit of work this span wraps failed and its failure was handled by the error channel or the acknowledgement strategy',
+            $span->events,
+            $span->startedAt,
+            $span->endedAt,
+        );
     }
 
     /**

@@ -11,6 +11,7 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -274,6 +275,18 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         }
 
         self::assertSame(SpanStatus::Error, $subscriber->endedSpans['receive async_channel']);
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_consumer_that_swallowed_its_handler_failure_leaves_the_trace_pending(string $implementation): void
+    {
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
         self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 

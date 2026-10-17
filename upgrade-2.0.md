@@ -3136,7 +3136,10 @@ a multi-tenant application stores traces on the connection `MultiTenantConfigura
 names, because the write after the unit of work has no tenant, and is refused at bootstrap without one. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
 command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
-with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the
+with the command, or take it from the HTTP request the command came from. `withStoredTraces(onlyTracesCarryingTraceparent: true)` stores only the traces whose root continued a
+`traceparent` handed in, from an HTTP request or minted with `SpanContext::newTrace()`, and carries that choice
+across channels in the W3C `tracestate` as `ecotone=carried`, next to any other vendor's entry, so ordinary traffic
+costs no storage and only the requests that await completion are kept. A flow test given no connection keeps the
 store in memory; an application that enables stored traces with no DBAL package and no `inMemory: true` is refused
 at bootstrap, because a store per process could never see a consumer's progress. `ecotone:tracing:remove-expired-traces` deletes completed traces older than the retention passed to
 `withStoredTraces()`, seven days by default, and any trace older than twice that, so a message delayed past the

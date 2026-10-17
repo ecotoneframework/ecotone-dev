@@ -15,6 +15,7 @@ final class SpanAttribute
     public const ENDPOINT_ID = 'ecotone.endpoint.id';
     public const PROJECTION_NAME = 'ecotone.projection.name';
     public const TRACE_ROOT = 'ecotone.trace.root';
+    public const TRACE_CARRIED = 'ecotone.trace.carried';
     public const CODE_FUNCTION_NAME = 'code.function.name';
     public const CHANNEL_NAME = 'ecotone.channel.name';
     public const BATCH_DELIVERIES = 'ecotone.batch.deliveries';

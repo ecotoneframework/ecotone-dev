@@ -9,6 +9,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\SpanStatus;
@@ -55,12 +56,16 @@ final class StoringSpanRecorder implements SpanRecorder
         private bool $publishesEndedSpans,
         private bool $publishesCompletedTraces,
         private bool $storesFailuresOutsideTransaction,
+        private bool $storesOnlyCarriedTraces,
         private EcotoneClockInterface $clock,
     ) {
     }
 
     public function record(Span $span): void
     {
+        if ($this->storesOnlyCarriedTraces && ! ($span->attributes[SpanAttribute::TRACE_CARRIED] ?? false)) {
+            return;
+        }
         if ($this->scopeActive) {
             $this->buffer[] = $span;
 

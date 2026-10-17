@@ -286,6 +286,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 $this->spanEndedSubscribers !== [],
                 $this->traceCompletedSubscribers !== [],
                 $tracingConfiguration->storedFailuresOutsideTransaction,
+                $tracingConfiguration->storedTracesOnlyCarryingTraceparent,
                 new Reference(EcotoneClockInterface::class),
             ])
         );

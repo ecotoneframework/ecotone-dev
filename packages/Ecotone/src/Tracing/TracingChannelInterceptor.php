@@ -45,6 +45,10 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         if ($isFirstChannel) {
             $attributes = [...$attributes, ...$this->deliveryAttributes($message)];
         }
+        $carried = TracingInterceptor::isCarried($this->tracer, $message, false);
+        if ($carried) {
+            $attributes[SpanAttribute::TRACE_CARRIED] = true;
+        }
         $span = $this->tracer->startSpan(
             'send ' . $this->channelName,
             SpanKind::Producer,
@@ -53,15 +57,15 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         );
         $this->openSendSpans[] = $span;
 
-        $traceparent = $span->context()->toTraceparent();
-        $sent = $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::TRACEPARENT, $traceparent);
+        $carrier = TracingInterceptor::carrierOf($span);
+        $sent = $this->messageBuilder->fromMessage($message)->setMultipleHeaders($carrier);
         if ($isFirstChannel) {
             $sent = $sent->setHeader(MessageHeaders::TRACING_DELIVERY, $this->channelName . ':' . $message->getHeaders()->getMessageId());
         }
         $payload = $message->getPayload();
         if ($payload instanceof BatchMessage) {
             $sent = $sent->setPayload(BatchMessage::fromEntries(array_map(
-                fn (array $entry): array => [...$entry, 'headers' => [...($entry['headers'] ?? []), MessageHeaders::TRACEPARENT => $traceparent]],
+                fn (array $entry): array => [...$entry, 'headers' => [...($entry['headers'] ?? []), ...$carrier]],
                 $payload->entries,
             )));
         }
@@ -159,6 +163,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
                 SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
                 SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
                 SpanAttribute::CHANNEL_NAME => $this->channelName,
+                ...(TraceState::isCarried($message) ? [SpanAttribute::TRACE_CARRIED => true] : []),
             ], TracingInterceptor::remoteParentOf($message))
             ->fail($exception);
     }

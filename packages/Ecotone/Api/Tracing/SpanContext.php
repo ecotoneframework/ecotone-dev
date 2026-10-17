@@ -20,6 +20,7 @@ final class SpanContext
         public readonly string $traceId,
         public readonly string $spanId,
         public readonly bool $sampled = true,
+        public readonly string $traceState = '',
     ) {
     }
 
@@ -30,10 +31,15 @@ final class SpanContext
 
     public function newChild(): self
     {
-        return new self($this->traceId, bin2hex(random_bytes(8)), $this->sampled);
+        return new self($this->traceId, bin2hex(random_bytes(8)), $this->sampled, $this->traceState);
     }
 
-    public static function fromTraceparent(?string $traceparent): ?self
+    public function withTraceState(string $traceState): self
+    {
+        return new self($this->traceId, $this->spanId, $this->sampled, $traceState);
+    }
+
+    public static function fromTraceparent(?string $traceparent, string $tracestate = ''): ?self
     {
         if ($traceparent === null || preg_match(self::TRACEPARENT_PATTERN, $traceparent, $matches) !== 1) {
             return null;
@@ -42,7 +48,7 @@ final class SpanContext
             return null;
         }
 
-        return new self($matches[1], $matches[2], (hexdec($matches[3]) & self::SAMPLED_FLAG) === self::SAMPLED_FLAG);
+        return new self($matches[1], $matches[2], (hexdec($matches[3]) & self::SAMPLED_FLAG) === self::SAMPLED_FLAG, $tracestate);
     }
 
     public function toTraceparent(): string

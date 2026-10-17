@@ -69,9 +69,7 @@ final class DbalTraceStore implements TraceStore
         foreach ($spansByTrace as $traceId => $traceSpans) {
             $this->onTables(function () use ($connection, $traceId, $traceSpans): void {
                 $this->claimTrace($connection, $traceId, $traceSpans);
-                foreach ($traceSpans as $span) {
-                    $this->insertSpan($connection, $span);
-                }
+                $this->insertSpans($connection, $traceSpans);
             });
         }
     }
@@ -148,30 +146,46 @@ final class DbalTraceStore implements TraceStore
         ) === 1;
     }
 
-    private function insertSpan(Connection $connection, Span $span): void
+    /**
+     * @param Span[] $spans
+     */
+    private function insertSpans(Connection $connection, array $spans): void
     {
-        $columns = [
-            'span_id' => $span->spanId,
-            'trace_id' => $span->traceId,
-            'parent_span_id' => $span->parentSpanId,
-            'name' => $span->name,
-            'kind' => $span->kind->value,
-            'status' => $span->status->value,
-            'status_description' => $span->statusDescription,
-            'attributes' => json_encode($span->attributes, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
-            'events' => json_encode(array_map(fn (SpanEvent $event): array => [
-                'name' => $event->name,
-                'attributes' => (object) $event->attributes,
-                'at' => $event->at->unixTime()->inMicroseconds(),
-            ], $span->events), JSON_THROW_ON_ERROR),
-            'started_at' => $span->startedAt->unixTime()->inMicroseconds(),
-            'ended_at' => $span->endedAt->unixTime()->inMicroseconds(),
-        ];
-        $placeholders = implode(', ', array_map(fn (string $column): string => ':' . $column, array_keys($columns)));
-        $sql = sprintf('INSERT INTO %s (%s) VALUES (%s)', $this->spansTableManager->getTableName(), implode(', ', array_keys($columns)), $placeholders);
+        $columns = ['span_id', 'trace_id', 'parent_span_id', 'name', 'kind', 'status', 'status_description', 'attributes', 'events', 'started_at', 'ended_at'];
+        $rows = [];
+        $parameters = [];
+        $types = [];
+        foreach (array_values($spans) as $index => $span) {
+            $values = [
+                'span_id' => $span->spanId,
+                'trace_id' => $span->traceId,
+                'parent_span_id' => $span->parentSpanId,
+                'name' => $span->name,
+                'kind' => $span->kind->value,
+                'status' => $span->status->value,
+                'status_description' => $span->statusDescription,
+                'attributes' => json_encode($span->attributes, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT),
+                'events' => json_encode(array_map(fn (SpanEvent $event): array => [
+                    'name' => $event->name,
+                    'attributes' => (object) $event->attributes,
+                    'at' => $event->at->unixTime()->inMicroseconds(),
+                ], $span->events), JSON_THROW_ON_ERROR),
+                'started_at' => $span->startedAt->unixTime()->inMicroseconds(),
+                'ended_at' => $span->endedAt->unixTime()->inMicroseconds(),
+            ];
+            $placeholders = [];
+            foreach ($values as $column => $value) {
+                $placeholders[] = ':' . $column . $index;
+                $parameters[$column . $index] = $value;
+            }
+            $types['started_at' . $index] = Types::BIGINT;
+            $types['ended_at' . $index] = Types::BIGINT;
+            $rows[] = '(' . implode(', ', $placeholders) . ')';
+        }
+        $sql = sprintf('INSERT INTO %s (%s) VALUES %s', $this->spansTableManager->getTableName(), implode(', ', $columns), implode(', ', $rows));
         $sql .= $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? ' ON DUPLICATE KEY UPDATE span_id = span_id' : ' ON CONFLICT (trace_id, span_id) DO NOTHING';
 
-        $connection->executeStatement($sql, $columns, ['started_at' => Types::BIGINT, 'ended_at' => Types::BIGINT]);
+        $connection->executeStatement($sql, $parameters, $types);
     }
 
     /**

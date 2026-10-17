@@ -45,7 +45,7 @@ final class OpenTelemetryTracer implements Tracer
             ->setSpanKind(self::kindOf($kind))
             ->setAttributes($attributes);
         if ($remoteParent !== null) {
-            $spanBuilder->setParent(TraceContextPropagator::getInstance()->extract([MessageHeaders::TRACEPARENT => $remoteParent->toTraceparent()]));
+            $spanBuilder->setParent(TraceContextPropagator::getInstance()->extract([MessageHeaders::TRACEPARENT => $remoteParent->toTraceparent(), MessageHeaders::TRACESTATE => $remoteParent->traceState]));
         }
 
         $span = $spanBuilder->startSpan();
@@ -53,7 +53,7 @@ final class OpenTelemetryTracer implements Tracer
         $context = $span->getContext();
         $parentContext = $remoteParent ?? $this->currentSpan()?->context();
         $spanContext = $context->isValid() && $span->isRecording()
-            ? new SpanContext($context->getTraceId(), $context->getSpanId(), $context->isSampled())
+            ? new SpanContext($context->getTraceId(), $context->getSpanId(), $context->isSampled(), (string) $context->getTraceState())
             : ($parentContext?->newChild() ?? SpanContext::newTrace());
 
         $activeSpan = new OpenTelemetryActiveSpan(

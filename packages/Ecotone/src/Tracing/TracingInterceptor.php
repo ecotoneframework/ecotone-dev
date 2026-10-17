@@ -122,15 +122,42 @@ final class TracingInterceptor
         }
 
         return $this->messageBuilder->fromMessage($message)
-            ->setHeader(MessageHeaders::TRACEPARENT, $currentSpan->context()->toTraceparent())
+            ->setMultipleHeaders(self::carrierOf($currentSpan))
             ->build();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function carrierOf(ActiveSpan $span): array
+    {
+        $carrier = [MessageHeaders::TRACEPARENT => $span->context()->toTraceparent()];
+        $traceState = $span->attributes()[SpanAttribute::TRACE_CARRIED] ?? false ? TraceState::withCarried($span->context()->traceState) : $span->context()->traceState;
+        if ($traceState !== '') {
+            $carrier[MessageHeaders::TRACESTATE] = $traceState;
+        }
+
+        return $carrier;
+    }
+
+    public static function isCarried(Tracer $tracer, Message $message, bool $startsTheTraceHere): bool
+    {
+        $current = $tracer->currentSpan();
+        if ($current !== null) {
+            return (bool) ($current->attributes()[SpanAttribute::TRACE_CARRIED] ?? false);
+        }
+
+        return $startsTheTraceHere ? self::remoteParentOf($message) !== null : TraceState::isCarried($message);
     }
 
     public static function remoteParentOf(Message $message): ?SpanContext
     {
         $headers = $message->getHeaders();
 
-        return SpanContext::fromTraceparent($headers->containsKey(MessageHeaders::TRACEPARENT) ? $headers->get(MessageHeaders::TRACEPARENT) : null);
+        return SpanContext::fromTraceparent(
+            $headers->containsKey(MessageHeaders::TRACEPARENT) ? $headers->get(MessageHeaders::TRACEPARENT) : null,
+            $headers->containsKey(MessageHeaders::TRACESTATE) ? (string) $headers->get(MessageHeaders::TRACESTATE) : '',
+        );
     }
 
     private function traceHandler(MethodInvocation $methodInvocation, Message $message, string $endpointId): mixed
@@ -162,6 +189,9 @@ final class TracingInterceptor
         $isLocalRoot = $this->tracer->currentSpan() === null;
         if ($isLocalRoot && $kind !== SpanKind::Consumer) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;
+        }
+        if (self::isCarried($this->tracer, $message, $isLocalRoot && $kind !== SpanKind::Consumer)) {
+            $attributes[SpanAttribute::TRACE_CARRIED] = true;
         }
         $span = $this->tracer->startSpan($name, $kind, [...$this->messageSpanAttributes->from($message), ...$attributes], $isLocalRoot ? self::remoteParentOf($message) : null);
 

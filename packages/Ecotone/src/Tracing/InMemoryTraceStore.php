@@ -32,24 +32,21 @@ final class InMemoryTraceStore implements TraceStore
     /** @var array<string, true> */
     private array $completedTraces = [];
 
-    public function record(array $spans): array
+    public function append(array $spans): void
     {
-        $touchedTraces = [];
         foreach ($spans as $span) {
             $this->spansByTrace[$span->traceId][] = $span;
-            $touchedTraces[$span->traceId] = true;
         }
+    }
 
-        $completedNow = [];
-        foreach (array_keys($touchedTraces) as $traceId) {
-            if (isset($this->completedTraces[$traceId]) || ! $this->progressOf($traceId)->isCompleted()) {
-                continue;
-            }
-            $this->completedTraces[$traceId] = true;
-            $completedNow[] = $traceId;
+    public function markCompletedIfDone(string $traceId): bool
+    {
+        if (isset($this->completedTraces[$traceId]) || ! $this->progressOf($traceId)->isCompleted()) {
+            return false;
         }
+        $this->completedTraces[$traceId] = true;
 
-        return $completedNow;
+        return true;
     }
 
     public function progressOf(string $traceId): TraceProgress

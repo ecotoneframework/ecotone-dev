@@ -29,9 +29,10 @@ interface TraceStore
 {
     /**
      * @param Span[] $spans
-     * @return string[] identifiers of the traces this recording completed
      */
-    public function record(array $spans): array;
+    public function append(array $spans): void;
+
+    public function markCompletedIfDone(string $traceId): bool;
 
     public function progressOf(string $traceId): TraceProgress;
 

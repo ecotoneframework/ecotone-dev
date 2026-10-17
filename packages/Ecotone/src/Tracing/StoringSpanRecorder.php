@@ -68,7 +68,7 @@ final class StoringSpanRecorder implements SpanRecorder
             return;
         }
 
-        $this->write([...$this->buffer, $span]);
+        $this->write([...$this->buffer, $span], true);
         $this->buffer = [];
         $this->publish();
     }
@@ -88,7 +88,7 @@ final class StoringSpanRecorder implements SpanRecorder
         foreach (self::outerParentsOf($this->buffer) as $spanId) {
             unset($this->spansWrappingAFailedUnitOfWork[$spanId]);
         }
-        $this->write($this->buffer);
+        $this->write($this->buffer, false);
         $this->buffer = [];
     }
 
@@ -149,13 +149,14 @@ final class StoringSpanRecorder implements SpanRecorder
     /**
      * @param Span[] $spans
      */
-    private function write(array $spans): void
+    private function write(array $spans, bool $decidesCompletion): void
     {
         if ($spans === []) {
             return;
         }
 
-        $completedTraces = $this->traceStore->record($spans);
+        $this->traceStore->append($spans);
+        $completedTraces = $decidesCompletion ? $this->completedAmong($spans) : [];
         if ($this->publishing) {
             return;
         }
@@ -165,6 +166,22 @@ final class StoringSpanRecorder implements SpanRecorder
         if ($this->publishesCompletedTraces) {
             $this->completedTracesToPublish = [...$this->completedTracesToPublish, ...$completedTraces];
         }
+    }
+
+    /**
+     * @param Span[] $spans
+     * @return string[]
+     */
+    private function completedAmong(array $spans): array
+    {
+        $completed = [];
+        foreach (array_unique(array_map(fn (Span $span): string => $span->traceId, $spans)) as $traceId) {
+            if ($this->traceStore->markCompletedIfDone($traceId)) {
+                $completed[] = $traceId;
+            }
+        }
+
+        return $completed;
     }
 
     private function publish(): void

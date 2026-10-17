@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Tracing;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\DatePoint;
@@ -60,32 +59,29 @@ final class DbalTraceStore implements TraceStore
     ) {
     }
 
-    public function record(array $spans): array
+    public function append(array $spans): void
     {
         $spansByTrace = [];
         foreach ($spans as $span) {
             $spansByTrace[$span->traceId][] = $span;
         }
 
-        $completedNow = [];
         $connection = $this->connection();
         foreach ($spansByTrace as $traceId => $traceSpans) {
-            $this->onTables(function () use ($connection, $traceId, $traceSpans, &$completedNow): void {
+            $this->onTables(function () use ($connection, $traceId, $traceSpans): void {
                 $this->claimTrace($connection, $traceId, $traceSpans);
-                $alreadyCompleted = $this->lockTrace($connection, $traceId);
                 foreach ($traceSpans as $span) {
                     $this->insertSpan($connection, $span);
                 }
-                if ($alreadyCompleted || ! TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted()) {
-                    return;
-                }
-                if ($this->markCompleted($connection, $traceId)) {
-                    $completedNow[] = $traceId;
-                }
             });
         }
+    }
 
-        return $completedNow;
+    public function markCompletedIfDone(string $traceId): bool
+    {
+        $connection = $this->connection();
+
+        return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId));
     }
 
     public function progressOf(string $traceId): TraceProgress
@@ -130,16 +126,6 @@ final class DbalTraceStore implements TraceStore
             : "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON CONFLICT (trace_id) DO NOTHING";
 
         $connection->executeStatement($sql, ['traceId' => $traceId, 'startedAt' => $startedAt], ['startedAt' => Types::BIGINT]);
-    }
-
-    private function lockTrace(Connection $connection, string $traceId): bool
-    {
-        $sql = "SELECT completed_at FROM {$this->tracesTableManager->getTableName()} WHERE trace_id = :traceId";
-        if (! $connection->getDatabasePlatform() instanceof SQLitePlatform) {
-            $sql .= ' FOR UPDATE';
-        }
-
-        return $connection->fetchOne($sql, ['traceId' => $traceId]) !== null;
     }
 
     private function markCompleted(Connection $connection, string $traceId): bool

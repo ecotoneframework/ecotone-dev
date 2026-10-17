@@ -131,7 +131,11 @@ final class TracingInterceptor
      */
     private function trace(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
     {
-        $span = $this->tracer->startSpan($name, $kind, [...MessageSpanAttributes::from($message), ...$attributes], $this->tracer->currentSpan() === null ? self::remoteParentOf($message) : null);
+        $isLocalRoot = $this->tracer->currentSpan() === null;
+        if ($isLocalRoot && $kind !== SpanKind::Consumer) {
+            $attributes[SpanAttribute::TRACE_ROOT] = true;
+        }
+        $span = $this->tracer->startSpan($name, $kind, [...MessageSpanAttributes::from($message), ...$attributes], $isLocalRoot ? self::remoteParentOf($message) : null);
 
         try {
             $result = $methodInvocation->proceed();

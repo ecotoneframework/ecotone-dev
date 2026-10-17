@@ -7,6 +7,7 @@ namespace Test\Ecotone\Dbal\Conformance;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -92,7 +93,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage('Still pending: user.notifier.');
+        $this->expectExceptionMessage('Still pending: user.notifier, async_channel.');
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -160,6 +161,84 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
 
         self::assertFalse($this->completion($ecotone)->isCompleted($expired->traceId));
         self::assertTrue($this->completion($ecotone)->isCompleted($recent->traceId));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_asynchronous_command_keeps_the_trace_pending_until_its_consumer_ran(string $implementation): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_consumer_alone_does_not_complete_a_trace_whose_producer_stored_nothing(): void
+    {
+        $producer = $this->bootstrapFlowTesting(
+            classesToResolve: [$this->asynchronousNotifier()::class],
+            containerOrAvailableServices: [$this->asynchronousNotifier(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [DbalBackedMessageChannelBuilder::create('async_channel')],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+        )->setupDatabaseTables();
+        $consumer = $this->bootstrap('dbal', [$this->asynchronousNotifier()], [DbalBackedMessageChannelBuilder::create('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $producer->publishEventWithRouting('user.registered', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $consumer->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertTrue($this->completion($consumer)->isCompletedFor($trace->traceId, 'user.notifier'));
+        self::assertFalse($this->completion($consumer)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_send_rolled_back_with_its_failed_handler_is_not_awaited_after_the_retry_succeeded(): void
+    {
+        $notifier = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId, EventBus $eventBus): void
+            {
+                $this->attempts++;
+                $eventBus->publishWithRouting('user.notified', $userId);
+                if ($this->attempts === 1) {
+                    throw new RuntimeException('Notification failed once');
+                }
+            }
+
+            #[Asynchronous('audit_channel')]
+            #[EventHandler('user.notified', endpointId: 'user.auditor')]
+            public function audit(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap('dbal', [$this->users(), $notifier], [DbalBackedMessageChannelBuilder::create('async_channel'), DbalBackedMessageChannelBuilder::create('audit_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        try {
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (RuntimeException) {
+        }
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(2, $notifier->attempts);
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void

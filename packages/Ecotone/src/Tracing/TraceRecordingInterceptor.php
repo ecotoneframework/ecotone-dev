@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Tracing;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -42,6 +43,10 @@ final class TraceRecordingInterceptor
             $this->recorder->flush();
 
             return $result;
+        } catch (Throwable $failure) {
+            $this->recorder->discard();
+
+            throw $failure;
         } finally {
             $this->recorder->closeScope();
         }

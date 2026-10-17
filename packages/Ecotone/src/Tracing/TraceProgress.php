@@ -30,6 +30,8 @@ final class TraceProgress
      * @param array<string, int> $sent
      * @param array<string, int> $processed
      * @param array<string, int> $failed
+     * @param array<string, array<string, int>> $sentDeliveries
+     * @param array<string, array<string, int>> $processedDeliveries
      */
     public function __construct(
         public readonly string $traceId,
@@ -38,12 +40,14 @@ final class TraceProgress
         public readonly array $sent,
         public readonly array $processed,
         public readonly array $failed,
+        public readonly array $sentDeliveries,
+        public readonly array $processedDeliveries,
     ) {
     }
 
     public static function unknown(string $traceId): self
     {
-        return new self($traceId, false, false, [], [], []);
+        return new self($traceId, false, false, [], [], [], [], []);
     }
 
     public function isCompleted(): bool
@@ -72,8 +76,16 @@ final class TraceProgress
                 $pending[] = $destination;
             }
         }
+        foreach ($this->sentDeliveries as $channel => $messages) {
+            foreach ($messages as $messageId => $sent) {
+                if (($this->processedDeliveries[$channel][$messageId] ?? 0) < $sent) {
+                    $pending[] = $channel;
+                    break;
+                }
+            }
+        }
 
-        return $pending;
+        return array_values(array_unique($pending));
     }
 
     /**

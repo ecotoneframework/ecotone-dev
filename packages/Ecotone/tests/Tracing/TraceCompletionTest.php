@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -110,7 +111,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier. Run the consumer of the channel those handlers are attached to, or await with a longer timeout.");
+        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the channel those handlers are attached to, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -237,6 +238,131 @@ final class TraceCompletionTest extends TestCase
 
         $this->assertContains('Command Bus', $subscriber->spanNames);
         $this->assertContains('Command Handler: ' . $users::class . '::register', $subscriber->spanNames);
+    }
+
+    public function test_an_asynchronous_command_keeps_the_trace_pending_until_its_consumer_ran(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_awaiting_an_asynchronous_command_names_its_channel_as_pending(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectExceptionMessage('Still pending: async_channel.');
+
+        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
+    }
+
+    public function test_a_handler_that_succeeded_inside_a_failed_unit_of_work_is_not_completed(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('audit.record', $userId);
+
+                throw new RuntimeException('Registration failed after the audit was recorded');
+            }
+
+            #[CommandHandler('audit.record', endpointId: 'audit.recording')]
+            public function record(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $this->fail('Expected the registration failure to propagate');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
+    }
+
+    public function test_a_trace_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
+    {
+        $subscriber = new class () {
+            public int $notifications = 0;
+
+            #[OnTraceCompleted]
+            public function whenCompleted(TraceCompleted $event, CommandBus $commandBus): void
+            {
+                $this->notifications++;
+                if ($this->notifications < 5) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->traceId);
+                }
+            }
+
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        $this->assertSame(1, $subscriber->notifications);
+    }
+
+    public function test_a_span_ended_subscriber_sending_a_command_does_not_notify_itself_again(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $notifiedTraces = [];
+
+            #[OnSpanEnded]
+            public function whenEnded(SpanEnded $event, CommandBus $commandBus): void
+            {
+                $this->notifiedTraces[] = $event->span->traceId;
+                if (count($this->notifiedTraces) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->span->traceId);
+                }
+            }
+
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
     }
 
     public function test_stored_traces_require_an_enterprise_licence(): void

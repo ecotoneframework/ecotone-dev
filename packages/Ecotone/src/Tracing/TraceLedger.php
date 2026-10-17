@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 
 /**
@@ -37,21 +39,29 @@ final class TraceLedger
             return TraceProgress::unknown($traceId);
         }
 
-        $recordedSpanIds = [];
-        foreach ($spans as $span) {
-            $recordedSpanIds[$span->spanId] = true;
-        }
-
         $rootEnded = false;
         $sent = [];
         $processed = [];
         $failed = [];
+        $sentDeliveries = [];
+        $processedDeliveries = [];
         foreach ($spans as $span) {
-            if ($span->parentSpanId === null || ! isset($recordedSpanIds[$span->parentSpanId])) {
+            if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {
                 $rootEnded = true;
             }
             $destination = self::destinationOf($span);
             if ($destination === null) {
+                $delivery = self::deliveryOf($span);
+                if ($delivery === null || $span->status === SpanStatus::Error) {
+                    continue;
+                }
+                [$channel, $messageId] = $delivery;
+                if ($span->kind === SpanKind::Producer) {
+                    $sentDeliveries[$channel][$messageId] = ($sentDeliveries[$channel][$messageId] ?? 0) + 1;
+                } elseif ($span->kind === SpanKind::Consumer) {
+                    $processedDeliveries[$channel][$messageId] = ($processedDeliveries[$channel][$messageId] ?? 0) + 1;
+                }
+
                 continue;
             }
             $operation = $span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null;
@@ -64,7 +74,7 @@ final class TraceLedger
             }
         }
 
-        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $failed);
+        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $failed, $sentDeliveries, $processedDeliveries);
     }
 
     public static function destinationOf(Span $span): ?string
@@ -72,5 +82,16 @@ final class TraceLedger
         $destination = $span->attributes[SpanAttribute::ENDPOINT_ID] ?? $span->attributes[SpanAttribute::PROJECTION_NAME] ?? null;
 
         return $destination === null ? null : (string) $destination;
+    }
+
+    /**
+     * @return array{string, string}|null
+     */
+    private static function deliveryOf(Span $span): ?array
+    {
+        $channel = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
+        $messageId = $span->attributes[MessageHeaders::MESSAGE_ID] ?? null;
+
+        return $channel === null || $messageId === null ? null : [(string) $channel, (string) $messageId];
     }
 }

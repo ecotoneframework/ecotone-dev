@@ -39,6 +39,7 @@ final class StoringSpanRecorder implements SpanRecorder
     private array $endedSpansToPublish = [];
     /** @var string[] */
     private array $completedTracesToPublish = [];
+    private bool $publishing = false;
 
     public function __construct(
         private TraceStore $traceStore,
@@ -82,6 +83,11 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->scopeActive = false;
     }
 
+    public function discard(): void
+    {
+        $this->buffer = [];
+    }
+
     /**
      * @param Span[] $spans
      */
@@ -92,6 +98,9 @@ final class StoringSpanRecorder implements SpanRecorder
         }
 
         $completedTraces = $this->traceStore->record($spans);
+        if ($this->publishing) {
+            return;
+        }
         if ($this->publishesEndedSpans) {
             $this->endedSpansToPublish = [...$this->endedSpansToPublish, ...$spans];
         }
@@ -102,16 +111,24 @@ final class StoringSpanRecorder implements SpanRecorder
 
     private function publish(): void
     {
+        if ($this->publishing) {
+            return;
+        }
         $endedSpans = $this->endedSpansToPublish;
         $completedTraces = $this->completedTracesToPublish;
         $this->endedSpansToPublish = [];
         $this->completedTracesToPublish = [];
 
-        foreach ($endedSpans as $span) {
-            $this->messagingEntrypoint->send(new SpanEnded($span), OnSpanEnded::CHANNEL);
-        }
-        foreach ($completedTraces as $traceId) {
-            $this->messagingEntrypoint->send(new TraceCompleted($traceId), OnTraceCompleted::CHANNEL);
+        $this->publishing = true;
+        try {
+            foreach ($endedSpans as $span) {
+                $this->messagingEntrypoint->send(new SpanEnded($span), OnSpanEnded::CHANNEL);
+            }
+            foreach ($completedTraces as $traceId) {
+                $this->messagingEntrypoint->send(new TraceCompleted($traceId), OnTraceCompleted::CHANNEL);
+            }
+        } finally {
+            $this->publishing = false;
         }
     }
 }

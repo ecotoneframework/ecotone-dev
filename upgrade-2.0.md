@@ -3010,12 +3010,19 @@ in an external collector, after the fact.
 in `ecotone_traces` and `ecotone_spans`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
 or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit;
 the root span is written when it ends, after the commit. From those spans the `TraceCompletion` gateway answers
-`isCompleted($traceId)`, true once the root ended and every route the trace sent has an ended handler span,
-`isCompletedFor($traceId, $destination)` for one `endpointId` or projection name, and `await()` / `awaitFor()`,
-which poll until then or throw `TraceCompletionTimedOut` naming what is still pending. A method with
-`#[OnTraceCompleted]` receives a `TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every
-stored span, both after the commit that produced them, so a websocket push or a cache refresh never runs ahead of
-the data. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
+`isCompleted($traceId)`, true once the root ended, every route the trace sent has an ended handler span, and
+every message it sent to a channel was consumed from that channel, so an asynchronous command, event or projection
+keeps the trace pending until its consumer processed that exact message; `isCompletedFor($traceId, $destination)`
+for one `endpointId` or projection name; and `await()` / `awaitFor()`, which poll until then or throw
+`TraceCompletionTimedOut` naming the handlers and channels still pending. The root is the span that started the
+trace in this process, a bus call or a handler reached outside any other span, never a consumer: a trace whose
+producer stored nothing is never completed by its consumers alone. A unit of work that fails discards the spans it
+buffered, so a handler that succeeded inside a rolled-back transaction, and a message whose send rolled back with
+it, are not counted; the failed outer span is still stored. A method with `#[OnTraceCompleted]` receives a
+`TraceCompleted` once per trace, and one with `#[OnSpanEnded]` receives every stored span, both after the commit
+that produced them, so a websocket push or a cache refresh never runs ahead of the data. Work a subscriber does
+through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
+command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
 with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the
 store in memory. `ecotone:tracing:remove-expired-traces` deletes traces older than the retention passed to
 `withStoredTraces()`, seven days by default.

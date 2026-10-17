@@ -7,6 +7,9 @@ namespace Test\Ecotone\Tracing;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -437,6 +440,71 @@ final class TraceCompletionTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    public function test_an_output_channel_after_an_asynchronous_handler_does_not_complete_that_handler_for_a_delivery_still_queued(): void
+    {
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', outputChannelName: 'audit.record', endpointId: 'user.notifier')]
+            public function notify(string $userId): string
+            {
+                return $userId;
+            }
+
+            #[InternalHandler('audit.record', endpointId: 'audit.recording')]
+            public function record(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('user.registered', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->publishEventWithRouting('user.registered', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_flow_started_through_a_message_gateway_is_pending_until_its_asynchronous_handler_ran(): void
+    {
+        $notifications = new class () {
+            #[InternalHandler('notification.send', outputChannelName: 'notification.deliver', endpointId: 'notification.sending')]
+            public function send(string $text): string
+            {
+                return $text;
+            }
+
+            #[Asynchronous('async_channel')]
+            #[InternalHandler('notification.deliver', endpointId: 'notification.delivering')]
+            public function deliver(string $text): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$notifications::class, TracedNotificationGateway::class],
+            [$notifications],
+            [TracingConfiguration::createWithDefaults()->withStoredTraces(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->getGateway(TracedNotificationGateway::class)->send('hello', [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.sending'));
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void
     {
         $subscriber = $this->spanEndedSubscriber();
@@ -607,4 +675,10 @@ final class TraceCompletionTest extends TestCase
             }
         };
     }
+}
+
+interface TracedNotificationGateway
+{
+    #[MessageGateway('notification.send')]
+    public function send(string $text, #[Headers] array $metadata): void;
 }

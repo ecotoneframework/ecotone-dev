@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracingRouteResolver;
@@ -27,7 +26,6 @@ final class TraceEventRoutesCompilerPass implements CompilerPass
         $builder->replace(MessageHandlerRoutingModule::EVENT_BUS_ROUTE_RESOLVER, new Definition(TracingRouteResolver::class, [
             $builder->getDefinition(MessageHandlerRoutingModule::EVENT_BUS_ROUTE_RESOLVER),
             new Reference(Tracer::class),
-            new Reference(MessageBuilder::class),
         ]));
     }
 }

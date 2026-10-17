@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Tracing;
 
 use Ecotone\Api\Messaging\Message;
-use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Config\ProjectingModule;
 use Throwable;
@@ -23,7 +21,6 @@ final class TracedRouteProcessor implements MessageProcessor
         private string $routeName,
         private MessageProcessor $routeProcessor,
         private Tracer $tracer,
-        private MessageBuilder $messageBuilder,
     ) {
     }
 
@@ -35,13 +32,6 @@ final class TracedRouteProcessor implements MessageProcessor
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->routeName,
             ...$this->destinationAttributes(),
         ]);
-
-        $destination = $this->destination();
-        if ($destination !== null) {
-            $message = $this->messageBuilder->fromMessage($message)
-                ->setHeader(MessageHeaders::TRACESTATE, TraceState::withDestination($destination))
-                ->build();
-        }
 
         try {
             $result = $this->routeProcessor->process($message);
@@ -64,11 +54,6 @@ final class TracedRouteProcessor implements MessageProcessor
         }
 
         return 'route ' . (BusRoutingMapBuilder::endpointIdOfDestinationChannel($this->routeName) ?? $this->routeName);
-    }
-
-    private function destination(): ?string
-    {
-        return ProjectingModule::projectionNameOfTriggerChannel($this->routeName) ?? BusRoutingMapBuilder::endpointIdOfDestinationChannel($this->routeName);
     }
 
     /**

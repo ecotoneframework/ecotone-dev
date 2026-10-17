@@ -12,7 +12,9 @@ use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\OrchestratorGateway;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -62,8 +64,6 @@ use Ecotone\Tracing\TracingInterceptor;
 
 use function implode;
 
-use ReflectionClass;
-
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
@@ -71,14 +71,21 @@ use ReflectionClass;
 final class TracingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     private const REMOVE_EXPIRED_TRACES_CHANNEL = 'ecotone.tracing.removeExpiredTraces';
+    private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
 
     /**
      * @param string[] $traceCompletedSubscribers
      * @param string[] $spanEndedSubscribers
      */
+    /**
+     * @param string[] $traceCompletedSubscribers
+     * @param string[] $spanEndedSubscribers
+     * @param array<string, string> $endpointIdsByHandler
+     */
     private function __construct(
         private array $traceCompletedSubscribers,
         private array $spanEndedSubscribers,
+        private array $endpointIdsByHandler,
     ) {
     }
 
@@ -87,7 +94,23 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         return new self(
             self::placementsOf($annotationRegistrationService, OnTraceCompleted::class),
             self::placementsOf($annotationRegistrationService, OnSpanEnded::class),
+            self::endpointIdsByHandler($annotationRegistrationService),
         );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function endpointIdsByHandler(AnnotationFinder $annotationFinder): array
+    {
+        $endpointIds = [];
+        foreach ([CommandHandler::class, QueryHandler::class, EventHandler::class, InternalHandler::class] as $attributeClassName) {
+            foreach ($annotationFinder->findAnnotatedMethods($attributeClassName) as $annotatedMethod) {
+                $endpointIds[$annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()] = $annotatedMethod->getAnnotationForMethod()->getEndpointId();
+            }
+        }
+
+        return $endpointIds;
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -120,7 +143,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
         $messagingConfiguration->registerServiceDefinition(
             TracingInterceptor::class,
-            new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class)])
+            new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class), $this->endpointIdsByHandler])
         );
 
         foreach ([
@@ -134,6 +157,8 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             'traceAsynchronousEndpoint' => AsynchronousRunningEndpoint::class,
             'traceDistributedBus' => DistributedBus::class,
             'traceProjection' => ProjectionTriggerEndpoint::class,
+            'traceMessageGateway' => self::USER_MESSAGE_GATEWAYS_POINTCUT,
+            'traceOrchestratorGateway' => OrchestratorGateway::class,
         ] as $method => $pointcut) {
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorBuilder::create(
@@ -218,7 +243,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
                 TraceRecordingInterceptor::class,
                 $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'recordUnitOfWork'),
                 Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-                CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class
+                CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
             )
         );
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnTraceCompleted::CHANNEL));
@@ -256,7 +281,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     {
         $placements = [];
         foreach ($annotationFinder->findAnnotatedMethods($attributeClassName) as $annotatedMethod) {
-            $placements[] = '#[' . (new ReflectionClass($attributeClassName))->getShortName() . '] on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
+            $placements[] = '#[' . substr((string) strrchr('\\' . $attributeClassName, '\\'), 1) . '] on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
         }
 
         return $placements;

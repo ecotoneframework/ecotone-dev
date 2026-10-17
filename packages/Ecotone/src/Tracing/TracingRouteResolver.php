@@ -6,7 +6,6 @@ namespace Ecotone\Tracing;
 
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Router\RouteResolver;
-use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -16,12 +15,11 @@ final class TracingRouteResolver implements RouteResolver
     public function __construct(
         private RouteResolver $routeResolver,
         private Tracer $tracer,
-        private MessageBuilder $messageBuilder,
     ) {
     }
 
     public function resolve(string $routeName): MessageProcessor
     {
-        return new TracedRouteProcessor($routeName, $this->routeResolver->resolve($routeName), $this->tracer, $this->messageBuilder);
+        return new TracedRouteProcessor($routeName, $this->routeResolver->resolve($routeName), $this->tracer);
     }
 }

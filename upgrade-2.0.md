@@ -3118,7 +3118,9 @@ to storing the failed outer span then, so a failed trace shows its error and cou
 its message id, so a redelivery of the same message satisfies the delivery it belongs to and no other, and a
 message sent to an asynchronous handler is attributed to that handler's `endpointId` whether it was routed by the
 event bus, the command bus or an `outputChannelName`. The handler span is the innermost interceptor around the
-method, so it records the handler's own failure even when an error channel or a retry handles it, and
+method, so it records the handler's own failure even when an error channel or a retry handles it, and the consumer
+or bus span that wraps a failed unit of work ends as failed too, in OpenTelemetry as in the store, unless a retry
+inside it succeeded; and
 `TraceCompletionTimedOut` names the handlers whose last attempt failed, the channels still holding a message, a
 trace nobody recorded, and a destination the trace never reached. `TraceCompletion` is always injectable; without
 `withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a

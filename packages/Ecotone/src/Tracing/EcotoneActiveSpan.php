@@ -18,9 +18,11 @@ use Throwable;
  */
 final class EcotoneActiveSpan implements ActiveSpan
 {
+    public const UNIT_OF_WORK_FAILED = 'The unit of work this span wraps failed and its failure was handled by the error channel or the acknowledgement strategy';
     /** @var SpanEvent[] */
     private array $events = [];
     private bool $ended = false;
+    private bool $unitOfWorkFailed = false;
 
     /**
      * @param array<string, scalar> $attributes
@@ -54,7 +56,22 @@ final class EcotoneActiveSpan implements ActiveSpan
 
     public function end(): void
     {
+        if ($this->unitOfWorkFailed) {
+            $this->finish(SpanStatus::Error, self::UNIT_OF_WORK_FAILED);
+
+            return;
+        }
         $this->finish(SpanStatus::Ok, null);
+    }
+
+    public function markUnitOfWorkFailed(): void
+    {
+        $this->unitOfWorkFailed = true;
+    }
+
+    public function markUnitOfWorkRecovered(): void
+    {
+        $this->unitOfWorkFailed = false;
     }
 
     public function fail(Throwable $failure): void

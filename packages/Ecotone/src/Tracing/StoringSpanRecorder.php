@@ -37,18 +37,15 @@ use Throwable;
  */
 final class StoringSpanRecorder implements SpanRecorder
 {
-    /** @var Span[] */
-    private array $buffer = [];
-    private bool $scopeActive = false;
-    /** @var Span[] */
-    private array $endedSpansToPublish = [];
-    /** @var string[] */
-    private array $completedTracesToPublish = [];
     private const NOTIFICATION_RETRY_DELAY_IN_SECONDS = 30;
     private const NOTIFICATION_RETRY_BATCH = 10;
+
+    /** @var Span[] */
+    private array $buffer = [];
+    /** @var Span[] */
+    private array $flushedAwaitingCommit = [];
+    private bool $scopeActive = false;
     private bool $publishing = false;
-    /** @var array<string, true> */
-    private array $spansWrappingAFailedUnitOfWork = [];
 
     public function __construct(
         private TraceStore $traceStore,
@@ -71,18 +68,14 @@ final class StoringSpanRecorder implements SpanRecorder
 
             return;
         }
-        if (isset($this->spansWrappingAFailedUnitOfWork[$span->spanId])) {
-            unset($this->spansWrappingAFailedUnitOfWork[$span->spanId]);
-            $span = self::failedByItsUnitOfWork($span);
-        }
+        $spans = [...$this->buffer, $span];
+        $flushed = $this->flushedAwaitingCommit;
+        $this->buffer = [];
+        $this->flushedAwaitingCommit = [];
         if ($span->status === SpanStatus::Error && ! $this->storesFailuresOutsideTransaction) {
             return;
         }
-
-        $spans = [...$this->buffer, $span];
-        $this->buffer = [];
-        $this->write($spans, true);
-        $this->publish();
+        $this->write($spans, $flushed);
     }
 
     public function openScope(): void
@@ -97,12 +90,13 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function flush(): void
     {
-        foreach (self::outerParentsOf($this->buffer) as $spanId) {
-            unset($this->spansWrappingAFailedUnitOfWork[$spanId]);
-        }
         $spans = $this->buffer;
         $this->buffer = [];
-        $this->write($spans, false);
+        if ($spans === []) {
+            return;
+        }
+        $this->traceStore->append($spans);
+        $this->flushedAwaitingCommit = [...$this->flushedAwaitingCommit, ...$spans];
     }
 
     public function closeScope(): void
@@ -112,75 +106,24 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function discard(): void
     {
-        foreach (self::outerParentsOf($this->buffer) as $spanId) {
-            $this->spansWrappingAFailedUnitOfWork[$spanId] = true;
-        }
         if (! $this->storesFailuresOutsideTransaction) {
             $this->buffer = [];
+            $this->flushedAwaitingCommit = [];
         }
     }
 
     /**
      * @param Span[] $spans
-     * @return string[]
+     * @param Span[] $flushedBefore
      */
-    private static function outerParentsOf(array $spans): array
+    private function write(array $spans, array $flushedBefore): void
     {
-        $spanIds = [];
-        foreach ($spans as $span) {
-            $spanIds[$span->spanId] = true;
-        }
-        $parents = [];
-        foreach ($spans as $span) {
-            if ($span->parentSpanId !== null && ! isset($spanIds[$span->parentSpanId])) {
-                $parents[$span->parentSpanId] = true;
-            }
-        }
-
-        return array_keys($parents);
-    }
-
-    private static function failedByItsUnitOfWork(Span $span): Span
-    {
-        if ($span->status === SpanStatus::Error) {
-            return $span;
-        }
-
-        return new Span(
-            $span->traceId,
-            $span->spanId,
-            $span->parentSpanId,
-            $span->name,
-            $span->kind,
-            $span->attributes,
-            SpanStatus::Error,
-            'The unit of work this span wraps failed and its failure was handled by the error channel or the acknowledgement strategy',
-            $span->events,
-            $span->startedAt,
-            $span->endedAt,
-        );
-    }
-
-    /**
-     * @param Span[] $spans
-     */
-    private function write(array $spans, bool $decidesCompletion): void
-    {
-        if ($spans === []) {
-            return;
-        }
-
         $this->traceStore->append($spans);
-        $completedTraces = $decidesCompletion ? $this->completedAmong($spans) : [];
+        $completedTraces = $this->completedAmong([...$flushedBefore, ...$spans]);
         if ($this->publishing) {
             return;
         }
-        if ($this->publishesEndedSpans) {
-            $this->endedSpansToPublish = [...$this->endedSpansToPublish, ...$spans];
-        }
-        if ($this->publishesCompletedTraces) {
-            $this->completedTracesToPublish = [...$this->completedTracesToPublish, ...$completedTraces];
-        }
+        $this->publish($this->publishesEndedSpans ? [...$flushedBefore, ...$spans] : [], $this->publishesCompletedTraces ? $completedTraces : []);
     }
 
     /**
@@ -199,16 +142,12 @@ final class StoringSpanRecorder implements SpanRecorder
         return $completed;
     }
 
-    private function publish(): void
+    /**
+     * @param Span[] $endedSpans
+     * @param string[] $completedTraces
+     */
+    private function publish(array $endedSpans, array $completedTraces): void
     {
-        if ($this->publishing) {
-            return;
-        }
-        $endedSpans = $this->endedSpansToPublish;
-        $completedTraces = $this->completedTracesToPublish;
-        $this->endedSpansToPublish = [];
-        $this->completedTracesToPublish = [];
-
         $this->publishing = true;
         try {
             foreach ($endedSpans as $span) {

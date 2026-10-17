@@ -170,7 +170,24 @@ final class TracingInterceptor
             $attributes[SpanAttribute::ENDPOINT_ID] = $endpointId;
         }
 
-        return $this->trace('process ' . self::shortNameOf($methodInvocation->getName()), $methodInvocation, $message, SpanKind::Server, $attributes);
+        return $this->traceUnitOfWorkStep('process ' . self::shortNameOf($methodInvocation->getName()), $methodInvocation, $message, $attributes);
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private function traceUnitOfWorkStep(string $name, MethodInvocation $methodInvocation, Message $message, array $attributes): mixed
+    {
+        try {
+            $result = $this->trace($name, $methodInvocation, $message, SpanKind::Server, $attributes);
+        } catch (Throwable $failure) {
+            $this->tracer->currentSpan()?->markUnitOfWorkFailed();
+
+            throw $failure;
+        }
+        $this->tracer->currentSpan()?->markUnitOfWorkRecovered();
+
+        return $result;
     }
 
     private static function shortNameOf(string $classAndMethod): string

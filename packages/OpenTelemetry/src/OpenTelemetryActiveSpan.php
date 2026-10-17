@@ -12,6 +12,7 @@ use Ecotone\Api\Tracing\SpanEvent;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Tracing\ActiveSpan;
+use Ecotone\Tracing\EcotoneActiveSpan;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Context\ScopeInterface;
@@ -25,6 +26,7 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
     /** @var SpanEvent[] */
     private array $events = [];
     private bool $ended = false;
+    private bool $unitOfWorkFailed = false;
 
     /**
      * @param array<string, scalar> $attributes
@@ -61,7 +63,22 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
 
     public function end(): void
     {
+        if ($this->unitOfWorkFailed) {
+            $this->finish(StatusCode::STATUS_ERROR, SpanStatus::Error, EcotoneActiveSpan::UNIT_OF_WORK_FAILED);
+
+            return;
+        }
         $this->finish(StatusCode::STATUS_OK, SpanStatus::Ok, null);
+    }
+
+    public function markUnitOfWorkFailed(): void
+    {
+        $this->unitOfWorkFailed = true;
+    }
+
+    public function markUnitOfWorkRecovered(): void
+    {
+        $this->unitOfWorkFailed = false;
     }
 
     public function fail(Throwable $failure): void

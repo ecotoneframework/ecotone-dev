@@ -26,5 +26,9 @@ interface ActiveSpan
 
     public function end(): void;
 
+    public function markUnitOfWorkFailed(): void;
+
+    public function markUnitOfWorkRecovered(): void;
+
     public function fail(Throwable $failure): void;
 }

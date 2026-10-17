@@ -406,12 +406,49 @@ final class TraceCompletionTest extends TestCase
     public function test_stored_traces_require_an_enterprise_licence(): void
     {
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('Stored traces and TraceCompletion require an Ecotone Enterprise licence.');
+        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() requires an Ecotone Enterprise licence. Remove it to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [],
             [],
             [TracingConfiguration::createWithDefaults()->withStoredTraces()],
+        );
+    }
+
+    public function test_a_trace_completed_subscriber_requires_an_enterprise_licence(): void
+    {
+        $subscriber = new class () {
+            #[OnTraceCompleted]
+            public function whenCompleted(TraceCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() and #[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
+            [TracingConfiguration::createWithDefaults()->withStoredTraces()],
+        );
+    }
+
+    public function test_a_span_ended_subscriber_requires_an_enterprise_licence_even_without_stored_traces(): void
+    {
+        $subscriber = new class () {
+            #[OnSpanEnded]
+            public function whenEnded(SpanEnded $event): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('#[OnSpanEnded] on ' . $subscriber::class . '::whenEnded requires an Ecotone Enterprise licence. Remove it to run without one.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
         );
     }
 

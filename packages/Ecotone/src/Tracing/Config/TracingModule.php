@@ -169,8 +169,14 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     private function refuseMisconfiguredStoredTraces(Configuration $messagingConfiguration, TracingConfiguration $tracingConfiguration): void
     {
         $subscribers = [...$this->traceCompletedSubscribers, ...$this->spanEndedSubscribers];
-        if (($tracingConfiguration->storedTraces || $subscribers !== []) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Stored traces and TraceCompletion require an Ecotone Enterprise licence.');
+        $enterpriseUsages = [...($tracingConfiguration->storedTraces ? ['TracingConfiguration::withStoredTraces()'] : []), ...$subscribers];
+        if ($enterpriseUsages !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create(sprintf(
+                '%s %s an Ecotone Enterprise licence. Remove %s to run without one.',
+                implode(' and ', $enterpriseUsages),
+                count($enterpriseUsages) === 1 ? 'requires' : 'require',
+                count($enterpriseUsages) === 1 ? 'it' : 'them',
+            ));
         }
         if ($tracingConfiguration->storedTraces || $subscribers === []) {
             return;

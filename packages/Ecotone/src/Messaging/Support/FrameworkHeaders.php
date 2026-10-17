@@ -151,6 +151,7 @@ final class FrameworkHeaders
             MessagingEntrypointService::ENTRYPOINT,
             MessageHeaders::TRACEPARENT,
             MessageHeaders::TRACESTATE,
+            MessageHeaders::TRACING_DELIVERY,
         ];
     }
 }

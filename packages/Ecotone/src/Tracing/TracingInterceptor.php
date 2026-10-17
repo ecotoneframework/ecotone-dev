@@ -82,7 +82,7 @@ final class TracingInterceptor
         $attributes = [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS];
         if ($headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
             $attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] = $headers->get(MessageHeaders::POLLED_CHANNEL_NAME);
-            $attributes[SpanAttribute::CHANNEL_NAME] = $headers->get(MessageHeaders::POLLED_CHANNEL_NAME);
+            $attributes[SpanAttribute::CHANNEL_NAME] = TracingChannelInterceptor::deliveryChannelOf($message) ?? $headers->get(MessageHeaders::POLLED_CHANNEL_NAME);
         }
 
         return $this->trace($name, $methodInvocation, $message, SpanKind::Consumer, $attributes);

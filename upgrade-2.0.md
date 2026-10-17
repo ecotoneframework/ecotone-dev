@@ -3130,7 +3130,10 @@ delivered, a subscriber that throws does not fail the command that already commi
 in any process re-delivers a notification left undelivered for thirty seconds. A handler that needs the id of the
 trace it runs in injects `Ecotone\Api\Tracing\CurrentTrace` and reads `traceId()`. `isCompletedFor()` and
 `awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the trace that appended
-its events. Work a subscriber does
+its events. A message sent through a dynamic channel, through the high-throughput outbox or replayed from the dead
+letter keeps the delivery it started as, so the trace completes when that message is consumed, wherever it landed;
+a multi-tenant application stores traces on the connection `MultiTenantConfiguration::createWithDefaultConnection()`
+names, because the write after the unit of work has no tenant, and is refused at bootstrap without one. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
 command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
 with the command, or take it from the HTTP request the command came from. A flow test given no connection keeps the

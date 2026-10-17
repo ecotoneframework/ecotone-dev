@@ -51,11 +51,15 @@ final class OpenTelemetryTracer implements Tracer
         $span = $spanBuilder->startSpan();
         $scope = $span->activate();
         $context = $span->getContext();
+        $parentContext = $remoteParent ?? $this->currentSpan()?->context();
+        $spanContext = $context->isValid() && $span->isRecording()
+            ? new SpanContext($context->getTraceId(), $context->getSpanId(), $context->isSampled())
+            : ($parentContext?->newChild() ?? SpanContext::newTrace());
 
         $activeSpan = new OpenTelemetryActiveSpan(
             $span,
             $scope,
-            new SpanContext($context->getTraceId(), $context->getSpanId(), $context->isSampled()),
+            $spanContext,
             $parentSpanId,
             $name,
             $kind,

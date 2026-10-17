@@ -8,6 +8,8 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
@@ -20,6 +22,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -113,7 +116,22 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     private static function connectionReferenceOf(array $extensionObjects): string
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $connectionReference = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+        foreach (ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects) as $multiTenantConfiguration) {
+            if ($multiTenantConfiguration->getReferenceName() !== $connectionReference) {
+                continue;
+            }
+            if ($multiTenantConfiguration->defaultConnectionName === null) {
+                if (self::storesOnDatabase(ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults()))) {
+                    throw ConfigurationException::create('Stored traces are written after the unit of work ended, when no tenant is active, so they need a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it, or withStoredTraces(inMemory: true) for a single process.');
+                }
 
-        return $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+                return $connectionReference;
+            }
+
+            return $multiTenantConfiguration->defaultConnectionName instanceof ConnectionReference ? $multiTenantConfiguration->defaultConnectionName->getReferenceName() : $multiTenantConfiguration->defaultConnectionName;
+        }
+
+        return $connectionReference;
     }
 }

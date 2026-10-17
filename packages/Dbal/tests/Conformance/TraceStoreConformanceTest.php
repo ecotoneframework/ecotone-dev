@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -30,6 +31,7 @@ use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -408,6 +410,60 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
 
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
         self::assertSame([$trace->traceId, $trace->traceId], $subscriber->completedTraces);
+    }
+
+    public function test_a_channel_published_through_the_outbox_completes_once_its_consumer_ran(): void
+    {
+        $ecotone = $this->bootstrap('dbal', [$this->users(), $this->asynchronousNotifier()], [DbalBackedMessageChannelBuilder::create('async_channel')->withHighThroughputPublishing()]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_stored_traces_follow_the_default_connection_of_a_multi_tenant_application(): void
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$this->users()::class, $this->asynchronousNotifier()::class],
+            containerOrAvailableServices: [$this->users(), $this->asynchronousNotifier(), 'tenant_a_connection' => $this->getConnectionFactory(), 'shared_connection' => $this->getConnectionFactory()],
+            extensionObjects: [
+                TracingConfiguration::createWithDefaults()->withStoredTraces(),
+                MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection'], 'shared_connection'),
+                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->setupDatabaseTables();
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent(), 'tenant' => 'tenant_a']);
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_stored_traces_in_a_multi_tenant_application_without_a_default_connection_are_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Stored traces are written after the unit of work ended, when no tenant is active, so they need a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it, or withStoredTraces(inMemory: true) for a single process.');
+
+        $this->bootstrapFlowTesting(
+            classesToResolve: [$this->users()::class],
+            containerOrAvailableServices: [$this->users(), 'tenant_a_connection' => $this->getConnectionFactory()],
+            extensionObjects: [
+                TracingConfiguration::createWithDefaults()->withStoredTraces(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection']),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void

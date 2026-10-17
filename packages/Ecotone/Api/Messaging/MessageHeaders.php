@@ -70,6 +70,7 @@ final class MessageHeaders
 
     public const TRACEPARENT = 'traceparent';
     public const TRACESTATE = 'tracestate';
+    public const TRACING_DELIVERY = 'ecotone_tracing_delivery';
 
     public const EVENT_AGGREGATE_TYPE = '_aggregate_type';
 

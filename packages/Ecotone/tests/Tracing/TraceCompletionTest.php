@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -601,7 +602,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone = $this->bootstrap([$projection]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].");
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
 
         $this->completion($ecotone)->awaitFor('0af7651916cd43dd8448eb211c80319c', 'orders_list', Duration::milliseconds(10));
     }
@@ -641,6 +642,33 @@ final class TraceCompletionTest extends TestCase
         $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or ->withStoredTraces() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
 
         $ecotone->sendCommandWithRouting('user.register', '1');
+    }
+
+    public function test_a_dynamic_channel_spreading_over_two_channels_completes_once_both_deliveries_were_consumed(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [
+            DynamicMessageChannelBuilder::createRoundRobin('orders', ['orders_a', 'orders_b']),
+            SimpleMessageChannelBuilder::createQueueChannel('orders_a'),
+            SimpleMessageChannelBuilder::createQueueChannel('orders_b'),
+        ]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->sendCommandWithRouting('order.place', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void

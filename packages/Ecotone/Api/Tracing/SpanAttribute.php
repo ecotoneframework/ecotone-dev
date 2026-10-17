@@ -17,6 +17,7 @@ final class SpanAttribute
     public const TRACE_ROOT = 'ecotone.trace.root';
     public const CODE_FUNCTION_NAME = 'code.function.name';
     public const CHANNEL_NAME = 'ecotone.channel.name';
+    public const BATCH_DELIVERIES = 'ecotone.batch.deliveries';
 
     public const ECOTONE = 'ecotone';
     public const OPERATION_SEND = 'send';

@@ -6,6 +6,7 @@ namespace Ecotone\Tracing;
 
 use function array_pop;
 
+use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -39,11 +40,10 @@ final class TracingChannelInterceptor implements ChannelInterceptor
             ...$this->messageSpanAttributes->from($message),
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
-            SpanAttribute::CHANNEL_NAME => $this->channelName,
         ];
-        $targetEndpointId = self::targetEndpointIdOf($message);
-        if ($targetEndpointId !== null) {
-            $attributes[SpanAttribute::ENDPOINT_ID] = $targetEndpointId;
+        $isFirstChannel = self::deliveryChannelOf($message) === null;
+        if ($isFirstChannel) {
+            $attributes = [...$attributes, ...$this->deliveryAttributes($message)];
         }
         $span = $this->tracer->startSpan(
             'send ' . $this->channelName,
@@ -53,18 +53,71 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         );
         $this->openSendSpans[] = $span;
 
-        return $this->messageBuilder->fromMessage($message)
-            ->setHeader(MessageHeaders::TRACEPARENT, $span->context()->toTraceparent())
-            ->build();
+        $traceparent = $span->context()->toTraceparent();
+        $sent = $this->messageBuilder->fromMessage($message)->setHeader(MessageHeaders::TRACEPARENT, $traceparent);
+        if ($isFirstChannel) {
+            $sent = $sent->setHeader(MessageHeaders::TRACING_DELIVERY, $this->channelName . ':' . $message->getHeaders()->getMessageId());
+        }
+        $payload = $message->getPayload();
+        if ($payload instanceof BatchMessage) {
+            $sent = $sent->setPayload(BatchMessage::fromEntries(array_map(
+                fn (array $entry): array => [...$entry, 'headers' => [...($entry['headers'] ?? []), MessageHeaders::TRACEPARENT => $traceparent]],
+                $payload->entries,
+            )));
+        }
+
+        return $sent->build();
+    }
+
+    public static function deliveryChannelOf(Message $message): ?string
+    {
+        $headers = $message->getHeaders();
+        if (! $headers->containsKey(MessageHeaders::TRACING_DELIVERY)) {
+            return null;
+        }
+        [$channel, $messageId] = explode(':', (string) $headers->get(MessageHeaders::TRACING_DELIVERY), 2);
+
+        return $messageId === $headers->getMessageId() ? $channel : null;
+    }
+
+    /**
+     * @return array<string, scalar>
+     */
+    private function deliveryAttributes(Message $message): array
+    {
+        $attributes = [SpanAttribute::CHANNEL_NAME => $this->channelName];
+        $payload = $message->getPayload();
+        if ($payload instanceof BatchMessage) {
+            $deliveries = [];
+            foreach ($payload->entries as $entry) {
+                $headers = $entry['headers'] ?? [];
+                $deliveries[(string) ($headers[MessageHeaders::MESSAGE_ID] ?? '')] = self::targetEndpointIdOfRoutingSlip((string) ($headers[MessageHeaders::ROUTING_SLIP] ?? ''));
+            }
+            $attributes[SpanAttribute::BATCH_DELIVERIES] = json_encode($deliveries, JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT);
+
+            return $attributes;
+        }
+        $targetEndpointId = self::targetEndpointIdOf($message);
+        if ($targetEndpointId !== null) {
+            $attributes[SpanAttribute::ENDPOINT_ID] = $targetEndpointId;
+        }
+
+        return $attributes;
     }
 
     private static function targetEndpointIdOf(Message $message): ?string
     {
         $headers = $message->getHeaders();
-        if (! $headers->containsKey(MessageHeaders::ROUTING_SLIP)) {
+
+        return $headers->containsKey(MessageHeaders::ROUTING_SLIP) ? self::targetEndpointIdOfRoutingSlip((string) $headers->get(MessageHeaders::ROUTING_SLIP)) : null;
+    }
+
+    private static function targetEndpointIdOfRoutingSlip(string $routingSlipHeader): ?string
+    {
+        if ($routingSlipHeader === '') {
             return null;
         }
-        $routingSlip = explode(',', (string) $headers->get(MessageHeaders::ROUTING_SLIP));
+        $routingSlip = explode(',', $routingSlipHeader);
         $executionChannel = $routingSlip[count($routingSlip) - 1];
         if (! str_ends_with($executionChannel, AsynchronousModule::HANDLER_EXECUTION_CHANNEL_SUFFIX)) {
             return null;

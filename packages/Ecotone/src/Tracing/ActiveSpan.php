@@ -15,6 +15,11 @@ interface ActiveSpan
     public function context(): SpanContext;
 
     /**
+     * @return array<string, scalar>
+     */
+    public function attributes(): array;
+
+    /**
      * @param array<string, scalar|null> $attributes
      */
     public function addEvent(string $name, array $attributes = []): void;

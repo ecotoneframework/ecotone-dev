@@ -49,6 +49,17 @@ final class TraceLedger
             if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {
                 $rootEnded = true;
             }
+            if (isset($span->attributes[SpanAttribute::BATCH_DELIVERIES], $span->attributes[SpanAttribute::CHANNEL_NAME]) && $span->kind === SpanKind::Producer && $span->status !== SpanStatus::Error) {
+                $channel = (string) $span->attributes[SpanAttribute::CHANNEL_NAME];
+                foreach (json_decode((string) $span->attributes[SpanAttribute::BATCH_DELIVERIES], true, flags: JSON_THROW_ON_ERROR) as $messageId => $endpointId) {
+                    $sentDeliveries[$channel][(string) $messageId] = true;
+                    if ($endpointId !== null) {
+                        $sent[(string) $endpointId][(string) $messageId] = true;
+                    }
+                }
+
+                continue;
+            }
             $delivery = self::deliveryOf($span);
             if ($delivery !== null) {
                 [$channel, $messageId] = $delivery;

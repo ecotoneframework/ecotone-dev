@@ -6,7 +6,9 @@ namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
@@ -174,6 +176,35 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:emission.enum'));
     }
 
+    public function test_named_event_alias_and_class_reach_both_subscribers(): void
+    {
+        $service = new class () {
+            #[CommandHandler('named.publish')]
+            public function publish(EventBus $bus): void
+            {
+                $bus->publish(new NamedEmissionEvent());
+                $bus->publishWithRouting('emission.named', []);
+            }
+
+            #[EventHandler]
+            public function typed(NamedEmissionEvent $event): void
+            {
+            }
+
+            #[EventHandler('emission.named')]
+            public function named(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        foreach (['message:' . NamedEmissionEvent::class, 'message:emission.named'] as $message) {
+            foreach (['typed', 'named'] as $method) {
+                self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, $message, 'handler:' . $service::class . '::' . $method));
+            }
+        }
+    }
+
 }
 
 final class EmissionEvent
@@ -189,4 +220,9 @@ final class EmissionEvent
 enum EmissionRoute: string
 {
     case CREATED = 'emission.enum';
+}
+
+#[NamedEvent('emission.named')]
+final class NamedEmissionEvent
+{
 }

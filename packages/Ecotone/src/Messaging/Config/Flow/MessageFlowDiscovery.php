@@ -18,6 +18,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
@@ -93,6 +94,7 @@ final class MessageFlowDiscovery
         $this->discoverAppliedEvents();
         $this->discoverGateways();
         $this->discoverScheduled();
+        $this->discoverEventAliases();
 
         return new DeclaredMessageFlow(MessageFlowGraph::create(array_values($this->nodes), $this->edges), $this->collaborators);
     }
@@ -111,6 +113,29 @@ final class MessageFlowDiscovery
             }
             foreach ($subscriptions as $channelName => $subscriptionKeys) {
                 $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['subscriptionKeys' => $subscriptionKeys]);
+            }
+        }
+    }
+
+    private function discoverEventAliases(): void
+    {
+        $aliases = [];
+        foreach ($this->nodes as $node) {
+            if ($node->kind !== FlowNodeKind::EVENT || ! is_string($node->attributes['class'] ?? null)) {
+                continue;
+            }
+            $definition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($node->attributes['class']));
+            if (! $definition->hasClassAnnotation(Type::attribute(NamedEvent::class))) {
+                continue;
+            }
+            $alias = $definition->getSingleClassAnnotation(Type::attribute(NamedEvent::class))->getName();
+            $aliasNode = $this->messageNode($alias, FlowNodeKind::EVENT, $node->attributes['handled']);
+            $aliases[$node->id] = $aliasNode->id;
+            $aliases[$aliasNode->id] = $node->id;
+        }
+        foreach ($this->edges as $edge) {
+            if ($edge->kind === FlowEdgeKind::ROUTED_TO && isset($aliases[$edge->from])) {
+                $this->edges[] = new FlowEdge($aliases[$edge->from], $edge->to, FlowEdgeKind::ROUTED_TO);
             }
         }
     }

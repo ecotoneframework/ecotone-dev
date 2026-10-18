@@ -49,7 +49,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         ?string $messageGroupId = null
     ): self {
         if ($startPosition === 'next') {
-            throw ConfigurationException::create("AMQP stream channel `{$channelName}` cannot start at `next`: RabbitMQ delivers a `next` consumer only what is published after it attaches, so every message published before the consumer's first poll, or between two of its runs, is never delivered. Start at `first`, at `last`, at an absolute offset such as `100`, or at a timestamp such as `1700000000`; after the first commit the consumer resumes from its committed offset whichever start position it was given.");
+            throw ConfigurationException::create("AMQP stream channel `{$channelName}` cannot start at `next`: RabbitMQ delivers a `next` consumer only what is published after it attaches, so every message published before the consumer's first poll, or between two of its runs, is never delivered. Start at `first`, at `last` or at an absolute offset such as `100`; after the first commit the consumer resumes from its committed offset whichever start position it was given.");
         }
         $queueName ??= $channelName;
 

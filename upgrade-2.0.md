@@ -1169,7 +1169,7 @@ routing wildcards are unchanged: `*` matches any run of characters, dots include
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `TestConfiguration::withFailOnCommandHandlerNotFound()`, `withFailOnQueryHandlerNotFound()` | `withFailOnNotFoundHandler()`, one switch for both buses, `true` by default: a flow test sending a command or query nobody handles fails unless it opts out |
-| `AmqpStreamChannelBuilder::create($channel, 'next')` | `first`, `last`, an absolute offset or a timestamp. A `next` consumer receives only what RabbitMQ sees published after it attaches, so messages published before the first poll or between two runs were lost; bootstrap now refuses it with a message naming the positions that replay |
+| `AmqpStreamChannelBuilder::create($channel, 'next')` | `first`, `last` or an absolute offset. A `next` consumer receives only what RabbitMQ sees published after it attaches, so messages published before the first poll or between two runs were lost; bootstrap now refuses it with a message naming the positions that replay |
 | `CronExpression::factory()`, `CronExpression::YEAR` | `new CronExpression()`; the year field was never parsed |
 | `ServiceActivatorBuilder` (internal) | `MessageProcessorActivatorBuilder::createForMethod($objectToInvokeOn, $method)`; invoker options such as changed headers or a custom result converter go on a `MethodInvokerBuilder` passed to `createForMethodInvoker()` |
 | `#[ServiceActivator]` | `#[InternalHandler]` (1.x already had both names for one attribute; §7a) |

@@ -147,6 +147,8 @@ final class MessageFlowGraphBuilder
                 $this->addDistributedMessage($flow, $handler->id, $busId, $arguments[0], FlowNodeKind::EVENT, $call['method'], []);
             } elseif ($call['method'] === 'sendMessage' && isset($arguments[1])) {
                 $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $arguments[0], 'targetChannel' => $arguments[1]]));
+            } elseif (in_array($call['method'], [...self::DISTRIBUTED_COMMAND_CALLS, ...self::DISTRIBUTED_EVENT_CALLS, 'sendMessage'], true)) {
+                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => $call['method']]));
             }
         }
     }

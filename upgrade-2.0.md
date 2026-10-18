@@ -3108,7 +3108,7 @@ Two features are on by default and each can be turned off while the flows are st
   `TraceCompletionTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
   handler failed, and naming a flow nobody recorded or a destination the flow never reached.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
-- **Notifications**: a method with `#[OnTraceCompleted]` receives a `TraceCompleted` each time its flow reaches
+- **Notifications**: a method with `#[OnFlowCompleted]` receives a `FlowCompleted` each time its flow reaches
   completion, and one with `#[OnSpanEnded]` receives every tracked span. `withNotifications(false)` turns them off,
   and an application that still declares either attribute is refused at bootstrap.
 
@@ -3159,8 +3159,8 @@ $tracingGateway->awaitFor($tracingId, 'orders_list', Duration::seconds(5));
 
 final class OrdersWebsocket
 {
-    #[OnTraceCompleted]
-    public function push(TraceCompleted $event): void
+    #[OnFlowCompleted]
+    public function push(FlowCompleted $event): void
     {
     }
 }

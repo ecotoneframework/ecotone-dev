@@ -12,11 +12,11 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
 use Ecotone\Api\Dbal\Tracing\SpanEnded;
-use Ecotone\Api\Dbal\Tracing\TraceCompleted;
 use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
@@ -183,14 +183,14 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
     }
 
-    public function test_a_trace_completed_subscriber_is_called_once_after_the_last_handler_committed(): void
+    public function test_a_flow_completed_subscriber_is_called_once_after_the_last_handler_committed(): void
     {
         $subscriber = new class () {
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
             }
@@ -214,8 +214,8 @@ final class FlowTrackingTest extends TestCase
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
             }
@@ -320,13 +320,13 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
     }
 
-    public function test_a_trace_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
+    public function test_a_flow_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
     {
         $subscriber = new class () {
             public int $notifications = 0;
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event, CommandBus $commandBus): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event, CommandBus $commandBus): void
             {
                 $this->notifications++;
                 if ($this->notifications < 5) {
@@ -773,14 +773,14 @@ final class FlowTrackingTest extends TestCase
     public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
             }
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
+        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -811,8 +811,8 @@ final class FlowTrackingTest extends TestCase
             /** @var string[] */
             public array $completedFlows = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedFlows[] = $event->tracingId;
             }
@@ -845,17 +845,17 @@ final class FlowTrackingTest extends TestCase
         );
     }
 
-    public function test_a_trace_completed_subscriber_requires_an_enterprise_licence(): void
+    public function test_a_flow_completed_subscriber_requires_an_enterprise_licence(): void
     {
         $subscriber = new class () {
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
             }
         };
 
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
+        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -882,17 +882,17 @@ final class FlowTrackingTest extends TestCase
         );
     }
 
-    public function test_a_trace_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
+    public function test_a_flow_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
             }
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted needs flow tracking, which decides when a flow is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
+        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted needs flow tracking, which decides when a flow is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],

@@ -10,9 +10,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
-use Ecotone\Api\Dbal\Tracing\TraceCompleted;
+use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -59,7 +59,7 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
     public function test_one_trace_is_exported_to_open_telemetry_and_stored_in_the_database_across_an_asynchronous_dbal_channel(): void
     {
         $exporter = new InMemoryExporter(new ArrayObject());
-        $subscriber = $this->traceCompletedSubscriber();
+        $subscriber = $this->flowCompletedSubscriber();
         $ecotone = $this->bootstrap($exporter, [$this->users(), $this->asynchronousNotifier(), $subscriber]);
         $trace = SpanContext::newTrace();
 
@@ -161,14 +161,14 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         };
     }
 
-    private function traceCompletedSubscriber(): object
+    private function flowCompletedSubscriber(): object
     {
         return new class () {
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
             }

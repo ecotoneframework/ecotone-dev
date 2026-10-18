@@ -16,11 +16,11 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
 use Ecotone\Api\Dbal\Tracing\SpanEnded;
-use Ecotone\Api\Dbal\Tracing\TraceCompleted;
 use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -120,14 +120,14 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_trace_completed_subscriber_is_called_once_after_the_last_handler_committed(string $implementation): void
+    public function test_a_flow_completed_subscriber_is_called_once_after_the_last_handler_committed(string $implementation): void
     {
         $subscriber = new class () {
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
             }
@@ -349,8 +349,8 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
                 if (count($this->completedTraces) === 1) {
@@ -377,8 +377,8 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnTraceCompleted]
-            public function whenCompleted(TraceCompleted $event): void
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
             {
                 $this->completedTraces[] = $event->tracingId;
             }

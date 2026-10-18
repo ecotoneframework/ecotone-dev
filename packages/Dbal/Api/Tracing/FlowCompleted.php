@@ -8,7 +8,7 @@ namespace Ecotone\Api\Dbal\Tracing;
  * licence Enterprise
  * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
-final class TraceCompleted
+final class FlowCompleted
 {
     public function __construct(public readonly string $tracingId)
     {

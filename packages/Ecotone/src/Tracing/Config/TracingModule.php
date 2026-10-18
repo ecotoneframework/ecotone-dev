@@ -56,10 +56,6 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
 
     /**
-     * @param string[] $traceCompletedSubscribers
-     * @param string[] $spanEndedSubscribers
-     */
-    /**
      * @param array<string, string> $endpointIdsByHandler
      */
     private function __construct(

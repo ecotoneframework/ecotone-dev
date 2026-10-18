@@ -12,9 +12,9 @@ use Ecotone\Api\Attribute\InternalHandler;
  * licence Enterprise
  * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
-final class OnTraceCompleted extends InternalHandler
+final class OnFlowCompleted extends InternalHandler
 {
-    public const CHANNEL = 'ecotone.tracing.traceCompleted';
+    public const CHANNEL = 'ecotone.tracing.flowCompleted';
 
     public function __construct()
     {

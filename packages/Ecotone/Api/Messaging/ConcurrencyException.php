@@ -80,6 +80,16 @@ class ConcurrencyException extends MessagingException
         ), self::errorCode());
     }
 
+    public static function forConcurrentlyRecordedFlow(string $tracingId): self
+    {
+        return new self(sprintf(
+            'Flow %s was recorded by another of its units of work after this one read it, so this one cannot tell whether it is the one that completed the flow. '
+            . 'Its transaction is rolled back so it can read the flow again: an asynchronous endpoint retries it by default, '
+            . 'and a command does when Ecotone retries it with InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [ConcurrencyException::class]).',
+            $tracingId,
+        ), self::errorCode());
+    }
+
     private static function whereItIsNow(int $expectedVersion, int $currentVersion): string
     {
         return $currentVersion === $expectedVersion

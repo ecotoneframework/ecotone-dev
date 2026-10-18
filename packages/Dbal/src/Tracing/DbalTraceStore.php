@@ -7,9 +7,11 @@ namespace Ecotone\Dbal\Tracing;
 use Closure;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\Span;
@@ -134,13 +136,31 @@ final class DbalTraceStore implements TraceStore
      */
     private function claimTrace(Connection $connection, string $traceId, array $traceSpans): void
     {
-        $startedAt = min(array_map(fn (Span $span): int => $span->startedAt->unixTime()->inMicroseconds(), $traceSpans));
         $tableName = $this->tracesTableManager->getTableName();
-        $sql = $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform
-            ? "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON DUPLICATE KEY UPDATE completed_at = NULL"
-            : "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON CONFLICT (trace_id) DO UPDATE SET completed_at = NULL";
+        $readVersion = $connection->fetchOne("SELECT version FROM {$tableName} WHERE trace_id = :traceId", ['traceId' => $traceId]);
+        if ($readVersion === false) {
+            try {
+                $connection->insert($tableName, [
+                    'trace_id' => $traceId,
+                    'started_at' => min(array_map(fn (Span $span): int => $span->startedAt->unixTime()->inMicroseconds(), $traceSpans)),
+                    'completed_at' => null,
+                    'version' => 1,
+                ], ['started_at' => Types::BIGINT]);
+            } catch (UniqueConstraintViolationException) {
+                throw ConcurrencyException::forConcurrentlyRecordedFlow($traceId);
+            }
 
-        $connection->executeStatement($sql, ['traceId' => $traceId, 'startedAt' => $startedAt], ['startedAt' => Types::BIGINT]);
+            return;
+        }
+
+        $reopened = $connection->executeStatement(
+            "UPDATE {$tableName} SET version = version + 1, completed_at = NULL WHERE trace_id = :traceId AND version = :readVersion",
+            ['traceId' => $traceId, 'readVersion' => (int) $readVersion],
+            ['readVersion' => Types::INTEGER],
+        );
+        if ($reopened === 0) {
+            throw ConcurrencyException::forConcurrentlyRecordedFlow($traceId);
+        }
     }
 
     private function markCompleted(Connection $connection, string $traceId, DatePoint $now): bool

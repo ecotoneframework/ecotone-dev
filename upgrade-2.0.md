@@ -3160,9 +3160,12 @@ subscriber sends, synchronously or through an asynchronous channel, is neither s
 the flow it was told about; OpenTelemetry still exports it, as its own trace. A subscriber runs synchronously, as that delivery
 happens; `#[Asynchronous]` on it is refused at bootstrap, so work meant for the background is a command it sends to an
 `#[Asynchronous]` handler. A subscriber whose first parameter is not `FlowCompleted` or `FlowStepCompleted`, and a
-`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Completion is claimed with one
-conditional update after the trace row was touched in the same transaction, so a second unit of work finishing the
-same flow waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding.
+`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Each flow's row carries a version: a unit
+of work reads it, and writes the row only if no other part of the same flow committed in between. When two parts of
+one flow finish at the same moment, the second one's write fails with `ConcurrencyException`, its transaction rolls
+back, and the retry reads the flow again from a fresh snapshot, sees the first part and claims completion, so the flow
+notifies exactly once on PostgreSQL, MySQL and MariaDB alike. The retried part runs its handler again: an asynchronous
+endpoint retries by default; a command does with `withCommandBusRetry(true, 3, [ConcurrencyException::class])`.
 
 `withOnlyRequestedFlows(true)` tracks only flows sent with a `tracingId` or a `traceparent`, carrying that choice
 across channels in the W3C `tracestate` as `ecotone=carried` next to any other vendor's entry, so ordinary traffic

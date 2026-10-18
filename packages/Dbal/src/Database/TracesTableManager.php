@@ -109,6 +109,7 @@ final class TracesTableManager implements DbalTableManager
         $table->addColumn('trace_id', Types::STRING, ['length' => 32]);
         $table->addColumn('started_at', Types::BIGINT);
         $table->addColumn('completed_at', Types::BIGINT, ['notnull' => false]);
+        $table->addColumn('version', Types::INTEGER, ['default' => 1]);
         $table->setPrimaryKey(['trace_id']);
         $table->addIndex(['started_at']);
 

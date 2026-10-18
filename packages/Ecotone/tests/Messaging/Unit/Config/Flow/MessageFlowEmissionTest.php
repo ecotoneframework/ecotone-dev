@@ -268,6 +268,34 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:outbound.query'));
     }
 
+    public function test_single_quoted_routing_keys_keep_literal_backslash_sequences(): void
+    {
+        $service = new class () {
+            #[CommandHandler('literal.single')]
+            public function handle(EventBus $bus): void
+            {
+                $bus->publishWithRouting('literal\new\thing', []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:literal\new\thing'));
+    }
+
+    public function test_double_quoted_routing_keys_decode_php_escapes_and_unicode(): void
+    {
+        $service = new class () {
+            #[CommandHandler('literal.double')]
+            public function handle(EventBus $bus): void
+            {
+                $bus->publishWithRouting("literal\path\n\e\u{1F680}", []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', "message:literal\path\n\e\u{1F680}"));
+    }
+
 }
 
 final class EmissionEvent

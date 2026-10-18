@@ -389,7 +389,23 @@ final class HandlerSourceScanner
 
     private function literal(PhpToken $token): string
     {
-        return stripcslashes(substr($token->text, 1, -1));
+        $text = substr($token->text, 1, -1);
+        if ($token->text[0] === "'") {
+            return str_replace(['\\\\', "\\'"], ['\\', "'"], $text);
+        }
+
+        return preg_replace_callback('~\\\\(?:u\{([0-9a-fA-F]+)\}|[nrtvef\\\\$"]|[0-7]{1,3}|x[0-9a-fA-F]{1,2})~', function (array $match): string {
+            if (($match[1] ?? '') !== '') {
+                $codePoint = hexdec($match[1]);
+                $escaped = $codePoint <= 0xffff
+                    ? sprintf('"\u%04x"', $codePoint)
+                    : sprintf('"\u%04x\u%04x"', 0xd800 + (($codePoint - 0x10000) >> 10), 0xdc00 + (($codePoint - 0x10000) & 0x3ff));
+
+                return json_decode($escaped, flags: JSON_THROW_ON_ERROR);
+            }
+
+            return $match[0] === '\e' ? "\x1b" : stripcslashes($match[0]);
+        }, $text);
     }
 
     private function shortName(string $name): string

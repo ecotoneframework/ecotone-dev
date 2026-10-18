@@ -14,7 +14,7 @@ use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
-use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
+use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
 final class MessageFlowGraphBuilder
 {
@@ -63,25 +63,47 @@ final class MessageFlowGraphBuilder
     private function connectEventRoutes(InferredFlow $flow): void
     {
         $graph = $flow->graph();
-        $routing = new BusRoutingMapBuilder();
+        $handlersByKey = [];
         foreach ($graph->edgesOfKind(FlowEdgeKind::ROUTED_TO) as $edge) {
             $message = $graph->node($edge->from);
             if ($message->kind === FlowNodeKind::EVENT) {
-                $routing->addRoute($message->attributes['routingKey'], $edge->to);
+                $handlersByKey[$message->attributes['routingKey']][] = $edge->to;
             }
         }
+        $patterns = array_filter(array_keys($handlersByKey), fn (string $key) => str_contains($key, '*'));
         foreach ($graph->nodesOfKind(FlowNodeKind::EVENT) as $event) {
-            $handlers = $routing->get($event->attributes['routingKey']);
-            if (isset($event->attributes['namedAs'])) {
-                $handlers = array_values(array_unique([...$handlers, ...$routing->get($event->attributes['namedAs'])]));
+            $handlers = [];
+            foreach ($this->routingKeysOf($event) as $key) {
+                array_push($handlers, ...($handlersByKey[$key] ?? []));
             }
-            foreach ($handlers as $handlerId) {
+            $name = is_string($event->attributes['class'] ?? null) ? ($event->attributes['namedAs'] ?? null) : $event->attributes['routingKey'];
+            if (is_string($name)) {
+                foreach ($patterns as $pattern) {
+                    if (BusRoutingMap::globMatch($pattern, $name)) {
+                        array_push($handlers, ...$handlersByKey[$pattern]);
+                    }
+                }
+            }
+            foreach (array_unique($handlers) as $handlerId) {
                 $flow->addEdge(new FlowEdge($event->id, $handlerId, FlowEdgeKind::ROUTED_TO));
             }
             if ($handlers !== []) {
                 $flow->addNode($event->withAttributes(['handled' => true]));
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function routingKeysOf(FlowNode $event): array
+    {
+        $class = $event->attributes['class'] ?? null;
+        if (! is_string($class)) {
+            return [$event->attributes['routingKey']];
+        }
+
+        return [$class, ...array_values(class_parents($class)), ...array_values(class_implements($class)), 'object', ...(isset($event->attributes['namedAs']) ? [$event->attributes['namedAs']] : [])];
     }
 
     private function inferEmissions(InferredFlow $flow, FlowNode $handler, MethodSourceFacts $facts): void

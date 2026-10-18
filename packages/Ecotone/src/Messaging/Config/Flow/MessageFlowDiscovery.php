@@ -19,6 +19,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
@@ -33,6 +34,7 @@ use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -164,6 +166,14 @@ final class MessageFlowDiscovery
             $projection = $this->annotationFinder->getAttributeForClass($projectionClass, Projection::class);
             $id = 'projection:' . $projection->getName();
             $this->nodes[$id] = new FlowNode($id, FlowNodeKind::PROJECTION, $projection->getName(), ['class' => $projectionClass]);
+            $polling = $this->annotationFinder->findAttributeForClass($projectionClass, Polling::class);
+            if ($polling instanceof Polling) {
+                $this->nodes[$id] = $this->nodes[$id]->withAttributes(['endpointId' => $polling->endpointId]);
+            }
+            $streaming = $this->annotationFinder->findAttributeForClass($projectionClass, Streaming::class);
+            if ($streaming instanceof Streaming) {
+                $this->edges[] = new FlowEdge($this->channelNode($streaming->channelName)->id, $id, FlowEdgeKind::INPUT);
+            }
             $this->ownerByClass[$projectionClass] = $id;
         }
     }

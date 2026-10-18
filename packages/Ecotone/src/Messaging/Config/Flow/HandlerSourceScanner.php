@@ -22,39 +22,58 @@ final class HandlerSourceScanner
      */
     public function scan(array $targets): array
     {
-        return $this->scanMethods($targets, []);
+        $files = [];
+        $methodFacts = [];
+
+        return $this->scanMethods($targets, [], $files, $methodFacts);
     }
 
-    private function scanMethods(array $targets, array $visited): array
+    /**
+     * @param array<string, array{string, string}> $targets
+     * @param array<string, bool> $visited
+     * @param array<string, array{list<PhpToken>, array<int, int>, int, string, array<string, string>}> $files
+     * @param array<string, MethodSourceFacts> $methodFacts
+     * @return array<string, MethodSourceFacts>
+     */
+    private function scanMethods(array $targets, array $visited, array &$files, array &$methodFacts): array
     {
         $facts = [];
         $methodsByFile = [];
         foreach ($targets as $key => [$className, $methodName]) {
+            $methodKey = $className . '::' . $methodName;
+            if (isset($methodFacts[$methodKey])) {
+                $facts[$key] = $methodFacts[$methodKey];
+                continue;
+            }
             $method = new ReflectionMethod($className, $methodName);
             $fileName = $method->getFileName();
             if ($fileName === false || $method->getStartLine() === false || $method->getEndLine() === false) {
-                $facts[$key] = MethodSourceFacts::none();
+                $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
                 continue;
             }
             $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine()];
         }
 
         foreach ($methodsByFile as $fileName => $methods) {
-            $tokens = [];
-            $firstIndexByLine = [];
-            foreach (PhpToken::tokenize((string) file_get_contents($fileName)) as $token) {
-                if (isset(self::IGNORED_TOKENS[$token->id])) {
-                    continue;
+            if (! isset($files[$fileName])) {
+                $tokens = [];
+                $firstIndexByLine = [];
+                foreach (PhpToken::tokenize((string) file_get_contents($fileName)) as $token) {
+                    if (isset(self::IGNORED_TOKENS[$token->id])) {
+                        continue;
+                    }
+                    $firstIndexByLine[$token->line] ??= count($tokens);
+                    $tokens[] = $token;
                 }
-                $firstIndexByLine[$token->line] ??= count($tokens);
-                $tokens[] = $token;
+                [$namespace, $imports] = $this->importsOf($tokens);
+                $lastLine = $tokens === [] ? 0 : end($tokens)->line;
+                $files[$fileName] = [$tokens, $firstIndexByLine, $lastLine, $namespace, $imports];
             }
-            [$namespace, $imports] = $this->importsOf($tokens);
-            $lastLine = $tokens === [] ? 0 : end($tokens)->line;
+            [$tokens, $firstIndexByLine, $lastLine, $namespace, $imports] = $files[$fileName];
             foreach ($methods as [$key, $className, $startLine, $endLine]) {
                 $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
                 $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
-                $facts[$key] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
+                $facts[$key] = $methodFacts[$className . '::' . $targets[$key][1]] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
             }
         }
 
@@ -68,7 +87,7 @@ final class HandlerSourceScanner
                 if (! in_array($call['receiver'], ['this', 'self', 'static'], true) || isset($path[$helperKey]) || ! method_exists($className, $call['method'])) {
                     continue;
                 }
-                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path)[$helperKey];
+                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts)[$helperKey];
                 foreach ($helper->instantiations as $instantiation) {
                     $instantiation['enclosingCall'] ??= $call['enclosingCall'];
                     $instantiations[] = $instantiation;

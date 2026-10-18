@@ -117,6 +117,35 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertSame(['inferred' => true, 'via' => 'recordThat'], $edges[0]->attributes);
     }
 
+    public function test_shared_recursive_helper_yields_one_emission_for_each_handler(): void
+    {
+        $service = new class () {
+            #[CommandHandler('helper.first')]
+            public function first(array $payload, EventBus $bus): void
+            {
+                $bus->publish($this->event(2));
+            }
+
+            #[CommandHandler('helper.second')]
+            public function second(array $payload, EventBus $bus): void
+            {
+                $bus->publish($this->event(3));
+            }
+
+            private function event(int $depth): EmissionEvent
+            {
+                return $depth > 0 ? $this->event($depth - 1) : new EmissionEvent();
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        foreach (['first', 'second'] as $method) {
+            self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::' . $method));
+            self::assertSame('message:' . EmissionEvent::class, $edges[0]->to);
+            self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
+        }
+    }
+
 }
 
 final class EmissionEvent

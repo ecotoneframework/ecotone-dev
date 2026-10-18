@@ -168,6 +168,29 @@ final class MessageFlowRoutingTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.event', $events[0]->id));
     }
 
+    public function test_glob_subscription_matches_dotted_keys_without_treating_dots_as_wildcards(): void
+    {
+        $service = new class () {
+            #[CommandHandler('glob.publish')]
+            public function publish(EventBus $bus): void
+            {
+                $bus->publishWithRouting('orders.created.v2', []);
+                $bus->publishWithRouting('ordersXcreated', []);
+            }
+
+            #[EventHandler('orders.*')]
+            public function subscribe(array $event): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $id = 'handler:' . $service::class . '::subscribe';
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:orders.created.v2', $id));
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:ordersXcreated', $id));
+        self::assertTrue($graph->hasNode('message:orders.*'));
+    }
+
 }
 
 interface RoutingEventContract

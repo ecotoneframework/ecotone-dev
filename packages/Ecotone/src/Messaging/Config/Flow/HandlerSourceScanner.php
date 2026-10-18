@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Flow;
 
+use BackedEnum;
+use Error;
 use PhpToken;
 use ReflectionMethod;
 
@@ -259,15 +261,47 @@ final class HandlerSourceScanner
             return ['literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
         }
         $literals = [];
-        while (isset($tokens[$index]) && $tokens[$index]->is(T_CONSTANT_ENCAPSED_STRING)) {
-            $literals[] = $this->literal($tokens[$index]);
-            if (($tokens[$index + 1] ?? null)?->text !== ',') {
+        while (isset($tokens[$index])) {
+            [$literal, $end] = $this->literalArgumentAt($tokens, $index, $className, $namespace, $imports);
+            if ($literal === null || ! in_array(($tokens[$end + 1] ?? null)?->text, [',', ')'], true)) {
                 break;
             }
-            $index += 2;
+            $literals[] = $literal;
+            if ($tokens[$end + 1]->text !== ',') {
+                break;
+            }
+            $index = $end + 2;
         }
 
         return ['literalArguments' => $literals, 'firstArgumentClass' => null];
+    }
+
+    private function literalArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
+    {
+        $token = $tokens[$index];
+        if ($token->is(T_CONSTANT_ENCAPSED_STRING)) {
+            return [$this->literal($token), $index];
+        }
+        if (! $this->isName($token) || ! ($tokens[$index + 1] ?? null)?->is(T_DOUBLE_COLON) || ! ($tokens[$index + 2] ?? null)?->is(T_STRING)) {
+            return [null, $index];
+        }
+        $class = $this->resolve($token, $className, $namespace, $imports);
+        $constant = $class . '::' . $tokens[$index + 2]->text;
+        if ($class === null || ! defined($constant)) {
+            return [null, $index];
+        }
+        try {
+            $value = constant($constant);
+        } catch (Error) {
+            return [null, $index];
+        }
+        $end = $index + 2;
+        if ($value instanceof BackedEnum && ($tokens[$end + 1] ?? null)?->is(T_OBJECT_OPERATOR) && ($tokens[$end + 2] ?? null)?->text === 'value') {
+            $value = $value->value;
+            $end += 2;
+        }
+
+        return [is_string($value) ? $value : null, $end];
     }
 
     /**

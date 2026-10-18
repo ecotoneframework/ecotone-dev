@@ -146,12 +146,47 @@ final class MessageFlowEmissionTest extends TestCase
         }
     }
 
+    public function test_class_constant_routing_key_is_shown_as_published(): void
+    {
+        $service = new class () {
+            #[CommandHandler('route.constant')]
+            public function handle(EventBus $bus): void
+            {
+                $bus->publishWithRouting(EmissionEvent::NAME, []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:emission.created'));
+    }
+
+    public function test_backed_enum_routing_key_is_shown_as_published(): void
+    {
+        $service = new class () {
+            #[CommandHandler('route.enum')]
+            public function handle(EventBus $bus): void
+            {
+                $bus->publishWithRouting(EmissionRoute::CREATED->value, []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:emission.enum'));
+    }
+
 }
 
 final class EmissionEvent
 {
+    public const NAME = 'emission.created';
+
     public static function create(): static
     {
         return new static();
     }
+}
+
+enum EmissionRoute: string
+{
+    case CREATED = 'emission.enum';
 }

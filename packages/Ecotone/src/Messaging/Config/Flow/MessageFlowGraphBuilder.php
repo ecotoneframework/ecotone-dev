@@ -14,6 +14,7 @@ use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 
 final class MessageFlowGraphBuilder
 {
@@ -52,7 +53,30 @@ final class MessageFlowGraphBuilder
             }
         }
 
+        $this->connectEventRoutes($inferred);
+
         return $inferred->graph();
+    }
+
+    private function connectEventRoutes(InferredFlow $flow): void
+    {
+        $graph = $flow->graph();
+        $routing = new BusRoutingMapBuilder();
+        foreach ($graph->edgesOfKind(FlowEdgeKind::ROUTED_TO) as $edge) {
+            $message = $graph->node($edge->from);
+            if ($message->kind === FlowNodeKind::EVENT) {
+                $routing->addRoute($message->attributes['routingKey'], $edge->to);
+            }
+        }
+        foreach ($graph->nodesOfKind(FlowNodeKind::EVENT) as $event) {
+            $handlers = $routing->get($event->attributes['routingKey']);
+            foreach ($handlers as $handlerId) {
+                $flow->addEdge(new FlowEdge($event->id, $handlerId, FlowEdgeKind::ROUTED_TO));
+            }
+            if ($handlers !== []) {
+                $flow->addNode($event->withAttributes(['handled' => true]));
+            }
+        }
     }
 
     private function inferEmissions(InferredFlow $flow, FlowNode $handler, MethodSourceFacts $facts): void

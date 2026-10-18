@@ -3119,7 +3119,9 @@ The flow is named by the **`tracingId`** header, `MessageHeaders::TRACING_ID`: a
 the application chooses and sends with the command, then passes to `TracingGateway`. Ecotone turns it into the W3C
 `traceparent` of the first span, so a command that already carries a `traceparent`, as one from an instrumented HTTP
 request does, is tracked by that trace id instead; a message carrying both is refused, because it is not clear which
-one names the flow, and a `tracingId` in neither format is refused naming the expected one. A handler reads the id of
+one names the flow, and a `tracingId` in neither format is refused naming the expected one. A `tracingId` names where
+a flow starts, so one passed to a bus or gateway called from inside a handler is refused, naming the flow the call
+already belongs to. A handler reads the id of
 the flow it runs in from `Ecotone\Api\Tracing\CurrentTrace::tracingId()`.
 
 A flow is complete once the work that started it ended, every route it sent has an ended handler, and every message

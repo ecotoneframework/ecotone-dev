@@ -22,7 +22,7 @@ final class FlowTrackingTimedOut extends RuntimeException
     public static function forTrace(string $traceId, Duration $timeout, array $pendingDestinations): self
     {
         return new self(sprintf(
-            'Trace %s did not complete within %d milliseconds. Still pending: %s. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.',
+            'Flow %s did not complete within %d milliseconds. Still pending: %s. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.',
             $traceId,
             $timeout->inMilliseconds(),
             implode(', ', $pendingDestinations),
@@ -32,7 +32,7 @@ final class FlowTrackingTimedOut extends RuntimeException
     public static function forUnrecordedTrace(string $traceId, Duration $timeout): self
     {
         return new self(sprintf(
-            'No span was recorded under trace %s within %d milliseconds. Send the command with that traceparent in its metadata, and check that the process handling it stores traces.',
+            'Nothing was recorded for flow %s within %d milliseconds. Send the command with that tracingId in its metadata, and check that the application handling it registers FlowTrackingConfiguration.',
             $traceId,
             $timeout->inMilliseconds(),
         ));
@@ -41,7 +41,7 @@ final class FlowTrackingTimedOut extends RuntimeException
     public static function forDestination(string $traceId, string $destination, Duration $timeout): self
     {
         return new self(sprintf(
-            'Trace %s did not complete for %s within %d milliseconds. Run the consumer of the channel that handler is attached to, replay the message from the dead letter if the handler failed, or await with a longer timeout.',
+            'Flow %s did not complete for %s within %d milliseconds. Run the consumer of the channel that handler is attached to, replay the message from the dead letter if the handler failed, or await with a longer timeout.',
             $traceId,
             $destination,
             $timeout->inMilliseconds(),
@@ -54,7 +54,7 @@ final class FlowTrackingTimedOut extends RuntimeException
     public static function forUnreachedDestination(string $traceId, string $destination, Duration $timeout, array $reachedDestinations): self
     {
         return new self(sprintf(
-            'Trace %s was neither sent to nor processed by %s within %d milliseconds. Check the endpointId or projection name; the trace reached: %s.',
+            'Flow %s was neither sent to nor processed by %s within %d milliseconds. Check the endpointId or projection name; the flow reached: %s.',
             $traceId,
             $destination,
             $timeout->inMilliseconds(),

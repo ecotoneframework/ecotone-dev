@@ -38,17 +38,17 @@ final class TracingInterceptor
 
     public function traceCommandBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('send command', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send command', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceEventBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('send event', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send event', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceQueryBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('send query', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send query', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, CommandHandler $endpoint): mixed
@@ -99,7 +99,7 @@ final class TracingInterceptor
 
     public function traceMessageGateway(MethodInvocation $methodInvocation, Message $message, MessageGateway $gateway): mixed
     {
-        return $this->trace('send ' . $gateway->requestChannel, $methodInvocation, $message, SpanKind::Server, [
+        return $this->traceEntry('send ' . $gateway->requestChannel, $methodInvocation, $message, SpanKind::Server, [
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $gateway->requestChannel,
         ]);
@@ -107,12 +107,12 @@ final class TracingInterceptor
 
     public function traceOrchestratorGateway(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('send orchestrator', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send orchestrator', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function traceDistributedBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->trace('send distributed', $methodInvocation, $message, SpanKind::Producer, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send distributed', $methodInvocation, $message, SpanKind::Producer, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
     }
 
     public function provideContextForDistributedBus(Message $message): Message
@@ -238,6 +238,21 @@ final class TracingInterceptor
         $class = explode("\0", $class, 2)[0];
 
         return substr($class, (int) strrpos('\\' . $class, '\\')) . '::' . $method;
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private function traceEntry(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
+    {
+        $currentSpan = $this->tracer->currentSpan();
+        if ($currentSpan !== null && $message->getHeaders()->containsKey(MessageHeaders::TRACING_ID)) {
+            $flow = $currentSpan->context()->traceId;
+
+            throw InvalidArgumentException::create("tracingId names the flow a message starts, but this message is sent from inside flow {$flow}, so it belongs to that flow already. Await {$flow} with TracingGateway, or send the message from outside a handler, where a flow starts.");
+        }
+
+        return $this->trace($name, $methodInvocation, $message, $kind, $attributes);
     }
 
     /**

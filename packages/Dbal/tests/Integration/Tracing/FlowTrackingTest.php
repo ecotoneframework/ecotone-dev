@@ -121,7 +121,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
+        $this->expectExceptionMessage("Flow {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -625,7 +625,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
+        $this->expectExceptionMessage("Flow {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -635,7 +635,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone = $this->bootstrap([$this->users()]);
 
         $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage('No span was recorded under trace 0af7651916cd43dd8448eb211c80319c within 100 milliseconds. Send the command with that traceparent in its metadata, and check that the process handling it stores traces.');
+        $this->expectExceptionMessage('Nothing was recorded for flow 0af7651916cd43dd8448eb211c80319c within 100 milliseconds. Send the command with that tracingId in its metadata, and check that the application handling it registers FlowTrackingConfiguration.');
 
         $this->completion($ecotone)->await('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(100));
     }
@@ -647,7 +647,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} was neither sent to nor processed by user.notifierr within 100 milliseconds. Check the endpointId or projection name; the trace reached: user.registration.");
+        $this->expectExceptionMessage("Flow {$trace->traceId} was neither sent to nor processed by user.notifierr within 100 milliseconds. Check the endpointId or projection name; the flow reached: user.registration.");
 
         $this->completion($ecotone)->awaitFor($trace->traceId, 'user.notifierr', Duration::milliseconds(100));
     }
@@ -859,6 +859,69 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('The message carries both tracingId and traceparent, so it is not clear which trace it belongs to. Pass tracingId to track the flow with TracingGateway, or traceparent when the trace comes from OpenTelemetry instrumentation, not both.');
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736', MessageHeaders::TRACEPARENT => SpanContext::newTrace()->toTraceparent()]);
+    }
+
+    public function test_a_tracing_id_on_a_command_sent_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('user.activate', $userId, metadata: [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+
+            #[CommandHandler('user.activate', endpointId: 'user.activation')]
+            public function activate(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+    }
+
+    public function test_a_tracing_id_on_an_event_published_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.registered', $userId, metadata: [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+    }
+
+    public function test_a_tracing_id_on_a_gateway_call_made_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] TracedNotificationGateway $notifications): void
+            {
+                $notifications->send('welcome', [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+
+            #[InternalHandler('notification.send', endpointId: 'notification.sending')]
+            public function sendNotification(string $text): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$users::class, TracedNotificationGateway::class],
+            [$users],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
     }
 
     public function test_an_invalid_tracing_id_is_refused_naming_the_expected_format(): void

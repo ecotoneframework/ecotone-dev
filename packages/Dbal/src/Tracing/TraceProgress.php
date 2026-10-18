@@ -55,13 +55,19 @@ final class TraceProgress
         return $this->recorded && $this->rootEnded && $this->pendingDestinations() === [];
     }
 
-    public function isCompletedFor(string $destination): bool
+    public function isCompletedFor(string ...$destinations): bool
     {
         if (! $this->recorded) {
             return false;
         }
-        $processed = $this->processed[$destination] ?? [];
-        if ($processed === [] || array_diff_key($this->sent[$destination] ?? [], $processed) !== []) {
+        $processed = [];
+        foreach ($destinations as $destination) {
+            if (array_diff_key($this->sent[$destination] ?? [], $this->processed[$destination] ?? []) !== []) {
+                return false;
+            }
+            $processed += $this->processed[$destination] ?? [];
+        }
+        if ($processed === []) {
             return false;
         }
 
@@ -128,9 +134,15 @@ final class TraceProgress
         return array_values(array_unique($pending));
     }
 
-    public function reached(string $destination): bool
+    public function reached(string ...$destinations): bool
     {
-        return isset($this->sent[$destination]) || isset($this->processed[$destination]);
+        foreach ($destinations as $destination) {
+            if (isset($this->sent[$destination]) || isset($this->processed[$destination])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

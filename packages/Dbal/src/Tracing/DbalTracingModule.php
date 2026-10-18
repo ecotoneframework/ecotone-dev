@@ -6,10 +6,14 @@ namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\OrchestratorGateway;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
@@ -87,12 +91,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
      * @param string[] $flowStepCompletedSubscribers
      * @param array<array{attribute: string, notification: string, class: string, method: string}> $subscriberMethods
      * @param string[] $pollingProjectionNames
+     * @param array<string, string[]> $destinationsByClass
      */
     private function __construct(
         private array $flowCompletedSubscribers,
         private array $flowStepCompletedSubscribers,
         private array $subscriberMethods,
         private array $pollingProjectionNames,
+        private array $destinationsByClass,
     ) {
     }
 
@@ -106,6 +112,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 ...self::subscriberMethodsOf($annotationRegistrationService, OnFlowStepCompleted::class, FlowStepCompleted::class),
             ],
             self::pollingProjectionNames($annotationRegistrationService),
+            self::destinationsByClass($annotationRegistrationService),
         );
     }
 
@@ -179,6 +186,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 new Reference(TraceStore::class),
                 new Reference(EcotoneClockInterface::class),
                 $this->pollingProjectionNames,
+                $this->destinationsByClass,
                 $multiTenancy?->tenantHeaderName,
                 $multiTenancy === null ? null : (string) array_key_first($multiTenancy->tenantToConnectionMapping),
             ]));
@@ -329,6 +337,24 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, string[]>
+     */
+    private static function destinationsByClass(AnnotationFinder $annotationFinder): array
+    {
+        $destinations = [];
+        foreach ([CommandHandler::class, EventHandler::class, QueryHandler::class, InternalHandler::class] as $handlerAttribute) {
+            foreach ($annotationFinder->findAnnotatedMethods($handlerAttribute) as $annotatedMethod) {
+                $destinations[$annotatedMethod->getClassName()][] = $annotatedMethod->getAnnotationForMethod()->getEndpointId();
+            }
+        }
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $projectionClass) {
+            $destinations[$projectionClass] = [$annotationFinder->getAttributeForClass($projectionClass, Projection::class)->name];
+        }
+
+        return array_map(fn (array $classDestinations): array => array_values(array_unique($classDestinations)), $destinations);
     }
 
     /**

@@ -270,6 +270,33 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_handler_class_is_completed_once_every_one_of_its_handlers_the_flow_reached_ran(string $implementation): void
+    {
+        $notifications = new class () {
+            #[Asynchronous('mail_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.mailer')]
+            public function mail(string $userId): void
+            {
+            }
+
+            #[Asynchronous('sms_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.texter')]
+            public function text(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $notifications], [SimpleMessageChannelBuilder::createQueueChannel('mail_channel'), SimpleMessageChannelBuilder::createQueueChannel('sms_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('mail_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+
+        $ecotone->run('sms_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+    }
+
+    #[DataProvider('implementations')]
     public function test_traces_older_than_the_retention_are_removed_by_the_console_command(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation, [$this->users()], [], Duration::minutes(10));

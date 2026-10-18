@@ -39,11 +39,13 @@ final class StoredTracingGateway
 
     /**
      * @param string[] $pollingProjectionNames
+     * @param array<string, string[]> $destinationsByClass
      */
     public function __construct(
         private TraceStore $traceStore,
         private EcotoneClockInterface $clock,
         private array $pollingProjectionNames,
+        private array $destinationsByClass,
         private ?string $tenantHeaderName,
         private ?string $exampleTenant,
     ) {
@@ -60,9 +62,9 @@ final class StoredTracingGateway
     {
         $this->refuseMissingTenant('isCompletedFor($tracingId, $destination', $headers);
         $tracingId = TracingId::normalize($tracingId);
-        $this->refusePollingProjection($destination);
+        $destinations = $this->destinationsOf($destination);
 
-        return $this->traceStore->progressOf($tracingId)->isCompletedFor($destination);
+        return $this->traceStore->progressOf($tracingId)->isCompletedFor(...$destinations);
     }
 
     public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
@@ -88,17 +90,17 @@ final class StoredTracingGateway
     {
         $this->refuseMissingTenant('awaitFor($tracingId, $destination, $timeout', $headers);
         $tracingId = TracingId::normalize($tracingId);
-        $this->refusePollingProjection($destination);
+        $destinations = $this->destinationsOf($destination);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
             $progress = $this->traceStore->progressOf($tracingId);
-            if ($progress->isCompletedFor($destination)) {
+            if ($progress->isCompletedFor(...$destinations)) {
                 return;
             }
             if ($this->clock->now() >= $deadline) {
                 throw match (true) {
                     ! $progress->recorded => FlowTrackingTimedOut::forUnrecordedTrace($tracingId, $timeout),
-                    ! $progress->reached($destination) => FlowTrackingTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
+                    ! $progress->reached(...$destinations) => FlowTrackingTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
                     default => FlowTrackingTimedOut::forDestination($tracingId, $destination, $timeout),
                 };
             }
@@ -121,6 +123,23 @@ final class StoredTracingGateway
             $this->tenantHeaderName,
             $this->exampleTenant,
         ));
+    }
+
+    /**
+     * @return string[]
+     */
+    private function destinationsOf(string $destination): array
+    {
+        $destinations = $this->destinationsByClass[$destination] ?? null;
+        if ($destinations === null && (class_exists($destination) || interface_exists($destination))) {
+            throw ConfigurationException::create(sprintf('%s has no handler or projection Ecotone registered, so no flow can reach it. Pass a class with a #[CommandHandler], #[EventHandler], #[QueryHandler] or #[InternalHandler] method, a #[Projection] class, an endpointId or a projection name.', $destination));
+        }
+        $destinations ??= [$destination];
+        foreach ($destinations as $resolvedDestination) {
+            $this->refusePollingProjection($resolvedDestination);
+        }
+
+        return $destinations;
     }
 
     private function refusePollingProjection(string $destination): void

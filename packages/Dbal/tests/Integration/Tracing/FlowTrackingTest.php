@@ -115,6 +115,89 @@ final class FlowTrackingTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    public function test_an_asynchronous_projection_is_awaited_by_its_class(): void
+    {
+        $projection = new #[Projection('users_list'), FromStream('users_stream'), Asynchronous('async_channel')] class () {
+            #[EventHandler('user.registered')]
+            public function whenRegistered(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->withEvents([Event::createWithType('user.registered', ['userId' => '1'])]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('user.registered', [], metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, $projection::class));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $projection::class));
+        $this->completion($ecotone)->awaitFor($trace->traceId, $projection::class, Duration::milliseconds(100));
+    }
+
+    public function test_a_handler_class_is_completed_once_every_one_of_its_handlers_the_flow_reached_ran(): void
+    {
+        $notifications = new class () {
+            #[Asynchronous('mail_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.mailer')]
+            public function mail(string $userId): void
+            {
+            }
+
+            #[Asynchronous('sms_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.texter')]
+            public function text(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifications], [SimpleMessageChannelBuilder::createQueueChannel('mail_channel'), SimpleMessageChannelBuilder::createQueueChannel('sms_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('mail_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+
+        $ecotone->run('sms_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+    }
+
+    public function test_a_synchronous_handler_without_an_endpoint_id_is_awaited_by_its_class(): void
+    {
+        $users = $this->users();
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $users::class));
+    }
+
+    public function test_awaiting_a_class_with_no_handler_or_projection_is_refused_naming_what_it_takes(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf('%s has no handler or projection Ecotone registered, so no flow can reach it. Pass a class with a #[CommandHandler], #[EventHandler], #[QueryHandler] or #[InternalHandler] method, a #[Projection] class, an endpointId or a projection name.', FlowTrackingTest::class));
+
+        $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, FlowTrackingTest::class);
+    }
+
+    public function test_awaiting_a_polling_projection_by_its_class_is_refused_because_it_runs_outside_the_trace(): void
+    {
+        $projection = new #[Projection('orders_list'), FromStream('orders_stream'), Polling('orders_list_polling')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection]);
+
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling]');
+
+        $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, $projection::class);
+    }
+
     public function test_awaiting_a_pending_trace_times_out_naming_what_is_still_pending(): void
     {
         $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);

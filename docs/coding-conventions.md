@@ -15,7 +15,7 @@ branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpo
 paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a, 16a,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -136,6 +136,39 @@ validity are runtime checks for that reason (`d92883148`) — everything about *
 So, before adding a check: ask whether it could have been answered from the class, the method, the parameter types
 and the attributes alone. If it could, it belongs in a guard the module calls, and the test that proves it boots
 Ecotone and expects a `ConfigurationException`.
+
+
+### 1d. The common usage is the default; any other usage is refused, never given a second meaning
+
+Every attribute, configuration object and gateway defaults to the usage most applications need, so the shortest code
+is the right code. `#[EventHandler]` passes the message payload as the first parameter, because that is what almost
+every handler wants, and resolves the rest from headers and services; `#[CommandHandler]` without a routing key
+routes by the payload's class. Nobody has to opt into the normal case.
+
+A usage the feature is not meant for is refused at bootstrap, naming the meant one (rules 1, 1a). It is never quietly
+accepted with a meaning of its own, because then two applications read the same code differently, and the one that
+guessed wrong finds out in production. `#[EventHandler]` on a class is refused by its attribute target. When two
+readings are possible, refuse rather than pick one: two configurations of one feature, a message carrying both
+`tracingId` and `traceparent`, an attribute combined with one it cannot work with.
+
+Before shipping an attribute, a configuration or a gateway, go through what an application could write and decide,
+for each one, whether it is supported (with a test) or refused (with a message test). None may be left to chance:
+
+- **Placement** — the attribute's `#[Attribute(...)]` target is as narrow as the meant usage.
+- **Parameters** — the first parameter is checked against what it receives (rule 1c), so a wrong type fails at
+  bootstrap, not on the first message after the work committed.
+- **Combinations** — every other attribute that can sit beside it, `#[Asynchronous]` first, is either supported or
+  refused by the attribute itself, with its own reason. An endpoint attribute that cannot run asynchronously returns
+  that reason from `asynchronousExecutionRefusal()`, and `AsynchronousModule` uses it instead of asking for an
+  `endpointId` the attribute cannot take.
+- **Repetition** — a configuration object registered twice is refused; the first one never silently wins.
+- **Settings that contradict** — an option combination that cannot work, such as a subscriber with notifications
+  turned off, is refused naming the setting to remove.
+
+Evidence: flow tracking shipped three of these gaps at once. `#[Asynchronous]` on `#[OnFlowCompleted]` asked for an
+`endpointId` the attribute cannot take, a second `FlowTrackingConfiguration` was silently dropped, and a subscriber
+with a mistyped first parameter failed on every notification at runtime (`FlowTrackingTest`, the three bootstrap
+refusals).
 
 ---
 

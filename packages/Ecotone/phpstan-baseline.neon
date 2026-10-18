@@ -235,6 +235,12 @@ parameters:
 			path: src/Messaging/Config/ModuleClassList.php
 
 		-
+			message: '#^Class Ecotone\\Dbal\\Tracing\\DbalTracingModule not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Messaging/Config/ModuleClassList.php
+
+		-
 			message: '#^Class Ecotone\\EventSourcing\\Config\\EventSourcingModule not found\.$#'
 			identifier: class.notFound
 			count: 1

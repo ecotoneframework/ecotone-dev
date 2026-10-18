@@ -10,17 +10,17 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
+use Ecotone\Api\Dbal\Tracing\TraceCompleted;
+use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Tests\MessagingTestCase;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -49,7 +49,7 @@ use Test\Ecotone\OpenTelemetry\Integration\TracingTestCase;
  *
  * @internal
  */
-final class StoredTracesWithOpenTelemetryTest extends TestCase
+final class FlowTrackingWithOpenTelemetryTest extends TestCase
 {
     protected function setUp(): void
     {
@@ -76,7 +76,7 @@ final class StoredTracesWithOpenTelemetryTest extends TestCase
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
-            ['process class@anonymous::notify', 'process class@anonymous::register', 'receive notifications', 'route user.notifier', 'send command', 'send event', 'send notifications'],
+            ['process class@anonymous::notify', 'process class@anonymous::register', 'process class@anonymous::whenCompleted', 'receive notifications', 'route user.notifier', 'send command', 'send event', 'send notifications'],
             self::exportedSpanNamesOf($exporter, $trace->traceId),
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
@@ -126,7 +126,7 @@ final class StoredTracesWithOpenTelemetryTest extends TestCase
                 TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter),
             ],
             [
-                TracingConfiguration::createWithDefaults()->withStoredTraces(),
+                FlowTrackingConfiguration::createWithDefaults(),
                 DbalBackedMessageChannelBuilder::create('notifications'),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],

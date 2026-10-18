@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tracing;
+namespace Test\Ecotone\Dbal\Integration\Tracing;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -12,10 +12,16 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
+use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\TraceCompleted;
+use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
+use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
@@ -27,15 +33,8 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\CurrentTrace;
-use Ecotone\Api\Tracing\OnSpanEnded;
-use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanStatus;
-use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TraceCompletionTimedOut;
-use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -62,7 +61,7 @@ use RuntimeException;
  *
  * @internal
  */
-final class TraceCompletionTest extends TestCase
+final class FlowTrackingTest extends TestCase
 {
     public function test_a_command_handled_synchronously_is_completed_when_the_bus_returns(): void
     {
@@ -469,7 +468,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$notifications::class, TracedNotificationGateway::class],
             [$notifications],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $trace = SpanContext::newTrace();
@@ -484,12 +483,12 @@ final class TraceCompletionTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_the_completion_gateway_without_stored_traces_names_the_configuration_it_needs(): void
+    public function test_the_tracing_gateway_without_flow_tracking_names_the_configuration_it_needs(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting([$this->users()::class], [$this->users()]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('TracingGateway needs stored traces, which decide when a trace is complete. Register TracingConfiguration::createWithDefaults()->withStoredTraces() from a #[ServiceContext] method.');
+        $this->expectExceptionMessage('TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
         $this->completion($ecotone)->isCompleted('0af7651916cd43dd8448eb211c80319c');
     }
@@ -608,7 +607,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or ->withStoredTraces() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
+        $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
 
         $ecotone->sendCommandWithRouting('user.register', '1');
     }
@@ -640,13 +639,13 @@ final class TraceCompletionTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_with_only_traces_carrying_a_traceparent_stored_a_command_sent_without_one_stores_nothing(): void
+    public function test_with_only_requested_flows_tracked_a_command_sent_without_one_stores_nothing(): void
     {
         $subscriber = $this->spanEndedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(onlyTracesCarryingTraceparent: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -656,13 +655,13 @@ final class TraceCompletionTest extends TestCase
         $this->assertSame([], $subscriber->endedSpans);
     }
 
-    public function test_with_only_traces_carrying_a_traceparent_stored_a_command_sent_with_one_is_stored_through_its_asynchronous_hop(): void
+    public function test_with_only_requested_flows_tracked_a_command_sent_with_one_is_stored_through_its_asynchronous_hop(): void
     {
         $subscriber = $this->spanEndedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(onlyTracesCarryingTraceparent: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $trace = SpanContext::newTrace();
@@ -771,29 +770,78 @@ final class TraceCompletionTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_stored_traces_without_a_trace_store_are_refused_at_bootstrap(): void
+    public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
     {
+        $subscriber = new class () {
+            #[OnTraceCompleted]
+            public function whenCompleted(TraceCompleted $event): void
+            {
+            }
+        };
+
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() needs a trace store and none is registered. Enable the DBAL package with a connection to store traces in the database, or call withStoredTraces(inMemory: true) to keep them in this process only.');
+        $this->expectExceptionMessage('#[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
 
         EcotoneLite::bootstrapFlowTesting(
-            [],
-            [],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces()],
-            enabledModules: [ModulePackageList::CORE_PACKAGE],
+            [$subscriber::class],
+            [$subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 
-    public function test_stored_traces_require_an_enterprise_licence(): void
+    public function test_with_notifications_turned_off_a_flow_is_still_tracked_and_awaited(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $this->asynchronousNotifier()::class],
+            [$this->users(), $this->asynchronousNotifier()],
+            [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+
+        $this->assertFalse($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+    }
+
+    public function test_with_the_tracing_gateway_turned_off_asking_it_names_the_setting_while_subscribers_are_still_notified(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $completedFlows = [];
+
+            #[OnTraceCompleted]
+            public function whenCompleted(TraceCompleted $event): void
+            {
+                $this->completedFlows[] = $event->tracingId;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $subscriber::class],
+            [$this->users(), $subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withTracingGateway(false)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+        $this->assertSame(['4bf92f3577b34da6a3ce929d0e0e4736'], $subscriber->completedFlows);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.');
+
+        $this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736');
+    }
+
+    public function test_flow_tracking_requires_an_enterprise_licence(): void
     {
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() requires an Ecotone Enterprise licence. Remove it to run without one.');
+        $this->expectExceptionMessage('FlowTrackingConfiguration requires an Ecotone Enterprise licence. Remove it to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [],
             [],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces()],
+            [FlowTrackingConfiguration::createWithDefaults()],
         );
     }
 
@@ -807,16 +855,16 @@ final class TraceCompletionTest extends TestCase
         };
 
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('TracingConfiguration::withStoredTraces() and #[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
+        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
             [$subscriber],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces()],
+            [FlowTrackingConfiguration::createWithDefaults()],
         );
     }
 
-    public function test_a_span_ended_subscriber_requires_an_enterprise_licence_even_without_stored_traces(): void
+    public function test_a_span_ended_subscriber_requires_an_enterprise_licence_even_without_flow_tracking(): void
     {
         $subscriber = new class () {
             #[OnSpanEnded]
@@ -834,7 +882,7 @@ final class TraceCompletionTest extends TestCase
         );
     }
 
-    public function test_a_trace_completed_subscriber_without_stored_traces_is_refused_at_bootstrap(): void
+    public function test_a_trace_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
             #[OnTraceCompleted]
@@ -844,7 +892,7 @@ final class TraceCompletionTest extends TestCase
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted needs stored traces, which decide when a trace is complete. Register TracingConfiguration::createWithDefaults()->withStoredTraces() from a #[ServiceContext] method.');
+        $this->expectExceptionMessage('#[OnTraceCompleted] on ' . $subscriber::class . '::whenCompleted needs flow tracking, which decides when a flow is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -862,7 +910,7 @@ final class TraceCompletionTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             array_map(fn (object $service): string => $service::class, $services),
             $services,
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(), ...$extensionObjects],
+            [FlowTrackingConfiguration::createWithDefaults(), ...$extensionObjects],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Tracing\Tracer;
 use Throwable;
 
 /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Scheduling\Duration;
@@ -13,28 +13,32 @@ use Ecotone\Messaging\Config\ConfigurationException;
  */
 final class UnavailableTracingGateway
 {
+    public function __construct(private string $refusal)
+    {
+    }
+
     public function isCompleted(string $tracingId): bool
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
     public function isCompletedFor(string $tracingId, #[Header(StoredTracingGateway::DESTINATION_HEADER)] string $destination): bool
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
     public function await(string $tracingId, #[Header(StoredTracingGateway::TIMEOUT_HEADER)] Duration $timeout): void
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
     public function awaitFor(string $tracingId, #[Header(StoredTracingGateway::DESTINATION_HEADER)] string $destination, #[Header(StoredTracingGateway::TIMEOUT_HEADER)] Duration $timeout): void
     {
-        throw self::refusal();
+        throw $this->refusal();
     }
 
-    private static function refusal(): ConfigurationException
+    private function refusal(): ConfigurationException
     {
-        return ConfigurationException::create('TracingGateway needs stored traces, which decide when a trace is complete. Register TracingConfiguration::createWithDefaults()->withStoredTraces() from a #[ServiceContext] method.');
+        return ConfigurationException::create($this->refusal);
     }
 }

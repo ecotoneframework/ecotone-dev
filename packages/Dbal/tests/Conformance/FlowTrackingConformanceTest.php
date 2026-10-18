@@ -16,6 +16,13 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
+use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\TraceCompleted;
+use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
+use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -28,15 +35,8 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
-use Ecotone\Api\Tracing\OnSpanEnded;
-use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanStatus;
-use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TraceCompletionTimedOut;
-use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -63,7 +63,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  *
  * @internal
  */
-final class TraceStoreConformanceTest extends DbalMessagingTestCase
+final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 {
     public function tearDown(): void
     {
@@ -420,13 +420,13 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_stored_traces_follow_the_default_connection_of_a_multi_tenant_application(): void
+    public function test_flow_tracking_follows_the_default_connection_of_a_multi_tenant_application(): void
     {
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [$this->users()::class, $this->asynchronousNotifier()::class],
             containerOrAvailableServices: [$this->users(), $this->asynchronousNotifier(), 'tenant_a_connection' => $this->getConnectionFactory(), 'shared_connection' => $this->getConnectionFactory()],
             extensionObjects: [
-                TracingConfiguration::createWithDefaults()->withStoredTraces(),
+                FlowTrackingConfiguration::createWithDefaults(),
                 MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection'], 'shared_connection'),
                 SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
             ],
@@ -443,16 +443,16 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_stored_traces_in_a_multi_tenant_application_without_a_default_connection_are_refused_at_bootstrap(): void
+    public function test_flow_tracking_in_a_multi_tenant_application_without_a_default_connection_is_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Stored traces are written after the unit of work ended, when no tenant is active, so they need a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it, or withStoredTraces(inMemory: true) for a single process.');
+        $this->expectExceptionMessage('Flow tracking keeps one record per flow across tenants, and TracingGateway is asked without a tenant, so it needs a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it.');
 
         $this->bootstrapFlowTesting(
             classesToResolve: [$this->users()::class],
             containerOrAvailableServices: [$this->users(), 'tenant_a_connection' => $this->getConnectionFactory()],
             extensionObjects: [
-                TracingConfiguration::createWithDefaults()->withStoredTraces(),
+                FlowTrackingConfiguration::createWithDefaults(),
                 MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection']),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
@@ -555,10 +555,17 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service): string => $service::class, $services),
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: $implementation === 'in-memory', retention: $retention), ...$extensionObjects],
+            extensionObjects: [self::flowTracking($implementation, $retention), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
+    }
+
+    private static function flowTracking(string $implementation, ?Duration $retention): FlowTrackingConfiguration
+    {
+        $flowTracking = FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory');
+
+        return $retention === null ? $flowTracking : $flowTracking->withRetention($retention);
     }
 
     private function completion(FlowTestSupport $ecotone): TracingGateway
@@ -609,7 +616,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         return $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service): string => $service::class, $services),
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => $connectionFactory],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(), ...$extensionObjects],
+            extensionObjects: [FlowTrackingConfiguration::createWithDefaults(), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();

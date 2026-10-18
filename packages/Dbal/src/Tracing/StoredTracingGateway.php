@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Api\Tracing\TraceCompletionTimedOut;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Tracing\TracingId;
 
 /**
  * licence Enterprise

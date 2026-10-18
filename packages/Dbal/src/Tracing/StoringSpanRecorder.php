@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
+use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnTraceCompleted;
+use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\TraceCompleted;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Tracing\OnSpanEnded;
-use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
-use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanRecorder;
-use Ecotone\Api\Tracing\TraceCompleted;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Throwable;
 

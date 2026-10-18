@@ -20,9 +20,6 @@ use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\Database\TracesTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Tracing\TraceLedger;
-use Ecotone\Tracing\TraceProgress;
-use Ecotone\Tracing\TraceStore;
 use Interop\Queue\ConnectionFactory;
 
 use function json_decode;

@@ -3091,69 +3091,68 @@ $ecotone->sendCommand(new PlaceOrder('1'));
 $recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
 ```
 
-### Stored traces answer "has it completed yet?" (Enterprise)
+### Flow tracking answers "has it completed yet?" (Enterprise, `ecotone/dbal`)
 
 **Before:** an application that wrote through a command and then read through an asynchronous projection had no way
 to know when the projection had caught up: it polled its own read model, or guessed with a delay. Spans existed only
 in an external collector, after the fact.
 
-**Now:** `TracingConfiguration::createWithDefaults()->withStoredTraces()` keeps every span in the database as well,
-in `ecotone_traces` and `ecotone_tracing`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
-or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit,
-together with the span that wraps the unit of work as it stands at that moment, and decides in the same transaction
-whether the trace is complete. Nothing is written to the database after the commit or after a rollback: a database
-that goes down right after a commit cannot fail a consumer whose work already committed, and a failure inside the
-transaction rolls the trace back with the work and leaves the message to be retried. Completion is claimed with one
-conditional update after the trace row was touched by the same transaction, so a second unit of work finishing the
-same trace waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding. From those spans the `TracingGateway` gateway answers
-`isCompleted($traceId)`, true once the root ended, every route the trace sent has an ended handler span, and
-every message it sent to a channel was consumed from that channel, so an asynchronous command, event or projection
-keeps the trace pending until its consumer processed that exact message; `isCompletedFor($traceId, $destination)`
-for one `endpointId` or projection name; and `await()` / `awaitFor()`, which poll until then or throw
-`TraceCompletionTimedOut` naming the handlers and channels still pending. The root is the span that started the
-trace in this process, a bus call or a handler reached outside any other span, never a consumer: a trace whose
-producer stored nothing is never completed by its consumers alone. A unit of work that fails stores nothing: a handler
-that succeeded inside a rolled-back transaction, and a message whose send rolled back with it, are not counted, and
-the failure itself is visible in OpenTelemetry, which may fail on its own without harm, not in the store. A destination counts a message as dispatched and as processed by
-its message id, so a redelivery of the same message satisfies the delivery it belongs to and no other, and a
-message sent to an asynchronous handler is attributed to that handler's `endpointId` whether it was routed by the
-event bus, the command bus or an `outputChannelName`. The handler span is the innermost interceptor around the
-method, so it records the handler's own failure even when an error channel or a retry handles it, and the consumer
-or bus span that wraps a failed unit of work ends as failed too, in OpenTelemetry as in the store, unless a retry
-inside it succeeded; and
-`TraceCompletionTimedOut` names the handlers and channels still pending, points to the dead letter when a handler
-failed, and names a trace nobody recorded and a destination the trace never reached. `TracingGateway` is always injectable; without
-`withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a
-`TraceCompleted` each time the trace reaches completion, so a trace that is handed more work after completing, as
-when a request sends two commands under one `traceparent`, notifies again once that work is done; one with
-`#[OnSpanEnded]` receives every stored span. Both run after the commit that produced them, so a websocket push or
-a cache refresh never runs ahead of the data. Notifications are published from memory once the transaction
-committed, at most once: a subscriber that throws does not fail the command that already committed and is not called
-again, and a process that stops between the commit and the publication drops that notification, while
-`TracingGateway` still answers from the stored spans. A handler that needs the id of the
-trace it runs in injects `Ecotone\Api\Tracing\CurrentTrace` and reads `traceId()`. `isCompletedFor()` and
-`awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the trace that appended
-its events. A message sent through a dynamic channel, through the high-throughput outbox or replayed from the dead
-letter keeps the delivery it started as, so the trace completes when that message is consumed, wherever it landed;
-a multi-tenant application stores traces on the connection `MultiTenantConfiguration::createWithDefaultConnection()`
-names, because the write after the unit of work has no tenant, and is refused at bootstrap without one. Work a subscriber does
-through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
-command does not call itself again. The flow to track is named by the `tracingId` header,
-`MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters chosen by the application and sent with the command,
-then passed to `TracingGateway`, whose methods all take that `tracingId`. Ecotone turns it into the W3C `traceparent`
-of the first span, so a command that already carries a `traceparent`, as one from an instrumented HTTP request does,
-is tracked by that trace id instead; a message carrying both is refused, because it is not clear which one names the
-flow, and a `tracingId` that is neither format is refused naming the expected one. A handler reads the id of the flow
-it runs in from `CurrentTrace::tracingId()`. `withStoredTraces(onlyTracesCarryingTraceparent: true)` stores only the traces whose root continued a
-`traceparent` handed in, from an HTTP request or minted with `SpanContext::newTrace()`, and carries that choice
-across channels in the W3C `tracestate` as `ecotone=carried`, next to any other vendor's entry, so ordinary traffic
-costs no storage and only the requests that await completion are kept. A flow test given no connection keeps the
-store in memory; an application that enables stored traces with no DBAL package and no `inMemory: true` is refused
-at bootstrap, because a store per process could never see a consumer's progress. `ecotone:tracing:remove-expired-traces` deletes completed traces older than the retention passed to
-`withStoredTraces()`, seven days by default, and any trace older than twice that, so a message delayed past the
-retention still completes the trace it belongs to; the deletion runs as two statements, whatever the volume.
+**Now:** registering `Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration::createWithDefaults()` from a
+`#[ServiceContext]` method tracks every flow a message starts: the handlers, routes, channels and projections it
+reaches, synchronously or asynchronously, across processes. What it tracks is kept in `ecotone_traces` and
+`ecotone_tracing`, created by `ecotone:migration:database:setup`; a flow test given no connection keeps it in memory.
+Two features are on by default and each can be turned off while the flows are still tracked:
+
+- **`TracingGateway`** answers `isCompleted($tracingId)`, `isCompletedFor($tracingId, $destination)` for one
+  `endpointId` or projection name, and `await()` / `awaitFor()`, which poll until then or throw
+  `TraceCompletionTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
+  handler failed, and naming a flow nobody recorded or a destination the flow never reached.
+  `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
+- **Notifications**: a method with `#[OnTraceCompleted]` receives a `TraceCompleted` each time its flow reaches
+  completion, and one with `#[OnSpanEnded]` receives every tracked span. `withNotifications(false)` turns them off,
+  and an application that still declares either attribute is refused at bootstrap.
+
+The flow is named by the **`tracingId`** header, `MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters
+the application chooses and sends with the command, then passes to `TracingGateway`. Ecotone turns it into the W3C
+`traceparent` of the first span, so a command that already carries a `traceparent`, as one from an instrumented HTTP
+request does, is tracked by that trace id instead; a message carrying both is refused, because it is not clear which
+one names the flow, and a `tracingId` in neither format is refused naming the expected one. A handler reads the id of
+the flow it runs in from `Ecotone\Api\Tracing\CurrentTrace::tracingId()`.
+
+A flow is complete once the work that started it ended, every route it sent has an ended handler, and every message
+it sent to a channel was consumed from that channel, so an asynchronous command, event or projection keeps the flow
+pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
+satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
+high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
+two commands under one `tracingId`, completes and notifies again once that work is done. `isCompletedFor()` and
+`awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
+events.
+
+Everything is written inside the transaction of the unit of work it describes, a bus call or an asynchronous
+consumption: the spans buffered during the work, the span that wraps it as it stands at that moment, and the decision
+whether the flow is complete. Nothing is written after the commit or after a rollback, so a database that goes down
+right after a commit cannot fail a consumer or a command whose work already committed, and an outage inside the
+transaction rolls back with the work and leaves the message to be retried. A unit of work that fails stores nothing;
+its failure is visible in OpenTelemetry. Notifications are published from memory once the transaction committed, at
+most once: a subscriber that throws does not fail the work that committed and is not called again, and work a
+subscriber does through a bus is tracked but never notifies subscribers in turn. Completion is claimed with one
+conditional update after the trace row was touched in the same transaction, so a second unit of work finishing the
+same flow waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding.
+
+`withOnlyRequestedFlows(true)` tracks only flows sent with a `tracingId` or a `traceparent`, carrying that choice
+across channels in the W3C `tracestate` as `ecotone=carried` next to any other vendor's entry, so ordinary traffic
+costs nothing. `withRetention()` sets how long `ecotone:tracing:remove-expired-traces` keeps completed flows, seven
+days by default; a flow still pending is kept twice as long, so a message delayed past the retention still completes
+it. A multi-tenant application tracks flows on the connection `MultiTenantConfiguration::createWithDefaultConnection()`
+names, because `TracingGateway` is asked without a tenant, and is refused at bootstrap without one.
 
 ```php
+#[ServiceContext]
+public function flowTracking(): FlowTrackingConfiguration
+{
+    return FlowTrackingConfiguration::createWithDefaults();
+}
+
 $tracingId = Uuid::v7()->toRfc4122();
 $commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACING_ID => $tracingId]);
 $tracingGateway->awaitFor($tracingId, 'orders_list', Duration::seconds(5));
@@ -3167,8 +3166,8 @@ final class OrdersWebsocket
 }
 ```
 
-**How to adapt:** nothing is required. To use it, register `withStoredTraces()`, run the setup command for the two
-tables, and give each handler you want to ask about an explicit `endpointId`.
+**How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for the
+two tables, and give each handler you want to ask about an explicit `endpointId`.
 
 ## 15. Testing and developer-experience changes
 
@@ -3492,7 +3491,7 @@ normal section with "How to adapt" steps when it ships.
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
-| Trace completion by depth, and recording only requested traces | Stored traces (§14) answer whether a whole trace or one destination completed. Two parts of the agreed design are not implemented: `#[OnTraceDepthCompleted]`, notified when every handler at one depth of the trace tree ended (the command handler is depth 1, the event handlers it triggered depth 2, and so on), which needs the depth carried in `tracestate` across the asynchronous boundary; and recording only traces that ask for it through a `tracestate` entry, so that an application can keep storing off for ordinary traffic and on for the requests that await completion. Today `withStoredTraces()` stores every trace and relies on the retention command | Design recorded in the conversation that produced §14's tracing sections (the ledger, the unit-of-work flush before commit, publication after commit); no spec file yet |
+| Flow completion by depth | Flow tracking (§14) answers whether a whole flow or one destination completed. `#[OnTraceDepthCompleted]`, notified when every handler at one depth of the flow ended (the command handler is depth 1, the event handlers it triggered depth 2, and so on), is not implemented; it needs the depth carried in `tracestate` across the asynchronous boundary | Design recorded in the conversation that produced §14's tracing sections; no spec file yet |
 | Stateless `#[Apply]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[Apply]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
 
 ---

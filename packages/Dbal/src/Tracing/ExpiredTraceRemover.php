@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
-use Ecotone\Api\Scheduling\DatePoint;
-use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Scheduling\Duration;
 
 /**
  * licence Enterprise
@@ -25,16 +25,18 @@ use Ecotone\Api\Tracing\Span;
  *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
-interface TraceStore
+final class ExpiredTraceRemover
 {
-    /**
-     * @param Span[] $spans
-     */
-    public function append(array $spans): void;
+    public function __construct(
+        private TraceStore $traceStore,
+        private EcotoneClockInterface $clock,
+        private int $retentionInMilliseconds,
+    ) {
+    }
 
-    public function markCompletedIfDone(string $traceId, DatePoint $now): bool;
-
-    public function progressOf(string $traceId): TraceProgress;
-
-    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void;
+    public function removeExpiredTraces(): void
+    {
+        $now = $this->clock->now();
+        $this->traceStore->removeExpiredTraces($now->sub(Duration::milliseconds($this->retentionInMilliseconds)), $now->sub(Duration::milliseconds(2 * $this->retentionInMilliseconds)));
+    }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Tracing;
+namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;

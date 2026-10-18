@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Tracing;
+namespace Ecotone\Api\Dbal\Tracing;
 
 use Ecotone\Api\Scheduling\Duration;
 

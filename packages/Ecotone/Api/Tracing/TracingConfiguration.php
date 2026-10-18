@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Tracing;
 
-use Ecotone\Api\Scheduling\Duration;
-
 /**
  * licence Apache-2.0
  */
@@ -17,18 +15,14 @@ final class TracingConfiguration
      */
     private function __construct(
         public readonly array $spanRecorderReferenceNames,
-        public readonly bool $storedTraces,
-        public readonly bool $storedTracesInMemory,
-        public readonly Duration $storedTracesRetention,
         public readonly bool $spanAttributesFromAllHeaders,
         public readonly array $spanAttributeHeaders,
-        public readonly bool $storedTracesOnlyCarryingTraceparent,
     ) {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self([], false, false, Duration::minutes(60 * 24 * 7), true, [], false);
+        return new self([], true, []);
     }
 
     public function withSpanRecorder(string $referenceName): self
@@ -39,10 +33,5 @@ final class TracingConfiguration
     public function withSpanAttributesFromHeaders(string ...$headerNames): self
     {
         return new self(...[...get_object_vars($this), 'spanAttributesFromAllHeaders' => false, 'spanAttributeHeaders' => array_values($headerNames)]);
-    }
-
-    public function withStoredTraces(bool $inMemory = false, ?Duration $retention = null, bool $onlyTracesCarryingTraceparent = false): self
-    {
-        return new self(...[...get_object_vars($this), 'storedTraces' => true, 'storedTracesInMemory' => $inMemory, 'storedTracesRetention' => $retention ?? $this->storedTracesRetention, 'storedTracesOnlyCarryingTraceparent' => $onlyTracesCarryingTraceparent]);
     }
 }

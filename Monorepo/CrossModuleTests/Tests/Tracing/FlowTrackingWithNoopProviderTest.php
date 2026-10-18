@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\OpenTelemetry\Integration;
+namespace Monorepo\CrossModuleTests\Tests\Tracing;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
+use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Api\Tracing\SpanEnded;
-use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -43,7 +43,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
-final class StoredTracesWithNoopProviderTest extends TestCase
+final class FlowTrackingWithNoopProviderTest extends TestCase
 {
     public function test_a_provider_that_records_nothing_still_gives_every_stored_span_its_own_id(): void
     {
@@ -73,8 +73,8 @@ final class StoredTracesWithNoopProviderTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$users::class, $subscriber::class],
             [$users, $subscriber, TracerProviderInterface::class => new NoopTracerProvider()],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
-            enabledModules: [ModulePackageList::TRACING_PACKAGE],
+            [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            enabledModules: [ModulePackageList::TRACING_PACKAGE, ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $trace = SpanContext::newTrace();

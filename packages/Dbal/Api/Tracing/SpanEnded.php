@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Tracing;
+namespace Ecotone\Api\Dbal\Tracing;
+
+use Ecotone\Api\Tracing\Span;
 
 /**
  * licence Enterprise

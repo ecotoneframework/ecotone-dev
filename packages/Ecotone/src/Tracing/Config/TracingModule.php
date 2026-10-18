@@ -24,8 +24,6 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
-use Ecotone\Api\Tracing\OnSpanEnded;
-use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -48,7 +46,6 @@ use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
 use Ecotone\Tracing\TracingDisabledCurrentTrace;
 use Ecotone\Tracing\TracingInterceptor;
-use Ecotone\Tracing\UnavailableTracingGateway;
 
 #[ModuleAnnotation]
 /**
@@ -98,9 +95,6 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
-        if (! $tracingConfiguration->storedTraces) {
-            TracingGatewayRegistration::register($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class));
-        }
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
 
@@ -135,7 +129,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             'traceCommandHandler' => [CommandHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceQueryHandler' => [QueryHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceEventHandler' => [EventHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
-            'traceMessageHandler' => [InternalHandler::class . '&&not(' . MessageHeadersPropagatorInterceptor::class . ')&&not(' . OnTraceCompleted::class . ')&&not(' . OnSpanEnded::class . ')', Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceMessageHandler' => [InternalHandler::class . '&&not(' . MessageHeadersPropagatorInterceptor::class . ')', Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceProjection' => [ProjectionTriggerEndpoint::class, Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceCommandBus' => [CommandBus::class, Precedence::TRACING_PRECEDENCE],
             'traceQueryBus' => [QueryBus::class, Precedence::TRACING_PRECEDENCE],

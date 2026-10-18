@@ -97,6 +97,26 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertSame('publish', $edges[0]->attributes['via']);
     }
 
+    public function test_this_record_that_is_shown_as_recorded_without_subscribers(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            use WithEvents;
+
+            #[Identifier]
+            private string $id = 'order';
+
+            #[CommandHandler('record.instance')]
+            public function record(): void
+            {
+                $this->recordThat(new EmissionEvent());
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::record', 'message:' . EmissionEvent::class));
+        self::assertSame(['inferred' => true, 'via' => 'recordThat'], $edges[0]->attributes);
+    }
+
 }
 
 final class EmissionEvent

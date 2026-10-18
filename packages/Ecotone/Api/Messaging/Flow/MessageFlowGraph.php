@@ -51,6 +51,11 @@ final class MessageFlowGraph implements DefinedObject
         );
     }
 
+    public static function fromJson(string $json): self
+    {
+        return self::fromArray(json_decode($json, true, flags: JSON_THROW_ON_ERROR));
+    }
+
     public function hasNode(string $id): bool
     {
         return isset($this->nodes[$id]);
@@ -180,7 +185,7 @@ final class MessageFlowGraph implements DefinedObject
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->toArray()], 'fromArray');
+        return new Definition(self::class, [json_encode($this->toArray(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)], 'fromJson');
     }
 
     private function mermaidNode(string $mermaidId, FlowNode $node): string

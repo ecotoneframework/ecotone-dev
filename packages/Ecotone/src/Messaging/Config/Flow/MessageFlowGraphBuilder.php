@@ -35,35 +35,41 @@ final class MessageFlowGraphBuilder
 
     public function build(): MessageFlowGraph
     {
-        $graph = $this->declared;
-        foreach ($this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER) as $handler) {
-            $facts = $this->scanner->scan((string) $handler->attributes['class'], (string) $handler->attributes['method']);
-            $graph = $this->inferEmissions($graph, $handler, $facts);
-            $graph = $this->inferCalls($graph, $handler, $facts);
-            $graph = $this->inferDistribution($graph, $handler, $facts);
+        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER);
+        $targets = [];
+        foreach ($handlers as $handler) {
+            $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];
+        }
+        $facts = $this->scanner->scan($targets);
+
+        $inferred = new InferredFlow($this->declared);
+        foreach ($handlers as $handler) {
+            $this->inferEmissions($inferred, $handler, $facts[$handler->id]);
+            $this->inferCalls($inferred, $handler, $facts[$handler->id]);
+            $this->inferDistribution($inferred, $handler, $facts[$handler->id]);
             if ($handler->kind === FlowNodeKind::ROUTER) {
-                $graph = $this->inferRoutes($graph, $handler, $facts);
+                $this->inferRoutes($inferred, $handler, $facts[$handler->id]);
             }
         }
 
-        return $graph;
+        return $inferred->graph();
     }
 
-    private function inferEmissions(MessageFlowGraph $graph, FlowNode $handler, MethodSourceFacts $facts): MessageFlowGraph
+    private function inferEmissions(InferredFlow $flow, FlowNode $handler, MethodSourceFacts $facts): void
     {
         foreach ($facts->instantiations as $instantiation) {
             $messageId = 'message:' . $instantiation['class'];
             $call = $instantiation['enclosingCall'];
-            if (! $graph->hasNode($messageId)) {
+            if (! $flow->hasNode($messageId)) {
                 if (in_array($call, self::EVENT_CALLS, true)) {
-                    $graph = $graph->withNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::EVENT));
+                    $flow->addNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::EVENT));
                 } elseif (in_array($call, self::SEND_CALLS, true)) {
-                    $graph = $graph->withNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::COMMAND));
+                    $flow->addNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::COMMAND));
                 } else {
                     continue;
                 }
             }
-            $graph = $this->withEmission($graph, $handler->id, $messageId, $call ?? $this->implicitEmissionOf($graph, $handler));
+            $flow->addEdge(new FlowEdge($handler->id, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $call ?? $this->implicitEmissionOf($flow, $handler)]));
         }
         foreach ($facts->calls as $call) {
             if (! in_array($call['method'], self::ROUTING_KEY_CALLS, true) || ! isset($call['literalArguments'][0])) {
@@ -71,22 +77,20 @@ final class MessageFlowGraphBuilder
             }
             $routingKey = $call['literalArguments'][0];
             $messageId = 'message:' . $routingKey;
-            if (! $graph->hasNode($messageId)) {
+            if (! $flow->hasNode($messageId)) {
                 $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
                 $kind = match (true) {
                     $call['method'] === 'publishWithRouting' => FlowNodeKind::EVENT,
                     $receiverType === QueryBus::class => FlowNodeKind::QUERY,
                     default => FlowNodeKind::COMMAND,
                 };
-                $graph = $graph->withNode($this->unhandledMessage($routingKey, $kind));
+                $flow->addNode($this->unhandledMessage($routingKey, $kind));
             }
-            $graph = $this->withEmission($graph, $handler->id, $messageId, $call['method']);
+            $flow->addEdge(new FlowEdge($handler->id, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $call['method']]));
         }
-
-        return $graph;
     }
 
-    private function inferCalls(MessageFlowGraph $graph, FlowNode $handler, MethodSourceFacts $facts): MessageFlowGraph
+    private function inferCalls(InferredFlow $flow, FlowNode $handler, MethodSourceFacts $facts): void
     {
         foreach ($facts->calls as $call) {
             $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
@@ -94,15 +98,13 @@ final class MessageFlowGraphBuilder
                 continue;
             }
             $gatewayId = 'gateway:' . $receiverType . '::' . $call['method'];
-            if ($graph->hasNode($gatewayId) && $graph->edgesOfKind(FlowEdgeKind::CALLS, from: $handler->id, to: $gatewayId) === []) {
-                $graph = $graph->withEdge(new FlowEdge($handler->id, $gatewayId, FlowEdgeKind::CALLS, ['inferred' => true]));
+            if ($flow->hasNode($gatewayId)) {
+                $flow->addEdge(new FlowEdge($handler->id, $gatewayId, FlowEdgeKind::CALLS, ['inferred' => true]));
             }
         }
-
-        return $graph;
     }
 
-    private function inferDistribution(MessageFlowGraph $graph, FlowNode $handler, MethodSourceFacts $facts): MessageFlowGraph
+    private function inferDistribution(InferredFlow $flow, FlowNode $handler, MethodSourceFacts $facts): void
     {
         foreach ($facts->calls as $call) {
             $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
@@ -110,68 +112,48 @@ final class MessageFlowGraphBuilder
                 continue;
             }
             $busId = 'distributed:' . $receiverType;
-            if (! $graph->hasNode($busId)) {
-                $graph = $graph->withNode(new FlowNode($busId, FlowNodeKind::DISTRIBUTED_BUS, MessageFlowDiscovery::distributedBusLabel($receiverType), ['reference' => $receiverType]));
+            if (! $flow->hasNode($busId)) {
+                $flow->addNode(new FlowNode($busId, FlowNodeKind::DISTRIBUTED_BUS, MessageFlowDiscovery::distributedBusLabel($receiverType), ['reference' => $receiverType]));
             }
             $arguments = $call['literalArguments'];
             if (in_array($call['method'], self::DISTRIBUTED_COMMAND_CALLS, true) && isset($arguments[1])) {
-                $graph = $this->withDistributedMessage($graph, $handler->id, $busId, $arguments[1], FlowNodeKind::COMMAND, $call['method'], ['targetService' => $arguments[0]]);
+                $this->addDistributedMessage($flow, $handler->id, $busId, $arguments[1], FlowNodeKind::COMMAND, $call['method'], ['targetService' => $arguments[0]]);
             } elseif (in_array($call['method'], self::DISTRIBUTED_EVENT_CALLS, true) && isset($arguments[0])) {
-                $graph = $this->withDistributedMessage($graph, $handler->id, $busId, $arguments[0], FlowNodeKind::EVENT, $call['method'], []);
-            } elseif ($call['method'] === 'sendMessage' && isset($arguments[1]) && $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id, to: $busId) === []) {
-                $graph = $graph->withEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $arguments[0], 'targetChannel' => $arguments[1]]));
+                $this->addDistributedMessage($flow, $handler->id, $busId, $arguments[0], FlowNodeKind::EVENT, $call['method'], []);
+            } elseif ($call['method'] === 'sendMessage' && isset($arguments[1])) {
+                $flow->addEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $arguments[0], 'targetChannel' => $arguments[1]]));
             }
         }
-
-        return $graph;
     }
 
     /**
      * @param array<string, string> $target
      */
-    private function withDistributedMessage(MessageFlowGraph $graph, string $handlerId, string $busId, string $routingKey, FlowNodeKind $kind, string $via, array $target): MessageFlowGraph
+    private function addDistributedMessage(InferredFlow $flow, string $handlerId, string $busId, string $routingKey, FlowNodeKind $kind, string $via, array $target): void
     {
         $messageId = 'message:' . $routingKey;
-        if (! $graph->hasNode($messageId)) {
-            $graph = $graph->withNode($this->unhandledMessage($routingKey, $kind));
+        if (! $flow->hasNode($messageId)) {
+            $flow->addNode($this->unhandledMessage($routingKey, $kind));
         }
-        $graph = $graph->withNode($graph->node($messageId)->withAttributes(['distributed' => true] + $target));
-        $graph = $this->withEmission($graph, $handlerId, $messageId, $via, $target);
-        if ($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $messageId, to: $busId) === []) {
-            $graph = $graph->withEdge(new FlowEdge($messageId, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true] + $target));
-        }
-
-        return $graph;
+        $flow->addNode($flow->node($messageId)->withAttributes(['distributed' => true] + $target));
+        $flow->addEdge(new FlowEdge($handlerId, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $via] + $target));
+        $flow->addEdge(new FlowEdge($messageId, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true] + $target));
     }
 
-    private function inferRoutes(MessageFlowGraph $graph, FlowNode $router, MethodSourceFacts $facts): MessageFlowGraph
+    private function inferRoutes(InferredFlow $flow, FlowNode $router, MethodSourceFacts $facts): void
     {
         foreach ($facts->stringLiterals as $literal) {
             $channelId = 'channel:' . $literal;
-            if ($graph->hasNode($channelId) && $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, from: $router->id, to: $channelId) === []) {
-                $graph = $graph->withEdge(new FlowEdge($router->id, $channelId, FlowEdgeKind::ROUTES_TO, ['inferred' => true]));
+            if ($flow->hasNode($channelId)) {
+                $flow->addEdge(new FlowEdge($router->id, $channelId, FlowEdgeKind::ROUTES_TO, ['inferred' => true]));
             }
         }
-
-        return $graph;
     }
 
-    /**
-     * @param array<string, string> $attributes
-     */
-    private function withEmission(MessageFlowGraph $graph, string $handlerId, string $messageId, string $via, array $attributes = []): MessageFlowGraph
-    {
-        if ($graph->edgesOfKind(FlowEdgeKind::EMITS, from: $handlerId, to: $messageId) !== []) {
-            return $graph;
-        }
-
-        return $graph->withEdge(new FlowEdge($handlerId, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $via] + $attributes));
-    }
-
-    private function implicitEmissionOf(MessageFlowGraph $graph, FlowNode $handler): string
+    private function implicitEmissionOf(InferredFlow $flow, FlowNode $handler): string
     {
         $ownerId = $handler->attributes['owner'] ?? null;
-        if (is_string($ownerId) && $graph->hasNode($ownerId) && ($graph->node($ownerId)->attributes['eventSourced'] ?? false) === true) {
+        if (is_string($ownerId) && $flow->hasNode($ownerId) && ($flow->node($ownerId)->attributes['eventSourced'] ?? false) === true) {
             return 'return';
         }
 

@@ -14,25 +14,57 @@ final class HandlerSourceScanner
 {
     private const IGNORED_NAMES = ['parent', 'class'];
 
-    public function scan(string $className, string $methodName): MethodSourceFacts
+    /**
+     * @param array<string, array{string, string}> $targets facts key => [class name, method name]
+     * @return array<string, MethodSourceFacts>
+     */
+    public function scan(array $targets): array
     {
-        $method = new ReflectionMethod($className, $methodName);
-        $fileName = $method->getFileName();
-        if ($fileName === false || $method->getStartLine() === false || $method->getEndLine() === false) {
-            return MethodSourceFacts::none();
+        $facts = [];
+        $methodsByFile = [];
+        foreach ($targets as $key => [$className, $methodName]) {
+            $method = new ReflectionMethod($className, $methodName);
+            $fileName = $method->getFileName();
+            if ($fileName === false || $method->getStartLine() === false || $method->getEndLine() === false) {
+                $facts[$key] = MethodSourceFacts::none();
+                continue;
+            }
+            $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine()];
         }
 
-        $tokens = array_values(array_filter(
-            PhpToken::tokenize((string) file_get_contents($fileName)),
-            fn (PhpToken $token) => ! $token->isIgnorable()
-        ));
-        [$namespace, $imports] = $this->importsOf($tokens);
-        $body = array_values(array_filter(
-            $tokens,
-            fn (PhpToken $token) => $token->line >= $method->getStartLine() && $token->line <= $method->getEndLine()
-        ));
+        foreach ($methodsByFile as $fileName => $methods) {
+            $tokens = array_values(array_filter(
+                PhpToken::tokenize((string) file_get_contents($fileName)),
+                fn (PhpToken $token) => ! $token->isIgnorable()
+            ));
+            [$namespace, $imports] = $this->importsOf($tokens);
+            $firstIndexByLine = [];
+            foreach ($tokens as $index => $token) {
+                $firstIndexByLine[$token->line] ??= $index;
+            }
+            $lastLine = $tokens === [] ? 0 : end($tokens)->line;
+            foreach ($methods as [$key, $className, $startLine, $endLine]) {
+                $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
+                $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
+                $facts[$key] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
+            }
+        }
 
-        return $this->factsOf($body, $className, $namespace, $imports);
+        return $facts;
+    }
+
+    /**
+     * @param array<int, int> $firstIndexByLine
+     */
+    private function firstIndexAtOrAfter(array $firstIndexByLine, int $line, int $lastLine, int $tokenCount): int
+    {
+        for ($current = $line; $current <= $lastLine; $current++) {
+            if (isset($firstIndexByLine[$current])) {
+                return $firstIndexByLine[$current];
+            }
+        }
+
+        return $tokenCount;
     }
 
     /**

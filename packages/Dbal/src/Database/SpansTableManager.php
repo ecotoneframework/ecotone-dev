@@ -30,7 +30,7 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class SpansTableManager implements DbalTableManager
 {
-    public const DEFAULT_TABLE = 'ecotone_spans';
+    public const DEFAULT_TABLE = 'ecotone_tracing';
     public const FEATURE_NAME = 'tracing';
 
     public function __construct(

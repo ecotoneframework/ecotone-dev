@@ -3098,7 +3098,7 @@ to know when the projection had caught up: it polled its own read model, or gues
 in an external collector, after the fact.
 
 **Now:** `TracingConfiguration::createWithDefaults()->withStoredTraces()` keeps every span in the database as well,
-in `ecotone_traces` and `ecotone_spans`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
+in `ecotone_traces` and `ecotone_tracing`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
 or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit;
 the span that wraps the unit of work is written when it ends, after the commit, and that write is the one that
 decides whether the trace is complete, reading what every other unit of work has committed by then. No row is

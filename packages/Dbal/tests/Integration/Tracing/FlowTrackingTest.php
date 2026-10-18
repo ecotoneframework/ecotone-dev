@@ -1015,6 +1015,36 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    public function test_a_flow_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted is passed a ' . FlowCompleted::class . ' as its first parameter, but declares it as ' . FlowStepCompleted::class . ', so every notification would fail. Declare that parameter as ' . FlowCompleted::class . '.');
+
+        $this->bootstrap([$subscriber]);
+    }
+
+    public function test_a_flow_step_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(string $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded is passed a ' . FlowStepCompleted::class . ' as its first parameter, but declares it as string, so every notification would fail. Declare that parameter as ' . FlowStepCompleted::class . '.');
+
+        $this->bootstrap([$subscriber]);
+    }
+
     public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {

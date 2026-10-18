@@ -13,6 +13,8 @@ use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
@@ -51,6 +53,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
@@ -82,11 +85,13 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     /**
      * @param string[] $flowCompletedSubscribers
      * @param string[] $flowStepCompletedSubscribers
+     * @param array<array{attribute: string, notification: string, class: string, method: string}> $subscriberMethods
      * @param string[] $pollingProjectionNames
      */
     private function __construct(
         private array $flowCompletedSubscribers,
         private array $flowStepCompletedSubscribers,
+        private array $subscriberMethods,
         private array $pollingProjectionNames,
     ) {
     }
@@ -96,6 +101,10 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         return new self(
             self::placementsOf($annotationRegistrationService, OnFlowCompleted::class),
             self::placementsOf($annotationRegistrationService, OnFlowStepCompleted::class),
+            [
+                ...self::subscriberMethodsOf($annotationRegistrationService, OnFlowCompleted::class, FlowCompleted::class),
+                ...self::subscriberMethodsOf($annotationRegistrationService, OnFlowStepCompleted::class, FlowStepCompleted::class),
+            ],
             self::pollingProjectionNames($annotationRegistrationService),
         );
     }
@@ -104,6 +113,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     {
         $flowTracking = self::flowTrackingOf($extensionObjects);
         $this->refuseMisconfiguredFlowTracking($messagingConfiguration, $flowTracking);
+        $this->refuseSubscribersThatCannotReceiveTheirNotification($interfaceToCallRegistry);
         $connectionReference = self::connectionReferenceOf($extensionObjects);
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
         $storesOnDatabase = $flowTracking !== null && ! $flowTracking->inMemory;
@@ -234,6 +244,48 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         if (! $flowTracking->notifications) {
             throw ConfigurationException::create(implode(', ', $subscribers) . ' would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
         }
+    }
+
+    private function refuseSubscribersThatCannotReceiveTheirNotification(InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        foreach ($this->subscriberMethods as $subscriber) {
+            $interfaceToCall = $interfaceToCallRegistry->getFor($subscriber['class'], $subscriber['method']);
+            if ($interfaceToCall->hasNoParameters()) {
+                continue;
+            }
+            $declaredType = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
+            if ($declaredType->acceptType(Type::create($subscriber['notification']))) {
+                continue;
+            }
+
+            throw ConfigurationException::create(sprintf(
+                '%s on %s::%s is passed a %s as its first parameter, but declares it as %s, so every notification would fail. Declare that parameter as %s.',
+                $subscriber['attribute'],
+                $subscriber['class'],
+                $subscriber['method'],
+                $subscriber['notification'],
+                $declaredType->toString(),
+                $subscriber['notification'],
+            ));
+        }
+    }
+
+    /**
+     * @return array<array{attribute: string, notification: string, class: string, method: string}>
+     */
+    private static function subscriberMethodsOf(AnnotationFinder $annotationFinder, string $attributeClassName, string $notificationClassName): array
+    {
+        $subscribers = [];
+        foreach ($annotationFinder->findAnnotatedMethods($attributeClassName) as $annotatedMethod) {
+            $subscribers[] = [
+                'attribute' => '#[' . substr((string) strrchr('\\' . $attributeClassName, '\\'), 1) . ']',
+                'notification' => $notificationClassName,
+                'class' => $annotatedMethod->getClassName(),
+                'method' => $annotatedMethod->getMethodName(),
+            ];
+        }
+
+        return $subscribers;
     }
 
     private static function registerTracingGateway(Configuration $messagingConfiguration, string $serviceClass, Definition $service): void

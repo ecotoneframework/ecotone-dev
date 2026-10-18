@@ -13,6 +13,8 @@ use ReflectionMethod;
 final class HandlerSourceScanner
 {
     private const IGNORED_NAMES = ['parent', 'class'];
+    private const IGNORED_TOKENS = [T_WHITESPACE => true, T_COMMENT => true, T_DOC_COMMENT => true, T_OPEN_TAG => true, T_INLINE_HTML => true];
+    private const NAME_TOKENS = [T_STRING => true, T_NAME_QUALIFIED => true, T_NAME_FULLY_QUALIFIED => true, T_NAME_RELATIVE => true, T_STATIC => true];
 
     /**
      * @param array<string, array{string, string}> $targets facts key => [class name, method name]
@@ -33,15 +35,16 @@ final class HandlerSourceScanner
         }
 
         foreach ($methodsByFile as $fileName => $methods) {
-            $tokens = array_values(array_filter(
-                PhpToken::tokenize((string) file_get_contents($fileName)),
-                fn (PhpToken $token) => ! $token->isIgnorable()
-            ));
-            [$namespace, $imports] = $this->importsOf($tokens);
+            $tokens = [];
             $firstIndexByLine = [];
-            foreach ($tokens as $index => $token) {
-                $firstIndexByLine[$token->line] ??= $index;
+            foreach (PhpToken::tokenize((string) file_get_contents($fileName)) as $token) {
+                if (isset(self::IGNORED_TOKENS[$token->id])) {
+                    continue;
+                }
+                $firstIndexByLine[$token->line] ??= count($tokens);
+                $tokens[] = $token;
             }
+            [$namespace, $imports] = $this->importsOf($tokens);
             $lastLine = $tokens === [] ? 0 : end($tokens)->line;
             foreach ($methods as [$key, $className, $startLine, $endLine]) {
                 $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
@@ -132,25 +135,26 @@ final class HandlerSourceScanner
         $literals = [];
         $enclosingCalls = [];
         foreach ($tokens as $index => $token) {
-            if ($token->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
+            $id = $token->id;
+            if ($id === T_NEW && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
                 $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
                 if ($resolved !== null) {
                     $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
                 }
-            } elseif ($token->is(T_DOUBLE_COLON) && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
+            } elseif ($id === T_DOUBLE_COLON && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
                 $resolved = $this->resolve($tokens[$index - 1], $className, $namespace, $imports);
                 if ($resolved !== null && $resolved !== $className) {
                     $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
                 }
-            } elseif ($token->text === '(') {
+            } elseif ($id === 40) {
                 $call = $this->callBefore($tokens, $index);
                 $enclosingCalls[] = $call['method'] ?? null;
                 if ($call !== null) {
                     $calls[] = $call + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
                 }
-            } elseif ($token->text === ')') {
+            } elseif ($id === 41) {
                 array_pop($enclosingCalls);
-            } elseif ($token->is(T_CONSTANT_ENCAPSED_STRING)) {
+            } elseif ($id === T_CONSTANT_ENCAPSED_STRING) {
                 $literals[] = $this->literal($token);
             }
         }
@@ -224,7 +228,7 @@ final class HandlerSourceScanner
 
     private function isName(PhpToken $token): bool
     {
-        return $token->is([T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE, T_STATIC]);
+        return isset(self::NAME_TOKENS[$token->id]);
     }
 
     /**

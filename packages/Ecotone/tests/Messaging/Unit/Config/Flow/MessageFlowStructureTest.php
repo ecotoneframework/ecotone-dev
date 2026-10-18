@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -59,4 +61,49 @@ final class MessageFlowStructureTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:saga.event', $id));
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, $id, 'message:saga.next'));
     }
+    public function test_aggregate_query_is_owned_by_the_aggregate(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            private string $id = 'order';
+
+            #[QueryHandler('aggregate.status')]
+            public function status(): string
+            {
+                return $this->id;
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+
+        $id = 'handler:' . $aggregate::class . '::status';
+        self::assertSame(FlowNodeKind::QUERY_HANDLER, $graph->node($id)->kind);
+        self::assertSame('aggregate:' . $aggregate::class, $graph->node($id)->attributes['owner']);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:aggregate.status', $id));
+    }
+
+    public function test_aggregate_factory_and_action_both_receive_the_same_command(): void
+    {
+        $aggregate = new #[Aggregate] class () {
+            #[Identifier]
+            private string $id = 'order';
+
+            #[CommandHandler('aggregate.upsert')]
+            public static function create(): static
+            {
+                return new static();
+            }
+
+            #[CommandHandler('aggregate.upsert')]
+            public function update(): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(2, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:aggregate.upsert'));
+        foreach (['create', 'update'] as $method) {
+            self::assertSame('aggregate:' . $aggregate::class, $graph->node('handler:' . $aggregate::class . '::' . $method)->attributes['owner']);
+        }
+    }
+
 }

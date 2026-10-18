@@ -185,8 +185,14 @@ final class HandlerSourceScanner
         $literals = [];
         $enclosingCalls = [];
         $variables = [];
+        $returning = false;
         foreach ($tokens as $index => $token) {
             $id = $token->id;
+            if ($token->is(T_RETURN) || $token->is(T_YIELD)) {
+                $returning = true;
+            } elseif ($token->text === ';') {
+                $returning = false;
+            }
             if ($id === T_VARIABLE && ($tokens[$index + 1] ?? null)?->text === '=') {
                 unset($variables[$token->text]);
                 if (($tokens[$index + 2] ?? null)?->is(T_NEW) && isset($tokens[$index + 3]) && $this->isName($tokens[$index + 3])) {
@@ -196,19 +202,19 @@ final class HandlerSourceScanner
             if ($id === T_NEW && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
                 $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
                 if ($resolved !== null) {
-                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
+                    $instantiations[] = ['class' => $resolved, 'returned' => $returning, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === T_DOUBLE_COLON && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
                 $resolved = $this->resolve($tokens[$index - 1], $className, $namespace, $imports);
                 if ($resolved !== null && $resolved !== $className) {
-                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
+                    $instantiations[] = ['class' => $resolved, 'returned' => $returning, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === 40) {
                 $call = $this->callBefore($tokens, $index);
                 if ($call !== null) {
                     $argument = $tokens[$index + 1] ?? null;
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
-                        array_unshift($instantiations, ['class' => $variables[$argument->text], 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
+                        array_unshift($instantiations, ['class' => $variables[$argument->text], 'returned' => false, 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
                     $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
                 }

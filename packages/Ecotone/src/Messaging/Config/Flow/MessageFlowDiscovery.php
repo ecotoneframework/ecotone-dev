@@ -40,6 +40,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
+use Ecotone\Modelling\DecisionModel\DecisionModelHandlers;
 
 final class MessageFlowDiscovery
 {
@@ -95,6 +96,12 @@ final class MessageFlowDiscovery
         $this->discoverGateways();
         $this->discoverScheduled();
         $this->discoverEventAliases();
+        foreach (DecisionModelHandlers::scan($this->annotationFinder, $this->interfaceToCallRegistry)->appendingTheirResult() as $handler) {
+            $id = 'handler:' . $handler->className() . '::' . $handler->methodName();
+            if (isset($this->nodes[$id])) {
+                $this->nodes[$id] = $this->nodes[$id]->withAttributes(['returnsEvents' => true]);
+            }
+        }
 
         return new DeclaredMessageFlow(MessageFlowGraph::create(array_values($this->nodes), $this->edges), $this->collaborators);
     }

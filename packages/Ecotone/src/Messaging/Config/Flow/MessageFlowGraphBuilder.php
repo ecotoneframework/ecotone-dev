@@ -61,7 +61,7 @@ final class MessageFlowGraphBuilder
             $messageId = 'message:' . $instantiation['class'];
             $call = $instantiation['enclosingCall'];
             if (! $flow->hasNode($messageId)) {
-                if (in_array($call, self::EVENT_CALLS, true)) {
+                if (in_array($call, self::EVENT_CALLS, true) || ($call === null && $instantiation['returned'] && $this->implicitEmissionOf($flow, $handler) === 'return')) {
                     $flow->addNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::EVENT));
                 } elseif (in_array($call, self::SEND_CALLS, true)) {
                     $receiverType = $this->collaborators[$handler->id][$instantiation['receiver'] ?? ''] ?? '';
@@ -153,6 +153,9 @@ final class MessageFlowGraphBuilder
 
     private function implicitEmissionOf(InferredFlow $flow, FlowNode $handler): string
     {
+        if (($handler->attributes['returnsEvents'] ?? false) === true) {
+            return 'return';
+        }
         $ownerId = $handler->attributes['owner'] ?? null;
         if (is_string($ownerId) && $flow->hasNode($ownerId) && ($flow->node($ownerId)->attributes['eventSourced'] ?? false) === true) {
             return 'return';

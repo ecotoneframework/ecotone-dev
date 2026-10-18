@@ -3124,7 +3124,9 @@ a flow starts, so one passed to a bus or gateway called from inside a handler is
 already belongs to. A handler reads the id of
 the flow it runs in from `Ecotone\Api\Tracing\CurrentTrace::tracingId()`.
 
-A flow is complete once the work that started it ended, every route it sent has an ended handler, and every message
+A flow starts at a command, event or query bus call, a distributed bus send, an application or orchestrator gateway
+call, or a consumer receiving a message that carries no trace, such as one from an application without tracing or a
+scheduled poll. A flow is complete once the work that started it ended, every route it sent has an ended handler, and every message
 it sent to a channel was consumed from that channel, so an asynchronous command, event or projection keeps the flow
 pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
 satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the

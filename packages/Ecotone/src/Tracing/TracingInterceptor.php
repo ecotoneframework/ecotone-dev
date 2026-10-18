@@ -246,7 +246,8 @@ final class TracingInterceptor
     private function traceEntry(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
     {
         $currentSpan = $this->tracer->currentSpan();
-        if ($currentSpan !== null && $message->getHeaders()->containsKey(MessageHeaders::TRACING_ID)) {
+        $headers = $message->getHeaders();
+        if ($currentSpan !== null && $headers->containsKey(MessageHeaders::TRACING_ID) && TracingId::normalizedOrNull((string) $headers->get(MessageHeaders::TRACING_ID)) !== $currentSpan->context()->traceId) {
             $flow = $currentSpan->context()->traceId;
 
             throw InvalidArgumentException::create("tracingId names the flow a message starts, but this message is sent from inside flow {$flow}, so it belongs to that flow already. Await {$flow} with TracingGateway, or send the message from outside a handler, where a flow starts.");
@@ -262,7 +263,7 @@ final class TracingInterceptor
     {
         $isLocalRoot = $this->tracer->currentSpan() === null;
         $remoteParent = ! $isLocalRoot ? null : ($kind === SpanKind::Consumer ? self::remoteParentOf($message) : self::entryParentOf($message));
-        if ($isLocalRoot && $kind !== SpanKind::Consumer) {
+        if ($isLocalRoot && ($kind !== SpanKind::Consumer || $remoteParent === null)) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;
         }
         $attributes = [...$attributes, ...self::trackingAttributesOf($this->tracer, $message, $isLocalRoot && $kind !== SpanKind::Consumer)];

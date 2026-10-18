@@ -21,6 +21,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
@@ -146,7 +147,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                     TraceRecordingInterceptor::class,
                     $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, $method),
                     $precedence,
-                    CommandBus::class . '||' . EventBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
+                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . DistributedBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
                 )
             );
         }

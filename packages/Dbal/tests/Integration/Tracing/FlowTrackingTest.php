@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
@@ -689,6 +690,56 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
 
         $this->completion($ecotone)->awaitFor('0af7651916cd43dd8448eb211c80319c', 'orders_list', Duration::milliseconds(10));
+    }
+
+    public function test_a_flow_started_by_a_query_completes_once_the_asynchronous_command_it_sent_ran(): void
+    {
+        $orders = new class () {
+            #[QueryHandler('order.quote')]
+            public function quote(string $orderId, CommandBus $commandBus): string
+            {
+                $commandBus->sendWithRouting('order.reserve', $orderId);
+
+                return 'quote-' . $orderId;
+            }
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.reserve', endpointId: 'order.reserving')]
+            public function reserve(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $tracingId = '0af7651916cd43dd8448eb211c80319c';
+
+        $ecotone->sendQueryWithRouting('order.quote', '1', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
+        $this->assertFalse($this->completion($ecotone)->isCompleted($tracingId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompleted($tracingId));
+    }
+
+    public function test_a_flow_a_consumer_starts_for_a_message_from_an_application_without_tracing_completes_once_that_consumer_ran(): void
+    {
+        $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel('async_channel');
+        $orders = new class () {
+            public ?string $tracingId = null;
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->tracingId = $currentTrace->tracingId();
+            }
+        };
+        $producer = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [$sharedChannel]);
+        $consumer = $this->bootstrap([$orders], [$sharedChannel]);
+
+        $producer->sendCommandWithRouting('order.place', '1');
+        $consumer->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertNotNull($orders->tracingId);
+        $this->assertTrue($this->completion($consumer)->isCompleted($orders->tracingId));
     }
 
     public function test_a_handler_can_read_the_trace_id_it_runs_in(): void

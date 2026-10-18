@@ -10,6 +10,7 @@ use Doctrine\DBAL\Result;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
@@ -24,6 +25,7 @@ use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -287,6 +289,32 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         self::assertTrue($this->completion($consumer)->isCompletedFor($trace->traceId, 'user.notifier'));
         self::assertFalse($this->completion($consumer)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_flow_started_by_a_distributed_command_completes_once_the_receiving_service_handled_it(): void
+    {
+        $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel('distributed_ticket_channel');
+        $tickets = new class () {
+            public int $created = 0;
+
+            #[Distributed]
+            #[CommandHandler('ticket.create', endpointId: 'ticket.creation')]
+            public function create(string $description): void
+            {
+                $this->created++;
+            }
+        };
+        $userService = $this->bootstrap('dbal', [], [$sharedChannel, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_ticket_channel'), ServiceConfiguration::createWithDefaults()->withServiceName('user_service')]);
+        $ticketService = $this->bootstrap('dbal', [$tickets], [$sharedChannel, ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service')]);
+        $tracingId = '0af7651916cd43dd8448eb211c80319c';
+
+        $userService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
+        self::assertFalse($this->completion($userService)->isCompleted($tracingId));
+
+        $ticketService->run('distributed_ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(1, $tickets->created);
+        self::assertTrue($this->completion($userService)->isCompleted($tracingId));
     }
 
     public function test_a_send_rolled_back_with_its_failed_handler_is_not_awaited_after_the_retry_succeeded(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Tracing;
 
 use Closure;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
@@ -84,21 +85,43 @@ final class DbalTraceStore implements TraceStore
         return $this->onTables(fn (): TraceProgress => TraceLedger::progressOf($traceId, $this->spansOf($this->connection(), $traceId)));
     }
 
-    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void
+    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void
     {
         $connection = $this->connection();
-        $this->onTables(function () use ($connection, $completedTracesStartedBefore, $anyTraceStartedBefore): void {
-            $expired = "SELECT trace_id FROM {$this->tracesTableManager->getTableName()} WHERE started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)";
-            $parameters = ['anyStartedBefore' => $anyTraceStartedBefore->unixTime()->inMicroseconds(), 'completedStartedBefore' => $completedTracesStartedBefore->unixTime()->inMicroseconds()];
-            $types = ['anyStartedBefore' => Types::BIGINT, 'completedStartedBefore' => Types::BIGINT];
-            $connection->executeStatement("DELETE FROM {$this->spansTableManager->getTableName()} WHERE trace_id IN ({$expired})", $parameters, $types);
-            $connection->executeStatement("DELETE FROM {$this->tracesTableManager->getTableName()} WHERE started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)", $parameters, $types);
-        });
+        do {
+            $removed = $this->onTables(fn (): int => $connection->transactional(fn (): int => $this->removeExpiredBatch($connection, $completedTracesStartedBefore, $anyTraceStartedBefore, $batchSize)));
+        } while ($removed === $batchSize);
     }
 
     public function withinTransaction(Closure $work): mixed
     {
         return $this->connection()->transactional($work);
+    }
+
+    private function removeExpiredBatch(Connection $connection, DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): int
+    {
+        $traceIds = $connection->createQueryBuilder()
+            ->select('trace_id')
+            ->from($this->tracesTableManager->getTableName())
+            ->where('started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)')
+            ->setParameter('anyStartedBefore', $anyTraceStartedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
+            ->setParameter('completedStartedBefore', $completedTracesStartedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
+            ->setMaxResults($batchSize)
+            ->executeQuery()
+            ->fetchFirstColumn();
+        if ($traceIds === []) {
+            return 0;
+        }
+
+        foreach ([$this->spansTableManager->getTableName(), $this->tracesTableManager->getTableName()] as $tableName) {
+            $connection->createQueryBuilder()
+                ->delete($tableName)
+                ->where('trace_id IN (:traceIds)')
+                ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
+                ->executeStatement();
+        }
+
+        return count($traceIds);
     }
 
     /**

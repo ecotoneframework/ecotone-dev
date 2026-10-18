@@ -31,12 +31,13 @@ final class ExpiredTraceRemover
         private TraceStore $traceStore,
         private EcotoneClockInterface $clock,
         private int $retentionInMilliseconds,
+        private int $removalBatchSize,
     ) {
     }
 
     public function removeExpiredTraces(): void
     {
         $now = $this->clock->now();
-        $this->traceStore->removeExpiredTraces($now->sub(Duration::milliseconds($this->retentionInMilliseconds)), $now->sub(Duration::milliseconds(2 * $this->retentionInMilliseconds)));
+        $this->traceStore->removeExpiredTraces($now->sub(Duration::milliseconds($this->retentionInMilliseconds)), $now->sub(Duration::milliseconds(2 * $this->retentionInMilliseconds)), $this->removalBatchSize);
     }
 }

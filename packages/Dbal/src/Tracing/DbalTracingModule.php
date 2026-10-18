@@ -187,7 +187,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         }
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,
-            new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $flowTracking->retention->inMilliseconds()])
+            new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $flowTracking->retention->inMilliseconds(), $flowTracking->removalBatchSize])
         );
         $messagingConfiguration
             ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL))

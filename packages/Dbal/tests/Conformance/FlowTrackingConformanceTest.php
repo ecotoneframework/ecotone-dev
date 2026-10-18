@@ -43,6 +43,7 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -231,6 +232,41 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.archiver'));
         self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_expired_flows_beyond_one_removal_batch_are_all_removed_by_the_console_command(string $implementation): void
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$this->users()::class],
+            containerOrAvailableServices: [$this->users(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [self::flowTracking($implementation, Duration::minutes(10))->withRemovalBatchSize(2)],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->setupDatabaseTables();
+        $expired = [];
+        for ($flow = 1; $flow <= 5; $flow++) {
+            $expired[] = $trace = SpanContext::newTrace();
+            $ecotone->sendCommandWithRouting('user.register', (string) $flow, metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        }
+        $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
+        $recent = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '6', metadata: [MessageHeaders::TRACEPARENT => $recent->toTraceparent()]);
+
+        $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
+
+        foreach ($expired as $trace) {
+            self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        }
+        self::assertTrue($this->completion($ecotone)->isCompleted($recent->traceId));
+    }
+
+    public function test_a_removal_batch_size_below_one_is_refused_naming_the_minimum(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('FlowTrackingConfiguration::withRemovalBatchSize(0) would never remove an expired flow. Pass 1 or more; the default is 1000.');
+
+        FlowTrackingConfiguration::createWithDefaults()->withRemovalBatchSize(0);
     }
 
     #[DataProvider('implementations')]

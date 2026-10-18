@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Attribute\Header;
-use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -70,8 +70,8 @@ final class StoredTracingGateway
             }
             if ($this->clock->now() >= $deadline) {
                 throw $progress->recorded
-                    ? TraceCompletionTimedOut::forTrace($tracingId, $timeout, $progress->pendingDestinations())
-                    : TraceCompletionTimedOut::forUnrecordedTrace($tracingId, $timeout);
+                    ? FlowTrackingTimedOut::forTrace($tracingId, $timeout, $progress->pendingDestinations())
+                    : FlowTrackingTimedOut::forUnrecordedTrace($tracingId, $timeout);
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
@@ -89,9 +89,9 @@ final class StoredTracingGateway
             }
             if ($this->clock->now() >= $deadline) {
                 throw match (true) {
-                    ! $progress->recorded => TraceCompletionTimedOut::forUnrecordedTrace($tracingId, $timeout),
-                    ! $progress->reached($destination) => TraceCompletionTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
-                    default => TraceCompletionTimedOut::forDestination($tracingId, $destination, $timeout),
+                    ! $progress->recorded => FlowTrackingTimedOut::forUnrecordedTrace($tracingId, $timeout),
+                    ! $progress->reached($destination) => FlowTrackingTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
+                    default => FlowTrackingTimedOut::forDestination($tracingId, $destination, $timeout),
                 };
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));

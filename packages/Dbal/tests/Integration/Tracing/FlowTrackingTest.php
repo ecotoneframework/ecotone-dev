@@ -13,11 +13,11 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
-use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\SpanEnded;
-use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
@@ -119,7 +119,7 @@ final class FlowTrackingTest extends TestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
@@ -228,16 +228,16 @@ final class FlowTrackingTest extends TestCase
         $this->assertSame([$trace->traceId], $subscriber->completedTraces);
     }
 
-    public function test_a_span_ended_subscriber_receives_every_stored_span_of_the_trace(): void
+    public function test_a_flow_step_completed_subscriber_receives_every_stored_span_of_the_trace(): void
     {
         $subscriber = new class () {
             /** @var string[] */
             public array $spanNames = [];
 
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
-                $this->spanNames[] = $event->span->name;
+                $this->spanNames[] = $event->step->name;
             }
         };
         $users = $this->users();
@@ -285,7 +285,7 @@ final class FlowTrackingTest extends TestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage('Still pending: order.placing, async_channel.');
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
@@ -346,18 +346,18 @@ final class FlowTrackingTest extends TestCase
         $this->assertSame(1, $subscriber->notifications);
     }
 
-    public function test_a_span_ended_subscriber_sending_a_command_does_not_notify_itself_again(): void
+    public function test_a_flow_step_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
     {
         $subscriber = new class () {
             /** @var string[] */
             public array $notifiedTraces = [];
 
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event, CommandBus $commandBus): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
             {
-                $this->notifiedTraces[] = $event->span->traceId;
+                $this->notifiedTraces[] = $event->step->traceId;
                 if (count($this->notifiedTraces) < 20) {
-                    $commandBus->sendWithRouting('cache.refresh', $event->span->traceId);
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
                 }
             }
 
@@ -508,7 +508,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
@@ -518,7 +518,7 @@ final class FlowTrackingTest extends TestCase
     {
         $ecotone = $this->bootstrap([$this->users()]);
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage('No span was recorded under trace 0af7651916cd43dd8448eb211c80319c within 100 milliseconds. Send the command with that traceparent in its metadata, and check that the process handling it stores traces.');
 
         $this->completion($ecotone)->await('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(100));
@@ -530,7 +530,7 @@ final class FlowTrackingTest extends TestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage("Trace {$trace->traceId} was neither sent to nor processed by user.notifierr within 100 milliseconds. Check the endpointId or projection name; the trace reached: user.registration.");
 
         $this->completion($ecotone)->awaitFor($trace->traceId, 'user.notifierr', Duration::milliseconds(100));
@@ -641,7 +641,7 @@ final class FlowTrackingTest extends TestCase
 
     public function test_with_only_requested_flows_tracked_a_command_sent_without_one_stores_nothing(): void
     {
-        $subscriber = $this->spanEndedSubscriber();
+        $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
@@ -657,7 +657,7 @@ final class FlowTrackingTest extends TestCase
 
     public function test_with_only_requested_flows_tracked_a_command_sent_with_one_is_stored_through_its_asynchronous_hop(): void
     {
-        $subscriber = $this->spanEndedSubscriber();
+        $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
             [$this->users(), $this->asynchronousNotifier(), $subscriber],
@@ -756,7 +756,7 @@ final class FlowTrackingTest extends TestCase
 
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void
     {
-        $subscriber = $this->spanEndedSubscriber();
+        $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = $this->bootstrap([$this->failingUsers(), $subscriber]);
         $trace = SpanContext::newTrace();
 
@@ -864,17 +864,17 @@ final class FlowTrackingTest extends TestCase
         );
     }
 
-    public function test_a_span_ended_subscriber_requires_an_enterprise_licence_even_without_flow_tracking(): void
+    public function test_a_flow_step_completed_subscriber_requires_an_enterprise_licence_even_without_flow_tracking(): void
     {
         $subscriber = new class () {
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
             }
         };
 
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('#[OnSpanEnded] on ' . $subscriber::class . '::whenEnded requires an Ecotone Enterprise licence. Remove it to run without one.');
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded requires an Ecotone Enterprise licence. Remove it to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -942,16 +942,16 @@ final class FlowTrackingTest extends TestCase
         };
     }
 
-    private function spanEndedSubscriber(): object
+    private function flowStepCompletedSubscriber(): object
     {
         return new class () {
             /** @var array<string, SpanStatus> */
             public array $endedSpans = [];
 
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
-                $this->endedSpans[$event->span->name] = $event->span->status;
+                $this->endedSpans[$event->step->name] = $event->step->status;
             }
         };
     }

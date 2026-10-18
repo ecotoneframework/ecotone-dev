@@ -17,11 +17,11 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
-use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\SpanEnded;
-use Ecotone\Api\Dbal\Tracing\TraceCompletionTimedOut;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
@@ -113,7 +113,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(TraceCompletionTimedOut::class);
+        $this->expectException(FlowTrackingTimedOut::class);
         $this->expectExceptionMessage('Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter');
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
@@ -265,7 +265,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     #[DataProvider('implementations')]
     public function test_a_failing_asynchronous_handler_stores_nothing_by_default(string $implementation): void
     {
-        $subscriber = $this->spanEndedSubscriber();
+        $subscriber = $this->flowStepCompletedSubscriber();
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $ecotone->sendCommandWithRouting('user.register', '1');
         $storedBeforeTheConsumerRan = $subscriber->endedSpans;
@@ -634,16 +634,16 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         };
     }
 
-    private function spanEndedSubscriber(): object
+    private function flowStepCompletedSubscriber(): object
     {
         return new class () {
             /** @var array<string, SpanStatus> */
             public array $endedSpans = [];
 
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
-                $this->endedSpans[$event->span->name] = $event->span->status;
+                $this->endedSpans[$event->step->name] = $event->step->status;
             }
         };
     }

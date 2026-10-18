@@ -3105,11 +3105,11 @@ Two features are on by default and each can be turned off while the flows are st
 
 - **`TracingGateway`** answers `isCompleted($tracingId)`, `isCompletedFor($tracingId, $destination)` for one
   `endpointId` or projection name, and `await()` / `awaitFor()`, which poll until then or throw
-  `TraceCompletionTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
+  `FlowTrackingTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
   handler failed, and naming a flow nobody recorded or a destination the flow never reached.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
 - **Notifications**: a method with `#[OnFlowCompleted]` receives a `FlowCompleted` each time its flow reaches
-  completion, and one with `#[OnSpanEnded]` receives every tracked span. `withNotifications(false)` turns them off,
+  completion, and one with `#[OnFlowStepCompleted]` receives a `FlowStepCompleted` for every step of the flow whose unit of work committed, a bus call, a handler run, a route, a message sent or received, with the step's span in `$event->step`. `withNotifications(false)` turns them off,
   and an application that still declares either attribute is refused at bootstrap.
 
 The flow is named by the **`tracingId`** header, `MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters

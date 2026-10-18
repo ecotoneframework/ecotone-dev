@@ -15,7 +15,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
-use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -78,12 +78,12 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
 
     /**
      * @param string[] $flowCompletedSubscribers
-     * @param string[] $spanEndedSubscribers
+     * @param string[] $flowStepCompletedSubscribers
      * @param string[] $pollingProjectionNames
      */
     private function __construct(
         private array $flowCompletedSubscribers,
-        private array $spanEndedSubscribers,
+        private array $flowStepCompletedSubscribers,
         private array $pollingProjectionNames,
     ) {
     }
@@ -92,7 +92,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     {
         return new self(
             self::placementsOf($annotationRegistrationService, OnFlowCompleted::class),
-            self::placementsOf($annotationRegistrationService, OnSpanEnded::class),
+            self::placementsOf($annotationRegistrationService, OnFlowStepCompleted::class),
             self::pollingProjectionNames($annotationRegistrationService),
         );
     }
@@ -129,7 +129,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(StoringSpanRecorder::class, [
                 new Reference(TraceStore::class),
                 new Reference(MessagingEntrypointService::class),
-                $flowTracking->notifications && $this->spanEndedSubscribers !== [],
+                $flowTracking->notifications && $this->flowStepCompletedSubscribers !== [],
                 $flowTracking->notifications && $this->flowCompletedSubscribers !== [],
                 $flowTracking->onlyRequestedFlows,
                 new Reference(EcotoneClockInterface::class),
@@ -151,7 +151,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         }
         if ($flowTracking->notifications) {
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowCompleted::CHANNEL));
-            $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnSpanEnded::CHANNEL));
+            $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));
         }
         if ($flowTracking->tracingGateway) {
             self::registerTracingGateway($messagingConfiguration, StoredTracingGateway::class, new Definition(StoredTracingGateway::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $this->pollingProjectionNames]));
@@ -198,7 +198,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
 
     private function refuseMisconfiguredFlowTracking(Configuration $messagingConfiguration, ?FlowTrackingConfiguration $flowTracking): void
     {
-        $subscribers = [...$this->flowCompletedSubscribers, ...$this->spanEndedSubscribers];
+        $subscribers = [...$this->flowCompletedSubscribers, ...$this->flowStepCompletedSubscribers];
         $enterpriseUsages = [...($flowTracking !== null ? ['FlowTrackingConfiguration'] : []), ...$subscribers];
         if ($enterpriseUsages !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create(sprintf(

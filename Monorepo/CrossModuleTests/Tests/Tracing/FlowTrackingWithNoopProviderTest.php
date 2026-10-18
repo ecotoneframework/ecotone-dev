@@ -7,9 +7,9 @@ namespace Monorepo\CrossModuleTests\Tests\Tracing;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -64,10 +64,10 @@ final class FlowTrackingWithNoopProviderTest extends TestCase
             /** @var string[] */
             public array $spanIds = [];
 
-            #[OnSpanEnded]
-            public function whenEnded(SpanEnded $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
-                $this->spanIds[] = $event->span->spanId;
+                $this->spanIds[] = $event->step->spanId;
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(

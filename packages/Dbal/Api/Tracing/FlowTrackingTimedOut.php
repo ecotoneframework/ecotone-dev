@@ -14,7 +14,7 @@ use RuntimeException;
  * licence Enterprise
  * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
-final class TraceCompletionTimedOut extends RuntimeException
+final class FlowTrackingTimedOut extends RuntimeException
 {
     /**
      * @param string[] $pendingDestinations

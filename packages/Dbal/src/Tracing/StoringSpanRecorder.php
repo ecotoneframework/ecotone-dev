@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
-use Ecotone\Api\Dbal\Tracing\OnSpanEnded;
-use Ecotone\Api\Dbal\Tracing\SpanEnded;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -133,7 +133,7 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->publishing = true;
         try {
             foreach ($endedSpans as $span) {
-                $this->deliver(new SpanEnded($span), OnSpanEnded::CHANNEL);
+                $this->deliver(new FlowStepCompleted($span), OnFlowStepCompleted::CHANNEL);
             }
             foreach (array_unique($completedTraces) as $traceId) {
                 $this->deliver(new FlowCompleted($traceId), OnFlowCompleted::CHANNEL);

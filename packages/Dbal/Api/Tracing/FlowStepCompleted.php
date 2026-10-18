@@ -10,9 +10,9 @@ use Ecotone\Api\Tracing\Span;
  * licence Enterprise
  * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
  */
-final class SpanEnded
+final class FlowStepCompleted
 {
-    public function __construct(public readonly Span $span)
+    public function __construct(public readonly Span $step)
     {
     }
 }

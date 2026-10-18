@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Tracing\Config;
 
 use function array_map;
-use function count;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
@@ -33,7 +32,6 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -51,8 +49,6 @@ use Ecotone\Tracing\TracerCurrentTrace;
 use Ecotone\Tracing\TracingDisabledCurrentTrace;
 use Ecotone\Tracing\TracingInterceptor;
 use Ecotone\Tracing\UnavailableTraceCompletion;
-
-use function implode;
 
 #[ModuleAnnotation]
 /**
@@ -100,9 +96,6 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
     {
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
         $tracerReferences = ExtensionObjectResolver::resolve(TracerReference::class, $extensionObjects);
-        if (count($tracerReferences) > 1) {
-            throw ConfigurationException::create('Only one Tracer can be active, yet these were registered: ' . implode(', ', array_map(fn (TracerReference $reference): string => $reference->referenceName, $tracerReferences)) . '. Enable a single tracing package.');
-        }
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
         if (! $tracingConfiguration->storedTraces) {

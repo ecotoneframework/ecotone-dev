@@ -12,8 +12,6 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Tracing\Config\TracerReference;
 
 /**
  * licence Apache-2.0
@@ -120,17 +118,5 @@ final class TracingConfigurationTest extends TracingTestCase
         $this->assertSame('user.registration', $spansByName['process class@anonymous::register']->attributes['ecotone.endpoint.id'] ?? null);
         $this->assertArrayNotHasKey('ecotone.endpoint.id', $spansByName['send command']->attributes);
         $this->assertArrayNotHasKey('ecotone.trace.root', $spansByName['process class@anonymous::register']->attributes);
-    }
-
-    public function test_two_tracers_are_refused_at_bootstrap(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Only one Tracer can be active, yet these were registered: first.tracer, second.tracer. Enable a single tracing package.');
-
-        EcotoneLite::bootstrapFlowTesting(
-            [],
-            [],
-            [new TracerReference('first.tracer'), new TracerReference('second.tracer')],
-        );
     }
 }

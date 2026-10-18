@@ -593,6 +593,20 @@ Never, in a test:
 - use reflection
 - count SQL statements
 - name an internal collaborator class in the test's own name
+- construct or call any class outside `Api/` — a store, recorder, ledger, module, extension object or channel
+  interceptor from `src/` — even to prove two implementations of a seam behave alike
+- drop, alter or write Ecotone's tables to simulate a failure
+
+The test of a test: rewrite every class under `src/` the feature touches, keep the behaviour, and the test must not
+change. A contract suite that constructs `InMemoryTraceStore` and `DbalTraceStore` and calls `append()` fails that test
+the moment the store's methods are renamed, while the behaviour it guards — a trace completes once and notifies once —
+is unchanged. Prove it instead through the application: boot it once per storage and drive both through the bus and
+the `TraceCompletion` gateway.
+
+A failure the test needs comes through a seam the application owns. A database outage right after a commit is a
+Doctrine connection the application hands Ecotone, whose statements start failing when an `#[Around]` interceptor
+just outside the transaction says so — not a `DROP TABLE` on Ecotone's tables. If a path cannot be reached from
+userland at all, the application cannot observe it: remove the code instead of testing it from the inside.
 
 ```php
 use Ecotone\Api\EventSourcing\EventStore;

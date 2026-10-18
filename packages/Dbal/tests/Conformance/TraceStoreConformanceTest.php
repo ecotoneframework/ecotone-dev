@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Conformance;
 
+use Doctrine\DBAL\Cache\QueryCacheProfile;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Result;
 use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -62,6 +65,12 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class TraceStoreConformanceTest extends DbalMessagingTestCase
 {
+    public function tearDown(): void
+    {
+        OutageSimulatingConnection::$databaseDown = false;
+        parent::tearDown();
+    }
+
     public static function implementations(): iterable
     {
         yield 'in-memory' => ['in-memory'];
@@ -464,7 +473,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             }
         };
         $outage = $this->outageRightAfterTheTransaction();
-        $ecotone = $this->bootstrap('dbal', [$this->users(), $notifier, $outage], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$this->users(), $notifier, $outage], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $ecotone->sendCommandWithRouting('user.register', '1');
 
         $outage->armed = true;
@@ -486,12 +495,44 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             }
         };
         $outage = $this->outageRightAfterTheTransaction();
-        $ecotone = $this->bootstrap('dbal', [$users, $outage]);
+        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$users, $outage]);
 
         $outage->armed = true;
         $ecotone->sendCommandWithRouting('user.register', '1');
 
         self::assertSame(1, $users->registered);
+    }
+
+    public function test_a_database_outage_inside_the_consumer_transaction_leaves_the_message_to_be_retried(): void
+    {
+        $notifier = new class () {
+            public int $handled = 0;
+
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                $this->handled++;
+                OutageSimulatingConnection::$databaseDown = $this->handled === 1;
+            }
+        };
+        $recovery = new class () {
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1, pointcut: 'Ecotone\\Api\\Attribute\\AsynchronousRunningEndpoint')]
+            public function comeBackBeforeEachAttempt(MethodInvocation $methodInvocation): mixed
+            {
+                OutageSimulatingConnection::$databaseDown = false;
+
+                return $methodInvocation->proceed();
+            }
+        };
+        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$this->users(), $notifier, $recovery], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(2, $notifier->handled);
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void
@@ -538,30 +579,40 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
 
     private function outageRightAfterTheTransaction(): object
     {
-        return new class ($this->getConnectionFactory()) {
+        return new class () {
             public bool $armed = false;
 
-            public function __construct(private DbalConnectionFactory $connectionFactory)
-            {
-            }
-
             #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1, pointcut: 'Ecotone\\Api\\Gateway\\CommandBus||Ecotone\\Api\\Attribute\\AsynchronousRunningEndpoint')]
-            public function simulateOutage(MethodInvocation $methodInvocation): mixed
+            public function goDownAfterTheTransaction(MethodInvocation $methodInvocation): mixed
             {
                 $result = $methodInvocation->proceed();
-                if (! $this->armed) {
-                    return $result;
-                }
-                $schemaManager = $this->connectionFactory->establishConnection()->createSchemaManager();
-                foreach (['ecotone_tracing', 'ecotone_traces'] as $table) {
-                    if ($schemaManager->tablesExist([$table])) {
-                        $schemaManager->dropTable($table);
-                    }
+                if ($this->armed) {
+                    OutageSimulatingConnection::$databaseDown = true;
                 }
 
                 return $result;
             }
         };
+    }
+
+    /**
+     * @param object[] $services
+     * @param object[] $extensionObjects
+     */
+    private function bootstrapOnAConnectionThatCanGoDown(array $services, array $extensionObjects = []): FlowTestSupport
+    {
+        $connectionFactory = new DbalConnectionFactory([
+            'dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone',
+            'connection' => ['wrapperClass' => OutageSimulatingConnection::class],
+        ]);
+
+        return $this->bootstrapFlowTesting(
+            classesToResolve: array_map(fn (object $service): string => $service::class, $services),
+            containerOrAvailableServices: [...$services, DbalConnectionFactory::class => $connectionFactory],
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(), ...$extensionObjects],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->setupDatabaseTables();
     }
 
     private function failingNotifier(): object
@@ -599,5 +650,31 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             {
             }
         };
+    }
+}
+
+final class OutageSimulatingConnection extends Connection
+{
+    public static bool $databaseDown = false;
+
+    public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
+    {
+        self::failWhenDown();
+
+        return parent::executeQuery($sql, $params, $types, $qcp);
+    }
+
+    public function executeStatement(string $sql, array $params = [], array $types = []): int|string
+    {
+        self::failWhenDown();
+
+        return parent::executeStatement($sql, $params, $types);
+    }
+
+    private static function failWhenDown(): void
+    {
+        if (self::$databaseDown) {
+            throw new RuntimeException('The database is down');
+        }
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Closure;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
 
@@ -37,4 +38,6 @@ interface TraceStore
     public function progressOf(string $traceId): TraceProgress;
 
     public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void;
+
+    public function withinTransaction(Closure $work): mixed;
 }

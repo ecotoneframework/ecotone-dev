@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Closure;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
+use Ecotone\Tracing\ActiveSpan;
 
 /**
  * licence Enterprise
@@ -34,6 +36,10 @@ final class StoringSpanRecorder implements SpanRecorder
     /** @var Span[] */
     private array $buffer = [];
     private bool $scopeActive = false;
+    private ?ActiveSpan $wrappingSpan = null;
+    /** @var array<string, true> */
+    private array $storedSpanIds = [];
+    private bool $projectionBatchActive = false;
     private bool $unitOfWorkActive = false;
     /** @var Span[] */
     private array $committedSpans = [];
@@ -73,9 +79,10 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->completedTraces = [];
     }
 
-    public function openScope(): void
+    public function openScope(?ActiveSpan $wrappingSpan): void
     {
         $this->scopeActive = true;
+        $this->wrappingSpan = $wrappingSpan;
     }
 
     public function isScopeActive(): bool
@@ -86,20 +93,67 @@ final class StoringSpanRecorder implements SpanRecorder
     public function closeScope(): void
     {
         $this->scopeActive = false;
+        $this->wrappingSpan = null;
+        $this->storedSpanIds = [];
     }
 
-    public function flush(?Span $wrappingSpanSoFar): void
+    public function beginProjectionBatch(): void
     {
-        $spans = $this->buffer;
-        $this->buffer = [];
-        if ($wrappingSpanSoFar !== null && $this->isStored($wrappingSpanSoFar)) {
-            $spans[] = $wrappingSpanSoFar;
+        $this->projectionBatchActive = true;
+    }
+
+    public function isProjectionBatchActive(): bool
+    {
+        return $this->projectionBatchActive;
+    }
+
+    public function endProjectionBatch(): void
+    {
+        $this->projectionBatchActive = false;
+    }
+
+    public function withinTransaction(Closure $work): mixed
+    {
+        return $this->traceStore->withinTransaction($work);
+    }
+
+    public function flushBuffered(): void
+    {
+        $this->store([]);
+    }
+
+    public function flushWithOpenSpans(?ActiveSpan ...$innerOpenSpans): void
+    {
+        $openSpans = [];
+        foreach ([$this->wrappingSpan, ...$innerOpenSpans] as $openSpan) {
+            if ($openSpan !== null) {
+                $openSpans[$openSpan->context()->spanId] = $openSpan->endedSoFar();
+            }
         }
+        $this->store(array_values($openSpans));
+    }
+
+    /**
+     * @param Span[] $openSpansSoFar
+     */
+    private function store(array $openSpansSoFar): void
+    {
+        $spans = [];
+        foreach ([...$this->buffer, ...$openSpansSoFar] as $span) {
+            if ($this->isStored($span) && ! isset($this->storedSpanIds[$span->spanId])) {
+                $spans[$span->spanId] = $span;
+            }
+        }
+        $this->buffer = [];
         if ($spans === []) {
             return;
         }
 
+        $spans = array_values($spans);
         $this->traceStore->append($spans);
+        foreach ($spans as $span) {
+            $this->storedSpanIds[$span->spanId] = true;
+        }
         $completedTraces = [];
         foreach (array_unique(array_map(fn (Span $span): string => $span->traceId, $spans)) as $traceId) {
             if ($this->traceStore->markCompletedIfDone($traceId, $this->clock->now())) {

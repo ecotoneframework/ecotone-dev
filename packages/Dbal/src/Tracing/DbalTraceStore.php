@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
@@ -93,6 +94,11 @@ final class DbalTraceStore implements TraceStore
             $connection->executeStatement("DELETE FROM {$this->spansTableManager->getTableName()} WHERE trace_id IN ({$expired})", $parameters, $types);
             $connection->executeStatement("DELETE FROM {$this->tracesTableManager->getTableName()} WHERE started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)", $parameters, $types);
         });
+    }
+
+    public function withinTransaction(Closure $work): mixed
+    {
+        return $this->connection()->transactional($work);
     }
 
     /**

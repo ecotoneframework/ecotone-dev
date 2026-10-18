@@ -3130,7 +3130,10 @@ events.
 
 Everything is written inside the transaction of the unit of work it describes, a bus call or an asynchronous
 consumption: the spans buffered during the work, the span that wraps it as it stands at that moment, and the decision
-whether the flow is complete. Nothing is written after the commit or after a rollback, so a database that goes down
+whether the flow is complete. An asynchronous projection, which commits once per batch, is recorded inside each
+batch's transaction, and is marked processed in the batch that finds it caught up. A path run with no transaction at
+all, an event bus call from a controller or a command bus with `withTransactionOnCommandBus(false)`, has none to be
+inside and writes when its work ends. Nothing is written after the commit or after a rollback, so a database that goes down
 right after a commit cannot fail a consumer or a command whose work already committed, and an outage inside the
 transaction rolls back with the work and leaves the message to be retried. A unit of work that fails stores nothing;
 its failure is visible in OpenTelemetry. Notifications are published from memory once the transaction committed, at

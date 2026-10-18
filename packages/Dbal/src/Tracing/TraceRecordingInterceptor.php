@@ -71,11 +71,10 @@ final class TraceRecordingInterceptor
             return $methodInvocation->proceed();
         }
 
-        $wrappingSpan = $this->tracer->currentSpan();
-        $this->recorder->openScope();
+        $this->recorder->openScope($this->tracer->currentSpan());
         try {
             $result = $methodInvocation->proceed();
-            $this->recorder->flush($wrappingSpan?->endedSoFar());
+            $this->recorder->flushWithOpenSpans();
 
             return $result;
         } catch (Throwable $failure) {
@@ -84,6 +83,33 @@ final class TraceRecordingInterceptor
             throw $failure;
         } finally {
             $this->recorder->closeScope();
+        }
+    }
+
+    public function recordProjectionBatch(MethodInvocation $methodInvocation): mixed
+    {
+        if (! $this->recorder->isScopeActive() || $this->recorder->isProjectionBatchActive()) {
+            return $methodInvocation->proceed();
+        }
+
+        $this->recorder->beginProjectionBatch();
+        try {
+            return $this->recorder->withinTransaction(function () use ($methodInvocation): mixed {
+                $processedEvents = $methodInvocation->proceed();
+                if ($processedEvents === 0) {
+                    $this->recorder->flushWithOpenSpans($this->tracer->currentSpan());
+                } else {
+                    $this->recorder->flushBuffered();
+                }
+
+                return $processedEvents;
+            });
+        } catch (Throwable $failure) {
+            $this->recorder->discard();
+
+            throw $failure;
+        } finally {
+            $this->recorder->endProjectionBatch();
         }
     }
 

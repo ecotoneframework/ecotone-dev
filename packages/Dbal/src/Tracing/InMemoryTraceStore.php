@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Closure;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
 
@@ -66,5 +67,10 @@ final class InMemoryTraceStore implements TraceStore
                 unset($this->spansByTrace[$traceId], $this->completedAt[$traceId]);
             }
         }
+    }
+
+    public function withinTransaction(Closure $work): mixed
+    {
+        return $work();
     }
 }

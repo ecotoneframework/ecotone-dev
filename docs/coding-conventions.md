@@ -1182,8 +1182,15 @@ nothing touches the database once the transaction has returned:
 
 ```php
 $result = $methodInvocation->proceed();
-$this->recorder->flush($wrappingSpan?->endedSoFar());   // inside the transaction
+$this->recorder->flushWithOpenSpans();   // inside the transaction
 ```
+
+Work that commits by itself - an asynchronous projection commits once per batch, with Ecotone turning the endpoint's
+transaction off - is recorded inside each of those commits, never once the work has returned: flow tracking joins
+the projection batch's transaction. A path the application chose to run with no transaction at all (the command bus
+with `withTransactionOnCommandBus(false)`, an event bus or gateway call from a controller) has no transaction to be
+inside, so what it stores is written when its work ends; that is the application's decision, and the default runs
+every command and consumer in a transaction.
 
 What may happen after the commit is work that does not depend on the database: publishing to subscribers from
 memory, and sending telemetry to an external collector such as OpenTelemetry, which is allowed to fail and never
@@ -1191,7 +1198,8 @@ fails the message. A test proves the rule by making the database unavailable rig
 `#[Around]` interceptor just outside the transaction, and asserting that the command or consumer still succeeds.
 
 Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
-threw the missing-table refusal out of the consumer (`TraceStoreConformanceTest`, the two outage tests).
+threw the missing-table refusal out of the consumer (`FlowTrackingConformanceTest`, the outage tests); an asynchronous
+projection wrote its spans after its own batch committed (`FlowTrackingProjectionTest`).
 
 ---
 

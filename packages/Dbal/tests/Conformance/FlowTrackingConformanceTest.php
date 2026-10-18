@@ -23,6 +23,7 @@ use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -33,6 +34,8 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\SpanContext;
@@ -501,6 +504,46 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1');
 
         self::assertSame(1, $users->registered);
+    }
+
+    public function test_a_database_outage_right_after_an_asynchronous_projection_committed_does_not_fail_its_consumer(): void
+    {
+        $projection = new #[Projection('users_list'), FromStream('users_stream'), Asynchronous('async_channel')] class () {
+            public int $projected = 0;
+
+            #[EventHandler('user.registered')]
+            public function whenRegistered(array $event): void
+            {
+                $this->projected++;
+            }
+        };
+        $outage = new class () {
+            public bool $armed = false;
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE + 2, pointcut: 'Ecotone\\Api\\Attribute\\AsynchronousRunningEndpoint')]
+            public function goDownAfterTheProjectionRan(MethodInvocation $methodInvocation): mixed
+            {
+                $result = $methodInvocation->proceed();
+                if ($this->armed) {
+                    OutageSimulatingConnection::$databaseDown = true;
+                }
+
+                return $result;
+            }
+        };
+        $ecotone = $this->bootstrapOnAConnectionThatCanGoDown([$projection, $outage], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->withEvents([Event::createWithType('user.registered', ['userId' => '1'])]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('user.registered', [], metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $outage->armed = true;
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $outage->armed = false;
+        OutageSimulatingConnection::$databaseDown = false;
+
+        self::assertSame(1, $projection->projected);
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'users_list'));
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_a_database_outage_inside_the_consumer_transaction_leaves_the_message_to_be_retried(): void

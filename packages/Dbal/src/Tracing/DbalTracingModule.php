@@ -27,6 +27,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\Database\TracesTableManager;
@@ -149,6 +150,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 )
             );
         }
+        $messagingConfiguration->registerAroundMethodInterceptor(
+            AroundInterceptorBuilder::create(
+                TraceRecordingInterceptor::class,
+                $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'recordProjectionBatch'),
+                Precedence::TRACE_RECORDING_PRECEDENCE,
+                ProjectionFlush::class
+            )
+        );
         if ($flowTracking->notifications) {
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowCompleted::CHANNEL));
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));

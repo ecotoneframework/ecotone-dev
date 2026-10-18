@@ -133,7 +133,11 @@ final class TracingInterceptor
     public static function carrierOf(ActiveSpan $span): array
     {
         $carrier = [MessageHeaders::TRACEPARENT => $span->context()->toTraceparent()];
-        $traceState = $span->attributes()[SpanAttribute::TRACE_CARRIED] ?? false ? TraceState::withCarried($span->context()->traceState) : $span->context()->traceState;
+        $traceState = match (true) {
+            (bool) ($span->attributes()[SpanAttribute::TRACE_UNTRACKED] ?? false) => TraceState::withUntracked($span->context()->traceState),
+            (bool) ($span->attributes()[SpanAttribute::TRACE_CARRIED] ?? false) => TraceState::withCarried($span->context()->traceState),
+            default => $span->context()->traceState,
+        };
         if ($traceState !== '') {
             $carrier[MessageHeaders::TRACESTATE] = $traceState;
         }
@@ -141,14 +145,33 @@ final class TracingInterceptor
         return $carrier;
     }
 
-    public static function isCarried(Tracer $tracer, Message $message, bool $startsTheTraceHere): bool
+    /**
+     * @return array<string, true>
+     */
+    public static function trackingAttributesOf(Tracer $tracer, Message $message, bool $startsTheTraceHere): array
     {
         $current = $tracer->currentSpan();
-        if ($current !== null) {
-            return (bool) ($current->attributes()[SpanAttribute::TRACE_CARRIED] ?? false);
+        if ($current === null) {
+            return self::trackingAttributesCarriedBy($message, $startsTheTraceHere);
         }
 
-        return $startsTheTraceHere ? self::remoteParentOf($message) !== null : TraceState::isCarried($message);
+        return array_filter([
+            SpanAttribute::TRACE_CARRIED => (bool) ($current->attributes()[SpanAttribute::TRACE_CARRIED] ?? false),
+            SpanAttribute::TRACE_UNTRACKED => (bool) ($current->attributes()[SpanAttribute::TRACE_UNTRACKED] ?? false),
+        ]);
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    public static function trackingAttributesCarriedBy(Message $message, bool $startsTheTraceHere): array
+    {
+        if (TraceState::isUntracked($message)) {
+            return [SpanAttribute::TRACE_UNTRACKED => true];
+        }
+        $carried = $startsTheTraceHere ? self::remoteParentOf($message) !== null : TraceState::isCarried($message);
+
+        return $carried ? [SpanAttribute::TRACE_CARRIED => true] : [];
     }
 
     public static function remoteParentOf(Message $message): ?SpanContext
@@ -227,9 +250,7 @@ final class TracingInterceptor
         if ($isLocalRoot && $kind !== SpanKind::Consumer) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;
         }
-        if (self::isCarried($this->tracer, $message, $isLocalRoot && $kind !== SpanKind::Consumer)) {
-            $attributes[SpanAttribute::TRACE_CARRIED] = true;
-        }
+        $attributes = [...$attributes, ...self::trackingAttributesOf($this->tracer, $message, $isLocalRoot && $kind !== SpanKind::Consumer)];
         $span = $this->tracer->startSpan($name, $kind, [...$this->messageSpanAttributes->from($message), ...$attributes], $remoteParent);
 
         try {

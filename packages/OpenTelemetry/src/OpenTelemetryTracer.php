@@ -17,6 +17,7 @@ use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Tracing\ActiveSpan;
 use Ecotone\Tracing\Tracer;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind as OpenTelemetrySpanKind;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
@@ -37,21 +38,40 @@ final class OpenTelemetryTracer implements Tracer
 
     public function startSpan(string $name, SpanKind $kind, array $attributes = [], ?SpanContext $remoteParent = null): ActiveSpan
     {
-        $parentSpanId = $remoteParent?->spanId ?? $this->currentSpan()?->context()->spanId;
-
-        $spanBuilder = $this->tracerProvider
-            ->getTracer(EcotoneSpanBuilder::ECOTONE_TRACER_NAME)
-            ->spanBuilder($name)
-            ->setSpanKind(self::kindOf($kind))
-            ->setAttributes($attributes);
+        $spanBuilder = $this->spanBuilderFor($name, $kind, $attributes);
         if ($remoteParent !== null) {
             $spanBuilder->setParent(TraceContextPropagator::getInstance()->extract([MessageHeaders::TRACEPARENT => $remoteParent->toTraceparent(), MessageHeaders::TRACESTATE => $remoteParent->traceState]));
         }
 
+        return $this->start($spanBuilder, $name, $kind, $attributes, $remoteParent ?? $this->currentSpan()?->context());
+    }
+
+    public function startRootSpan(string $name, SpanKind $kind, array $attributes = []): ActiveSpan
+    {
+        return $this->start($this->spanBuilderFor($name, $kind, $attributes)->setParent(false), $name, $kind, $attributes, null);
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private function spanBuilderFor(string $name, SpanKind $kind, array $attributes): SpanBuilderInterface
+    {
+        return $this->tracerProvider
+            ->getTracer(EcotoneSpanBuilder::ECOTONE_TRACER_NAME)
+            ->spanBuilder($name)
+            ->setSpanKind(self::kindOf($kind))
+            ->setAttributes($attributes);
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private function start(SpanBuilderInterface $spanBuilder, string $name, SpanKind $kind, array $attributes, ?SpanContext $parentContext): ActiveSpan
+    {
+        $parentSpanId = $parentContext?->spanId;
         $span = $spanBuilder->startSpan();
         $scope = $span->activate();
         $context = $span->getContext();
-        $parentContext = $remoteParent ?? $this->currentSpan()?->context();
         $spanContext = $context->isValid() && $span->isRecording()
             ? new SpanContext($context->getTraceId(), $context->getSpanId(), $context->isSampled(), (string) $context->getTraceState())
             : ($parentContext?->newChild() ?? SpanContext::newTrace());

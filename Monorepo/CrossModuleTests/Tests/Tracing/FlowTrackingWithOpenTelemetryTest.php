@@ -76,12 +76,35 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(
-            ['process class@anonymous::notify', 'process class@anonymous::register', 'process class@anonymous::whenCompleted', 'receive notifications', 'route user.notifier', 'send command', 'send event', 'send notifications'],
+            ['process class@anonymous::notify', 'process class@anonymous::register', 'receive notifications', 'route user.notifier', 'send command', 'send event', 'send notifications'],
             self::exportedSpanNamesOf($exporter, $trace->traceId),
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
         self::assertSame([$trace->traceId], $subscriber->completedTraces);
+    }
+
+    public function test_the_flow_completed_subscriber_is_exported_in_a_trace_of_its_own(): void
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+        $ecotone = $this->bootstrap($exporter, [$this->users(), $this->flowCompletedSubscriber()]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $notificationTraceIds = [];
+        /** @var SpanDataInterface $span */
+        foreach ($exporter->getSpans() as $span) {
+            if ($span->getName() === 'send ecotone.tracing.flowCompleted') {
+                $notificationTraceIds[] = $span->getContext()->getTraceId();
+            }
+        }
+        self::assertCount(1, $notificationTraceIds);
+        self::assertNotSame($trace->traceId, $notificationTraceIds[0]);
+        self::assertSame(
+            ['process class@anonymous::whenCompleted', 'send ecotone.tracing.flowCompleted'],
+            self::exportedSpanNamesOf($exporter, $notificationTraceIds[0]),
+        );
     }
 
     public function test_a_second_application_on_the_same_database_sees_the_completion_the_first_one_stored(): void

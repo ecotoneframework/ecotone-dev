@@ -46,6 +46,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
@@ -128,7 +129,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             StoringSpanRecorder::class,
             new Definition(StoringSpanRecorder::class, [
                 new Reference(TraceStore::class),
-                new Reference(MessagingEntrypointService::class),
                 $flowTracking->notifications && $this->flowStepCompletedSubscribers !== [],
                 $flowTracking->notifications && $this->flowCompletedSubscribers !== [],
                 $flowTracking->onlyRequestedFlows,
@@ -137,7 +137,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         );
         $messagingConfiguration->registerServiceDefinition(
             TraceRecordingInterceptor::class,
-            new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class), new Reference(Tracer::class)])
+            new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class), new Reference(Tracer::class), new Reference(MessagingEntrypointService::class), new Reference(LoggingGateway::class)])
         );
         foreach (['publishAfterCommit' => Precedence::TRACE_PUBLICATION_PRECEDENCE, 'recordUnitOfWork' => Precedence::TRACE_RECORDING_PRECEDENCE] as $method => $precedence) {
             $messagingConfiguration->registerAroundMethodInterceptor(

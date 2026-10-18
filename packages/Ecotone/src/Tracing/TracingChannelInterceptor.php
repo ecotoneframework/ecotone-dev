@@ -45,10 +45,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         if ($isFirstChannel) {
             $attributes = [...$attributes, ...$this->deliveryAttributes($message)];
         }
-        $carried = TracingInterceptor::isCarried($this->tracer, $message, false);
-        if ($carried) {
-            $attributes[SpanAttribute::TRACE_CARRIED] = true;
-        }
+        $attributes = [...$attributes, ...TracingInterceptor::trackingAttributesOf($this->tracer, $message, false)];
         $span = $this->tracer->startSpan(
             'send ' . $this->channelName,
             SpanKind::Producer,
@@ -163,7 +160,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
                 SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
                 SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
                 SpanAttribute::CHANNEL_NAME => $this->channelName,
-                ...(TraceState::isCarried($message) ? [SpanAttribute::TRACE_CARRIED => true] : []),
+                ...TracingInterceptor::trackingAttributesCarriedBy($message, false),
             ], TracingInterceptor::remoteParentOf($message))
             ->fail($exception);
     }

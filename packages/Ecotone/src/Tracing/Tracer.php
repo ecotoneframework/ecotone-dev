@@ -17,5 +17,10 @@ interface Tracer
      */
     public function startSpan(string $name, SpanKind $kind, array $attributes = [], ?SpanContext $remoteParent = null): ActiveSpan;
 
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    public function startRootSpan(string $name, SpanKind $kind, array $attributes = []): ActiveSpan;
+
     public function currentSpan(): ?ActiveSpan;
 }

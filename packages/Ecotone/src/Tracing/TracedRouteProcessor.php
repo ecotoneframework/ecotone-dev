@@ -32,7 +32,7 @@ final class TracedRouteProcessor implements MessageProcessor
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->routeName,
             ...$this->destinationAttributes(),
-            ...(TracingInterceptor::isCarried($this->tracer, $message, false) ? [SpanAttribute::TRACE_CARRIED => true] : []),
+            ...TracingInterceptor::trackingAttributesOf($this->tracer, $message, false),
         ]);
 
         try {

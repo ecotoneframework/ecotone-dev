@@ -38,6 +38,7 @@ use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -372,6 +373,120 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
+    }
+
+    public function test_a_failing_flow_completed_subscriber_is_logged_and_does_not_fail_the_command(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
+            {
+                throw new RuntimeException('Cache refresh failed');
+            }
+        };
+        $logger = StubLogger::create();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $subscriber::class],
+            [$this->users(), $subscriber, 'logger' => $logger],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame(['A subscriber of ecotone.tracing.flowCompleted failed and was skipped: Cache refresh failed'], $logger->getError());
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_flow_step_completed_subscriber_is_never_notified_about_the_synchronous_work_it_started(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $stepNames = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
+            {
+                $this->stepNames[] = $event->step->name;
+                if (count($this->stepNames) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
+                }
+            }
+
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        $this->assertNotContains('process class@anonymous::refresh', $subscriber->stepNames);
+        $this->assertLessThan(20, count($subscriber->stepNames));
+    }
+
+    public function test_a_flow_completed_subscriber_sending_an_asynchronous_command_is_notified_once(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $completedTraces = [];
+
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event, CommandBus $commandBus): void
+            {
+                $this->completedTraces[] = $event->tracingId;
+                if (count($this->completedTraces) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->tracingId);
+                }
+            }
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $tracingId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame([$trace->traceId], $subscriber->completedTraces);
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    public function test_a_flow_step_completed_subscriber_sending_an_asynchronous_command_is_not_notified_about_its_consumer(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $stepNames = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
+            {
+                $this->stepNames[] = $event->step->name;
+                if (count($this->stepNames) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
+                }
+            }
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->sendCommandWithRouting('user.register', '1');
+        $notifiedBeforeTheConsumerRan = $subscriber->stepNames;
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame($notifiedBeforeTheConsumerRan, $subscriber->stepNames);
     }
 
     public function test_a_consumer_that_swallowed_its_handler_failure_leaves_the_trace_pending(): void

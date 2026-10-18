@@ -3134,8 +3134,10 @@ whether the flow is complete. Nothing is written after the commit or after a rol
 right after a commit cannot fail a consumer or a command whose work already committed, and an outage inside the
 transaction rolls back with the work and leaves the message to be retried. A unit of work that fails stores nothing;
 its failure is visible in OpenTelemetry. Notifications are published from memory once the transaction committed, at
-most once: a subscriber that throws does not fail the work that committed and is not called again, and work a
-subscriber does through a bus is tracked but never notifies subscribers in turn. Completion is claimed with one
+most once: a subscriber that throws does not fail the work that committed, is logged, and is not called again. Each
+notification is delivered in a trace of its own, marked `ecotone=untracked` in the W3C `tracestate`, so whatever a
+subscriber sends, synchronously or through an asynchronous channel, is neither stored nor notified and can never reopen
+the flow it was told about; OpenTelemetry still exports it, as its own trace. Completion is claimed with one
 conditional update after the trace row was touched in the same transaction, so a second unit of work finishing the
 same flow waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding.
 

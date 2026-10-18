@@ -4,7 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
+use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Tracing\Tracer;
 use Throwable;
 
@@ -31,6 +39,8 @@ final class TraceRecordingInterceptor
     public function __construct(
         private StoringSpanRecorder $recorder,
         private Tracer $tracer,
+        private MessagingEntrypointService $messagingEntrypoint,
+        private LoggingGateway $logger,
     ) {
     }
 
@@ -48,7 +58,9 @@ final class TraceRecordingInterceptor
 
             throw $failure;
         }
-        $this->recorder->publishCommitted();
+        foreach ($this->recorder->popCommittedNotifications() as $notification) {
+            $this->deliver($notification);
+        }
 
         return $result;
     }
@@ -72,6 +84,23 @@ final class TraceRecordingInterceptor
             throw $failure;
         } finally {
             $this->recorder->closeScope();
+        }
+    }
+
+    private function deliver(FlowStepCompleted|FlowCompleted $notification): void
+    {
+        $channel = $notification instanceof FlowCompleted ? OnFlowCompleted::CHANNEL : OnFlowStepCompleted::CHANNEL;
+        $span = $this->tracer->startRootSpan('send ' . $channel, SpanKind::Producer, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
+            SpanAttribute::MESSAGING_DESTINATION_NAME => $channel,
+            SpanAttribute::TRACE_UNTRACKED => true,
+        ]);
+        try {
+            $this->messagingEntrypoint->send($notification, $channel);
+            $span->end();
+        } catch (Throwable $failure) {
+            $span->fail($failure);
+            $this->logger->error(sprintf('A subscriber of %s failed and was skipped: %s', $channel, $failure->getMessage()), [], ['exception' => $failure]);
         }
     }
 }

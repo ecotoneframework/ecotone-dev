@@ -6,14 +6,10 @@ namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
-use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
-use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Throwable;
 
 /**
  * licence Enterprise
@@ -39,7 +35,6 @@ final class StoringSpanRecorder implements SpanRecorder
     private array $buffer = [];
     private bool $scopeActive = false;
     private bool $unitOfWorkActive = false;
-    private bool $publishing = false;
     /** @var Span[] */
     private array $committedSpans = [];
     /** @var string[] */
@@ -47,7 +42,6 @@ final class StoringSpanRecorder implements SpanRecorder
 
     public function __construct(
         private TraceStore $traceStore,
-        private MessagingEntrypointService $messagingEntrypoint,
         private bool $publishesEndedSpans,
         private bool $publishesCompletedTraces,
         private bool $storesOnlyCarriedTraces,
@@ -112,9 +106,6 @@ final class StoringSpanRecorder implements SpanRecorder
                 $completedTraces[] = $traceId;
             }
         }
-        if ($this->publishing) {
-            return;
-        }
         $this->committedSpans = [...$this->committedSpans, ...$spans];
         $this->completedTraces = [...$this->completedTraces, ...$completedTraces];
     }
@@ -124,35 +115,26 @@ final class StoringSpanRecorder implements SpanRecorder
         $this->buffer = [];
     }
 
-    public function publishCommitted(): void
+    /**
+     * @return array<FlowStepCompleted|FlowCompleted>
+     */
+    public function popCommittedNotifications(): array
     {
-        $endedSpans = $this->publishesEndedSpans ? $this->committedSpans : [];
-        $completedTraces = $this->publishesCompletedTraces ? $this->completedTraces : [];
+        $notifications = [
+            ...array_map(fn (Span $span): FlowStepCompleted => new FlowStepCompleted($span), $this->publishesEndedSpans ? $this->committedSpans : []),
+            ...array_map(fn (string $traceId): FlowCompleted => new FlowCompleted($traceId), $this->publishesCompletedTraces ? array_values(array_unique($this->completedTraces)) : []),
+        ];
         $this->endUnitOfWork();
 
-        $this->publishing = true;
-        try {
-            foreach ($endedSpans as $span) {
-                $this->deliver(new FlowStepCompleted($span), OnFlowStepCompleted::CHANNEL);
-            }
-            foreach (array_unique($completedTraces) as $traceId) {
-                $this->deliver(new FlowCompleted($traceId), OnFlowCompleted::CHANNEL);
-            }
-        } finally {
-            $this->publishing = false;
-        }
+        return $notifications;
     }
 
     private function isStored(Span $span): bool
     {
-        return ! $this->storesOnlyCarriedTraces || ($span->attributes[SpanAttribute::TRACE_CARRIED] ?? false);
-    }
-
-    private function deliver(object $notification, string $channel): void
-    {
-        try {
-            $this->messagingEntrypoint->send($notification, $channel);
-        } catch (Throwable) {
+        if ($span->attributes[SpanAttribute::TRACE_UNTRACKED] ?? false) {
+            return false;
         }
+
+        return ! $this->storesOnlyCarriedTraces || ($span->attributes[SpanAttribute::TRACE_CARRIED] ?? false);
     }
 }

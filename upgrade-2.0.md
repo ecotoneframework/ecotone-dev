@@ -3148,8 +3148,11 @@ same flow waits for the first one's commit and, on PostgreSQL and SQLite, reads 
 across channels in the W3C `tracestate` as `ecotone=carried` next to any other vendor's entry, so ordinary traffic
 costs nothing. `withRetention()` sets how long `ecotone:tracing:remove-expired-traces` keeps completed flows, seven
 days by default; a flow still pending is kept twice as long, so a message delayed past the retention still completes
-it. A multi-tenant application tracks flows on the connection `MultiTenantConfiguration::createWithDefaultConnection()`
-names, because `TracingGateway` is asked without a tenant, and is refused at bootstrap without one.
+it. A multi-tenant application tracks each flow in the database of its tenant, inside the tenant's transaction, so a
+flow is never complete before the tenant's data committed. `TracingGateway` is then asked with the tenant,
+`$tracingGateway->await($tracingId, $timeout, metadata: ['tenant' => 'tenant_a'])`, and a call without one is refused
+naming that metadata; the retention command runs once per tenant,
+`ecotone:tracing:remove-expired-traces --header=tenant:tenant_a`.
 
 ```php
 #[ServiceContext]

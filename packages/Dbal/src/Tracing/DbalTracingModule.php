@@ -17,7 +17,6 @@ use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
-use Ecotone\Api\ExtensionObject\ConnectionReference;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -45,6 +44,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -163,7 +163,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));
         }
         if ($flowTracking->tracingGateway) {
-            self::registerTracingGateway($messagingConfiguration, StoredTracingGateway::class, new Definition(StoredTracingGateway::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $this->pollingProjectionNames]));
+            $multiTenancy = $flowTracking->inMemory ? null : self::multiTenancyWithoutDefaultConnectionOf($extensionObjects);
+            self::registerTracingGateway($messagingConfiguration, StoredTracingGateway::class, new Definition(StoredTracingGateway::class, [
+                new Reference(TraceStore::class),
+                new Reference(EcotoneClockInterface::class),
+                $this->pollingProjectionNames,
+                $multiTenancy?->tenantHeaderName,
+                $multiTenancy === null ? null : (string) array_key_first($multiTenancy->tenantToConnectionMapping),
+            ]));
         } else {
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.']));
         }
@@ -232,10 +239,10 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     {
         $messagingConfiguration->registerServiceDefinition($serviceClass, $service);
         foreach ([
-            'isCompleted' => [GatewayPayloadBuilder::create('tracingId')],
-            'isCompletedFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER)],
-            'await' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER)],
-            'awaitFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER)],
+            'isCompleted' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeadersBuilder::create('metadata')],
+            'isCompletedFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeadersBuilder::create('metadata')],
+            'await' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER), GatewayHeadersBuilder::create('metadata')],
+            'awaitFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER), GatewayHeadersBuilder::create('metadata')],
         ] as $method => $parameterConverters) {
             $channel = 'ecotone.tracing.gateway.' . $method;
             $messagingConfiguration
@@ -250,24 +257,22 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     private static function connectionReferenceOf(array $extensionObjects): string
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
-        $connectionReference = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+
+        return $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private static function multiTenancyWithoutDefaultConnectionOf(array $extensionObjects): ?MultiTenantConfiguration
+    {
         foreach (ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects) as $multiTenantConfiguration) {
-            if ($multiTenantConfiguration->getReferenceName() !== $connectionReference) {
-                continue;
+            if ($multiTenantConfiguration->getReferenceName() === self::connectionReferenceOf($extensionObjects) && $multiTenantConfiguration->defaultConnectionName === null) {
+                return $multiTenantConfiguration;
             }
-            if ($multiTenantConfiguration->defaultConnectionName === null) {
-                $flowTracking = self::flowTrackingOf($extensionObjects);
-                if ($flowTracking !== null && ! $flowTracking->inMemory) {
-                    throw ConfigurationException::create('Flow tracking keeps one record per flow across tenants, and TracingGateway is asked without a tenant, so it needs a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it.');
-                }
-
-                return $connectionReference;
-            }
-
-            return $multiTenantConfiguration->defaultConnectionName instanceof ConnectionReference ? $multiTenantConfiguration->defaultConnectionName->getReferenceName() : $multiTenantConfiguration->defaultConnectionName;
         }
 
-        return $connectionReference;
+        return null;
     }
 
     /**

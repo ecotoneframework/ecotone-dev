@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Tracing\TracingId;
 
 /**
@@ -42,25 +44,30 @@ final class StoredTracingGateway
         private TraceStore $traceStore,
         private EcotoneClockInterface $clock,
         private array $pollingProjectionNames,
+        private ?string $tenantHeaderName,
+        private ?string $exampleTenant,
     ) {
     }
 
-    public function isCompleted(string $tracingId): bool
+    public function isCompleted(string $tracingId, #[Headers] array $headers): bool
     {
+        $this->refuseMissingTenant('isCompleted($tracingId', $headers);
         $tracingId = TracingId::normalize($tracingId);
         return $this->traceStore->progressOf($tracingId)->isCompleted();
     }
 
-    public function isCompletedFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination): bool
+    public function isCompletedFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Headers] array $headers): bool
     {
+        $this->refuseMissingTenant('isCompletedFor($tracingId, $destination', $headers);
         $tracingId = TracingId::normalize($tracingId);
         $this->refusePollingProjection($destination);
 
         return $this->traceStore->progressOf($tracingId)->isCompletedFor($destination);
     }
 
-    public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
+    public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
     {
+        $this->refuseMissingTenant('await($tracingId, $timeout', $headers);
         $tracingId = TracingId::normalize($tracingId);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
@@ -77,8 +84,9 @@ final class StoredTracingGateway
         }
     }
 
-    public function awaitFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
+    public function awaitFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
     {
+        $this->refuseMissingTenant('awaitFor($tracingId, $destination, $timeout', $headers);
         $tracingId = TracingId::normalize($tracingId);
         $this->refusePollingProjection($destination);
         $deadline = $this->clock->now()->add($timeout);
@@ -96,6 +104,23 @@ final class StoredTracingGateway
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    private function refuseMissingTenant(string $call, array $headers): void
+    {
+        if ($this->tenantHeaderName === null || isset($headers[$this->tenantHeaderName])) {
+            return;
+        }
+
+        throw InvalidArgumentException::create(sprintf(
+            "TracingGateway reads a flow from the database of the tenant it ran for, and this call names no tenant. Pass the tenant as metadata, for example %s, metadata: ['%s' => '%s']).",
+            $call,
+            $this->tenantHeaderName,
+            $this->exampleTenant,
+        ));
     }
 
     private function refusePollingProjection(string $destination): void

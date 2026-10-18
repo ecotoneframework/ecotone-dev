@@ -29,6 +29,7 @@ use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Interceptor\Precedence;
@@ -40,7 +41,6 @@ use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Scheduling\TimeSpan;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -423,44 +423,66 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_flow_tracking_follows_the_default_connection_of_a_multi_tenant_application(): void
+    public function test_flow_tracking_stores_each_flow_in_the_database_of_its_tenant(): void
     {
-        $ecotone = $this->bootstrapFlowTesting(
-            classesToResolve: [$this->users()::class, $this->asynchronousNotifier()::class],
-            containerOrAvailableServices: [$this->users(), $this->asynchronousNotifier(), 'tenant_a_connection' => $this->getConnectionFactory(), 'shared_connection' => $this->getConnectionFactory()],
-            extensionObjects: [
-                FlowTrackingConfiguration::createWithDefaults(),
-                MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection'], 'shared_connection'),
-                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-            ],
-            enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        )->setupDatabaseTables();
+        $ecotone = $this->bootstrapMultiTenant([$this->users(), $this->asynchronousNotifier()], $this->connectionForTenantA());
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent(), 'tenant' => 'tenant_a']);
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier', metadata: ['tenant' => 'tenant_a']));
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_b']));
+        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100), metadata: ['tenant' => 'tenant_a']);
     }
 
-    public function test_flow_tracking_in_a_multi_tenant_application_without_a_default_connection_is_refused_at_bootstrap(): void
+    public function test_a_tenant_flow_is_written_inside_the_tenant_transaction_and_rolls_back_with_it(): void
     {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Flow tracking keeps one record per flow across tenants, and TracingGateway is asked without a tenant, so it needs a connection that does not depend on the tenant. Use MultiTenantConfiguration::createWithDefaultConnection() to name it.');
+        $tenantA = new DbalConnectionFactory([
+            'dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone',
+            'connection' => ['wrapperClass' => CommitFailingConnection::class],
+        ]);
+        $ecotone = $this->bootstrapMultiTenant([$this->users()], $tenantA);
+        $trace = SpanContext::newTrace();
 
-        $this->bootstrapFlowTesting(
-            classesToResolve: [$this->users()::class],
-            containerOrAvailableServices: [$this->users(), 'tenant_a_connection' => $this->getConnectionFactory()],
-            extensionObjects: [
-                FlowTrackingConfiguration::createWithDefaults(),
-                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection']),
-            ],
-            enabledModules: [ModulePackageList::DBAL_PACKAGE],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        CommitFailingConnection::$failsCommit = true;
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent(), 'tenant' => 'tenant_a']);
+            self::fail('The tenant commit was expected to fail');
+        } catch (RuntimeException $failure) {
+            self::assertSame('The commit failed', $failure->getMessage());
+        } finally {
+            CommitFailingConnection::$failsCommit = false;
+        }
+
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
+    }
+
+    public function test_expired_flows_are_removed_from_the_database_of_the_tenant_the_console_command_names(): void
+    {
+        $ecotone = $this->bootstrapMultiTenant([$this->users()], $this->connectionForTenantA());
+        $ofTenantA = SpanContext::newTrace();
+        $ofTenantB = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $ofTenantA->toTraceparent(), 'tenant' => 'tenant_a']);
+        $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $ofTenantB->toTraceparent(), 'tenant' => 'tenant_b']);
+        $ecotone->advanceTimeBy(TimeSpan::withDays(8));
+
+        $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces', ['header' => ['tenant:tenant_a']]);
+
+        self::assertFalse($this->completion($ecotone)->isCompleted($ofTenantA->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertTrue($this->completion($ecotone)->isCompleted($ofTenantB->traceId, metadata: ['tenant' => 'tenant_b']));
+    }
+
+    public function test_asking_the_tracing_gateway_of_a_multi_tenant_application_without_a_tenant_names_the_metadata_it_needs(): void
+    {
+        $ecotone = $this->bootstrapMultiTenant([$this->users()], $this->connectionForTenantA());
+
+        $this->expectExceptionMessage("TracingGateway reads a flow from the database of the tenant it ran for, and this call names no tenant. Pass the tenant as metadata, for example isCompleted(\$tracingId, metadata: ['tenant' => 'tenant_a']).");
+
+        $this->completion($ecotone)->isCompleted(SpanContext::newTrace()->traceId);
     }
 
     public function test_a_database_outage_right_after_the_consumer_committed_does_not_fail_the_consumer(): void
@@ -627,6 +649,29 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         };
     }
 
+    /**
+     * @param object[] $services
+     */
+    private function bootstrapMultiTenant(array $services, DbalConnectionFactory $tenantAConnection): FlowTestSupport
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: array_map(fn (object $service): string => $service::class, $services),
+            containerOrAvailableServices: [...$services, 'tenant_a_connection' => $tenantAConnection, 'tenant_b_connection' => $this->connectionForTenantB()],
+            extensionObjects: [
+                FlowTrackingConfiguration::createWithDefaults(),
+                MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),
+                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            testConfiguration: TestConfiguration::createWithDefaults()->withDatabaseTablesSetUpOnBootstrap(false),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
+        $ecotone->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
+
+        return $ecotone;
+    }
+
     private function outageRightAfterTheTransaction(): object
     {
         return new class () {
@@ -726,5 +771,21 @@ final class OutageSimulatingConnection extends Connection
         if (self::$databaseDown) {
             throw new RuntimeException('The database is down');
         }
+    }
+}
+
+final class CommitFailingConnection extends Connection
+{
+    public static bool $failsCommit = false;
+
+    public function commit(): void
+    {
+        if (self::$failsCommit && $this->getTransactionNestingLevel() === 1) {
+            $this->rollBack();
+
+            throw new RuntimeException('The commit failed');
+        }
+
+        parent::commit();
     }
 }

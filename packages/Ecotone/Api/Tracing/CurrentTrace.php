@@ -9,5 +9,5 @@ namespace Ecotone\Api\Tracing;
  */
 interface CurrentTrace
 {
-    public function traceId(): ?string;
+    public function tracingId(): ?string;
 }

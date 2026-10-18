@@ -15,7 +15,7 @@ final class TracerCurrentTrace implements CurrentTrace
     {
     }
 
-    public function traceId(): ?string
+    public function tracingId(): ?string
     {
         return $this->tracer->currentSpan()?->context()->traceId;
     }

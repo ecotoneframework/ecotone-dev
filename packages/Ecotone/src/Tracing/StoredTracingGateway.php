@@ -28,7 +28,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
  *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
  */
-final class StoredTraceCompletion
+final class StoredTracingGateway
 {
     public const DESTINATION_HEADER = 'ecotone_tracing_completion_destination';
     public const TIMEOUT_HEADER = 'ecotone_tracing_completion_timeout';
@@ -44,49 +44,53 @@ final class StoredTraceCompletion
     ) {
     }
 
-    public function isCompleted(string $traceId): bool
+    public function isCompleted(string $tracingId): bool
     {
-        return $this->traceStore->progressOf($traceId)->isCompleted();
+        $tracingId = TracingId::normalize($tracingId);
+        return $this->traceStore->progressOf($tracingId)->isCompleted();
     }
 
-    public function isCompletedFor(string $traceId, #[Header(self::DESTINATION_HEADER)] string $destination): bool
+    public function isCompletedFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination): bool
     {
+        $tracingId = TracingId::normalize($tracingId);
         $this->refusePollingProjection($destination);
 
-        return $this->traceStore->progressOf($traceId)->isCompletedFor($destination);
+        return $this->traceStore->progressOf($tracingId)->isCompletedFor($destination);
     }
 
-    public function await(string $traceId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
+    public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
     {
+        $tracingId = TracingId::normalize($tracingId);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
-            $progress = $this->traceStore->progressOf($traceId);
+            $progress = $this->traceStore->progressOf($tracingId);
             if ($progress->isCompleted()) {
                 return;
             }
             if ($this->clock->now() >= $deadline) {
                 throw $progress->recorded
-                    ? TraceCompletionTimedOut::forTrace($traceId, $timeout, $progress->pendingDestinations())
-                    : TraceCompletionTimedOut::forUnrecordedTrace($traceId, $timeout);
+                    ? TraceCompletionTimedOut::forTrace($tracingId, $timeout, $progress->pendingDestinations())
+                    : TraceCompletionTimedOut::forUnrecordedTrace($tracingId, $timeout);
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
     }
 
-    public function awaitFor(string $traceId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
+    public function awaitFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout): void
     {
+        $tracingId = TracingId::normalize($tracingId);
         $this->refusePollingProjection($destination);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
-            $progress = $this->traceStore->progressOf($traceId);
+            $progress = $this->traceStore->progressOf($tracingId);
             if ($progress->isCompletedFor($destination)) {
                 return;
             }
             if ($this->clock->now() >= $deadline) {
                 throw match (true) {
-                    ! $progress->recorded => TraceCompletionTimedOut::forUnrecordedTrace($traceId, $timeout),
-                    ! $progress->reached($destination) => TraceCompletionTimedOut::forUnreachedDestination($traceId, $destination, $timeout, $progress->destinations()),
-                    default => TraceCompletionTimedOut::forDestination($traceId, $destination, $timeout),
+                    ! $progress->recorded => TraceCompletionTimedOut::forUnrecordedTrace($tracingId, $timeout),
+                    ! $progress->reached($destination) => TraceCompletionTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
+                    default => TraceCompletionTimedOut::forDestination($tracingId, $destination, $timeout),
                 };
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
@@ -96,7 +100,7 @@ final class StoredTraceCompletion
     private function refusePollingProjection(string $destination): void
     {
         if (in_array($destination, $this->pollingProjectionNames, true)) {
-            throw ConfigurationException::create(sprintf('Projection %s runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].', $destination));
+            throw ConfigurationException::create(sprintf('Projection %s runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].', $destination));
         }
     }
 }

@@ -40,7 +40,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Tracing\ExpiredTraceRemover;
 use Ecotone\Tracing\InMemoryTraceStore;
-use Ecotone\Tracing\StoredTraceCompletion;
+use Ecotone\Tracing\StoredTracingGateway;
 use Ecotone\Tracing\StoringSpanRecorder;
 use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TraceRecordingInterceptor;
@@ -194,7 +194,7 @@ final class StoredTracesModule extends NoExternalConfigurationModule implements 
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnTraceCompleted::CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnSpanEnded::CHANNEL));
 
-        TraceCompletionGatewayRegistration::register($messagingConfiguration, StoredTraceCompletion::class, new Definition(StoredTraceCompletion::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $this->pollingProjectionNames]));
+        TracingGatewayRegistration::register($messagingConfiguration, StoredTracingGateway::class, new Definition(StoredTracingGateway::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $this->pollingProjectionNames]));
 
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,

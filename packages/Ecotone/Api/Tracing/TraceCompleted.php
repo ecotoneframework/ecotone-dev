@@ -10,7 +10,7 @@ namespace Ecotone\Api\Tracing;
  */
 final class TraceCompleted
 {
-    public function __construct(public readonly string $traceId)
+    public function __construct(public readonly string $tracingId)
     {
     }
 }

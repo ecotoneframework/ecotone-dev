@@ -33,9 +33,9 @@ use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -193,7 +193,7 @@ final class TraceCompletionTest extends TestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
             }
         };
         $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
@@ -218,7 +218,7 @@ final class TraceCompletionTest extends TestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
             }
         };
         $ecotone = $this->bootstrap([$this->users(), $subscriber]);
@@ -331,7 +331,7 @@ final class TraceCompletionTest extends TestCase
             {
                 $this->notifications++;
                 if ($this->notifications < 5) {
-                    $commandBus->sendWithRouting('cache.refresh', $event->traceId);
+                    $commandBus->sendWithRouting('cache.refresh', $event->tracingId);
                 }
             }
 
@@ -489,7 +489,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([$this->users()::class], [$this->users()]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('TraceCompletion needs stored traces, which decide when a trace is complete. Register TracingConfiguration::createWithDefaults()->withStoredTraces() from a #[ServiceContext] method.');
+        $this->expectExceptionMessage('TracingGateway needs stored traces, which decide when a trace is complete. Register TracingConfiguration::createWithDefaults()->withStoredTraces() from a #[ServiceContext] method.');
 
         $this->completion($ecotone)->isCompleted('0af7651916cd43dd8448eb211c80319c');
     }
@@ -571,7 +571,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone = $this->bootstrap([$projection]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TraceCompletion cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
 
         $this->completion($ecotone)->awaitFor('0af7651916cd43dd8448eb211c80319c', 'orders_list', Duration::milliseconds(10));
     }
@@ -584,7 +584,7 @@ final class TraceCompletionTest extends TestCase
             #[CommandHandler('user.register', endpointId: 'user.registration')]
             public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
             {
-                $this->traceId = $currentTrace->traceId();
+                $this->traceId = $currentTrace->tracingId();
             }
         };
         $ecotone = $this->bootstrap([$users]);
@@ -602,7 +602,7 @@ final class TraceCompletionTest extends TestCase
             #[CommandHandler('user.register', endpointId: 'user.registration')]
             public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
             {
-                $currentTrace->traceId();
+                $currentTrace->tracingId();
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
@@ -695,6 +695,64 @@ final class TraceCompletionTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertStringContainsString('congo=t61rcWkgMzE', $notifier->headers[MessageHeaders::TRACESTATE]);
+    }
+
+    public function test_a_command_sent_with_a_tracing_id_is_awaited_by_that_tracing_id(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+
+        $this->assertFalse($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+    }
+
+    public function test_a_uuid_is_accepted_as_tracing_id_and_awaited_by_the_same_uuid(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11']);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompleted('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11', 'user.notifier'));
+    }
+
+    public function test_a_handler_reads_the_tracing_id_the_command_was_sent_with(): void
+    {
+        $users = new class () {
+            public ?string $tracingId = null;
+
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->tracingId = $currentTrace->tracingId();
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11']);
+
+        $this->assertSame('0199f2f45e3b7a429b1c2f7d3e8a6c11', $users->tracingId);
+    }
+
+    public function test_a_message_carrying_both_a_tracing_id_and_a_traceparent_is_refused(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectExceptionMessage('The message carries both tracingId and traceparent, so it is not clear which trace it belongs to. Pass tracingId to track the flow with TracingGateway, or traceparent when the trace comes from OpenTelemetry instrumentation, not both.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736', MessageHeaders::TRACEPARENT => SpanContext::newTrace()->toTraceparent()]);
+    }
+
+    public function test_an_invalid_tracing_id_is_refused_naming_the_expected_format(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectExceptionMessage('tracingId `order-1` is neither 32 hexadecimal characters nor a UUID. Pass a UUID such as Uuid::v7()->toRfc4122(), or a W3C trace id.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => 'order-1']);
     }
 
     public function test_a_failed_unit_of_work_stores_nothing_by_default(): void
@@ -809,9 +867,9 @@ final class TraceCompletionTest extends TestCase
         );
     }
 
-    private function completion(FlowTestSupport $ecotone): TraceCompletion
+    private function completion(FlowTestSupport $ecotone): TracingGateway
     {
-        return $ecotone->getGateway(TraceCompletion::class);
+        return $ecotone->getGateway(TracingGateway::class);
     }
 
     private function users(): object

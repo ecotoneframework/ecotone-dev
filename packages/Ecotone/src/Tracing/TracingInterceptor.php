@@ -15,6 +15,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Throwable;
@@ -153,11 +154,29 @@ final class TracingInterceptor
     public static function remoteParentOf(Message $message): ?SpanContext
     {
         $headers = $message->getHeaders();
-
-        return SpanContext::fromTraceparent(
+        $traceparent = SpanContext::fromTraceparent(
             $headers->containsKey(MessageHeaders::TRACEPARENT) ? $headers->get(MessageHeaders::TRACEPARENT) : null,
             $headers->containsKey(MessageHeaders::TRACESTATE) ? (string) $headers->get(MessageHeaders::TRACESTATE) : '',
         );
+        if ($traceparent !== null || ! $headers->containsKey(MessageHeaders::TRACING_ID)) {
+            return $traceparent;
+        }
+        $tracingId = TracingId::normalizedOrNull((string) $headers->get(MessageHeaders::TRACING_ID));
+
+        return $tracingId === null ? null : new SpanContext($tracingId, bin2hex(random_bytes(8)));
+    }
+
+    private static function entryParentOf(Message $message): ?SpanContext
+    {
+        $headers = $message->getHeaders();
+        if (! $headers->containsKey(MessageHeaders::TRACING_ID)) {
+            return self::remoteParentOf($message);
+        }
+        if ($headers->containsKey(MessageHeaders::TRACEPARENT)) {
+            throw InvalidArgumentException::create('The message carries both tracingId and traceparent, so it is not clear which trace it belongs to. Pass tracingId to track the flow with TracingGateway, or traceparent when the trace comes from OpenTelemetry instrumentation, not both.');
+        }
+
+        return new SpanContext(TracingId::normalize((string) $headers->get(MessageHeaders::TRACING_ID)), bin2hex(random_bytes(8)));
     }
 
     private function traceHandler(MethodInvocation $methodInvocation, Message $message, string $endpointId): mixed
@@ -204,13 +223,14 @@ final class TracingInterceptor
     private function trace(string $name, MethodInvocation $methodInvocation, Message $message, SpanKind $kind, array $attributes): mixed
     {
         $isLocalRoot = $this->tracer->currentSpan() === null;
+        $remoteParent = ! $isLocalRoot ? null : ($kind === SpanKind::Consumer ? self::remoteParentOf($message) : self::entryParentOf($message));
         if ($isLocalRoot && $kind !== SpanKind::Consumer) {
             $attributes[SpanAttribute::TRACE_ROOT] = true;
         }
         if (self::isCarried($this->tracer, $message, $isLocalRoot && $kind !== SpanKind::Consumer)) {
             $attributes[SpanAttribute::TRACE_CARRIED] = true;
         }
-        $span = $this->tracer->startSpan($name, $kind, [...$this->messageSpanAttributes->from($message), ...$attributes], $isLocalRoot ? self::remoteParentOf($message) : null);
+        $span = $this->tracer->startSpan($name, $kind, [...$this->messageSpanAttributes->from($message), ...$attributes], $remoteParent);
 
         try {
             $result = $methodInvocation->proceed();

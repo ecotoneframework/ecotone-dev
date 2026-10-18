@@ -149,6 +149,7 @@ final class FrameworkHeaders
             MessageHeaders::INBOUND_REQUEST_CHANNEL,
             MessageHeaders::REPLY_CONTENT_TYPE,
             MessagingEntrypointService::ENTRYPOINT,
+            MessageHeaders::TRACING_ID,
             MessageHeaders::TRACEPARENT,
             MessageHeaders::TRACESTATE,
             MessageHeaders::TRACING_DELIVERY,

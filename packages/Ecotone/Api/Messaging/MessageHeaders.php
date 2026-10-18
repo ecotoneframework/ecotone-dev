@@ -68,6 +68,7 @@ final class MessageHeaders
     public const REPLY_CONTENT_TYPE = 'ecotone_messaging_reply_content_type';
     public const REVISION = 'revision';
 
+    public const TRACING_ID = 'tracingId';
     public const TRACEPARENT = 'traceparent';
     public const TRACESTATE = 'tracestate';
     public const TRACING_DELIVERY = 'ecotone_tracing_delivery';

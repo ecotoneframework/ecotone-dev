@@ -3105,7 +3105,7 @@ whether the trace is complete. Nothing is written to the database after the comm
 that goes down right after a commit cannot fail a consumer whose work already committed, and a failure inside the
 transaction rolls the trace back with the work and leaves the message to be retried. Completion is claimed with one
 conditional update after the trace row was touched by the same transaction, so a second unit of work finishing the
-same trace waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding. From those spans the `TraceCompletion` gateway answers
+same trace waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding. From those spans the `TracingGateway` gateway answers
 `isCompleted($traceId)`, true once the root ended, every route the trace sent has an ended handler span, and
 every message it sent to a channel was consumed from that channel, so an asynchronous command, event or projection
 keeps the trace pending until its consumer processed that exact message; `isCompletedFor($traceId, $destination)`
@@ -3122,7 +3122,7 @@ method, so it records the handler's own failure even when an error channel or a 
 or bus span that wraps a failed unit of work ends as failed too, in OpenTelemetry as in the store, unless a retry
 inside it succeeded; and
 `TraceCompletionTimedOut` names the handlers and channels still pending, points to the dead letter when a handler
-failed, and names a trace nobody recorded and a destination the trace never reached. `TraceCompletion` is always injectable; without
+failed, and names a trace nobody recorded and a destination the trace never reached. `TracingGateway` is always injectable; without
 `withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a
 `TraceCompleted` each time the trace reaches completion, so a trace that is handed more work after completing, as
 when a request sends two commands under one `traceparent`, notifies again once that work is done; one with
@@ -3130,7 +3130,7 @@ when a request sends two commands under one `traceparent`, notifies again once t
 a cache refresh never runs ahead of the data. Notifications are published from memory once the transaction
 committed, at most once: a subscriber that throws does not fail the command that already committed and is not called
 again, and a process that stops between the commit and the publication drops that notification, while
-`TraceCompletion` still answers from the stored spans. A handler that needs the id of the
+`TracingGateway` still answers from the stored spans. A handler that needs the id of the
 trace it runs in injects `Ecotone\Api\Tracing\CurrentTrace` and reads `traceId()`. `isCompletedFor()` and
 `awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the trace that appended
 its events. A message sent through a dynamic channel, through the high-throughput outbox or replayed from the dead
@@ -3138,8 +3138,13 @@ letter keeps the delivery it started as, so the trace completes when that messag
 a multi-tenant application stores traces on the connection `MultiTenantConfiguration::createWithDefaultConnection()`
 names, because the write after the unit of work has no tenant, and is refused at bootstrap without one. Work a subscriber does
 through a bus is stored like any other trace but never notifies subscribers in turn, so a subscriber that sends a
-command does not call itself again. The trace id is the one in the `traceparent` header: mint it with `SpanContext::newTrace()` and send it
-with the command, or take it from the HTTP request the command came from. `withStoredTraces(onlyTracesCarryingTraceparent: true)` stores only the traces whose root continued a
+command does not call itself again. The flow to track is named by the `tracingId` header,
+`MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters chosen by the application and sent with the command,
+then passed to `TracingGateway`, whose methods all take that `tracingId`. Ecotone turns it into the W3C `traceparent`
+of the first span, so a command that already carries a `traceparent`, as one from an instrumented HTTP request does,
+is tracked by that trace id instead; a message carrying both is refused, because it is not clear which one names the
+flow, and a `tracingId` that is neither format is refused naming the expected one. A handler reads the id of the flow
+it runs in from `CurrentTrace::tracingId()`. `withStoredTraces(onlyTracesCarryingTraceparent: true)` stores only the traces whose root continued a
 `traceparent` handed in, from an HTTP request or minted with `SpanContext::newTrace()`, and carries that choice
 across channels in the W3C `tracestate` as `ecotone=carried`, next to any other vendor's entry, so ordinary traffic
 costs no storage and only the requests that await completion are kept. A flow test given no connection keeps the
@@ -3149,9 +3154,9 @@ at bootstrap, because a store per process could never see a consumer's progress.
 retention still completes the trace it belongs to; the deletion runs as two statements, whatever the volume.
 
 ```php
-$trace = SpanContext::newTrace();
-$commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-$traceCompletion->awaitFor($trace->traceId, 'orders_list', Duration::seconds(5));
+$tracingId = Uuid::v7()->toRfc4122();
+$commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACING_ID => $tracingId]);
+$tracingGateway->awaitFor($tracingId, 'orders_list', Duration::seconds(5));
 
 final class OrdersWebsocket
 {

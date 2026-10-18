@@ -16,8 +16,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\OnSpanEnded;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanEnded;
-use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\NoopTracerProvider;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -84,6 +84,6 @@ final class StoredTracesWithNoopProviderTest extends TestCase
 
         $this->assertCount(count($subscriber->spanIds), array_unique($subscriber->spanIds));
         $this->assertGreaterThan(3, count($subscriber->spanIds));
-        $this->assertTrue($ecotone->getGateway(TraceCompletion::class)->isCompleted($trace->traceId));
+        $this->assertTrue($ecotone->getGateway(TracingGateway::class)->isCompleted($trace->traceId));
     }
 }

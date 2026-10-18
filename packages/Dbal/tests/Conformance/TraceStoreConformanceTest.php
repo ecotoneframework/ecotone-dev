@@ -34,9 +34,9 @@ use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanEnded;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TraceCompletionTimedOut;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -129,7 +129,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
             }
         };
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->asynchronousNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
@@ -352,7 +352,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
                 if (count($this->completedTraces) === 1) {
                     throw new RuntimeException('Websocket is down');
                 }
@@ -380,7 +380,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
             }
         };
         $orders = new class () {
@@ -561,9 +561,9 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         )->setupDatabaseTables();
     }
 
-    private function completion(FlowTestSupport $ecotone): TraceCompletion
+    private function completion(FlowTestSupport $ecotone): TracingGateway
     {
-        return $ecotone->getGateway(TraceCompletion::class);
+        return $ecotone->getGateway(TracingGateway::class);
     }
 
     private function users(): object

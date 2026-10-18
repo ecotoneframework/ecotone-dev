@@ -48,7 +48,7 @@ use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
 use Ecotone\Tracing\TracingDisabledCurrentTrace;
 use Ecotone\Tracing\TracingInterceptor;
-use Ecotone\Tracing\UnavailableTraceCompletion;
+use Ecotone\Tracing\UnavailableTracingGateway;
 
 #[ModuleAnnotation]
 /**
@@ -99,7 +99,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
 
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
         if (! $tracingConfiguration->storedTraces) {
-            TraceCompletionGatewayRegistration::register($messagingConfiguration, UnavailableTraceCompletion::class, new Definition(UnavailableTraceCompletion::class));
+            TracingGatewayRegistration::register($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class));
         }
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));

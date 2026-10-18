@@ -19,8 +19,8 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\OnTraceCompleted;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\TraceCompleted;
-use Ecotone\Api\Tracing\TraceCompletion;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Api\Tracing\TracingGateway;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Tests\MessagingTestCase;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -134,9 +134,9 @@ final class StoredTracesWithOpenTelemetryTest extends TestCase
         )->setupDatabaseTables();
     }
 
-    private function completion(FlowTestSupport $ecotone): TraceCompletion
+    private function completion(FlowTestSupport $ecotone): TracingGateway
     {
-        return $ecotone->getGateway(TraceCompletion::class);
+        return $ecotone->getGateway(TracingGateway::class);
     }
 
     private function users(): object
@@ -170,7 +170,7 @@ final class StoredTracesWithOpenTelemetryTest extends TestCase
             #[OnTraceCompleted]
             public function whenCompleted(TraceCompleted $event): void
             {
-                $this->completedTraces[] = $event->traceId;
+                $this->completedTraces[] = $event->tracingId;
             }
         };
     }

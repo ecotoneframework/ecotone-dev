@@ -117,6 +117,57 @@ final class MessageFlowRoutingTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:routing.created', 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:routing.created')->attributes['handled']);
     }
+    public function test_one_event_reaches_every_registered_handler(): void
+    {
+        $service = new class () {
+            #[EventHandler]
+            public function first(RoutingEvent $event): void
+            {
+            }
+
+            #[EventHandler]
+            public function second(RoutingEvent $event): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(2, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class));
+    }
+
+    public function test_repeated_event_attributes_preserve_all_routing_keys(): void
+    {
+        $service = new class () {
+            #[EventHandler('event.first', endpointId: 'first')]
+            #[EventHandler('event.second', endpointId: 'second')]
+            public function handle(array $event): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $id = 'handler:' . $service::class . '::handle';
+        self::assertEqualsCanonicalizing(['event.first', 'event.second'], $graph->node($id)->attributes['routingKeys']);
+        self::assertCount(2, $graph->edgesTo($id));
+    }
+
+    public function test_command_and_event_attributes_show_both_handler_roles(): void
+    {
+        $service = new class () {
+            #[CommandHandler('dual.command', endpointId: 'dual.command.handler')]
+            #[EventHandler('dual.event', endpointId: 'dual.event.handler')]
+            public function handle(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $commands = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::COMMAND_HANDLER));
+        self::assertCount(1, $events = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::EVENT_HANDLER));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.command', $commands[0]->id));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:dual.event', $events[0]->id));
+    }
+
 }
 
 interface RoutingEventContract

@@ -270,6 +270,12 @@ final class MessageFlowDiscovery
         /** @var EndpointAnnotation $annotation */
         $annotation = $registration->getAnnotationForMethod();
         $id = 'handler:' . $registration->getClassName() . '::' . $registration->getMethodName();
+        if (isset($this->nodes[$id]) && $this->nodes[$id]->kind !== $kind) {
+            $id .= ':' . $kind->value;
+        }
+        if (isset($this->nodes[$id]->attributes['routingKeys'], $attributes['routingKeys'])) {
+            $attributes['routingKeys'] = array_values(array_unique([...$this->nodes[$id]->attributes['routingKeys'], ...$attributes['routingKeys']]));
+        }
         $this->nodes[$id] = new FlowNode($id, $kind, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), array_merge([
             'class' => $registration->getClassName(),
             'method' => $registration->getMethodName(),

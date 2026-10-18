@@ -114,7 +114,7 @@ final class HandlerSourceScanner
                 $call = $this->callBefore($tokens, $index);
                 $enclosingCalls[] = $call['method'] ?? null;
                 if ($call !== null) {
-                    $calls[] = $call + $this->firstArgumentAt($tokens, $index + 1, $className, $namespace, $imports);
+                    $calls[] = $call + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
                 }
             } elseif ($token->text === ')') {
                 array_pop($enclosingCalls);
@@ -156,19 +156,24 @@ final class HandlerSourceScanner
     /**
      * @param list<PhpToken> $tokens
      * @param array<string, string> $imports
-     * @return array{firstArgumentLiteral: string|null, firstArgumentClass: string|null}
+     * @return array{literalArguments: list<string>, firstArgumentClass: string|null}
      */
-    private function firstArgumentAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
+    private function argumentsAt(array $tokens, int $index, string $className, string $namespace, array $imports): array
     {
         $first = $tokens[$index] ?? null;
-        if ($first?->is(T_CONSTANT_ENCAPSED_STRING)) {
-            return ['firstArgumentLiteral' => $this->literal($first), 'firstArgumentClass' => null];
-        }
         if ($first?->is(T_NEW) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
-            return ['firstArgumentLiteral' => null, 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+            return ['literalArguments' => [], 'firstArgumentClass' => $this->resolve($tokens[$index + 1], $className, $namespace, $imports)];
+        }
+        $literals = [];
+        while (isset($tokens[$index]) && $tokens[$index]->is(T_CONSTANT_ENCAPSED_STRING)) {
+            $literals[] = $this->literal($tokens[$index]);
+            if (($tokens[$index + 1] ?? null)?->text !== ',') {
+                break;
+            }
+            $index += 2;
         }
 
-        return ['firstArgumentLiteral' => null, 'firstArgumentClass' => null];
+        return ['literalArguments' => $literals, 'firstArgumentClass' => null];
     }
 
     /**

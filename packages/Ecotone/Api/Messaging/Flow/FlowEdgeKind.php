@@ -18,4 +18,5 @@ enum FlowEdgeKind: string
     case EMITS = 'emits';
     case CALLS = 'calls';
     case ROUTES_TO = 'routesTo';
+    case DISTRIBUTES = 'distributes';
 }

@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\Identifier;
@@ -18,8 +19,11 @@ use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
@@ -31,6 +35,7 @@ use Ecotone\Api\Modelling\WithEvents;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -345,6 +350,95 @@ final class MessageFlowGraphTest extends TestCase
         self::assertEdges([
             [FlowEdgeKind::ROUTED_TO, 'message:' . OrderPlacedForFlowGraph::class, 'handler:' . $projection::class . '::whenPlaced'],
         ], $graph);
+    }
+
+    public function test_distributed_handler_receives_its_message_from_the_distributed_bus(): void
+    {
+        $service = new class () {
+            #[Distributed]
+            #[CommandHandler('ticket.register', endpointId: 'ticket.register.handler')]
+            public function register(array $payload): void
+            {
+            }
+
+            #[Distributed]
+            #[EventHandler('user.registered', endpointId: 'user.registered.handler')]
+            public function whenUserRegistered(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $busId = 'distributed:' . DistributedBus::class;
+        self::assertSame(FlowNodeKind::DISTRIBUTED_BUS, $graph->node($busId)->kind);
+        self::assertTrue($graph->node('message:ticket.register')->attributes['distributed']);
+        self::assertTrue($graph->node('handler:' . $service::class . '::register')->attributes['distributed']);
+        self::assertEdges([
+            [FlowEdgeKind::DISTRIBUTES, $busId, 'message:ticket.register'],
+            [FlowEdgeKind::DISTRIBUTES, $busId, 'message:user.registered'],
+            [FlowEdgeKind::ROUTED_TO, 'message:ticket.register', 'handler:' . $service::class . '::register'],
+        ], $graph);
+    }
+
+    public function test_handler_sending_through_the_distributed_bus_is_linked_to_the_remote_messages_and_the_bus(): void
+    {
+        $service = new class () {
+            public function __construct(private ?DistributedBus $distributedBus = null)
+            {
+            }
+
+            #[CommandHandler(endpointId: 'order.place')]
+            public function place(PlaceOrderForFlowGraph $command): void
+            {
+                $this->distributedBus->convertAndSendCommand('billing', 'invoice.create', ['orderId' => $command->orderId]);
+                $this->distributedBus->publishEvent('order.placed', '{}');
+                $this->distributedBus->sendMessage('billing', 'billing.notifications', '{}');
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $busId = 'distributed:' . DistributedBus::class;
+        $placeId = 'handler:' . $service::class . '::place';
+        self::assertSame(FlowNodeKind::COMMAND, $graph->node('message:invoice.create')->kind);
+        self::assertSame('billing', $graph->node('message:invoice.create')->attributes['targetService']);
+        self::assertFalse($graph->node('message:invoice.create')->attributes['handled']);
+        self::assertSame(FlowNodeKind::EVENT, $graph->node('message:order.placed')->kind);
+        self::assertEdges([
+            [FlowEdgeKind::EMITS, $placeId, 'message:invoice.create'],
+            [FlowEdgeKind::SENDS_TO, 'message:invoice.create', $busId],
+            [FlowEdgeKind::EMITS, $placeId, 'message:order.placed'],
+            [FlowEdgeKind::SENDS_TO, 'message:order.placed', $busId],
+            [FlowEdgeKind::SENDS_TO, $placeId, $busId],
+        ], $graph);
+        $direct = $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $placeId, to: $busId)[0];
+        self::assertSame(['inferred' => true, 'via' => 'sendMessage', 'targetService' => 'billing', 'targetChannel' => 'billing.notifications'], $direct->attributes);
+        self::assertSame('convertAndSendCommand', $graph->edgesOfKind(FlowEdgeKind::EMITS, from: $placeId, to: 'message:invoice.create')[0]->attributes['via']);
+    }
+
+    public function test_service_map_wires_the_distributed_bus_to_its_command_and_event_channels(): void
+    {
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('billing_channel'),
+                SimpleMessageChannelBuilder::createQueueChannel('events_channel'),
+                DistributedServiceMap::initialize()
+                    ->withCommandMapping('billing', 'billing_channel')
+                    ->withEventMapping('events_channel', ['order.*']),
+                ServiceConfiguration::createWithDefaults()->withServiceName('orders'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $busId = 'distributed:' . DistributedBus::class;
+        self::assertSame(['billing' => 'billing_channel'], $graph->node($busId)->attributes['commandMapping']);
+        self::assertSame(['events_channel' => ['order.*']], $graph->node($busId)->attributes['eventSubscriptions']);
+        self::assertEdges([
+            [FlowEdgeKind::SENDS_TO, $busId, 'channel:billing_channel'],
+            [FlowEdgeKind::SENDS_TO, $busId, 'channel:events_channel'],
+        ], $graph);
+        self::assertSame('billing', $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $busId, to: 'channel:billing_channel')[0]->attributes['targetService']);
+        self::assertSame(['order.*'], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $busId, to: 'channel:events_channel')[0]->attributes['subscriptionKeys']);
     }
 
     public function test_graph_serializes_to_array_and_back_without_loss(): void

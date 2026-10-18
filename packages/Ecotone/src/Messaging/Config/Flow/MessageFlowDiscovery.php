@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Apply;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -22,7 +23,9 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
@@ -80,6 +83,7 @@ final class MessageFlowDiscovery
             $this->combinedChannels[$combinedChannel->getReferenceName()] = $combinedChannel->combinedChannels;
         }
 
+        $this->discoverServiceMaps($extensionObjects);
         $this->discoverOwners();
         $this->discoverBusHandlers(CommandHandler::class, FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::COMMAND);
         $this->discoverBusHandlers(QueryHandler::class, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::QUERY);
@@ -91,6 +95,24 @@ final class MessageFlowDiscovery
         $this->discoverScheduled();
 
         return new DeclaredMessageFlow(MessageFlowGraph::create(array_values($this->nodes), $this->edges), $this->collaborators);
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function discoverServiceMaps(array $extensionObjects): void
+    {
+        foreach (ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects) as $serviceMap) {
+            $bus = $this->distributedBusNode($serviceMap->getReferenceName());
+            $subscriptions = array_map(fn (array $subscription) => $subscription['keys'], $serviceMap->eventSubscriptions);
+            $this->nodes[$bus->id] = $bus->withAttributes(['commandMapping' => $serviceMap->commandMapping, 'eventSubscriptions' => $subscriptions]);
+            foreach ($serviceMap->commandMapping as $targetService => $channelName) {
+                $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['targetService' => $targetService]);
+            }
+            foreach ($subscriptions as $channelName => $subscriptionKeys) {
+                $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['subscriptionKeys' => $subscriptionKeys]);
+            }
+        }
     }
 
     private function discoverOwners(): void
@@ -121,10 +143,18 @@ final class MessageFlowDiscovery
             /** @var CommandHandler|QueryHandler|EventHandler $annotation */
             $annotation = $registration->getAnnotationForMethod();
             $routingKeys = $routing->getRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
-            $handlerId = $this->registerHandler($registration, $handlerKind, ['routingKeys' => $routingKeys]);
+            $distributed = $registration->hasAnnotation(Distributed::class);
+            $handlerId = $this->registerHandler($registration, $handlerKind, ['routingKeys' => $routingKeys, 'distributed' => $distributed]);
 
             foreach ($routingKeys as $routingKey) {
-                $this->edges[] = new FlowEdge($this->messageNode($routingKey, $messageKind, handled: true)->id, $handlerId, FlowEdgeKind::ROUTED_TO);
+                $message = $this->messageNode($routingKey, $messageKind, handled: true);
+                $this->edges[] = new FlowEdge($message->id, $handlerId, FlowEdgeKind::ROUTED_TO);
+                if ($distributed) {
+                    /** @var Distributed $distributedAttribute */
+                    $distributedAttribute = $registration->getAnnotationsByImportanceOrder(Distributed::class)[0];
+                    $this->nodes[$message->id] = $message->withAttributes(['distributed' => true]);
+                    $this->edges[] = new FlowEdge($this->distributedBusNode($distributedAttribute->distributionReference)->id, $message->id, FlowEdgeKind::DISTRIBUTES);
+                }
             }
             $this->registerOutput($handlerId, $annotation->getOutputChannelName());
             if ($handlerKind !== FlowNodeKind::QUERY_HANDLER) {
@@ -258,6 +288,20 @@ final class MessageFlowDiscovery
             'class' => $isClass ? $routingKey : null,
             'handled' => $handled,
         ]);
+    }
+
+    private function distributedBusNode(string $reference): FlowNode
+    {
+        $id = 'distributed:' . $reference;
+
+        return $this->nodes[$id] ??= new FlowNode($id, FlowNodeKind::DISTRIBUTED_BUS, self::distributedBusLabel($reference), ['reference' => $reference]);
+    }
+
+    public static function distributedBusLabel(string $reference): string
+    {
+        $segments = explode('\\', $reference);
+
+        return $reference === DistributedBus::class ? 'Distributed Bus' : 'Distributed Bus: ' . end($segments);
     }
 
     private function channelNode(string $channelName): FlowNode

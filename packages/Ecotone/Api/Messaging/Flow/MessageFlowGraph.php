@@ -195,6 +195,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowNodeKind::GATEWAY => sprintf('[["%s"]]', $label),
             FlowNodeKind::ROUTER => sprintf('{"%s"}', $label),
             FlowNodeKind::SCHEDULED => sprintf('(("%s"))', $label),
+            FlowNodeKind::DISTRIBUTED_BUS => sprintf('[\\"%s"\\]', $label),
             FlowNodeKind::AGGREGATE, FlowNodeKind::SAGA, FlowNodeKind::PROJECTION => sprintf('[/"%s"/]', $this->mermaidText($this->kindTitle($node->kind) . ': ' . $node->label)),
             default => sprintf('["%s"]', $label),
         };
@@ -209,6 +210,8 @@ final class MessageFlowGraph implements DefinedObject
             FlowEdgeKind::APPLIES => 'applies',
             FlowEdgeKind::CALLS => 'calls',
             FlowEdgeKind::ROUTES_TO => 'routes',
+            FlowEdgeKind::DISTRIBUTES => 'distributed',
+            FlowEdgeKind::SENDS_TO => $edge->isInferred() ? 'sends (' . ($edge->attributes['via'] ?? '') . ')' : (isset($edge->attributes['targetService']) ? 'to ' . $edge->attributes['targetService'] : ''),
             default => '',
         };
         $labelPart = $label === '' ? '' : '|' . $this->mermaidText($label) . '|';

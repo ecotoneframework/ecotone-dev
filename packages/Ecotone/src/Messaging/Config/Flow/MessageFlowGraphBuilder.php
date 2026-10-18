@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Flow;
 
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
@@ -19,6 +20,8 @@ final class MessageFlowGraphBuilder
     private const EVENT_CALLS = ['recordThat', 'publish', 'publishWithRouting'];
     private const SEND_CALLS = ['send', 'sendWithRouting'];
     private const ROUTING_KEY_CALLS = ['publishWithRouting', 'sendWithRouting'];
+    private const DISTRIBUTED_COMMAND_CALLS = ['sendCommand', 'convertAndSendCommand'];
+    private const DISTRIBUTED_EVENT_CALLS = ['publishEvent', 'convertAndPublishEvent'];
 
     /**
      * @param array<string, array<string, string>> $collaborators handler node id => (receiver => class)
@@ -37,6 +40,7 @@ final class MessageFlowGraphBuilder
             $facts = $this->scanner->scan((string) $handler->attributes['class'], (string) $handler->attributes['method']);
             $graph = $this->inferEmissions($graph, $handler, $facts);
             $graph = $this->inferCalls($graph, $handler, $facts);
+            $graph = $this->inferDistribution($graph, $handler, $facts);
             if ($handler->kind === FlowNodeKind::ROUTER) {
                 $graph = $this->inferRoutes($graph, $handler, $facts);
             }
@@ -62,10 +66,10 @@ final class MessageFlowGraphBuilder
             $graph = $this->withEmission($graph, $handler->id, $messageId, $call ?? $this->implicitEmissionOf($graph, $handler));
         }
         foreach ($facts->calls as $call) {
-            if (! in_array($call['method'], self::ROUTING_KEY_CALLS, true) || $call['firstArgumentLiteral'] === null) {
+            if (! in_array($call['method'], self::ROUTING_KEY_CALLS, true) || ! isset($call['literalArguments'][0])) {
                 continue;
             }
-            $routingKey = $call['firstArgumentLiteral'];
+            $routingKey = $call['literalArguments'][0];
             $messageId = 'message:' . $routingKey;
             if (! $graph->hasNode($messageId)) {
                 $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
@@ -98,6 +102,48 @@ final class MessageFlowGraphBuilder
         return $graph;
     }
 
+    private function inferDistribution(MessageFlowGraph $graph, FlowNode $handler, MethodSourceFacts $facts): MessageFlowGraph
+    {
+        foreach ($facts->calls as $call) {
+            $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
+            if ($receiverType === null || ! is_a($receiverType, DistributedBus::class, true)) {
+                continue;
+            }
+            $busId = 'distributed:' . $receiverType;
+            if (! $graph->hasNode($busId)) {
+                $graph = $graph->withNode(new FlowNode($busId, FlowNodeKind::DISTRIBUTED_BUS, MessageFlowDiscovery::distributedBusLabel($receiverType), ['reference' => $receiverType]));
+            }
+            $arguments = $call['literalArguments'];
+            if (in_array($call['method'], self::DISTRIBUTED_COMMAND_CALLS, true) && isset($arguments[1])) {
+                $graph = $this->withDistributedMessage($graph, $handler->id, $busId, $arguments[1], FlowNodeKind::COMMAND, $call['method'], ['targetService' => $arguments[0]]);
+            } elseif (in_array($call['method'], self::DISTRIBUTED_EVENT_CALLS, true) && isset($arguments[0])) {
+                $graph = $this->withDistributedMessage($graph, $handler->id, $busId, $arguments[0], FlowNodeKind::EVENT, $call['method'], []);
+            } elseif ($call['method'] === 'sendMessage' && isset($arguments[1]) && $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id, to: $busId) === []) {
+                $graph = $graph->withEdge(new FlowEdge($handler->id, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true, 'via' => 'sendMessage', 'targetService' => $arguments[0], 'targetChannel' => $arguments[1]]));
+            }
+        }
+
+        return $graph;
+    }
+
+    /**
+     * @param array<string, string> $target
+     */
+    private function withDistributedMessage(MessageFlowGraph $graph, string $handlerId, string $busId, string $routingKey, FlowNodeKind $kind, string $via, array $target): MessageFlowGraph
+    {
+        $messageId = 'message:' . $routingKey;
+        if (! $graph->hasNode($messageId)) {
+            $graph = $graph->withNode($this->unhandledMessage($routingKey, $kind));
+        }
+        $graph = $graph->withNode($graph->node($messageId)->withAttributes(['distributed' => true] + $target));
+        $graph = $this->withEmission($graph, $handlerId, $messageId, $via, $target);
+        if ($graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $messageId, to: $busId) === []) {
+            $graph = $graph->withEdge(new FlowEdge($messageId, $busId, FlowEdgeKind::SENDS_TO, ['inferred' => true] + $target));
+        }
+
+        return $graph;
+    }
+
     private function inferRoutes(MessageFlowGraph $graph, FlowNode $router, MethodSourceFacts $facts): MessageFlowGraph
     {
         foreach ($facts->stringLiterals as $literal) {
@@ -110,13 +156,16 @@ final class MessageFlowGraphBuilder
         return $graph;
     }
 
-    private function withEmission(MessageFlowGraph $graph, string $handlerId, string $messageId, string $via): MessageFlowGraph
+    /**
+     * @param array<string, string> $attributes
+     */
+    private function withEmission(MessageFlowGraph $graph, string $handlerId, string $messageId, string $via, array $attributes = []): MessageFlowGraph
     {
         if ($graph->edgesOfKind(FlowEdgeKind::EMITS, from: $handlerId, to: $messageId) !== []) {
             return $graph;
         }
 
-        return $graph->withEdge(new FlowEdge($handlerId, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $via]));
+        return $graph->withEdge(new FlowEdge($handlerId, $messageId, FlowEdgeKind::EMITS, ['inferred' => true, 'via' => $via] + $attributes));
     }
 
     private function implicitEmissionOf(MessageFlowGraph $graph, FlowNode $handler): string

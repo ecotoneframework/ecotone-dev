@@ -9,9 +9,12 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Modelling\WithEvents;
 use PHPUnit\Framework\TestCase;
 
@@ -205,6 +208,66 @@ final class MessageFlowEmissionTest extends TestCase
         }
     }
 
+    public function test_command_sent_by_class_has_the_correct_message_kind(): void
+    {
+        $service = new class () {
+            #[CommandHandler('outbound.trigger')]
+            public function handle(CommandBus $bus): void
+            {
+                $bus->send(new EmissionCommand());
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertSame(FlowNodeKind::COMMAND, $graph->node('message:' . EmissionCommand::class)->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . EmissionCommand::class));
+    }
+
+    public function test_command_sent_by_routing_key_has_the_correct_message_kind(): void
+    {
+        $service = new class () {
+            #[CommandHandler('outbound.trigger')]
+            public function handle(CommandBus $bus): void
+            {
+                $bus->sendWithRouting('outbound.command', []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertSame(FlowNodeKind::COMMAND, $graph->node('message:outbound.command')->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:outbound.command'));
+    }
+
+    public function test_query_sent_by_class_has_the_correct_message_kind(): void
+    {
+        $service = new class () {
+            #[CommandHandler('outbound.trigger')]
+            public function handle(QueryBus $bus): void
+            {
+                $bus->send(new EmissionQuery());
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertSame(FlowNodeKind::QUERY, $graph->node('message:' . EmissionQuery::class)->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . EmissionQuery::class));
+    }
+
+    public function test_query_sent_by_routing_key_has_the_correct_message_kind(): void
+    {
+        $service = new class () {
+            #[CommandHandler('outbound.trigger')]
+            public function handle(QueryBus $bus): void
+            {
+                $bus->sendWithRouting('outbound.query', []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertSame(FlowNodeKind::QUERY, $graph->node('message:outbound.query')->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:outbound.query'));
+    }
+
 }
 
 final class EmissionEvent
@@ -224,5 +287,13 @@ enum EmissionRoute: string
 
 #[NamedEvent('emission.named')]
 final class NamedEmissionEvent
+{
+}
+
+final class EmissionCommand
+{
+}
+
+final class EmissionQuery
 {
 }

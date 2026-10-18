@@ -91,7 +91,10 @@ final class HandlerSourceScanner
                 }
                 $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path, $files, $methodFacts)[$helperKey];
                 foreach ($helper->instantiations as $instantiation) {
-                    $instantiation['enclosingCall'] ??= $call['enclosingCall'];
+                    if ($instantiation['enclosingCall'] === null) {
+                        $instantiation['enclosingCall'] = $call['enclosingCall'];
+                        $instantiation['receiver'] = $call['receiver'];
+                    }
                     $instantiations[] = $instantiation;
                 }
                 $calls = [...$calls, ...$helper->calls];
@@ -193,23 +196,23 @@ final class HandlerSourceScanner
             if ($id === T_NEW && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
                 $resolved = $this->resolve($tokens[$index + 1], $className, $namespace, $imports);
                 if ($resolved !== null) {
-                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
+                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === T_DOUBLE_COLON && isset($tokens[$index - 1], $tokens[$index + 1], $tokens[$index + 2]) && $this->isName($tokens[$index - 1]) && $tokens[$index + 1]->is(T_STRING) && $tokens[$index + 2]->text === '(') {
                 $resolved = $this->resolve($tokens[$index - 1], $className, $namespace, $imports);
                 if ($resolved !== null && $resolved !== $className) {
-                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)];
+                    $instantiations[] = ['class' => $resolved, 'enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null];
                 }
             } elseif ($id === 40) {
                 $call = $this->callBefore($tokens, $index);
                 if ($call !== null) {
                     $argument = $tokens[$index + 1] ?? null;
                     if ($argument?->is(T_VARIABLE) && isset($variables[$argument->text]) && in_array($call['method'], ['publish', 'recordThat', 'send'], true)) {
-                        array_unshift($instantiations, ['class' => $variables[$argument->text], 'enclosingCall' => $call['method']]);
+                        array_unshift($instantiations, ['class' => $variables[$argument->text], 'enclosingCall' => $call['method'], 'receiver' => $call['receiver']]);
                     }
-                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)['method'] ?? null, 'receiver' => $this->innermostCall($enclosingCalls)['receiver'] ?? null] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
                 }
-                $enclosingCalls[] = $call['method'] ?? null;
+                $enclosingCalls[] = $call;
             } elseif ($id === 41) {
                 array_pop($enclosingCalls);
             } elseif ($id === T_CONSTANT_ENCAPSED_STRING) {
@@ -305,9 +308,10 @@ final class HandlerSourceScanner
     }
 
     /**
-     * @param list<string|null> $enclosingCalls
+     * @param list<array{receiver: string|null, method: string}|null> $enclosingCalls
+     * @return array{receiver: string|null, method: string}|null
      */
-    private function innermostCall(array $enclosingCalls): ?string
+    private function innermostCall(array $enclosingCalls): ?array
     {
         for ($i = count($enclosingCalls) - 1; $i >= 0; $i--) {
             if ($enclosingCalls[$i] !== null) {

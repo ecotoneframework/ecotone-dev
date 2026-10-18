@@ -10,7 +10,7 @@ namespace Ecotone\Messaging\Config\Flow;
 final class MethodSourceFacts
 {
     /**
-     * @param list<array{class: string, enclosingCall: string|null}> $instantiations
+     * @param list<array{class: string, receiver: string|null, enclosingCall: string|null}> $instantiations
      * @param list<array{receiver: string|null, method: string, enclosingCall: string|null, literalArguments: list<string>, firstArgumentClass: string|null}> $calls
      * @param list<string> $stringLiterals
      */

@@ -64,7 +64,8 @@ final class MessageFlowGraphBuilder
                 if (in_array($call, self::EVENT_CALLS, true)) {
                     $flow->addNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::EVENT));
                 } elseif (in_array($call, self::SEND_CALLS, true)) {
-                    $flow->addNode($this->unhandledMessage($instantiation['class'], FlowNodeKind::COMMAND));
+                    $receiverType = $this->collaborators[$handler->id][$instantiation['receiver'] ?? ''] ?? '';
+                    $flow->addNode($this->unhandledMessage($instantiation['class'], is_a($receiverType, QueryBus::class, true) ? FlowNodeKind::QUERY : FlowNodeKind::COMMAND));
                 } else {
                     continue;
                 }

@@ -112,6 +112,66 @@ final class MessageFlowSourceNamesTest extends TestCase
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::EMITS));
     }
 
+    public function test_file_without_namespace_preserves_imported_event_names(): void
+    {
+        $graph = $this->graphFromSource(<<<'PHP_SOURCE'
+            <?php
+            use Ecotone\Api\Attribute\CommandHandler;
+            use Ecotone\Api\Gateway\EventBus;
+            use Test\Ecotone\Messaging\Unit\Config\Flow\SourceNamesEvent;
+            return new class () {
+                #[CommandHandler('names.global')]
+                public function handle(EventBus $bus): void
+                {
+                    $bus->publish(new SourceNamesEvent());
+                }
+            };
+            PHP_SOURCE);
+
+        self::assertSame(['message:' . SourceNamesEvent::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS), 'to'));
+    }
+
+    public function test_evaluated_handler_without_readable_source_keeps_declared_routes(): void
+    {
+        $service = eval(<<<'PHP_SOURCE'
+            return new class () {
+                #[\Ecotone\Api\Attribute\CommandHandler('names.evaluated')]
+                public function handle(\Ecotone\Api\Gateway\EventBus $bus): void
+                {
+                    $bus->publish(new \Test\Ecotone\Messaging\Unit\Config\Flow\SourceNamesEvent());
+                }
+            };
+            PHP_SOURCE);
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:names.evaluated'));
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::EMITS));
+    }
+
+    public function test_deleted_included_source_keeps_declared_routes(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'flow-missing-');
+        file_put_contents($file, <<<'PHP_SOURCE'
+            <?php
+            return new class () {
+                #[\Ecotone\Api\Attribute\CommandHandler('names.deleted')]
+                public function handle(\Ecotone\Api\Gateway\EventBus $bus): void
+                {
+                    $bus->publish(new \Test\Ecotone\Messaging\Unit\Config\Flow\SourceNamesEvent());
+                }
+            };
+            PHP_SOURCE);
+        try {
+            $service = require $file;
+        } finally {
+            unlink($file);
+        }
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:names.deleted'));
+        self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::EMITS));
+    }
+
     private function graphFromSource(string $source): MessageFlowGraph
     {
         $file = tempnam(sys_get_temp_dir(), 'flow-source-');

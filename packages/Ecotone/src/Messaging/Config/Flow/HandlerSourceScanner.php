@@ -49,7 +49,7 @@ final class HandlerSourceScanner
             }
             $method = new ReflectionMethod($className, $methodName);
             $fileName = $method->getFileName();
-            if ($fileName === false || $method->getStartLine() === false || $method->getEndLine() === false) {
+            if ($fileName === false || ! is_file($fileName) || ! is_readable($fileName) || $method->getStartLine() === false || $method->getEndLine() === false) {
                 $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
                 continue;
             }

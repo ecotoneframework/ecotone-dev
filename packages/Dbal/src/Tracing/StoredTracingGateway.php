@@ -36,6 +36,7 @@ final class StoredTracingGateway
     public const DESTINATION_HEADER = 'ecotone_tracing_completion_destination';
     public const TIMEOUT_HEADER = 'ecotone_tracing_completion_timeout';
     private const POLL_INTERVAL_IN_MILLISECONDS = 50;
+    private const LONGEST_AWAIT_IN_MILLISECONDS = 15 * 60 * 1000;
 
     /**
      * @param string[] $pollingProjectionNames
@@ -70,6 +71,7 @@ final class StoredTracingGateway
     public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
     {
         $this->refuseMissingTenant('await($tracingId, $timeout', $headers);
+        $this->refuseAwaitLongerThanFifteenMinutes('await', $timeout);
         $tracingId = TracingId::normalize($tracingId);
         $deadline = $this->clock->now()->add($timeout);
         while (true) {
@@ -89,6 +91,7 @@ final class StoredTracingGateway
     public function awaitFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
     {
         $this->refuseMissingTenant('awaitFor($tracingId, $destination, $timeout', $headers);
+        $this->refuseAwaitLongerThanFifteenMinutes('awaitFor', $timeout);
         $tracingId = TracingId::normalize($tracingId);
         $destinations = $this->destinationsOf($destination);
         $deadline = $this->clock->now()->add($timeout);
@@ -106,6 +109,19 @@ final class StoredTracingGateway
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
+    }
+
+    private function refuseAwaitLongerThanFifteenMinutes(string $method, Duration $timeout): void
+    {
+        if ($timeout->inMilliseconds() <= self::LONGEST_AWAIT_IN_MILLISECONDS) {
+            return;
+        }
+
+        throw InvalidArgumentException::create(sprintf(
+            'TracingGateway::%s() was asked to wait %d milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.',
+            $method,
+            $timeout->inMilliseconds(),
+        ));
     }
 
     /**

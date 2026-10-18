@@ -37,6 +37,7 @@ use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
@@ -196,6 +197,38 @@ final class FlowTrackingTest extends TestCase
         $this->expectExceptionMessage('Projection orders_list runs by #[Polling]');
 
         $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, $projection::class);
+    }
+
+    public function test_awaiting_a_flow_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('TracingGateway::await() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+
+        $this->completion($ecotone)->await(SpanContext::newTrace()->traceId, Duration::minutes(16));
+    }
+
+    public function test_awaiting_a_destination_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('TracingGateway::awaitFor() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+
+        $this->completion($ecotone)->awaitFor(SpanContext::newTrace()->traceId, 'user.registration', Duration::minutes(16));
+    }
+
+    public function test_awaiting_a_completed_flow_for_exactly_fifteen_minutes_is_allowed(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->completion($ecotone)->await($trace->traceId, Duration::minutes(15));
+        $this->completion($ecotone)->awaitFor($trace->traceId, 'user.registration', Duration::minutes(15));
+
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_awaiting_a_pending_trace_times_out_naming_what_is_still_pending(): void

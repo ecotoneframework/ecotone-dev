@@ -3112,6 +3112,9 @@ Two features are on by default and each can be turned off while the flows are st
   its projection, any other class for every handler method in it, endpoint id or not, so
   `awaitFor($tracingId, UsersListProjection::class, $timeout)` needs no name to be repeated, and the class completes
   once every one of its handlers the flow reached ran. A class with no handler or projection is refused at once.
+  An await blocks the calling process while it polls, so a timeout above 15 minutes is refused, pointing to
+  `#[OnFlowCompleted]` and `#[OnFlowStepCompleted]`: a flow that takes longer is reacted to when it completes, not
+  waited for.
   Past the timeout, the awaits throw `FlowTrackingTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
   handler failed, and naming a flow nobody recorded or a destination the flow never reached.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.

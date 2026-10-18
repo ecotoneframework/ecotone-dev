@@ -3147,7 +3147,10 @@ its failure is visible in OpenTelemetry. Notifications are published from memory
 most once: a subscriber that throws does not fail the work that committed, is logged, and is not called again. Each
 notification is delivered in a trace of its own, marked `ecotone=untracked` in the W3C `tracestate`, so whatever a
 subscriber sends, synchronously or through an asynchronous channel, is neither stored nor notified and can never reopen
-the flow it was told about; OpenTelemetry still exports it, as its own trace. Completion is claimed with one
+the flow it was told about; OpenTelemetry still exports it, as its own trace. A subscriber runs synchronously, as that delivery
+happens; `#[Asynchronous]` on it is refused at bootstrap, so work meant for the background is a command it sends to an
+`#[Asynchronous]` handler. A subscriber whose first parameter is not `FlowCompleted` or `FlowStepCompleted`, and a
+`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Completion is claimed with one
 conditional update after the trace row was touched in the same transaction, so a second unit of work finishing the
 same flow waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding.
 

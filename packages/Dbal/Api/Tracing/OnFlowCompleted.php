@@ -20,4 +20,9 @@ final class OnFlowCompleted extends InternalHandler
     {
         parent::__construct(self::CHANNEL);
     }
+
+    public function asynchronousExecutionRefusal(): string
+    {
+        return 'cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.';
+    }
 }

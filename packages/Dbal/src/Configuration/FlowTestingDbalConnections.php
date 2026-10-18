@@ -114,7 +114,7 @@ final class FlowTestingDbalConnections
         }
         $connectionReferenceName = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
 
-        return [$this->has($connectionReferenceName) ? $flowTracking[0] : $flowTracking[0]->withInMemoryStorage(true)];
+        return array_map(fn (FlowTrackingConfiguration $configuration): FlowTrackingConfiguration => $this->has($connectionReferenceName) ? $configuration : $configuration->withInMemoryStorage(true), $flowTracking);
     }
 
     private function refuseDbalChannelsWithoutTheirConnection(): void

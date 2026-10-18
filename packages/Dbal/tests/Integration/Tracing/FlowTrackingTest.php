@@ -1045,6 +1045,50 @@ final class FlowTrackingTest extends TestCase
         $this->bootstrap([$subscriber]);
     }
 
+    public function test_an_asynchronous_flow_completed_subscriber_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
+    {
+        $subscriber = new class () {
+            #[Asynchronous('notifications')]
+            #[OnFlowCompleted]
+            public function whenCompleted(FlowCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
+
+        $this->bootstrap([$subscriber], [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
+    }
+
+    public function test_a_flow_step_completed_subscriber_in_an_asynchronous_class_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
+    {
+        $subscriber = new #[Asynchronous('notifications')] class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
+
+        $this->bootstrap([$subscriber], [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
+    }
+
+    public function test_flow_tracking_configured_twice_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('FlowTrackingConfiguration was registered 2 times, so it is not clear which settings apply. Register it once, from one #[ServiceContext] method, chaining every setting on it: FlowTrackingConfiguration::createWithDefaults()->withRetention(...)->withNotifications(...).');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class],
+            [$this->users()],
+            [FlowTrackingConfiguration::createWithDefaults(), FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
     public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {

@@ -218,9 +218,12 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
      */
     private static function flowTrackingOf(array $extensionObjects): ?FlowTrackingConfiguration
     {
-        return ExtensionObjectResolver::contains(FlowTrackingConfiguration::class, $extensionObjects)
-            ? ExtensionObjectResolver::resolveUnique(FlowTrackingConfiguration::class, $extensionObjects, FlowTrackingConfiguration::createWithDefaults())
-            : null;
+        $configurations = ExtensionObjectResolver::resolve(FlowTrackingConfiguration::class, $extensionObjects);
+        if (count($configurations) > 1) {
+            throw ConfigurationException::create(sprintf('FlowTrackingConfiguration was registered %d times, so it is not clear which settings apply. Register it once, from one #[ServiceContext] method, chaining every setting on it: FlowTrackingConfiguration::createWithDefaults()->withRetention(...)->withNotifications(...).', count($configurations)));
+        }
+
+        return $configurations[0] ?? null;
     }
 
     private function refuseMisconfiguredFlowTracking(Configuration $messagingConfiguration, ?FlowTrackingConfiguration $flowTracking): void

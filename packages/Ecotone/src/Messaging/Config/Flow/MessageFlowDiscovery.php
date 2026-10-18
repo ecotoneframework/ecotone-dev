@@ -261,6 +261,7 @@ final class MessageFlowDiscovery
             /** @var Scheduled $annotation */
             $annotation = $registration->getAnnotationForMethod();
             $id = 'scheduled:' . $registration->getClassName() . '::' . $registration->getMethodName();
+            $this->collaborators[$id] = $this->collaboratorsOf($registration);
             $this->nodes[$id] = new FlowNode($id, FlowNodeKind::SCHEDULED, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), [
                 'class' => $registration->getClassName(),
                 'method' => $registration->getMethodName(),

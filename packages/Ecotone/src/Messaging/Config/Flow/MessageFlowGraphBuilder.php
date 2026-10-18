@@ -36,7 +36,7 @@ final class MessageFlowGraphBuilder
 
     public function build(): MessageFlowGraph
     {
-        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER);
+        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SCHEDULED);
         $targets = [];
         foreach ($handlers as $handler) {
             $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];

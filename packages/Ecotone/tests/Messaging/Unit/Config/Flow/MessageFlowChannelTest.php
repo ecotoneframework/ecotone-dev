@@ -225,4 +225,24 @@ final class MessageFlowChannelTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::OUTPUT, $handler, 'channel:scheduled.done'));
     }
 
+    public function test_scheduled_method_publishing_an_event_keeps_its_emission(): void
+    {
+        $bus = EcotoneLite::bootstrapFlowTesting(enabledModules: [])->getGateway(\Ecotone\Api\Gateway\EventBus::class);
+        $service = new class ($bus) {
+            public function __construct(private \Ecotone\Api\Gateway\EventBus $bus)
+            {
+            }
+
+            #[Scheduled(endpointId: 'scheduled.publisher')]
+            public function publish(): void
+            {
+                $this->bus->publishWithRouting('scheduled.event', []);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'scheduled:' . $service::class . '::publish', 'message:scheduled.event'));
+        self::assertSame(['inferred' => true, 'via' => 'publishWithRouting'], $edges[0]->attributes);
+    }
+
 }

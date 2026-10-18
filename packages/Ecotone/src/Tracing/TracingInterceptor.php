@@ -53,22 +53,22 @@ final class TracingInterceptor
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, CommandHandler $endpoint): mixed
     {
-        return $this->traceHandler($methodInvocation, $message, $this->endpointIdsByHandler[$methodInvocation->getName()] ?? $endpoint->getEndpointId());
+        return $this->traceHandler($methodInvocation, $message, $this->endpointIdOf($methodInvocation, $endpoint->getEndpointId()));
     }
 
     public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message, QueryHandler $endpoint): mixed
     {
-        return $this->traceHandler($methodInvocation, $message, $this->endpointIdsByHandler[$methodInvocation->getName()] ?? $endpoint->getEndpointId());
+        return $this->traceHandler($methodInvocation, $message, $this->endpointIdOf($methodInvocation, $endpoint->getEndpointId()));
     }
 
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, EventHandler $endpoint): mixed
     {
-        return $this->traceHandler($methodInvocation, $message, $this->endpointIdsByHandler[$methodInvocation->getName()] ?? $endpoint->getEndpointId());
+        return $this->traceHandler($methodInvocation, $message, $this->endpointIdOf($methodInvocation, $endpoint->getEndpointId()));
     }
 
     public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message, InternalHandler $endpoint): mixed
     {
-        return $this->traceHandler($methodInvocation, $message, $this->endpointIdsByHandler[$methodInvocation->getName()] ?? $endpoint->getEndpointId());
+        return $this->traceHandler($methodInvocation, $message, $this->endpointIdOf($methodInvocation, $endpoint->getEndpointId()));
     }
 
     public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message): mixed
@@ -200,6 +200,21 @@ final class TracingInterceptor
         }
 
         return new SpanContext(TracingId::normalize((string) $headers->get(MessageHeaders::TRACING_ID)), bin2hex(random_bytes(8)));
+    }
+
+    private function endpointIdOf(MethodInvocation $methodInvocation, string $declaredEndpointId): string
+    {
+        $object = $methodInvocation->getObjectToInvokeOn();
+        $class = is_string($object) ? $object : $object::class;
+        while ($class !== false) {
+            $endpointId = $this->endpointIdsByHandler[$class . '::' . $methodInvocation->getMethodName()] ?? null;
+            if ($endpointId !== null) {
+                return $endpointId;
+            }
+            $class = get_parent_class($class);
+        }
+
+        return $declaredEndpointId;
     }
 
     private function traceHandler(MethodInvocation $methodInvocation, Message $message, string $endpointId): mixed

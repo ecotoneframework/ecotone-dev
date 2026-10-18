@@ -155,6 +155,21 @@ final class FlowTrackingTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
+    public function test_a_handler_the_container_serves_as_a_subclass_proxy_still_completes_its_route(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, RegistrationNotifier::class],
+            [$this->users(), RegistrationNotifier::class => new ProxiedRegistrationNotifier()],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
     public function test_a_trace_nobody_recorded_is_not_completed(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
@@ -1202,4 +1217,16 @@ interface TracedNotificationGateway
 {
     #[MessageGateway('notification.send')]
     public function send(string $text, #[Headers] array $metadata): void;
+}
+
+class RegistrationNotifier
+{
+    #[EventHandler('user.registered')]
+    public function notify(string $userId): void
+    {
+    }
+}
+
+final class ProxiedRegistrationNotifier extends RegistrationNotifier
+{
 }

@@ -61,6 +61,42 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::create', 'message:' . EmissionEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'recordThat'], $edges[0]->attributes);
     }
+    public function test_event_assigned_before_publication_is_shown_as_published(): void
+    {
+        $service = new class () {
+            #[CommandHandler('event.variable')]
+            public function handle(array $payload, EventBus $bus): void
+            {
+                $event = new EmissionEvent();
+                $bus->publish($event);
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . EmissionEvent::class));
+        self::assertSame('publish', $edges[0]->attributes['via']);
+    }
+
+    public function test_event_returned_from_private_helper_is_shown_as_published(): void
+    {
+        $service = new class () {
+            #[CommandHandler('event.helper')]
+            public function handle(array $payload, EventBus $bus): void
+            {
+                $bus->publish($this->event());
+            }
+
+            private function event(): EmissionEvent
+            {
+                return new EmissionEvent();
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . EmissionEvent::class));
+        self::assertSame('publish', $edges[0]->attributes['via']);
+    }
+
 }
 
 final class EmissionEvent

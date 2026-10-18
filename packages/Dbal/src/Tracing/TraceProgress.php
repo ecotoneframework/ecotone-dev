@@ -27,10 +27,11 @@ use function array_keys;
 final class TraceProgress
 {
     /**
-     * @param array<string, array<string, true>> $sent message ids dispatched to each destination
-     * @param array<string, array<string, true>> $processed message ids each destination processed
-     * @param array<string, array<string, true>> $sentDeliveries message ids sent to each channel
-     * @param array<string, array<string, true>> $processedDeliveries message ids consumed from each channel
+     * @param array<string, array<string, true>> $sent
+     * @param array<string, array<string, true>> $processed
+     * @param array<string, array<string, true>> $sentDeliveries
+     * @param array<string, array<string, true>> $processedDeliveries
+     * @param array<string, string> $causedBy
      */
     public function __construct(
         public readonly string $traceId,
@@ -40,12 +41,13 @@ final class TraceProgress
         public readonly array $processed,
         public readonly array $sentDeliveries,
         public readonly array $processedDeliveries,
+        public readonly array $causedBy,
     ) {
     }
 
     public static function unknown(string $traceId): self
     {
-        return new self($traceId, false, false, [], [], [], []);
+        return new self($traceId, false, false, [], [], [], [], []);
     }
 
     public function isCompleted(): bool
@@ -59,8 +61,51 @@ final class TraceProgress
             return false;
         }
         $processed = $this->processed[$destination] ?? [];
+        if ($processed === [] || array_diff_key($this->sent[$destination] ?? [], $processed) !== []) {
+            return false;
+        }
 
-        return $processed !== [] && array_diff_key($this->sent[$destination] ?? [], $processed) === [];
+        foreach ($this->pendingMessageIds() as $pendingMessageId) {
+            if (! $this->isCausedByOneOf($pendingMessageId, $processed)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function pendingMessageIds(): array
+    {
+        $pending = [];
+        foreach ($this->sent as $destination => $sent) {
+            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processed[$destination] ?? []))];
+        }
+        foreach ($this->sentDeliveries as $channel => $sent) {
+            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processedDeliveries[$channel] ?? []))];
+        }
+
+        return array_map('strval', $pending);
+    }
+
+    /**
+     * @param array<string, true> $causes
+     */
+    private function isCausedByOneOf(string $messageId, array $causes): bool
+    {
+        $visited = [$messageId => true];
+        $current = $this->causedBy[$messageId] ?? null;
+        while ($current !== null && ! isset($visited[$current])) {
+            if (isset($causes[$current])) {
+                return true;
+            }
+            $visited[$current] = true;
+            $current = $this->causedBy[$current] ?? null;
+        }
+
+        return false;
     }
 
     /**

@@ -533,7 +533,7 @@ final class FlowTrackingTest extends TestCase
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
-    public function test_an_output_channel_after_an_asynchronous_handler_does_not_complete_that_handler_for_a_delivery_still_queued(): void
+    public function test_an_output_channel_after_an_asynchronous_handler_completes_neither_while_a_delivery_that_feeds_them_is_still_queued(): void
     {
         $notifier = new class () {
             #[Asynchronous('async_channel')]
@@ -555,12 +555,13 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
-        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
@@ -590,11 +591,11 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->getGateway(TracedNotificationGateway::class)->send('hello', [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.sending'));
         $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.sending'));
         $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 

@@ -40,11 +40,15 @@ final class TraceLedger
         }
 
         $rootEnded = false;
+        $causedBy = [];
         $sent = [];
         $processed = [];
         $sentDeliveries = [];
         $processedDeliveries = [];
         foreach ($spans as $span) {
+            if (isset($span->attributes[MessageHeaders::MESSAGE_ID], $span->attributes[MessageHeaders::PARENT_MESSAGE_ID])) {
+                $causedBy[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = (string) $span->attributes[MessageHeaders::PARENT_MESSAGE_ID];
+            }
             if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {
                 $rootEnded = true;
             }
@@ -81,7 +85,7 @@ final class TraceLedger
             }
         }
 
-        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $sentDeliveries, $processedDeliveries);
+        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $sentDeliveries, $processedDeliveries, $causedBy);
     }
 
     public static function destinationOf(Span $span): ?string

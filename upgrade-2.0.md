@@ -3104,8 +3104,11 @@ reaches, synchronously or asynchronously, across processes. What it tracks is ke
 Two features are on by default and each can be turned off while the flows are still tracked:
 
 - **`TracingGateway`** answers `isCompleted($tracingId)`, `isCompletedFor($tracingId, $destination)` for one
-  `endpointId` or projection name, and `await()` / `awaitFor()`, which poll until then or throw
-  `FlowTrackingTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
+  `endpointId` or projection name, and `await()` / `awaitFor()`, which poll until then. A destination is
+  complete once it processed every message the flow sent it and nothing still pending upstream of it could send it
+  another: only work its own handling caused, through a new message, may still be pending. A message it forwards
+  unchanged, through an output channel, is waited for too, since it carries the same message id as an event's copy
+  queued for a sibling handler. Past the timeout, the awaits throw `FlowTrackingTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
   handler failed, and naming a flow nobody recorded or a destination the flow never reached.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
 - **Notifications**: a method with `#[OnFlowCompleted]` receives a `FlowCompleted` each time its flow reaches

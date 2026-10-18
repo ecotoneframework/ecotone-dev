@@ -171,6 +171,67 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_destination_is_not_completed_while_work_upstream_of_it_can_still_send_it_more(string $implementation): void
+    {
+        $audit = new class () {
+            #[Asynchronous('audit_channel')]
+            #[EventHandler('user.*', endpointId: 'audit.recorder')]
+            public function record(string $userId): void
+            {
+            }
+        };
+        $welcomer = new class () {
+            #[Asynchronous('welcome_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.welcomer')]
+            public function welcome(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.welcomed', $userId);
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $audit, $welcomer], [SimpleMessageChannelBuilder::createQueueChannel('audit_channel'), SimpleMessageChannelBuilder::createQueueChannel('welcome_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recorder'));
+
+        $ecotone->run('welcome_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recorder'));
+
+        $ecotone->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recorder'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_destination_is_completed_while_only_work_it_started_itself_is_still_pending(string $implementation): void
+    {
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.notified', $userId);
+            }
+        };
+        $archiver = new class () {
+            #[Asynchronous('archive_channel')]
+            #[EventHandler('user.notified', endpointId: 'notification.archiver')]
+            public function archive(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $notifier, $archiver], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), SimpleMessageChannelBuilder::createQueueChannel('archive_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.archiver'));
+        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+    }
+
+    #[DataProvider('implementations')]
     public function test_traces_older_than_the_retention_are_removed_by_the_console_command(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation, [$this->users()], [], Duration::minutes(10));

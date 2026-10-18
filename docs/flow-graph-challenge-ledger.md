@@ -2,7 +2,7 @@
 
 Base: `ff2adf7b2`; baseline: 18 tests, 85 assertions.
 
-Scope decisions: production and tests stay in `packages/Ecotone`; this required ledger is the explicit exception. The supplied brief remains untouched. The host has no PHP executable (host fixer exits 127), so style uses the brief's container command with explicit flow paths; no unrestricted fixer run is used. Tests exercise `bootstrapFlowTesting()->getMessageFlowGraph()` or the console. Source inference is conservative, does not execute application code, and keeps inferred edges marked. Named fixtures are used only where PHP requires names (message types, interfaces, traits, inheritance, attribute references). Each row's commit contains its tests and decision; hashes are filled by the following increment to avoid self-referential commit hashes.
+Scope decisions: production and tests stay in `packages/Ecotone`; this required ledger is the explicit exception. The supplied brief remains untouched. The host has no PHP executable (host fixer exits 127), so style uses the brief's container command with explicit flow paths; no unrestricted fixer run is used. Tests exercise `bootstrapFlowTesting()->getMessageFlowGraph()` or the console. Source inference is conservative, does not execute application code, and keeps inferred edges marked. Named fixtures are used only where PHP requires names (message types, interfaces, traits, inheritance, attribute references). Challenge increments contain their tests and decision; C1–C5 reference the supplied coordinator commits, with their review decisions recorded in 9df8b00a6. Hashes are filled by the following increment to avoid self-referential commit hashes.
 
 | Case | Outcome | Tests | Decision / evidence | Commit |
 | --- | --- | --- | --- | --- |
@@ -39,8 +39,55 @@ Scope decisions: production and tests stay in `packages/Ecotone`; this required 
 | X3 inherited lexical self construction | fixed | inherited_self_and_static_construction_keep_their_distinct_event_classes | Inherited new self was incorrectly resolved as new static, collapsing two different event classes. Retain the declaring class in the per-method lexical context while static continues to use the registered class. The non-final named event fixture is required to exercise PHP inheritance. | `dfad198dd` |
 | X4 scheduled source emissions | fixed | scheduled_method_publishing_an_event_keeps_its_emission | Scheduled endpoints were excluded from source targets, so explicit bus publication vanished. Scan their source and collect their typed collaborators too. The fixture uses a parameterless scheduled method with required constructor injection, as inbound adapters require. | `de66771c5` |
 | X5 configured channels without local handlers | fixed | router_reaches_a_configured_queue_without_a_local_handler | A router return naming a registered queue was omitted unless another handler had already caused a channel node to exist. Discover explicitly supplied channel builders as nodes before source inference, preserving pollability and outbound router edges. C3 removes configured channels that no edge ultimately touches. | `b431e24fe` |
-| C1 coordinator: one identity for a named event | fixed | named_event_is_one_node_reached_by_its_class_and_its_name; named_event_handled_only_by_its_name_is_reached_from_its_publisher | Reviewed 9599cbf00: message:<class> is the single event node, with namedAs metadata. The name-to-class map comes from annotated classes and event-handler first parameters, matching runtime alias registration. Class and named publication reach the same node; discoverEventAliases remains removed. This supersedes E6's initial two-node representation. | `9599cbf00` |
+| C1 coordinator: one identity for a named event | fixed | named_event_is_one_node_reached_by_its_class_and_its_name; named_event_handled_only_by_its_name_is_reached_from_its_publisher | Reviewed 9599cbf00: `message:<class>` is the single event node, with namedAs metadata. The name-to-class map comes from annotated classes and event-handler first parameters, matching runtime alias registration. Class and named publication reach the same node; discoverEventAliases remains removed. This supersedes E6's initial two-node representation. | `9599cbf00` |
 | C2 coordinator: one edge deduplication boundary | seen | repeated_publication_collapses_duplicate_inferred_edges; duplicate_edges_stay_collapsed_after_public_copy_and_reconstruction; anonymous_class_nul_bytes_survive_array_and_json_round_trips | Reviewed 84b70bd79: InferredFlow accumulates a plain edge list; MessageFlowGraph::create alone deduplicates by kind and endpoints. The length-prefixed source ID separates the source and target unambiguously, including separators and NUL bytes. Existing graph invariants remain green. | `84b70bd79` |
 | C3 coordinator: omit disconnected configured channels | fixed | configured_queue_nothing_connects_to_is_left_out_of_the_graph; router_reaches_a_configured_queue_without_a_local_handler | Reviewed 2ee13a3ff: configured channels remain available during inference; final graphs retain only those touched by an edge. The disconnected queue disappears while the router-only destination retains its edge and pollability. | `2ee13a3ff` |
 | C4 coordinator: event routing cost | fixed | emitted_event_reaches_{interface,parent,object,union}_subscriber; named_event_reaches_array_catch_all_subscriber; glob_subscription_matches_dotted_keys_without_treating_dots_as_wildcards; named_event_is_one_node_reached_by_its_class_and_its_name | Reviewed ff3885cf7 against BusRoutingMap semantics: resolve from each event's class, parents, interfaces and object catch-all, plus its known name and matching globs. BusRoutingMapBuilder::get stays removed from graph construction. Coordinator measured the 400-service build improving from about 160 ms to about 105 ms after C4/C5 (earlier baseline about 72 ms); these are coordinator-reported measurements. | `ff3885cf7` |
 | C5 coordinator: scanner token classification | fixed | shared_recursive_helper_yields_one_emission_for_each_handler; bracketed_namespaces_keep_their_own_import_aliases; semicolon_namespaces_keep_their_own_import_aliases; nested_parentheses_and_code_like_strings_keep_the_outer_publication | Reviewed 72fc0ff39: hot-loop checks use token IDs; namespace brace tracking includes T_CURLY_OPEN and T_DOLLAR_OPEN_CURLY_BRACES. Function-scoped token and raw method-fact caches remain shared through helper recursion. All 107 flow tests / 281 assertions passed after the five coordinator commits, as did Ecotone phpstan and the scoped style check. | `72fc0ff39` |
+
+
+## Completion summary
+
+All 26 minimum categories are covered: E1–E10 (emissions), R1–R10 (routing and structure), and S1–S6 (scanner, graph and console robustness). The challenge adds S2b's runtime-only identity cases, P1's shared-helper performance correction, and five further case types X1–X5. Those 33 entries comprise **18 fixed, 14 seen and one limit**. Including the five coordinator follow-ups C1–C5, the complete ledger has **38 entries: 22 fixed, 15 seen and one limit**. Follow-ups refine earlier cases rather than claiming five unrelated new defects.
+
+The final survey revisited source ownership and lexical context, declared and inferred routes, graph reconstruction, scheduled sources and standalone channel destinations. No further distinct case type was identified within the source-inference contract. The five coordinator commits were reviewed and preserved; their ledger entries were committed in `9df8b00a6` before the final full package run. No production or test edits were needed after that review.
+
+The flow suite grew from 18 tests / 85 assertions to **107 tests / 281 assertions**, adding 89 tests. Each case's tests and decision are recorded above. Behavioral fixes were checked against failing tests before implementation; missing-source failures required treating PHP warnings as failures. Performance refactors use behavioral regression coverage rather than tests counting tokenizer calls.
+
+Final validation on PHP 8.5.3 after the coordinator commits:
+
+| Check | Result |
+| --- | --- |
+| Flow directory with `--no-coverage --fail-on-warning` | 107 tests, 281 assertions; passed |
+| Full Ecotone package with `vendor/bin/phpunit --no-coverage` | 1809 tests, 3365 assertions; passed with 3 skips, no failures or errors; 1:28.351 |
+| Ecotone `vendor/bin/phpstan analyse --no-progress` | Passed; also run before each implementation increment |
+| Explicit-path php-cs-fixer | Final dry run found no fixes in the 28 flow files; earlier increments ran the fixer |
+| PHP 8.2 syntax | All 24 changed PHP files passed; this was syntax validation, not a PHP 8.2 suite run |
+| Licence headers and `git diff --check` | Passed |
+
+The requested final full Ecotone suite was run once after `9df8b00a6`. It exposed no regression requiring a fix or rerun.
+
+Downstream suites were also run sequentially through the root runner with its installed dependencies. The Ecotone package dependencies were temporarily moved aside for the root bootstrap guard and restored afterward. These runs began before the coordinator follow-ups and were not all repeated afterward; the final Ecotone and flow results above cover the updated branch. DataProtection's initial four errors were caused by its missing generated plaintext fixture. Running its documented `tests/before-tests.sh` and retrying the suite after the coordinator review resolved all four.
+
+| Downstream suite | Tests | Result / notices |
+| --- | ---: | --- |
+| DataProtection retry | 1396 | Passed |
+| Dbal | 510 | Passed; 1 skipped |
+| PdoEventSourcing | 656 | Passed; 20 skipped |
+| JmsConverter | 56 | Passed |
+| Laravel | 59 | Exit 0; 1 skipped, 19 risky tests reporting retained error/exception handlers |
+| Tempest | 73 | Exit 0; 3 risky tests reporting retained error/exception handlers |
+| Symfony | 66 | Passed |
+| Enqueue | 1 | Passed |
+| Amqp | 151 | Passed; 34 skipped |
+| Sqs | 42 | Exit 0; 2 deprecations |
+| Redis | 25 | Exit 0; 5 deprecations |
+| Cross-module monorepo | 108 | Exit 0; 3 skipped, 15 risky tests, 6 deprecations |
+| OpenTelemetry | 41 | Passed |
+| Kafka | 63 | Passed |
+
+These downstream results are PHPUnit runs with the installed dependency set, not the full CI version/dependency matrix. The notices above remain visible; no unrelated downstream source was changed.
+
+Perf was rechecked after `72fc0ff39` with P1's synthetic workload: 1500 handlers in 300 files, five handlers sharing a recursive helper per file, one warmup and seven randomized-order samples. Scan median: 77.07 ms (71.33–94.55); full build: 87.34 ms (83.03–107.65); tokenizer control: 3.02 ms (2.53–4.11). Before P1 the same workload measured 199.89 ms scan and 211.49 ms build. This is separate from both the coordinator's original 1500-handler measurement and the later 400-service benchmark reported in C4. The single guarded tokenization site and function-scoped file/method-fact caches remain intact: one tokenization per source file per build is a constraint for every later case, with no cache on the container service.
+
+Pinned limits remain runtime-selected event classes and anonymous event identities (S2b), runtime-selected distributed destinations (R9), and unavailable source for emission inference (S3). Declared routes and known collaborator edges remain available where applicable. Inferred edges describe source evidence and do not guarantee that a branch executes. No dependency was added and no public API was renamed. The supplied challenge brief remains untouched and untracked.

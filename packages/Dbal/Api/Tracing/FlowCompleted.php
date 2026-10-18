@@ -6,7 +6,8 @@ namespace Ecotone\Api\Dbal\Tracing;
 
 /**
  * licence Enterprise
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class FlowCompleted
 {

@@ -10,7 +10,8 @@ use Ecotone\Api\Attribute\InternalHandler;
 #[Attribute(Attribute::TARGET_METHOD)]
 /**
  * licence Enterprise
- * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class OnFlowStepCompleted extends InternalHandler
 {

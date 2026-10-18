@@ -92,6 +92,15 @@ final class MessageFlowSyntaxTest extends TestCase
         self::assertSame('message:' . SyntaxEventForFlow::class, $edges[0]->to);
         self::assertSame('publish', $edges[0]->attributes['via']);
     }
+    public function test_inherited_self_and_static_construction_keep_their_distinct_event_classes(): void
+    {
+        $service = new class () extends SelfEventForFlow {
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        self::assertEqualsCanonicalizing(['message:' . SelfEventForFlow::class, 'message:' . $service::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS), 'to'));
+    }
+
 }
 
 trait HandlerTraitForFlow
@@ -121,4 +130,14 @@ final class SyntaxEventForFlow
 
 final class OtherSyntaxEventForFlow
 {
+}
+
+class SelfEventForFlow
+{
+    #[CommandHandler('syntax.self')]
+    public function handle(EventBus $bus): void
+    {
+        $bus->publish(new self());
+        $bus->publish(new static());
+    }
 }

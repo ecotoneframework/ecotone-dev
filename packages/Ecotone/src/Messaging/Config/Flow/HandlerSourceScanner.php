@@ -53,7 +53,7 @@ final class HandlerSourceScanner
                 $facts[$key] = $methodFacts[$methodKey] = MethodSourceFacts::none();
                 continue;
             }
-            $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine()];
+            $methodsByFile[$fileName][] = [$key, $className, $method->getStartLine(), $method->getEndLine(), $method->getDeclaringClass()->getName()];
         }
 
         foreach ($methodsByFile as $fileName => $methods) {
@@ -72,10 +72,11 @@ final class HandlerSourceScanner
                 $files[$fileName] = [$tokens, $firstIndexByLine, $lastLine, $contexts];
             }
             [$tokens, $firstIndexByLine, $lastLine, $contexts] = $files[$fileName];
-            foreach ($methods as [$key, $className, $startLine, $endLine]) {
+            foreach ($methods as [$key, $className, $startLine, $endLine, $declaringClass]) {
                 $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
                 $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
                 [$namespace, $imports] = $this->contextAt($contexts, $start);
+                $imports['self'] = $declaringClass;
                 $facts[$key] = $methodFacts[$className . '::' . $targets[$key][1]] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
             }
         }
@@ -365,7 +366,10 @@ final class HandlerSourceScanner
     private function resolve(PhpToken $token, string $className, string $namespace, array $imports): ?string
     {
         $name = $token->text;
-        if (in_array(strtolower($name), ['self', 'static'], true)) {
+        if (strtolower($name) === 'self') {
+            return $imports['self'] ?? $className;
+        }
+        if (strtolower($name) === 'static') {
             return $className;
         }
         if (in_array(strtolower($name), self::IGNORED_NAMES, true)) {

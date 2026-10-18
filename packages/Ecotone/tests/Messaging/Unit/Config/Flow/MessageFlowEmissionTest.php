@@ -179,7 +179,7 @@ final class MessageFlowEmissionTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:emission.enum'));
     }
 
-    public function test_named_event_alias_and_class_reach_both_subscribers(): void
+    public function test_named_event_is_one_node_reached_by_its_class_and_its_name(): void
     {
         $service = new class () {
             #[CommandHandler('named.publish')]
@@ -201,11 +201,35 @@ final class MessageFlowEmissionTest extends TestCase
         };
         $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
 
-        foreach (['message:' . NamedEmissionEvent::class, 'message:emission.named'] as $message) {
-            foreach (['typed', 'named'] as $method) {
-                self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, $message, 'handler:' . $service::class . '::' . $method));
-            }
+        $event = 'message:' . NamedEmissionEvent::class;
+        self::assertFalse($graph->hasNode('message:emission.named'));
+        self::assertSame('emission.named', $graph->node($event)->attributes['namedAs']);
+        foreach (['typed', 'named'] as $method) {
+            self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, $event, 'handler:' . $service::class . '::' . $method));
         }
+        self::assertSame([$event], array_values(array_unique(array_column($graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::publish'), 'to'))));
+    }
+
+    public function test_named_event_handled_only_by_its_name_is_reached_from_its_publisher(): void
+    {
+        $service = new class () {
+            #[CommandHandler('named.only')]
+            public function publish(EventBus $bus): void
+            {
+                $bus->publish(new NamedEmissionEvent());
+            }
+
+            #[EventHandler('emission.named')]
+            public function named(array $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, NamedEmissionEvent::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $event = 'message:' . NamedEmissionEvent::class;
+        self::assertFalse($graph->hasNode('message:emission.named'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::publish', $event));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, $event, 'handler:' . $service::class . '::named'));
     }
 
     public function test_command_sent_by_class_has_the_correct_message_kind(): void

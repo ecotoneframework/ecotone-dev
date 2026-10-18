@@ -60,6 +60,8 @@ final class MessageFlowDiscovery
     private array $combinedChannels = [];
     /** @var array<string, string> */
     private array $ownerByClass = [];
+    /** @var array<string, string> event name => event class */
+    private array $namedEvents = [];
 
     private function __construct(
         private readonly AnnotationFinder $annotationFinder,
@@ -88,6 +90,7 @@ final class MessageFlowDiscovery
             $this->combinedChannels[$combinedChannel->getReferenceName()] = $combinedChannel->combinedChannels;
         }
 
+        $this->discoverNamedEvents();
         $this->discoverServiceMaps($extensionObjects);
         $this->discoverOwners();
         $this->discoverBusHandlers(CommandHandler::class, FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::COMMAND);
@@ -98,7 +101,6 @@ final class MessageFlowDiscovery
         $this->discoverAppliedEvents();
         $this->discoverGateways();
         $this->discoverScheduled();
-        $this->discoverEventAliases();
         foreach (DecisionModelHandlers::scan($this->annotationFinder, $this->interfaceToCallRegistry)->appendingTheirResult() as $handler) {
             $id = 'handler:' . $handler->className() . '::' . $handler->methodName();
             if (isset($this->nodes[$id])) {
@@ -106,7 +108,7 @@ final class MessageFlowDiscovery
             }
         }
 
-        return new DeclaredMessageFlow(MessageFlowGraph::create(array_values($this->nodes), $this->edges), $this->collaborators);
+        return new DeclaredMessageFlow(MessageFlowGraph::create(array_values($this->nodes), $this->edges), $this->collaborators, $this->namedEvents);
     }
 
     /**
@@ -127,25 +129,22 @@ final class MessageFlowDiscovery
         }
     }
 
-    private function discoverEventAliases(): void
+    private function discoverNamedEvents(): void
     {
-        $aliases = [];
-        foreach ($this->nodes as $node) {
-            if ($node->kind !== FlowNodeKind::EVENT || ! is_string($node->attributes['class'] ?? null)) {
+        foreach ($this->annotationFinder->findAnnotatedClasses(NamedEvent::class) as $eventClass) {
+            if (str_starts_with($eventClass, self::FRAMEWORK_NAMESPACE)) {
                 continue;
             }
-            $definition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($node->attributes['class']));
-            if (! $definition->hasClassAnnotation(Type::attribute(NamedEvent::class))) {
-                continue;
-            }
-            $alias = $definition->getSingleClassAnnotation(Type::attribute(NamedEvent::class))->getName();
-            $aliasNode = $this->messageNode($alias, FlowNodeKind::EVENT, $node->attributes['handled']);
-            $aliases[$node->id] = $aliasNode->id;
-            $aliases[$aliasNode->id] = $node->id;
+            /** @var NamedEvent $namedEvent */
+            $namedEvent = $this->annotationFinder->getAttributeForClass($eventClass, NamedEvent::class);
+            $this->namedEvents[$namedEvent->getName()] = $eventClass;
         }
-        foreach ($this->edges as $edge) {
-            if ($edge->kind === FlowEdgeKind::ROUTED_TO && isset($aliases[$edge->from])) {
-                $this->edges[] = new FlowEdge($aliases[$edge->from], $edge->to, FlowEdgeKind::ROUTED_TO);
+        foreach ($this->applicationMethods(EventHandler::class) as $registration) {
+            foreach (MessageHandlerRoutingModule::getFirstParameterClassesIfAny($registration, $this->interfaceToCallRegistry) as $eventClass) {
+                $definition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($eventClass));
+                if ($definition->hasClassAnnotation(Type::attribute(NamedEvent::class))) {
+                    $this->namedEvents[$definition->getSingleClassAnnotation(Type::attribute(NamedEvent::class))->getName()] = $eventClass;
+                }
             }
         }
     }
@@ -324,6 +323,7 @@ final class MessageFlowDiscovery
 
     private function messageNode(string $routingKey, FlowNodeKind $kind, bool $handled): FlowNode
     {
+        $routingKey = $this->namedEvents[$routingKey] ?? $routingKey;
         $id = 'message:' . $routingKey;
         $isClass = class_exists($routingKey) || interface_exists($routingKey);
         $existing = $this->nodes[$id] ?? null;
@@ -337,7 +337,17 @@ final class MessageFlowDiscovery
             'routingKey' => $routingKey,
             'class' => $isClass ? $routingKey : null,
             'handled' => $handled,
-        ]);
+        ] + $this->namedAttributeOf($routingKey));
+    }
+
+    /**
+     * @return array{namedAs?: string}
+     */
+    private function namedAttributeOf(string $eventClass): array
+    {
+        $name = array_search($eventClass, $this->namedEvents, true);
+
+        return $name === false ? [] : ['namedAs' => $name];
     }
 
     private function distributedBusNode(string $reference): FlowNode

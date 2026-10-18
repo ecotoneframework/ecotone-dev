@@ -26,10 +26,12 @@ final class MessageFlowGraphBuilder
 
     /**
      * @param array<string, array<string, string>> $collaborators handler node id => (receiver => class)
+     * @param array<string, string> $namedEvents event name => event class
      */
     public function __construct(
         private MessageFlowGraph $declared,
         private array $collaborators,
+        private array $namedEvents,
         private HandlerSourceScanner $scanner,
     ) {
     }
@@ -70,6 +72,9 @@ final class MessageFlowGraphBuilder
         }
         foreach ($graph->nodesOfKind(FlowNodeKind::EVENT) as $event) {
             $handlers = $routing->get($event->attributes['routingKey']);
+            if (isset($event->attributes['namedAs'])) {
+                $handlers = array_values(array_unique([...$handlers, ...$routing->get($event->attributes['namedAs'])]));
+            }
             foreach ($handlers as $handlerId) {
                 $flow->addEdge(new FlowEdge($event->id, $handlerId, FlowEdgeKind::ROUTED_TO));
             }
@@ -100,7 +105,7 @@ final class MessageFlowGraphBuilder
             if (! in_array($call['method'], self::ROUTING_KEY_CALLS, true) || ! isset($call['literalArguments'][0])) {
                 continue;
             }
-            $routingKey = $call['literalArguments'][0];
+            $routingKey = $this->namedEvents[$call['literalArguments'][0]] ?? $call['literalArguments'][0];
             $messageId = 'message:' . $routingKey;
             if (! $flow->hasNode($messageId)) {
                 $receiverType = $this->collaborators[$handler->id][$call['receiver'] ?? ''] ?? null;
@@ -158,6 +163,7 @@ final class MessageFlowGraphBuilder
      */
     private function addDistributedMessage(InferredFlow $flow, string $handlerId, string $busId, string $routingKey, FlowNodeKind $kind, string $via, array $target): void
     {
+        $routingKey = $this->namedEvents[$routingKey] ?? $routingKey;
         $messageId = 'message:' . $routingKey;
         if (! $flow->hasNode($messageId)) {
             $flow->addNode($this->unhandledMessage($routingKey, $kind));
@@ -199,6 +205,16 @@ final class MessageFlowGraphBuilder
             'routingKey' => $routingKey,
             'class' => $isClass ? $routingKey : null,
             'handled' => false,
-        ]);
+        ] + $this->namedAttributeOf($routingKey));
+    }
+
+    /**
+     * @return array{namedAs?: string}
+     */
+    private function namedAttributeOf(string $eventClass): array
+    {
+        $name = array_search($eventClass, $this->namedEvents, true);
+
+        return $name === false ? [] : ['namedAs' => $name];
     }
 }

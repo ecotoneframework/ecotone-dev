@@ -36,6 +36,7 @@ final class MessageFlowModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(MessageFlowGraphBuilder::class, new Definition(MessageFlowGraphBuilder::class, [
             $declared->graph->getDefinition(),
             $declared->collaborators,
+            $declared->namedEvents,
             new Definition(HandlerSourceScanner::class),
         ]));
         $messagingConfiguration->registerServiceDefinition(MessageFlowConsoleCommands::class, new Definition(MessageFlowConsoleCommands::class));

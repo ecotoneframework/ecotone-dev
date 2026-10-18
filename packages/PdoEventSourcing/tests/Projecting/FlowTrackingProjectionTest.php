@@ -76,7 +76,7 @@ final class FlowTrackingProjectionTest extends ProjectingTestCase
 
         self::assertSame(1, $projection->projected);
         self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompletedFor($tracingId, 'flow_tracked_tickets'));
-        self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompleted($tracingId));
+        self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompletedFor($tracingId));
     }
 
     public function test_an_asynchronous_projection_spread_over_several_batches_completes_the_flow_once_it_caught_up(): void
@@ -91,7 +91,7 @@ final class FlowTrackingProjectionTest extends ProjectingTestCase
         $ecotone->run('async_projection', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(3, $projection->projected);
-        self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompleted($tracingId));
+        self::assertTrue($ecotone->getGateway(TracingGateway::class)->isCompletedFor($tracingId));
     }
 
     private function ticketsProjection(): object

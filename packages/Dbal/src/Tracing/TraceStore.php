@@ -37,6 +37,11 @@ interface TraceStore
 
     public function progressOf(string $traceId): TraceProgress;
 
+    /**
+     * @return Span[]
+     */
+    public function stepsOf(string $traceId): array;
+
     public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void;
 
     public function withinTransaction(Closure $work): mixed;

@@ -3103,20 +3103,23 @@ reaches, synchronously or asynchronously, across processes. What it tracks is ke
 `ecotone_tracing`, created by `ecotone:migration:database:setup`; a flow test given no connection keeps it in memory.
 Two features are on by default and each can be turned off while the flows are still tracked:
 
-- **`TracingGateway`** answers `isCompleted($tracingId)`, `isCompletedFor($tracingId, $destination)` for one
-  `endpointId`, projection name or class, and `await()` / `awaitFor()`, which poll until then. A destination is
-  complete once it processed every message the flow sent it and nothing still pending upstream of it could send it
-  another: only work its own handling caused, through a new message, may still be pending. A message it forwards
-  unchanged, through an output channel, is waited for too, since it carries the same message id as an event's copy
-  queued for a sibling handler. A class stands for everything in it the flow can reach: a `#[Projection]` class for
-  its projection, any other class for every handler method in it, endpoint id or not, so
-  `awaitFor($tracingId, UsersListProjection::class, $timeout)` needs no name to be repeated, and the class completes
-  once every one of its handlers the flow reached ran. A class with no handler or projection is refused at once.
-  An await blocks the calling process while it polls, so a timeout above 15 minutes is refused, pointing to
+- **`TracingGateway`** has three methods. `isCompletedFor($tracingId)` tells whether the flow is complete, and
+  `isCompletedFor($tracingId, $destination)` whether one `endpointId`, projection name or class is.
+  `isCompletedWithin($tracingId, $timeout, $destination = null)` polls until that holds and returns `true`, or
+  returns `false` once the timeout passed; it never throws for a flow that is late. `fetchFlow($tracingId)` returns
+  a `Flow` with `isCompleted`, `pending` (the handlers and channels still waited for), `reached` (the destinations
+  the flow was sent to or processed by) and `steps` (its stored spans, in the order they started), or `null` for a
+  flow nobody recorded, so a `false` is explained by reading the flow rather than by an exception.
+  A destination is complete once it processed every message the flow sent it and nothing still pending upstream of
+  it could send it another: only work its own handling caused, through a new message, may still be pending. A
+  message it forwards unchanged, through an output channel, is waited for too, since it carries the same message id
+  as an event's copy queued for a sibling handler. A class stands for everything in it the flow can reach: a
+  `#[Projection]` class for its projection, any other class for every handler method in it, endpoint id or not, so
+  `isCompletedWithin($tracingId, $timeout, UsersListProjection::class)` needs no name to be repeated, and the class
+  completes once every one of its handlers the flow reached ran. A class with no handler or projection is refused at
+  once. Waiting blocks the calling process while it polls, so a timeout above 15 minutes is refused, pointing to
   `#[OnFlowCompleted]` and `#[OnFlowStepCompleted]`: a flow that takes longer is reacted to when it completes, not
   waited for.
-  Past the timeout, the awaits throw `FlowTrackingTimedOut` naming the handlers and channels still pending, pointing to the dead letter when a
-  handler failed, and naming a flow nobody recorded or a destination the flow never reached.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
 - **Notifications**: a method with `#[OnFlowCompleted]` receives a `FlowCompleted` each time its flow reaches
   completion, and one with `#[OnFlowStepCompleted]` receives a `FlowStepCompleted` for every step of the flow whose unit of work committed, a bus call, a handler run, a route, a message sent or received, with the step's span in `$event->step`. `withNotifications(false)` turns them off,
@@ -3139,7 +3142,7 @@ pending until its consumer processed that exact message. A destination counts me
 satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
 high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
 two commands under one `tracingId`, completes and notifies again once that work is done. `isCompletedFor()` and
-`awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
+`isCompletedWithin()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
 events.
 
 Everything is written inside the transaction of the unit of work it describes, a bus call or an asynchronous
@@ -3169,7 +3172,7 @@ it. Nothing runs the command for you: schedule it, from cron or the framework's 
 flow. It removes expired flows in batches of 1000, each batch's spans and flow rows in one short transaction, until
 none is left, so a large backlog never holds one long lock; `withRemovalBatchSize()` changes the size. A multi-tenant application tracks each flow in the database of its tenant, inside the tenant's transaction, so a
 flow is never complete before the tenant's data committed. `TracingGateway` is then asked with the tenant,
-`$tracingGateway->await($tracingId, $timeout, metadata: ['tenant' => 'tenant_a'])`, and a call without one is refused
+`$tracingGateway->isCompletedWithin($tracingId, $timeout, metadata: ['tenant' => 'tenant_a'])`, and a call without one is refused
 naming that metadata; the retention command runs once per tenant,
 `ecotone:tracing:remove-expired-traces --header=tenant:tenant_a`.
 
@@ -3182,7 +3185,9 @@ public function flowTracking(): FlowTrackingConfiguration
 
 $tracingId = Uuid::v7()->toRfc4122();
 $commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACING_ID => $tracingId]);
-$tracingGateway->awaitFor($tracingId, 'orders_list', Duration::seconds(5));
+if (! $tracingGateway->isCompletedWithin($tracingId, Duration::seconds(5), 'orders_list')) {
+    $pending = $tracingGateway->fetchFlow($tracingId)->pending;
+}
 
 final class OrdersWebsocket
 {

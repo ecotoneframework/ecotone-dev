@@ -84,6 +84,6 @@ final class FlowTrackingWithNoopProviderTest extends TestCase
 
         $this->assertCount(count($subscriber->spanIds), array_unique($subscriber->spanIds));
         $this->assertGreaterThan(3, count($subscriber->spanIds));
-        $this->assertTrue($ecotone->getGateway(TracingGateway::class)->isCompleted($trace->traceId));
+        $this->assertTrue($ecotone->getGateway(TracingGateway::class)->isCompletedFor($trace->traceId));
     }
 }

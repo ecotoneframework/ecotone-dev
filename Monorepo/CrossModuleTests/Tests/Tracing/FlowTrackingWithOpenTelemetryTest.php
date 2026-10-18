@@ -70,7 +70,7 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
             self::exportedSpanNamesOf($exporter, $trace->traceId),
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertSame([], $subscriber->completedTraces);
 
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
@@ -80,7 +80,7 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
             self::exportedSpanNamesOf($exporter, $trace->traceId),
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertSame([$trace->traceId], $subscriber->completedTraces);
     }
 
@@ -115,7 +115,7 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
 
         $producer->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        self::assertTrue($this->completion($observer)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($observer)->isCompletedFor($trace->traceId));
     }
 
     /**

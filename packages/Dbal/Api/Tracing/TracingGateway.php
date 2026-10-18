@@ -14,11 +14,9 @@ use Ecotone\Api\Scheduling\Duration;
 #[PropagateHeaders]
 interface TracingGateway
 {
-    public function isCompleted(string $tracingId, array $metadata = []): bool;
+    public function isCompletedFor(string $tracingId, ?string $destination = null, array $metadata = []): bool;
 
-    public function isCompletedFor(string $tracingId, string $destination, array $metadata = []): bool;
+    public function isCompletedWithin(string $tracingId, Duration $timeout, ?string $destination = null, array $metadata = []): bool;
 
-    public function await(string $tracingId, Duration $timeout, array $metadata = []): void;
-
-    public function awaitFor(string $tracingId, string $destination, Duration $timeout, array $metadata = []): void;
+    public function fetchFlow(string $tracingId, array $metadata = []): ?Flow;
 }

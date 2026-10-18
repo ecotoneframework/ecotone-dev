@@ -59,6 +59,11 @@ final class InMemoryTraceStore implements TraceStore
         return TraceLedger::progressOf($traceId, array_values($this->spansByTrace[$traceId] ?? []));
     }
 
+    public function stepsOf(string $traceId): array
+    {
+        return array_values($this->spansByTrace[$traceId] ?? []);
+    }
+
     public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void
     {
         foreach ($this->spansByTrace as $traceId => $spans) {

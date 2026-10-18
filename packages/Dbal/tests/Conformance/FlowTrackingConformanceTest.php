@@ -20,7 +20,6 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
@@ -91,7 +90,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
     }
 
@@ -103,26 +102,24 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
-    public function test_awaiting_a_pending_trace_times_out_naming_what_is_still_pending(string $implementation): void
+    public function test_waiting_for_a_pending_flow_returns_false_and_the_flow_names_what_is_still_pending(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage('Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter');
-
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
+        self::assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        self::assertSame(['user.notifier', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
     }
 
     #[DataProvider('implementations')]
@@ -170,7 +167,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         } catch (RuntimeException) {
         }
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -231,7 +228,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.archiver'));
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -256,9 +253,9 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
 
         foreach ($expired as $trace) {
-            self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+            self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         }
-        self::assertTrue($this->completion($ecotone)->isCompleted($recent->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($recent->traceId));
     }
 
     public function test_a_removal_batch_size_below_one_is_refused_naming_the_minimum(): void
@@ -309,8 +306,8 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($expired->traceId));
-        self::assertTrue($this->completion($ecotone)->isCompleted($recent->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($expired->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($recent->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -328,12 +325,12 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_consumer_alone_does_not_complete_a_trace_whose_producer_stored_nothing(): void
@@ -351,7 +348,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $consumer->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertTrue($this->completion($consumer)->isCompletedFor($trace->traceId, 'user.notifier'));
-        self::assertFalse($this->completion($consumer)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($consumer)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_started_by_a_distributed_command_completes_once_the_receiving_service_handled_it(): void
@@ -372,12 +369,12 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $tracingId = '0af7651916cd43dd8448eb211c80319c';
 
         $userService->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
-        self::assertFalse($this->completion($userService)->isCompleted($tracingId));
+        self::assertFalse($this->completion($userService)->isCompletedFor($tracingId));
 
         $ticketService->run('distributed_ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(1, $tickets->created);
-        self::assertTrue($this->completion($userService)->isCompleted($tracingId));
+        self::assertTrue($this->completion($userService)->isCompletedFor($tracingId));
     }
 
     public function test_a_send_rolled_back_with_its_failed_handler_is_not_awaited_after_the_retry_succeeded(): void
@@ -414,7 +411,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(2, $notifier->attempts);
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -442,7 +439,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -468,13 +465,13 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(2, $notifier->attempts);
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -487,7 +484,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        self::assertTrue($this->completion($ecotone)->isCompleted($delayed->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($delayed->traceId));
 
         $abandoned = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $abandoned->toTraceparent()]);
@@ -552,12 +549,12 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         self::assertSame([$trace->traceId], $subscriber->completedTraces);
 
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertSame([$trace->traceId], $subscriber->completedTraces);
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
         self::assertSame([$trace->traceId, $trace->traceId], $subscriber->completedTraces);
     }
 
@@ -567,12 +564,12 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_flow_tracking_stores_each_flow_in_the_database_of_its_tenant(): void
@@ -581,14 +578,16 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent(), 'tenant' => 'tenant_a']);
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, metadata: ['tenant' => 'tenant_a']));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, metadata: ['tenant' => 'tenant_a']));
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier', metadata: ['tenant' => 'tenant_a']));
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_b']));
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100), metadata: ['tenant' => 'tenant_a']);
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, metadata: ['tenant' => 'tenant_b']));
+        self::assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), metadata: ['tenant' => 'tenant_a']));
+        self::assertTrue($this->completion($ecotone)->fetchFlow($trace->traceId, metadata: ['tenant' => 'tenant_a'])->isCompleted);
+        self::assertNull($this->completion($ecotone)->fetchFlow($trace->traceId, metadata: ['tenant' => 'tenant_b']));
     }
 
     public function test_a_tenant_flow_is_written_inside_the_tenant_transaction_and_rolls_back_with_it(): void
@@ -610,7 +609,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             CommitFailingConnection::$failsCommit = false;
         }
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, metadata: ['tenant' => 'tenant_a']));
     }
 
     public function test_expired_flows_are_removed_from_the_database_of_the_tenant_the_console_command_names(): void
@@ -624,17 +623,17 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces', ['header' => ['tenant:tenant_a']]);
 
-        self::assertFalse($this->completion($ecotone)->isCompleted($ofTenantA->traceId, metadata: ['tenant' => 'tenant_a']));
-        self::assertTrue($this->completion($ecotone)->isCompleted($ofTenantB->traceId, metadata: ['tenant' => 'tenant_b']));
+        self::assertFalse($this->completion($ecotone)->isCompletedFor($ofTenantA->traceId, metadata: ['tenant' => 'tenant_a']));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($ofTenantB->traceId, metadata: ['tenant' => 'tenant_b']));
     }
 
     public function test_asking_the_tracing_gateway_of_a_multi_tenant_application_without_a_tenant_names_the_metadata_it_needs(): void
     {
         $ecotone = $this->bootstrapMultiTenant([$this->users()], $this->connectionForTenantA());
 
-        $this->expectExceptionMessage("TracingGateway reads a flow from the database of the tenant it ran for, and this call names no tenant. Pass the tenant as metadata, for example isCompleted(\$tracingId, metadata: ['tenant' => 'tenant_a']).");
+        $this->expectExceptionMessage("TracingGateway reads a flow from the database of the tenant it ran for, and this call names no tenant. Pass the tenant as metadata, for example isCompletedFor(\$tracingId, metadata: ['tenant' => 'tenant_a']).");
 
-        $this->completion($ecotone)->isCompleted(SpanContext::newTrace()->traceId);
+        $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId);
     }
 
     public function test_a_database_outage_right_after_the_consumer_committed_does_not_fail_the_consumer(): void
@@ -717,7 +716,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         self::assertSame(1, $projection->projected);
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'users_list'));
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_database_outage_inside_the_consumer_transaction_leaves_the_message_to_be_retried(): void
@@ -749,7 +748,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(2, $notifier->handled);
-        self::assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void
@@ -760,7 +759,7 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
 
         $producer->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        self::assertTrue($this->completion($observer)->isCompleted($trace->traceId));
+        self::assertTrue($this->completion($observer)->isCompletedFor($trace->traceId));
     }
 
     /**

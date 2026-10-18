@@ -6,9 +6,10 @@ namespace Ecotone\Dbal\Tracing;
 
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Headers;
-use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
+use Ecotone\Api\Dbal\Tracing\Flow;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Tracing\Span;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Tracing\TracingId;
@@ -52,74 +53,63 @@ final class StoredTracingGateway
     ) {
     }
 
-    public function isCompleted(string $tracingId, #[Headers] array $headers): bool
+    public function isCompletedFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] ?string $destination, #[Headers] array $headers): bool
     {
-        $this->refuseMissingTenant('isCompleted($tracingId', $headers);
+        $this->refuseMissingTenant('isCompletedFor($tracingId', $headers);
         $tracingId = TracingId::normalize($tracingId);
-        return $this->traceStore->progressOf($tracingId)->isCompleted();
+
+        return $this->isCompletedNow($tracingId, $destination === null ? null : $this->destinationsOf($destination));
     }
 
-    public function isCompletedFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Headers] array $headers): bool
+    public function isCompletedWithin(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Header(self::DESTINATION_HEADER)] ?string $destination, #[Headers] array $headers): bool
     {
-        $this->refuseMissingTenant('isCompletedFor($tracingId, $destination', $headers);
+        $this->refuseMissingTenant('isCompletedWithin($tracingId, $timeout', $headers);
+        $this->refuseWaitingLongerThanFifteenMinutes($timeout);
         $tracingId = TracingId::normalize($tracingId);
-        $destinations = $this->destinationsOf($destination);
-
-        return $this->traceStore->progressOf($tracingId)->isCompletedFor(...$destinations);
-    }
-
-    public function await(string $tracingId, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
-    {
-        $this->refuseMissingTenant('await($tracingId, $timeout', $headers);
-        $this->refuseAwaitLongerThanFifteenMinutes('await', $timeout);
-        $tracingId = TracingId::normalize($tracingId);
+        $destinations = $destination === null ? null : $this->destinationsOf($destination);
         $deadline = $this->clock->now()->add($timeout);
-        while (true) {
-            $progress = $this->traceStore->progressOf($tracingId);
-            if ($progress->isCompleted()) {
-                return;
-            }
+        while (! $this->isCompletedNow($tracingId, $destinations)) {
             if ($this->clock->now() >= $deadline) {
-                throw $progress->recorded
-                    ? FlowTrackingTimedOut::forTrace($tracingId, $timeout, $progress->pendingDestinations())
-                    : FlowTrackingTimedOut::forUnrecordedTrace($tracingId, $timeout);
+                return false;
             }
             $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
         }
+
+        return true;
     }
 
-    public function awaitFor(string $tracingId, #[Header(self::DESTINATION_HEADER)] string $destination, #[Header(self::TIMEOUT_HEADER)] Duration $timeout, #[Headers] array $headers): void
+    public function fetchFlow(string $tracingId, #[Headers] array $headers): ?Flow
     {
-        $this->refuseMissingTenant('awaitFor($tracingId, $destination, $timeout', $headers);
-        $this->refuseAwaitLongerThanFifteenMinutes('awaitFor', $timeout);
+        $this->refuseMissingTenant('fetchFlow($tracingId', $headers);
         $tracingId = TracingId::normalize($tracingId);
-        $destinations = $this->destinationsOf($destination);
-        $deadline = $this->clock->now()->add($timeout);
-        while (true) {
-            $progress = $this->traceStore->progressOf($tracingId);
-            if ($progress->isCompletedFor(...$destinations)) {
-                return;
-            }
-            if ($this->clock->now() >= $deadline) {
-                throw match (true) {
-                    ! $progress->recorded => FlowTrackingTimedOut::forUnrecordedTrace($tracingId, $timeout),
-                    ! $progress->reached(...$destinations) => FlowTrackingTimedOut::forUnreachedDestination($tracingId, $destination, $timeout, $progress->destinations()),
-                    default => FlowTrackingTimedOut::forDestination($tracingId, $destination, $timeout),
-                };
-            }
-            $this->clock->sleep(Duration::milliseconds(self::POLL_INTERVAL_IN_MILLISECONDS));
+        $steps = $this->traceStore->stepsOf($tracingId);
+        if ($steps === []) {
+            return null;
         }
+        usort($steps, fn (Span $first, Span $second): int => $first->startedAt <=> $second->startedAt);
+        $progress = TraceLedger::progressOf($tracingId, $steps);
+
+        return new Flow($tracingId, $progress->isCompleted(), $progress->pendingDestinations(), $progress->destinations(), $steps);
     }
 
-    private function refuseAwaitLongerThanFifteenMinutes(string $method, Duration $timeout): void
+    /**
+     * @param string[]|null $destinations
+     */
+    private function isCompletedNow(string $tracingId, ?array $destinations): bool
+    {
+        $progress = $this->traceStore->progressOf($tracingId);
+
+        return $destinations === null ? $progress->isCompleted() : $progress->isCompletedFor(...$destinations);
+    }
+
+    private function refuseWaitingLongerThanFifteenMinutes(Duration $timeout): void
     {
         if ($timeout->inMilliseconds() <= self::LONGEST_AWAIT_IN_MILLISECONDS) {
             return;
         }
 
         throw InvalidArgumentException::create(sprintf(
-            'TracingGateway::%s() was asked to wait %d milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.',
-            $method,
+            'TracingGateway::isCompletedWithin() was asked to wait %d milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.',
             $timeout->inMilliseconds(),
         ));
     }
@@ -161,7 +151,7 @@ final class StoredTracingGateway
     private function refusePollingProjection(string $destination): void
     {
         if (in_array($destination, $this->pollingProjectionNames, true)) {
-            throw ConfigurationException::create(sprintf('Projection %s runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].', $destination));
+            throw ConfigurationException::create(sprintf('Projection %s runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot wait for it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].', $destination));
         }
     }
 }

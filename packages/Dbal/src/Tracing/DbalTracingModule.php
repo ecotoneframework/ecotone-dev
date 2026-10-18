@@ -303,10 +303,9 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     {
         $messagingConfiguration->registerServiceDefinition($serviceClass, $service);
         foreach ([
-            'isCompleted' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeadersBuilder::create('metadata')],
             'isCompletedFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeadersBuilder::create('metadata')],
-            'await' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER), GatewayHeadersBuilder::create('metadata')],
-            'awaitFor' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER), GatewayHeadersBuilder::create('metadata')],
+            'isCompletedWithin' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeaderBuilder::create('timeout', StoredTracingGateway::TIMEOUT_HEADER), GatewayHeaderBuilder::create('destination', StoredTracingGateway::DESTINATION_HEADER), GatewayHeadersBuilder::create('metadata')],
+            'fetchFlow' => [GatewayPayloadBuilder::create('tracingId'), GatewayHeadersBuilder::create('metadata')],
         ] as $method => $parameterConverters) {
             $channel = 'ecotone.tracing.gateway.' . $method;
             $messagingConfiguration

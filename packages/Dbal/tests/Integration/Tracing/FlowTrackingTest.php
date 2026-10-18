@@ -16,7 +16,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\FlowTrackingTimedOut;
 use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
@@ -34,6 +33,7 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\CurrentTrace;
+use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -73,7 +73,7 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
     }
 
@@ -84,14 +84,14 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_an_asynchronous_projection_keeps_the_trace_pending_until_it_projected(): void
@@ -113,7 +113,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'users_list'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_an_asynchronous_projection_is_awaited_by_its_class(): void
@@ -134,7 +134,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $projection::class));
-        $this->completion($ecotone)->awaitFor($trace->traceId, $projection::class, Duration::milliseconds(100));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), $projection::class));
     }
 
     public function test_a_handler_class_is_completed_once_every_one_of_its_handlers_the_flow_reached_ran(): void
@@ -199,60 +199,82 @@ final class FlowTrackingTest extends TestCase
         $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, $projection::class);
     }
 
-    public function test_awaiting_a_flow_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    public function test_waiting_for_a_flow_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('TracingGateway::await() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
 
-        $this->completion($ecotone)->await(SpanContext::newTrace()->traceId, Duration::minutes(16));
+        $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16));
     }
 
-    public function test_awaiting_a_destination_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    public function test_waiting_for_a_destination_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('TracingGateway::awaitFor() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Await at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
 
-        $this->completion($ecotone)->awaitFor(SpanContext::newTrace()->traceId, 'user.registration', Duration::minutes(16));
+        $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16), 'user.registration');
     }
 
-    public function test_awaiting_a_completed_flow_for_exactly_fifteen_minutes_is_allowed(): void
+    public function test_waiting_for_a_completed_flow_for_exactly_fifteen_minutes_is_allowed(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->completion($ecotone)->await($trace->traceId, Duration::minutes(15));
-        $this->completion($ecotone)->awaitFor($trace->traceId, 'user.registration', Duration::minutes(15));
-
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::minutes(15)));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::minutes(15), 'user.registration'));
     }
 
-    public function test_awaiting_a_pending_trace_times_out_naming_what_is_still_pending(): void
+    public function test_waiting_for_a_pending_flow_returns_false_and_the_flow_names_what_is_still_pending(): void
     {
         $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Flow {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
-
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['user.notifier', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
     }
 
-    public function test_awaiting_a_completed_trace_returns_at_once(): void
+    public function test_waiting_for_a_completed_flow_returns_true_at_once(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
-        $this->completion($ecotone)->awaitFor($trace->traceId, 'user.registration', Duration::milliseconds(100));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), 'user.registration'));
+    }
 
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+    public function test_a_fetched_flow_holds_its_steps_what_it_reached_and_what_is_still_pending(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $pending = $this->completion($ecotone)->fetchFlow($trace->traceId);
+        $this->assertSame($trace->traceId, $pending->tracingId);
+        $this->assertFalse($pending->isCompleted);
+        $this->assertSame(['user.notifier', 'async_channel'], $pending->pending);
+        $this->assertSame('send command', $pending->steps[0]->name);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $completed = $this->completion($ecotone)->fetchFlow($trace->traceId);
+        $this->assertTrue($completed->isCompleted);
+        $this->assertSame([], $completed->pending);
+        $this->assertEqualsCanonicalizing(['user.registration', 'user.notifier'], $completed->reached);
+        $this->assertContains('process class@anonymous::notify', array_map(fn (Span $step): string => preg_replace('/^process class@anonymous\S*::/', 'process class@anonymous::', $step->name), $completed->steps));
+    }
+
+    public function test_fetching_a_flow_nobody_recorded_returns_null(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->assertNull($this->completion($ecotone)->fetchFlow('0af7651916cd43dd8448eb211c80319c'));
     }
 
     public function test_a_synchronous_handler_without_an_explicit_endpoint_id_still_completes_its_route(): void
@@ -268,7 +290,7 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_handler_the_container_serves_as_a_subclass_proxy_still_completes_its_route(): void
@@ -283,14 +305,14 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_trace_nobody_recorded_is_not_completed(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted(SpanContext::newTrace()->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId));
     }
 
     public function test_a_failing_asynchronous_handler_leaves_the_trace_pending(): void
@@ -312,7 +334,7 @@ final class FlowTrackingTest extends TestCase
         } catch (RuntimeException) {
         }
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
     }
 
@@ -396,16 +418,16 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
-    public function test_awaiting_an_asynchronous_command_names_its_channel_as_pending(): void
+    public function test_waiting_for_an_asynchronous_command_leaves_its_channel_pending(): void
     {
         $orders = new class () {
             #[Asynchronous('async_channel')]
@@ -418,10 +440,8 @@ final class FlowTrackingTest extends TestCase
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage('Still pending: order.placing, async_channel.');
-
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['order.placing', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
     }
 
     public function test_a_handler_that_succeeded_inside_a_failed_unit_of_work_is_not_completed(): void
@@ -528,7 +548,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->assertSame(['A subscriber of ecotone.tracing.flowCompleted failed and was skipped: Cache refresh failed'], $logger->getError());
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_step_completed_subscriber_is_never_notified_about_the_synchronous_work_it_started(): void
@@ -588,7 +608,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertSame([$trace->traceId], $subscriber->completedTraces);
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_step_completed_subscriber_sending_an_asynchronous_command_is_not_notified_about_its_consumer(): void
@@ -637,7 +657,7 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
     }
 
@@ -662,7 +682,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->assertSame(2, $orders->attempts);
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_an_output_channel_after_an_asynchronous_handler_completes_neither_while_a_delivery_that_feeds_them_is_still_queued(): void
@@ -689,13 +709,13 @@ final class FlowTrackingTest extends TestCase
 
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_started_through_a_message_gateway_is_pending_until_its_asynchronous_handler_ran(): void
@@ -723,12 +743,12 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->getGateway(TracedNotificationGateway::class)->send('hello', [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.sending'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_the_tracing_gateway_without_flow_tracking_names_the_configuration_it_needs(): void
@@ -738,7 +758,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
-        $this->completion($ecotone)->isCompleted('0af7651916cd43dd8448eb211c80319c');
+        $this->completion($ecotone)->isCompletedFor('0af7651916cd43dd8448eb211c80319c');
     }
 
     public function test_awaiting_a_trace_whose_handler_failed_names_the_channel_and_how_to_recover(): void
@@ -756,32 +776,25 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Flow {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
-
-        $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['user.notifier', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
     }
 
-    public function test_awaiting_a_trace_nobody_recorded_says_so(): void
+    public function test_waiting_for_a_flow_nobody_recorded_returns_false(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage('Nothing was recorded for flow 0af7651916cd43dd8448eb211c80319c within 100 milliseconds. Send the command with that tracingId in its metadata, and check that the application handling it registers FlowTrackingConfiguration.');
-
-        $this->completion($ecotone)->await('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(100));
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(100)));
     }
 
-    public function test_awaiting_a_destination_the_trace_never_reached_names_it_as_unknown(): void
+    public function test_waiting_for_a_destination_the_flow_never_reached_returns_false_and_the_flow_names_what_it_reached(): void
     {
         $ecotone = $this->bootstrap([$this->users()]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->expectException(FlowTrackingTimedOut::class);
-        $this->expectExceptionMessage("Flow {$trace->traceId} was neither sent to nor processed by user.notifierr within 100 milliseconds. Check the endpointId or projection name; the flow reached: user.registration.");
-
-        $this->completion($ecotone)->awaitFor($trace->traceId, 'user.notifierr', Duration::milliseconds(100));
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), 'user.notifierr'));
+        $this->assertSame(['user.registration'], $this->completion($ecotone)->fetchFlow($trace->traceId)->reached);
     }
 
     public function test_two_asynchronous_commands_to_one_handler_complete_it_only_after_both_ran(): void
@@ -818,9 +831,9 @@ final class FlowTrackingTest extends TestCase
         $ecotone = $this->bootstrap([$projection]);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot await it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot wait for it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
 
-        $this->completion($ecotone)->awaitFor('0af7651916cd43dd8448eb211c80319c', 'orders_list', Duration::milliseconds(10));
+        $this->completion($ecotone)->isCompletedWithin('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(10), 'orders_list');
     }
 
     public function test_a_flow_started_by_a_query_completes_once_the_asynchronous_command_it_sent_ran(): void
@@ -844,10 +857,10 @@ final class FlowTrackingTest extends TestCase
         $tracingId = '0af7651916cd43dd8448eb211c80319c';
 
         $ecotone->sendQueryWithRouting('order.quote', '1', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
-        $this->assertFalse($this->completion($ecotone)->isCompleted($tracingId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($tracingId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertTrue($this->completion($ecotone)->isCompleted($tracingId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($tracingId));
     }
 
     public function test_a_flow_a_consumer_starts_for_a_message_from_an_application_without_tracing_completes_once_that_consumer_ran(): void
@@ -870,7 +883,7 @@ final class FlowTrackingTest extends TestCase
         $consumer->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertNotNull($orders->tracingId);
-        $this->assertTrue($this->completion($consumer)->isCompleted($orders->tracingId));
+        $this->assertTrue($this->completion($consumer)->isCompletedFor($orders->tracingId));
     }
 
     public function test_a_handler_can_read_the_trace_id_it_runs_in(): void
@@ -890,7 +903,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->assertSame($trace->traceId, $users->traceId);
-        $this->assertTrue($this->completion($ecotone)->isCompleted($users->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($users->traceId));
     }
 
     public function test_reading_the_current_trace_without_tracing_names_how_to_enable_it(): void
@@ -929,12 +942,12 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('order.place', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_with_only_requested_flows_tracked_a_command_sent_without_one_stores_nothing(): void
@@ -965,12 +978,12 @@ final class FlowTrackingTest extends TestCase
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertArrayHasKey('receive async_channel', $subscriber->endedSpans);
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_vendor_entry_in_tracestate_survives_the_asynchronous_hop(): void
@@ -1000,9 +1013,9 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertTrue($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
     }
 
     public function test_a_uuid_is_accepted_as_tracing_id_and_awaited_by_the_same_uuid(): void
@@ -1012,7 +1025,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11']);
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $this->assertTrue($this->completion($ecotone)->isCompleted('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11'));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11', 'user.notifier'));
     }
 
@@ -1128,7 +1141,7 @@ final class FlowTrackingTest extends TestCase
         }
 
         $this->assertSame([], $subscriber->endedSpans);
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
@@ -1235,9 +1248,9 @@ final class FlowTrackingTest extends TestCase
         );
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
 
-        $this->assertFalse($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertTrue($this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
     }
 
     public function test_with_the_tracing_gateway_turned_off_asking_it_names_the_setting_while_subscribers_are_still_notified(): void
@@ -1265,7 +1278,7 @@ final class FlowTrackingTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.');
 
-        $this->completion($ecotone)->isCompleted('4bf92f3577b34da6a3ce929d0e0e4736');
+        $this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736');
     }
 
     public function test_flow_tracking_requires_an_enterprise_licence(): void

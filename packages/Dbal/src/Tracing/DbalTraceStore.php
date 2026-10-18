@@ -80,6 +80,11 @@ final class DbalTraceStore implements TraceStore
         return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId, $now));
     }
 
+    public function stepsOf(string $traceId): array
+    {
+        return $this->onTables(fn (): array => $this->spansOf($this->connection(), $traceId));
+    }
+
     public function progressOf(string $traceId): TraceProgress
     {
         return $this->onTables(fn (): TraceProgress => TraceLedger::progressOf($traceId, $this->spansOf($this->connection(), $traceId)));

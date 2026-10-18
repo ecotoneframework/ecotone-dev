@@ -339,20 +339,26 @@ final class AsynchronousTracingTest extends TracingTestCase
         $recorder = new InMemorySpanRecorder();
         $workflow = $this->workflowScheduledHandler();
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$workflow::class],
             [$workflow, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()],
-        )
-            ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
+        );
 
-        $expectedRun = [
-            'details' => ['name' => 'receive add'],
-            'children' => [
-                ['details' => ['name' => 'process class@anonymous::add'], 'children' => []],
-            ],
-        ];
-        self::compareTreesByDetails([$expectedRun, $expectedRun], self::buildTree($recorder->recordedSpans()));
+        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+
+        $spans = $recorder->recordedSpans();
+        $polls = array_values(array_filter($spans, fn (Span $span): bool => $span->name === 'receive add'));
+        $this->assertCount(2, $polls);
+        foreach ($polls as $poll) {
+            $this->assertTrue($poll->isRoot());
+            $handlers = array_values(array_filter($spans, fn (Span $span): bool => $span->parentSpanId === $poll->spanId));
+            $this->assertCount(1, $handlers);
+            $this->assertMatchesRegularExpression('/^process class@anonymous\S*::add$/', $handlers[0]->name);
+            $this->assertSame($poll->traceId, $handlers[0]->traceId);
+        }
+        $this->assertNotSame($polls[0]->traceId, $polls[1]->traceId);
     }
 
     public function test_no_tracing_when_there_is_nothing_to_trace(): void

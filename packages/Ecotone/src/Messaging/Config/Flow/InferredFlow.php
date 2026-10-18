@@ -15,17 +15,15 @@ final class InferredFlow
 {
     /** @var array<string, FlowNode> */
     private array $nodes = [];
-    /** @var array<string, FlowEdge> */
-    private array $edges = [];
+    /** @var list<FlowEdge> */
+    private array $edges;
 
     public function __construct(MessageFlowGraph $declared)
     {
         foreach ($declared->nodes() as $node) {
             $this->nodes[$node->id] = $node;
         }
-        foreach ($declared->edges() as $edge) {
-            $this->edges[self::edgeKey($edge)] = $edge;
-        }
+        $this->edges = $declared->edges();
     }
 
     public function hasNode(string $id): bool
@@ -45,16 +43,11 @@ final class InferredFlow
 
     public function addEdge(FlowEdge $edge): void
     {
-        $this->edges[self::edgeKey($edge)] ??= $edge;
+        $this->edges[] = $edge;
     }
 
     public function graph(): MessageFlowGraph
     {
-        return MessageFlowGraph::create(array_values($this->nodes), array_values($this->edges));
-    }
-
-    private static function edgeKey(FlowEdge $edge): string
-    {
-        return $edge->kind->value . '|' . $edge->from . '|' . $edge->to;
+        return MessageFlowGraph::create(array_values($this->nodes), $this->edges);
     }
 }

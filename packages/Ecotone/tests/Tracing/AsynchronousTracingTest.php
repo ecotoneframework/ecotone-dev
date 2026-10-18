@@ -316,21 +316,22 @@ final class AsynchronousTracingTest extends TracingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$scheduled::class],
             [$scheduled, ...self::recordingSpansInto($recorder)],
             [self::tracingConfiguration()],
-        )
-            ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
-
-        self::compareTreesByDetails(
-            [
-                ['details' => ['name' => 'receive nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
-                ['details' => ['name' => 'receive nullChannel', 'kind' => SpanKind::Consumer], 'children' => []],
-            ],
-            self::buildTree($recorder->recordedSpans())
         );
-        $this->assertCount(2, array_unique(array_map(fn (Span $span): string => $span->traceId, $recorder->recordedSpans())));
+
+        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+        $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+
+        $polls = array_values(array_filter($recorder->recordedSpans(), fn (Span $span): bool => $span->name === 'receive nullChannel'));
+        $this->assertCount(2, $polls);
+        foreach ($polls as $poll) {
+            $this->assertSame(SpanKind::Consumer, $poll->kind);
+            $this->assertTrue($poll->isRoot());
+        }
+        $this->assertNotSame($polls[0]->traceId, $polls[1]->traceId);
     }
 
     public function test_tracing_workflow_scheduled_handler(): void

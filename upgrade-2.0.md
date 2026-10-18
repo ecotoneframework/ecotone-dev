@@ -3099,37 +3099,38 @@ in an external collector, after the fact.
 
 **Now:** `TracingConfiguration::createWithDefaults()->withStoredTraces()` keeps every span in the database as well,
 in `ecotone_traces` and `ecotone_tracing`, created by `ecotone:migration:database:setup`. A unit of work, a bus call
-or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit;
-the span that wraps the unit of work is written when it ends, after the commit, and that write is the one that
-decides whether the trace is complete, reading what every other unit of work has committed by then. No row is
-locked: completion is claimed with a single conditional update, so two consumers finishing the last two handlers of
-one trace both see each other's commit and exactly one of them claims it. From those spans the `TraceCompletion` gateway answers
+or an asynchronous consumption, buffers its spans and writes them once, inside its transaction before the commit,
+together with the span that wraps the unit of work as it stands at that moment, and decides in the same transaction
+whether the trace is complete. Nothing is written to the database after the commit or after a rollback: a database
+that goes down right after a commit cannot fail a consumer whose work already committed, and a failure inside the
+transaction rolls the trace back with the work and leaves the message to be retried. Completion is claimed with one
+conditional update after the trace row was touched by the same transaction, so a second unit of work finishing the
+same trace waits for the first one's commit and, on PostgreSQL and SQLite, reads its spans before deciding. From those spans the `TraceCompletion` gateway answers
 `isCompleted($traceId)`, true once the root ended, every route the trace sent has an ended handler span, and
 every message it sent to a channel was consumed from that channel, so an asynchronous command, event or projection
 keeps the trace pending until its consumer processed that exact message; `isCompletedFor($traceId, $destination)`
 for one `endpointId` or projection name; and `await()` / `awaitFor()`, which poll until then or throw
 `TraceCompletionTimedOut` naming the handlers and channels still pending. The root is the span that started the
 trace in this process, a bus call or a handler reached outside any other span, never a consumer: a trace whose
-producer stored nothing is never completed by its consumers alone. A unit of work that fails discards the spans it
-buffered, so a handler that succeeded inside a rolled-back transaction, and a message whose send rolled back with
-it, are not counted. By default nothing of a failed unit of work is stored, because the only moment left to store it
-is after the rollback, outside any transaction; `withStoredTraces(storeFailuresOutsideTransaction: true)` opts in
-to storing the failed outer span then, so a failed trace shows its error and counts as complete. A destination counts a message as dispatched and as processed by
+producer stored nothing is never completed by its consumers alone. A unit of work that fails stores nothing: a handler
+that succeeded inside a rolled-back transaction, and a message whose send rolled back with it, are not counted, and
+the failure itself is visible in OpenTelemetry, which may fail on its own without harm, not in the store. A destination counts a message as dispatched and as processed by
 its message id, so a redelivery of the same message satisfies the delivery it belongs to and no other, and a
 message sent to an asynchronous handler is attributed to that handler's `endpointId` whether it was routed by the
 event bus, the command bus or an `outputChannelName`. The handler span is the innermost interceptor around the
 method, so it records the handler's own failure even when an error channel or a retry handles it, and the consumer
 or bus span that wraps a failed unit of work ends as failed too, in OpenTelemetry as in the store, unless a retry
 inside it succeeded; and
-`TraceCompletionTimedOut` names the handlers whose last attempt failed, the channels still holding a message, a
-trace nobody recorded, and a destination the trace never reached. `TraceCompletion` is always injectable; without
+`TraceCompletionTimedOut` names the handlers and channels still pending, points to the dead letter when a handler
+failed, and names a trace nobody recorded and a destination the trace never reached. `TraceCompletion` is always injectable; without
 `withStoredTraces()` every call refuses with the configuration it needs. A method with `#[OnTraceCompleted]` receives a
 `TraceCompleted` each time the trace reaches completion, so a trace that is handed more work after completing, as
 when a request sends two commands under one `traceparent`, notifies again once that work is done; one with
 `#[OnSpanEnded]` receives every stored span. Both run after the commit that produced them, so a websocket push or
-a cache refresh never runs ahead of the data. A completion notification is durable: the store remembers it was
-delivered, a subscriber that throws does not fail the command that already committed, and any later unit of work
-in any process re-delivers a notification left undelivered for thirty seconds. A handler that needs the id of the
+a cache refresh never runs ahead of the data. Notifications are published from memory once the transaction
+committed, at most once: a subscriber that throws does not fail the command that already committed and is not called
+again, and a process that stops between the commit and the publication drops that notification, while
+`TraceCompletion` still answers from the stored spans. A handler that needs the id of the
 trace it runs in injects `Ecotone\Api\Tracing\CurrentTrace` and reads `traceId()`. `isCompletedFor()` and
 `awaitFor()` refuse a `#[Polling]` projection by name, because a polled run is not part of the trace that appended
 its events. A message sent through a dynamic channel, through the high-throughput outbox or replayed from the dead

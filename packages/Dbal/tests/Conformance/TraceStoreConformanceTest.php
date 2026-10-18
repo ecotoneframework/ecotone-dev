@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Conformance;
 
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
@@ -18,6 +19,8 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Scheduling\Duration;
@@ -102,7 +105,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage('Still pending: user.notifier, async_channel. Run the consumer of the pending channel');
+        $this->expectExceptionMessage('Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter');
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -267,23 +270,6 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_failing_asynchronous_handler_stores_its_failed_consumer_span_when_failures_may_be_stored_outside_the_transaction(string $implementation): void
-    {
-        $subscriber = $this->spanEndedSubscriber();
-        $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')], storeFailuresOutsideTransaction: true);
-        $trace = SpanContext::newTrace();
-        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-
-        try {
-            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        } catch (RuntimeException) {
-        }
-
-        self::assertSame(SpanStatus::Error, $subscriber->endedSpans['receive async_channel']);
-        self::assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
-    }
-
-    #[DataProvider('implementations')]
     public function test_a_consumer_that_swallowed_its_handler_failure_leaves_the_trace_pending(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->failingNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
@@ -348,7 +334,7 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_subscriber_that_throws_does_not_fail_the_committed_command_and_is_notified_again_later(string $implementation): void
+    public function test_a_subscriber_that_throws_does_not_fail_the_committed_command_and_is_not_retried(string $implementation): void
     {
         $subscriber = new class () {
             /** @var string[] */
@@ -370,10 +356,9 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $first->toTraceparent()]);
         self::assertSame([$first->traceId], $subscriber->completedTraces);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(31));
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $second->toTraceparent()]);
 
-        self::assertEqualsCanonicalizing([$first->traceId, $first->traceId, $second->traceId], $subscriber->completedTraces);
+        self::assertSame([$first->traceId, $second->traceId], $subscriber->completedTraces);
     }
 
     #[DataProvider('implementations')]
@@ -466,6 +451,49 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_a_database_outage_right_after_the_consumer_committed_does_not_fail_the_consumer(): void
+    {
+        $notifier = new class () {
+            public int $handled = 0;
+
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                $this->handled++;
+            }
+        };
+        $outage = $this->outageRightAfterTheTransaction();
+        $ecotone = $this->bootstrap('dbal', [$this->users(), $notifier, $outage], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        $outage->armed = true;
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(1, $notifier->handled);
+    }
+
+    public function test_a_database_outage_right_after_the_command_committed_does_not_fail_the_command(): void
+    {
+        $users = new class () {
+            public int $registered = 0;
+
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId): void
+            {
+                $this->registered++;
+            }
+        };
+        $outage = $this->outageRightAfterTheTransaction();
+        $ecotone = $this->bootstrap('dbal', [$users, $outage]);
+
+        $outage->armed = true;
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        self::assertSame(1, $users->registered);
+    }
+
     public function test_completion_recorded_by_one_instance_is_visible_to_another_sharing_the_database(): void
     {
         $producer = $this->bootstrap('dbal', [$this->users()]);
@@ -481,12 +509,12 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
      * @param object[] $services
      * @param object[] $extensionObjects
      */
-    private function bootstrap(string $implementation, array $services, array $extensionObjects = [], ?Duration $retention = null, bool $storeFailuresOutsideTransaction = false): FlowTestSupport
+    private function bootstrap(string $implementation, array $services, array $extensionObjects = [], ?Duration $retention = null): FlowTestSupport
     {
         return $this->bootstrapFlowTesting(
             classesToResolve: array_map(fn (object $service): string => $service::class, $services),
             containerOrAvailableServices: [...$services, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: $implementation === 'in-memory', retention: $retention, storeFailuresOutsideTransaction: $storeFailuresOutsideTransaction), ...$extensionObjects],
+            extensionObjects: [TracingConfiguration::createWithDefaults()->withStoredTraces(inMemory: $implementation === 'in-memory', retention: $retention), ...$extensionObjects],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
@@ -504,6 +532,34 @@ final class TraceStoreConformanceTest extends DbalMessagingTestCase
             public function register(string $userId, EventBus $eventBus): void
             {
                 $eventBus->publishWithRouting('user.registered', $userId);
+            }
+        };
+    }
+
+    private function outageRightAfterTheTransaction(): object
+    {
+        return new class ($this->getConnectionFactory()) {
+            public bool $armed = false;
+
+            public function __construct(private DbalConnectionFactory $connectionFactory)
+            {
+            }
+
+            #[Around(precedence: Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1, pointcut: 'Ecotone\\Api\\Gateway\\CommandBus||Ecotone\\Api\\Attribute\\AsynchronousRunningEndpoint')]
+            public function simulateOutage(MethodInvocation $methodInvocation): mixed
+            {
+                $result = $methodInvocation->proceed();
+                if (! $this->armed) {
+                    return $result;
+                }
+                $schemaManager = $this->connectionFactory->establishConnection()->createSchemaManager();
+                foreach (['ecotone_tracing', 'ecotone_traces'] as $table) {
+                    if ($schemaManager->tablesExist([$table])) {
+                        $schemaManager->dropTable($table);
+                    }
+                }
+
+                return $result;
             }
         };
     }

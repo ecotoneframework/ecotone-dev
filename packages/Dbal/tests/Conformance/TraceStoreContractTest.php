@@ -63,18 +63,16 @@ final class TraceStoreContractTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_span_appended_after_completion_reopens_the_trace_so_it_can_complete_and_notify_again(string $implementation): void
+    public function test_a_span_appended_after_completion_reopens_the_trace_so_it_can_complete_again(string $implementation): void
     {
         $store = $this->store($implementation);
         $trace = SpanContext::newTrace();
         $store->append([$this->rootSpan($trace)]);
         self::assertTrue($store->markCompletedIfDone($trace->traceId, new DatePoint()));
-        $store->markNotified($trace->traceId);
 
         $store->append([$this->rootSpan($trace)]);
 
         self::assertTrue($store->markCompletedIfDone($trace->traceId, new DatePoint()));
-        self::assertSame([$trace->traceId], $store->completedButNotNotifiedBefore((new DatePoint())->modify('+1 minute'), 10));
     }
 
     private function store(string $implementation): TraceStore

@@ -71,6 +71,23 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
         $this->finish(StatusCode::STATUS_OK, SpanStatus::Ok, null);
     }
 
+    public function endedSoFar(): Span
+    {
+        return new Span(
+            $this->context->traceId,
+            $this->context->spanId,
+            $this->parentSpanId,
+            $this->name,
+            $this->kind,
+            $this->attributes,
+            SpanStatus::Ok,
+            null,
+            $this->events,
+            $this->startedAt,
+            $this->clock->now(),
+        );
+    }
+
     public function markUnitOfWorkFailed(): void
     {
         $this->unitOfWorkFailed = true;

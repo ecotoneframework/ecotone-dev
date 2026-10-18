@@ -31,8 +31,6 @@ final class InMemoryTraceStore implements TraceStore
     private array $spansByTrace = [];
     /** @var array<string, DatePoint> */
     private array $completedAt = [];
-    /** @var array<string, true> */
-    private array $notified = [];
 
     public function append(array $spans): void
     {
@@ -41,7 +39,7 @@ final class InMemoryTraceStore implements TraceStore
                 continue;
             }
             $this->spansByTrace[$span->traceId][$span->spanId] = $span;
-            unset($this->completedAt[$span->traceId], $this->notified[$span->traceId]);
+            unset($this->completedAt[$span->traceId]);
         }
     }
 
@@ -55,28 +53,6 @@ final class InMemoryTraceStore implements TraceStore
         return true;
     }
 
-    public function markNotified(string $traceId): void
-    {
-        if (isset($this->completedAt[$traceId])) {
-            $this->notified[$traceId] = true;
-        }
-    }
-
-    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array
-    {
-        $traceIds = [];
-        foreach ($this->completedAt as $traceId => $completedAt) {
-            if (count($traceIds) === $limit) {
-                break;
-            }
-            if (! isset($this->notified[$traceId]) && $completedAt < $completedBefore) {
-                $traceIds[] = $traceId;
-            }
-        }
-
-        return $traceIds;
-    }
-
     public function progressOf(string $traceId): TraceProgress
     {
         return TraceLedger::progressOf($traceId, array_values($this->spansByTrace[$traceId] ?? []));
@@ -87,7 +63,7 @@ final class InMemoryTraceStore implements TraceStore
         foreach ($this->spansByTrace as $traceId => $spans) {
             $startedAt = min(array_map(fn (Span $span): DatePoint => $span->startedAt, $spans));
             if ($startedAt < $anyTraceStartedBefore || (isset($this->completedAt[$traceId]) && $startedAt < $completedTracesStartedBefore)) {
-                unset($this->spansByTrace[$traceId], $this->completedAt[$traceId], $this->notified[$traceId]);
+                unset($this->spansByTrace[$traceId], $this->completedAt[$traceId]);
             }
         }
     }

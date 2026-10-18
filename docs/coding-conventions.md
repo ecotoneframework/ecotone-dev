@@ -15,7 +15,7 @@ branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpo
 paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a, 16a,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -1138,6 +1138,46 @@ a table inside an open transaction on MySQL and MariaDB. The whole story for use
 History: `230bcea5d` and `511b31428` first moved this DDL out of the transaction; `048f614d8` and the rest of rule
 1a replaced that with the refusal and the setup instructions; wave 10 removed runtime creation with
 `AutomaticTableInitializationSupport`, `AutoCreateLevel` and `EventSourcingConfiguration::withInitializeEventStoreOnStart()`.
+
+---
+
+## 16a. No database write after the transaction
+
+A message's unit of work owns a transaction: the transaction interceptor begins it, the handler and everything it
+calls write inside it, and it commits or rolls back as one. Anything a feature records about that message - stored
+traces, bookkeeping, a completion flag - is written inside the same transaction, or not at all.
+
+Never write after the commit, after a rollback, or in an interceptor that wraps the transaction from outside. At that
+point the work is already decided. If the database is down, the write throws out of a consumer whose message was
+already acknowledged, or out of a command whose data already committed: the caller sees a failure for work that
+succeeded, and the message is not retried. The same outage inside the transaction rolls back and leaves the message
+to the retry and dead-letter strategy, which is what they exist for.
+
+Wrong - the root span is inserted when it ends, after the commit:
+
+```php
+public function record(Span $span): void
+{
+    if ($this->scopeActive) { $this->buffer[] = $span; return; }
+    $this->traceStore->append([$span]);   // after the commit: fails a consumer whose work succeeded
+}
+```
+
+Right - the span that wraps the unit of work is written as it stands at the flush, inside the transaction, and
+nothing touches the database once the transaction has returned:
+
+```php
+$result = $methodInvocation->proceed();
+$this->recorder->flush($wrappingSpan?->endedSoFar());   // inside the transaction
+```
+
+What may happen after the commit is work that does not depend on the database: publishing to subscribers from
+memory, and sending telemetry to an external collector such as OpenTelemetry, which is allowed to fail and never
+fails the message. A test proves the rule by making the database unavailable right after the commit, with an
+`#[Around]` interceptor just outside the transaction, and asserting that the command or consumer still succeeds.
+
+Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
+threw the missing-table refusal out of the consumer (`TraceStoreConformanceTest`, the two outage tests).
 
 ---
 

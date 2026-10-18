@@ -27,8 +27,29 @@ use Throwable;
  */
 final class TraceRecordingInterceptor
 {
-    public function __construct(private StoringSpanRecorder $recorder)
+    public function __construct(
+        private StoringSpanRecorder $recorder,
+        private Tracer $tracer,
+    ) {
+    }
+
+    public function publishAfterCommit(MethodInvocation $methodInvocation): mixed
     {
+        if ($this->recorder->isUnitOfWorkActive()) {
+            return $methodInvocation->proceed();
+        }
+
+        $this->recorder->beginUnitOfWork();
+        try {
+            $result = $methodInvocation->proceed();
+        } catch (Throwable $failure) {
+            $this->recorder->endUnitOfWork();
+
+            throw $failure;
+        }
+        $this->recorder->publishCommitted();
+
+        return $result;
     }
 
     public function recordUnitOfWork(MethodInvocation $methodInvocation): mixed
@@ -37,10 +58,11 @@ final class TraceRecordingInterceptor
             return $methodInvocation->proceed();
         }
 
+        $wrappingSpan = $this->tracer->currentSpan();
         $this->recorder->openScope();
         try {
             $result = $methodInvocation->proceed();
-            $this->recorder->flush();
+            $this->recorder->flush($wrappingSpan?->endedSoFar());
 
             return $result;
         } catch (Throwable $failure) {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanContext;
 use Throwable;
 
@@ -25,6 +26,8 @@ interface ActiveSpan
     public function addEvent(string $name, array $attributes = []): void;
 
     public function end(): void;
+
+    public function endedSoFar(): Span;
 
     public function markUnitOfWorkFailed(): void;
 

@@ -23,6 +23,8 @@ interface Precedence
 
     public const ENDPOINT_HEADERS_PRECEDENCE = -3000;
 
+    public const TRACE_PUBLICATION_PRECEDENCE = self::CUSTOM_INSTANT_RETRY_PRECEDENCE - 1;
+
     public const CUSTOM_INSTANT_RETRY_PRECEDENCE = -2003;
 
     public const GLOBAL_INSTANT_RETRY_PRECEDENCE = -2002;

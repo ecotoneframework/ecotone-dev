@@ -121,7 +121,7 @@ final class TraceCompletionTest extends TestCase
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, or await with a longer timeout.");
+        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -395,32 +395,6 @@ final class TraceCompletionTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
     }
 
-    public function test_a_consumer_that_swallowed_its_handler_failure_stores_a_failed_consumer_span_when_failures_may_be_stored(): void
-    {
-        $orders = new class () {
-            #[Asynchronous('async_channel')]
-            #[CommandHandler('order.place', endpointId: 'order.placing')]
-            public function place(string $orderId): void
-            {
-                throw new RuntimeException('Placing failed');
-            }
-        };
-        $subscriber = $this->spanEndedSubscriber();
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$orders::class, $subscriber::class],
-            [$orders, $subscriber],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(storeFailuresOutsideTransaction: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-        $trace = SpanContext::newTrace();
-        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
-
-        $this->assertSame(SpanStatus::Error, $subscriber->endedSpans['receive async_channel']);
-        $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
-    }
-
     public function test_a_consumer_whose_handler_failed_once_and_succeeded_on_the_instant_retry_completes_the_trace(): void
     {
         $orders = new class () {
@@ -520,7 +494,7 @@ final class TraceCompletionTest extends TestCase
         $this->completion($ecotone)->isCompleted('0af7651916cd43dd8448eb211c80319c');
     }
 
-    public function test_awaiting_a_trace_whose_handler_failed_names_the_failed_handler(): void
+    public function test_awaiting_a_trace_whose_handler_failed_names_the_channel_and_how_to_recover(): void
     {
         $notifier = new class () {
             #[Asynchronous('async_channel')]
@@ -530,18 +504,13 @@ final class TraceCompletionTest extends TestCase
                 throw new RuntimeException('Notification failed');
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->users()::class, $notifier::class],
-            [$this->users(), $notifier],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(storeFailuresOutsideTransaction: true), SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $ecotone = $this->bootstrap([$this->users(), $notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
         $trace = SpanContext::newTrace();
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->expectException(TraceCompletionTimedOut::class);
-        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Failed: user.notifier, whose last attempt failed and whose message is in the error channel or awaiting a retry. Await with a longer timeout once the failure is resolved.");
+        $this->expectExceptionMessage("Trace {$trace->traceId} did not complete within 100 milliseconds. Still pending: user.notifier, async_channel. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.");
 
         $this->completion($ecotone)->await($trace->traceId, Duration::milliseconds(100));
     }
@@ -742,27 +711,6 @@ final class TraceCompletionTest extends TestCase
 
         $this->assertSame([], $subscriber->endedSpans);
         $this->assertFalse($this->completion($ecotone)->isCompleted($trace->traceId));
-    }
-
-    public function test_a_failed_unit_of_work_stores_its_failed_root_span_when_failures_may_be_stored_outside_the_transaction(): void
-    {
-        $subscriber = $this->spanEndedSubscriber();
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$this->failingUsers()::class, $subscriber::class],
-            [$this->failingUsers(), $subscriber],
-            [TracingConfiguration::createWithDefaults()->withStoredTraces(storeFailuresOutsideTransaction: true)],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-        $trace = SpanContext::newTrace();
-
-        try {
-            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-            $this->fail('Expected the registration failure to propagate');
-        } catch (RuntimeException) {
-        }
-
-        $this->assertSame(['process class@anonymous::register' => SpanStatus::Error, 'send command' => SpanStatus::Error], array_combine(array_map(fn (string $name): string => preg_replace('/^process class@anonymous\\S*::/', 'process class@anonymous::', $name), array_keys($subscriber->endedSpans)), $subscriber->endedSpans));
-        $this->assertTrue($this->completion($ecotone)->isCompleted($trace->traceId));
     }
 
     public function test_stored_traces_without_a_trace_store_are_refused_at_bootstrap(): void

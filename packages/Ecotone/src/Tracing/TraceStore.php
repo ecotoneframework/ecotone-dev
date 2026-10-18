@@ -34,13 +34,6 @@ interface TraceStore
 
     public function markCompletedIfDone(string $traceId, DatePoint $now): bool;
 
-    public function markNotified(string $traceId): void;
-
-    /**
-     * @return string[]
-     */
-    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array;
-
     public function progressOf(string $traceId): TraceProgress;
 
     public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore): void;

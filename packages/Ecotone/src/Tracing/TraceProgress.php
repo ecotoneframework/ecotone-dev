@@ -29,7 +29,6 @@ final class TraceProgress
     /**
      * @param array<string, array<string, true>> $sent message ids dispatched to each destination
      * @param array<string, array<string, true>> $processed message ids each destination processed
-     * @param array<string, array<string, true>> $failed message ids each destination failed on
      * @param array<string, array<string, true>> $sentDeliveries message ids sent to each channel
      * @param array<string, array<string, true>> $processedDeliveries message ids consumed from each channel
      */
@@ -39,7 +38,6 @@ final class TraceProgress
         public readonly bool $rootEnded,
         public readonly array $sent,
         public readonly array $processed,
-        public readonly array $failed,
         public readonly array $sentDeliveries,
         public readonly array $processedDeliveries,
     ) {
@@ -47,7 +45,7 @@ final class TraceProgress
 
     public static function unknown(string $traceId): self
     {
-        return new self($traceId, false, false, [], [], [], [], []);
+        return new self($traceId, false, false, [], [], [], []);
     }
 
     public function isCompleted(): bool
@@ -85,24 +83,9 @@ final class TraceProgress
         return array_values(array_unique($pending));
     }
 
-    /**
-     * @return string[]
-     */
-    public function failedDestinations(): array
-    {
-        $failed = [];
-        foreach ($this->failed as $destination => $failedMessages) {
-            if (array_diff_key($failedMessages, $this->processed[$destination] ?? []) !== []) {
-                $failed[] = $destination;
-            }
-        }
-
-        return $failed;
-    }
-
     public function reached(string $destination): bool
     {
-        return isset($this->sent[$destination]) || isset($this->processed[$destination]) || isset($this->failed[$destination]);
+        return isset($this->sent[$destination]) || isset($this->processed[$destination]);
     }
 
     /**
@@ -110,6 +93,6 @@ final class TraceProgress
      */
     public function destinations(): array
     {
-        return array_keys($this->sent + $this->processed + $this->failed);
+        return array_keys($this->sent + $this->processed);
     }
 }

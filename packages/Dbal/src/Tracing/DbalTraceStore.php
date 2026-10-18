@@ -81,31 +81,6 @@ final class DbalTraceStore implements TraceStore
         return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId, $now));
     }
 
-    public function markNotified(string $traceId): void
-    {
-        $connection = $this->connection();
-        $this->onTables(fn (): int => $connection->executeStatement(
-            "UPDATE {$this->tracesTableManager->getTableName()} SET notified_at = :notifiedAt WHERE trace_id = :traceId AND completed_at IS NOT NULL AND notified_at IS NULL",
-            ['notifiedAt' => $this->clock->now()->unixTime()->inMicroseconds(), 'traceId' => $traceId],
-            ['notifiedAt' => Types::BIGINT],
-        ));
-    }
-
-    public function completedButNotNotifiedBefore(DatePoint $completedBefore, int $limit): array
-    {
-        return $this->onTables(fn (): array => $this->connection()->createQueryBuilder()
-            ->select('trace_id')
-            ->from($this->tracesTableManager->getTableName())
-            ->andWhere('completed_at IS NOT NULL')
-            ->andWhere('notified_at IS NULL')
-            ->andWhere('completed_at < :completedBefore')
-            ->setParameter('completedBefore', $completedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
-            ->orderBy('completed_at')
-            ->setMaxResults($limit)
-            ->executeQuery()
-            ->fetchFirstColumn());
-    }
-
     public function progressOf(string $traceId): TraceProgress
     {
         return $this->onTables(fn (): TraceProgress => TraceLedger::progressOf($traceId, $this->spansOf($this->connection(), $traceId)));
@@ -131,8 +106,8 @@ final class DbalTraceStore implements TraceStore
         $startedAt = min(array_map(fn (Span $span): int => $span->startedAt->unixTime()->inMicroseconds(), $traceSpans));
         $tableName = $this->tracesTableManager->getTableName();
         $sql = $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform
-            ? "INSERT INTO {$tableName} (trace_id, started_at, completed_at, notified_at) VALUES (:traceId, :startedAt, NULL, NULL) ON DUPLICATE KEY UPDATE completed_at = NULL, notified_at = NULL"
-            : "INSERT INTO {$tableName} (trace_id, started_at, completed_at, notified_at) VALUES (:traceId, :startedAt, NULL, NULL) ON CONFLICT (trace_id) DO UPDATE SET completed_at = NULL, notified_at = NULL";
+            ? "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON DUPLICATE KEY UPDATE completed_at = NULL"
+            : "INSERT INTO {$tableName} (trace_id, started_at, completed_at) VALUES (:traceId, :startedAt, NULL) ON CONFLICT (trace_id) DO UPDATE SET completed_at = NULL";
 
         $connection->executeStatement($sql, ['traceId' => $traceId, 'startedAt' => $startedAt], ['startedAt' => Types::BIGINT]);
     }

@@ -42,7 +42,6 @@ final class TraceLedger
         $rootEnded = false;
         $sent = [];
         $processed = [];
-        $failed = [];
         $sentDeliveries = [];
         $processedDeliveries = [];
         foreach ($spans as $span) {
@@ -77,14 +76,12 @@ final class TraceLedger
             $messageId = (string) ($span->attributes[MessageHeaders::MESSAGE_ID] ?? $span->spanId);
             if ($operation === SpanAttribute::OPERATION_SEND) {
                 $sent[$destination][$messageId] = true;
-            } elseif ($operation === SpanAttribute::OPERATION_PROCESS && $span->status === SpanStatus::Error) {
-                $failed[$destination][$messageId] = true;
             } elseif ($operation === SpanAttribute::OPERATION_PROCESS) {
                 $processed[$destination][$messageId] = true;
             }
         }
 
-        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $failed, $sentDeliveries, $processedDeliveries);
+        return new TraceProgress($traceId, true, $rootEnded, $sent, $processed, $sentDeliveries, $processedDeliveries);
     }
 
     public static function destinationOf(Span $span): ?string

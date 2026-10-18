@@ -18,16 +18,15 @@ final class TraceCompletionTimedOut extends RuntimeException
 {
     /**
      * @param string[] $pendingDestinations
-     * @param string[] $failedDestinations
      */
-    public static function forTrace(string $traceId, Duration $timeout, array $pendingDestinations, array $failedDestinations): self
+    public static function forTrace(string $traceId, Duration $timeout, array $pendingDestinations): self
     {
-        $failed = $failedDestinations === [] ? '' : sprintf(' Failed: %s, whose last attempt failed and whose message is in the error channel or awaiting a retry.', implode(', ', $failedDestinations));
-        $pending = array_values(array_diff($pendingDestinations, $failedDestinations));
-        $stillPending = $pending === [] ? '' : sprintf(' Still pending: %s.', implode(', ', $pending));
-        $advice = $pending === [] ? ' Await with a longer timeout once the failure is resolved.' : ' Run the consumer of the pending channel, or await with a longer timeout.';
-
-        return new self(sprintf('Trace %s did not complete within %d milliseconds.%s%s%s', $traceId, $timeout->inMilliseconds(), $failed, $stillPending, $advice));
+        return new self(sprintf(
+            'Trace %s did not complete within %d milliseconds. Still pending: %s. Run the consumer of the pending channel, replay the message from the dead letter if its handler failed, or await with a longer timeout.',
+            $traceId,
+            $timeout->inMilliseconds(),
+            implode(', ', $pendingDestinations),
+        ));
     }
 
     public static function forUnrecordedTrace(string $traceId, Duration $timeout): self
@@ -39,14 +38,13 @@ final class TraceCompletionTimedOut extends RuntimeException
         ));
     }
 
-    public static function forDestination(string $traceId, string $destination, Duration $timeout, bool $failed): self
+    public static function forDestination(string $traceId, string $destination, Duration $timeout): self
     {
         return new self(sprintf(
-            'Trace %s did not complete for %s within %d milliseconds.%s',
+            'Trace %s did not complete for %s within %d milliseconds. Run the consumer of the channel that handler is attached to, replay the message from the dead letter if the handler failed, or await with a longer timeout.',
             $traceId,
             $destination,
             $timeout->inMilliseconds(),
-            $failed ? ' Its last attempt failed and its message is in the error channel or awaiting a retry.' : ' Run the consumer of the channel that handler is attached to, or await with a longer timeout.',
         ));
     }
 

@@ -42,6 +42,7 @@ use Ecotone\Tracing\ExpiredTraceRemover;
 use Ecotone\Tracing\InMemoryTraceStore;
 use Ecotone\Tracing\StoredTraceCompletion;
 use Ecotone\Tracing\StoringSpanRecorder;
+use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TraceRecordingInterceptor;
 use Ecotone\Tracing\TraceStore;
 
@@ -172,23 +173,24 @@ final class StoredTracesModule extends NoExternalConfigurationModule implements 
                 new Reference(MessagingEntrypointService::class),
                 $this->spanEndedSubscribers !== [],
                 $this->traceCompletedSubscribers !== [],
-                $tracingConfiguration->storedFailuresOutsideTransaction,
                 $tracingConfiguration->storedTracesOnlyCarryingTraceparent,
                 new Reference(EcotoneClockInterface::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(
             TraceRecordingInterceptor::class,
-            new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class)])
+            new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class), new Reference(Tracer::class)])
         );
-        $messagingConfiguration->registerAroundMethodInterceptor(
-            AroundInterceptorBuilder::create(
-                TraceRecordingInterceptor::class,
-                $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'recordUnitOfWork'),
-                Precedence::TRACE_RECORDING_PRECEDENCE,
-                CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
-            )
-        );
+        foreach (['publishAfterCommit' => Precedence::TRACE_PUBLICATION_PRECEDENCE, 'recordUnitOfWork' => Precedence::TRACE_RECORDING_PRECEDENCE] as $method => $precedence) {
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    TraceRecordingInterceptor::class,
+                    $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, $method),
+                    $precedence,
+                    CommandBus::class . '||' . EventBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
+                )
+            );
+        }
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnTraceCompleted::CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnSpanEnded::CHANNEL));
 

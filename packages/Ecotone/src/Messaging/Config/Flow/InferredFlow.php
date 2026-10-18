@@ -9,6 +9,7 @@ namespace Ecotone\Messaging\Config\Flow;
 
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowNode;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 
 final class InferredFlow
@@ -48,6 +49,15 @@ final class InferredFlow
 
     public function graph(): MessageFlowGraph
     {
-        return MessageFlowGraph::create(array_values($this->nodes), $this->edges);
+        $connected = [];
+        foreach ($this->edges as $edge) {
+            $connected[$edge->from] = true;
+            $connected[$edge->to] = true;
+        }
+
+        return MessageFlowGraph::create(
+            array_values(array_filter($this->nodes, fn (FlowNode $node) => $node->kind !== FlowNodeKind::CHANNEL || isset($connected[$node->id]))),
+            $this->edges,
+        );
     }
 }

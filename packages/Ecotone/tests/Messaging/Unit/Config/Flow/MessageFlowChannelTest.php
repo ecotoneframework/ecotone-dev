@@ -265,4 +265,21 @@ final class MessageFlowChannelTest extends TestCase
         self::assertTrue($graph->node('channel:external.delivery')->attributes['pollable']);
     }
 
+    public function test_configured_queue_nothing_connects_to_is_left_out_of_the_graph(): void
+    {
+        $service = new class () {
+            #[CommandHandler('unused.queue.trigger')]
+            public function handle(): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('unused.queue')],
+            enabledModules: [],
+        )->getMessageFlowGraph();
+
+        self::assertFalse($graph->hasNode('channel:unused.queue'));
+    }
 }

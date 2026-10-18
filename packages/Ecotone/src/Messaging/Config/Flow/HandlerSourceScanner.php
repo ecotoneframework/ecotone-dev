@@ -134,18 +134,19 @@ final class HandlerSourceScanner
         $namespaceDepth = 0;
         $contexts = [0 => ['', []]];
         foreach ($tokens as $index => $token) {
-            if ($token->text === '{') {
+            $id = $token->id;
+            if ($id === 123 || $id === T_CURLY_OPEN || $id === T_DOLLAR_OPEN_CURLY_BRACES) {
                 $braceDepth++;
-            } elseif ($token->text === '}') {
+            } elseif ($id === 125) {
                 $braceDepth--;
-            } elseif ($token->is(T_NAMESPACE)) {
+            } elseif ($id === T_NAMESPACE) {
                 $name = $tokens[$index + 1] ?? null;
                 $namespace = $name !== null && $this->isName($name) ? $name->text : '';
                 $delimiter = $tokens[$index + ($namespace === '' ? 1 : 2)] ?? null;
                 $namespaceDepth = $delimiter?->text === '{' ? 1 : 0;
                 $imports = [];
                 $contexts[$index] = [$namespace, $imports];
-            } elseif ($token->is(T_USE) && $braceDepth === $namespaceDepth && ($tokens[$index + 1] ?? null)?->text !== '(') {
+            } elseif ($id === T_USE && $braceDepth === $namespaceDepth && ($tokens[$index + 1] ?? null)?->text !== '(') {
                 $imports = array_merge($imports, $this->importStatementAt($tokens, $index + 1));
                 $contexts[$index] = [$namespace, $imports];
             }
@@ -215,12 +216,12 @@ final class HandlerSourceScanner
         $returning = false;
         foreach ($tokens as $index => $token) {
             $id = $token->id;
-            if ($token->is(T_RETURN) || $token->is(T_YIELD)) {
+            if ($id === T_RETURN || $id === T_YIELD) {
                 $returning = true;
-            } elseif ($token->text === ';') {
+            } elseif ($id === 59) {
                 $returning = false;
             }
-            if ($id === T_VARIABLE && ($tokens[$index + 1] ?? null)?->text === '=') {
+            if ($id === T_VARIABLE && ($tokens[$index + 1] ?? null)?->id === 61) {
                 unset($variables[$token->text]);
                 if (($tokens[$index + 2] ?? null)?->is(T_NEW) && isset($tokens[$index + 3]) && $this->isName($tokens[$index + 3])) {
                     $variables[$token->text] = $this->resolve($tokens[$index + 3], $className, $namespace, $imports);

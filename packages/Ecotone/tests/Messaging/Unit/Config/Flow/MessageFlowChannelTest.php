@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -81,4 +85,116 @@ final class MessageFlowChannelTest extends TestCase
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:optional.route', $id));
         self::assertSame([], $graph->edgesFrom($id));
     }
+    public function test_async_channel_list_shows_the_effective_channels(): void
+    {
+        $service = new class () {
+            #[Asynchronous(['async.first', 'async.second'])]
+            #[CommandHandler('async.trigger', endpointId: 'async.handler')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async.first'),
+                SimpleMessageChannelBuilder::createQueueChannel('async.second'),
+
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $edges = $graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: 'handler:' . $service::class . '::handle');
+        self::assertEqualsCanonicalizing(['channel:async.first', 'channel:async.second'], array_column($edges, 'from'));
+        foreach ($edges as $edge) {
+            self::assertTrue($graph->node($edge->from)->attributes['pollable']);
+        }
+    }
+
+    public function test_async_combined_channel_shows_the_effective_channels(): void
+    {
+        $service = new class () {
+            #[Asynchronous('async.combined')]
+            #[CommandHandler('async.trigger', endpointId: 'async.handler')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async.first'),
+                SimpleMessageChannelBuilder::createQueueChannel('async.second'),
+                CombinedMessageChannel::create('async.combined', ['async.first', 'async.second']),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $edges = $graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: 'handler:' . $service::class . '::handle');
+        self::assertEqualsCanonicalizing(['channel:async.first', 'channel:async.second'], array_column($edges, 'from'));
+        foreach ($edges as $edge) {
+            self::assertTrue($graph->node($edge->from)->attributes['pollable']);
+        }
+    }
+
+    public function test_async_method_override_shows_the_effective_channels(): void
+    {
+        $service = new #[Asynchronous('async.first')] class () {
+            #[Asynchronous('async.second')]
+            #[CommandHandler('async.trigger', endpointId: 'async.handler')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async.first'),
+                SimpleMessageChannelBuilder::createQueueChannel('async.second'),
+
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $edges = $graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: 'handler:' . $service::class . '::handle');
+        self::assertEqualsCanonicalizing(['channel:async.second'], array_column($edges, 'from'));
+        foreach ($edges as $edge) {
+            self::assertTrue($graph->node($edge->from)->attributes['pollable']);
+        }
+    }
+
+    public function test_async_internal_handler_shows_the_effective_channels(): void
+    {
+        $service = new class () {
+            #[Asynchronous('async.first')]
+            #[InternalHandler('async.input', endpointId: 'async.handler')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('async.first'),
+                SimpleMessageChannelBuilder::createQueueChannel('async.second'),
+
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $edges = $graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: 'handler:' . $service::class . '::handle');
+        self::assertEqualsCanonicalizing(['channel:async.first'], array_column($edges, 'from'));
+        foreach ($edges as $edge) {
+            self::assertTrue($graph->node($edge->from)->attributes['pollable']);
+        }
+    }
+
 }

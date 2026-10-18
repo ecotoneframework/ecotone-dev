@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,7 +32,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class, 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:' . RoutingEvent::class)->attributes['handled']);
@@ -51,7 +52,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class, 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:' . RoutingEvent::class)->attributes['handled']);
@@ -71,7 +72,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class, 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:' . RoutingEvent::class)->attributes['handled']);
@@ -91,7 +92,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class, 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:' . RoutingEvent::class)->attributes['handled']);
@@ -112,7 +113,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:routing.created', 'handler:' . $service::class . '::subscribe'));
         self::assertTrue($graph->node('message:routing.created')->attributes['handled']);
@@ -130,7 +131,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(2, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:' . RoutingEvent::class));
     }
@@ -144,7 +145,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $id = 'handler:' . $service::class . '::handle';
         self::assertEqualsCanonicalizing(['event.first', 'event.second'], $graph->node($id)->attributes['routingKeys']);
@@ -160,7 +161,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $commands = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::COMMAND_HANDLER));
         self::assertCount(1, $events = $graph->nodesOfKind(\Ecotone\Api\Messaging\Flow\FlowNodeKind::EVENT_HANDLER));
@@ -183,7 +184,7 @@ final class MessageFlowRoutingTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $id = 'handler:' . $service::class . '::subscribe';
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, 'message:orders.created.v2', $id));

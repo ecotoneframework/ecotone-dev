@@ -12,6 +12,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
+use Ecotone\Test\LicenceTesting;
 use Generator;
 use PHPUnit\Framework\TestCase;
 
@@ -41,7 +42,7 @@ final class MessageFlowSourcedTest extends TestCase
                 $this->id = 'order';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::create', 'message:' . SourcedEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'return'], $edges[0]->attributes);
@@ -67,7 +68,7 @@ final class MessageFlowSourcedTest extends TestCase
                 $this->id = 'order';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::create', 'message:' . SourcedEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'return'], $edges[0]->attributes);
@@ -93,7 +94,7 @@ final class MessageFlowSourcedTest extends TestCase
                 $this->id = 'order';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::create', 'message:' . SourcedEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'return'], $edges[0]->attributes);
@@ -123,7 +124,7 @@ final class MessageFlowSourcedTest extends TestCase
                 $this->id = 'order';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $aggregate::class . '::create', 'message:' . SourcedEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'recordThat'], $edges[0]->attributes);

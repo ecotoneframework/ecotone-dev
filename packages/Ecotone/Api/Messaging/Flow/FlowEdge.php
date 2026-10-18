@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Api\Messaging\Flow;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
+ *
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class FlowEdge
 {

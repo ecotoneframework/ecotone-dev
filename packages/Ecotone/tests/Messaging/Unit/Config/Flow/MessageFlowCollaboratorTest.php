@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +28,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -44,7 +45,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus?->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -61,7 +62,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -78,7 +79,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -93,7 +94,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -108,7 +109,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);
@@ -116,7 +117,7 @@ final class MessageFlowCollaboratorTest extends TestCase
 
     public function test_publication_through_promoted_property_is_shown(): void
     {
-        $bus = EcotoneLite::bootstrapFlowTesting(enabledModules: [])->getGateway(EventBus::class);
+        $bus = EcotoneLite::bootstrapFlowTesting(enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getGateway(EventBus::class);
         $service = new class ($bus) {
             public function __construct(private EventBus $bus)
             {
@@ -128,7 +129,7 @@ final class MessageFlowCollaboratorTest extends TestCase
                 $this->bus->publish(new CollaboratorEvent());
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::EMITS, 'handler:' . $service::class . '::handle', 'message:' . CollaboratorEvent::class));
         self::assertSame(['inferred' => true, 'via' => 'publish'], $edges[0]->attributes);

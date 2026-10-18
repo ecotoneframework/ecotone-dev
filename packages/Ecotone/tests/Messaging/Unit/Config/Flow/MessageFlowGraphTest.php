@@ -58,7 +58,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handlerId = 'handler:' . $service::class . '::place';
         $internalId = 'handler:' . $service::class . '::notify';
@@ -89,7 +89,7 @@ final class MessageFlowGraphTest extends TestCase
                 return 'placed';
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(FlowNodeKind::COMMAND, $graph->node('message:order.cancel')->kind);
         self::assertSame(FlowNodeKind::QUERY, $graph->node('message:order.status')->kind);
@@ -114,6 +114,7 @@ final class MessageFlowGraphTest extends TestCase
             [$service],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         )->getMessageFlowGraph();
 
         $handlerId = 'handler:' . $service::class . '::mail';
@@ -144,6 +145,7 @@ final class MessageFlowGraphTest extends TestCase
             [$service],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         )->getMessageFlowGraph();
 
         self::assertEdges([[FlowEdgeKind::ASYNCHRONOUS, 'channel:orders', 'handler:' . $service::class . '::place']], $graph);
@@ -170,7 +172,7 @@ final class MessageFlowGraphTest extends TestCase
                 $this->orderId = $event->orderId;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $aggregateId = 'aggregate:' . $aggregate::class;
         $handlerId = 'handler:' . $aggregate::class . '::place';
@@ -208,7 +210,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class, $subscriber::class], [$subscriber], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$aggregate::class, $subscriber::class], [$subscriber], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $handlerId = 'handler:' . $aggregate::class . '::place';
         self::assertFalse($graph->node('aggregate:' . $aggregate::class)->attributes['eventSourced']);
@@ -245,7 +247,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $placeId = 'handler:' . $service::class . '::place';
         self::assertEdges([
@@ -269,7 +271,7 @@ final class MessageFlowGraphTest extends TestCase
                 $eventBus->publish(new OrderPlacedForFlowGraph($command->orderId));
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $event = $graph->node('message:' . OrderPlacedForFlowGraph::class);
         self::assertSame(FlowNodeKind::EVENT, $event->kind);
@@ -294,7 +296,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, OrderShippingForFlowGraph::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class, OrderShippingForFlowGraph::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $gatewayId = 'gateway:' . OrderShippingForFlowGraph::class . '::ship';
         self::assertSame(FlowNodeKind::GATEWAY, $graph->node($gatewayId)->kind);
@@ -324,7 +326,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $routerId = 'handler:' . $service::class . '::route';
         self::assertSame(FlowNodeKind::ROUTER, $graph->node($routerId)->kind);
@@ -343,7 +345,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$projection::class], [$projection], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertSame(FlowNodeKind::PROJECTION, $graph->node('projection:orders_list')->kind);
         self::assertSame('projection:orders_list', $graph->node('handler:' . $projection::class . '::whenPlaced')->attributes['owner']);
@@ -367,7 +369,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $busId = 'distributed:' . DistributedBus::class;
         self::assertSame(FlowNodeKind::DISTRIBUTED_BUS, $graph->node($busId)->kind);
@@ -395,7 +397,7 @@ final class MessageFlowGraphTest extends TestCase
                 $this->distributedBus->sendMessage('billing', 'billing.notifications', '{}');
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         $busId = 'distributed:' . DistributedBus::class;
         $placeId = 'handler:' . $service::class . '::place';
@@ -452,7 +454,7 @@ final class MessageFlowGraphTest extends TestCase
                 return $command->orderId;
             }
         };
-        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
 
         self::assertEquals($graph, MessageFlowGraph::fromArray($graph->toArray()));
         self::assertSame($graph->toArray(), json_decode($graph->toJson(), true));
@@ -488,6 +490,7 @@ final class MessageFlowGraphTest extends TestCase
             [$subscriber],
             [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         )->getMessageFlowGraph();
 
         $mermaid = $graph->toMermaid();
@@ -510,7 +513,7 @@ final class MessageFlowGraphTest extends TestCase
             {
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->runConsoleCommand('ecotone:flow:dump');
         self::assertStringContainsString('flowchart LR', $ecotone->getInMemoryConsoleWriter()->getWrittenContent());
@@ -522,7 +525,7 @@ final class MessageFlowGraphTest extends TestCase
 
     public function test_dump_console_command_refuses_unknown_format_naming_the_available_ones(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(enabledModules: []);
+        $ecotone = EcotoneLite::bootstrapFlowTesting(enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE);
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('ecotone:flow:dump was asked for format `yaml`, which it cannot produce. Pass --format=mermaid for a Mermaid flowchart to paste into a diagram viewer, or --format=json for the graph as nodes and edges.');

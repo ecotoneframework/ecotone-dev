@@ -9,7 +9,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
+ *
+ * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
 final class MessageFlowGraph implements DefinedObject
 {

@@ -82,6 +82,7 @@ final class MessageFlowDiscovery
     {
         foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channelBuilder) {
             $this->pollableChannels[$channelBuilder->getMessageChannelName()] = $channelBuilder->isPollable();
+            $this->channelNode($channelBuilder->getMessageChannelName());
         }
         foreach (ExtensionObjectResolver::resolve(CombinedMessageChannel::class, $extensionObjects) as $combinedChannel) {
             $this->combinedChannels[$combinedChannel->getReferenceName()] = $combinedChannel->combinedChannels;

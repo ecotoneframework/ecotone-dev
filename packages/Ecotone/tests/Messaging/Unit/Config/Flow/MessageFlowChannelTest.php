@@ -245,4 +245,24 @@ final class MessageFlowChannelTest extends TestCase
         self::assertSame(['inferred' => true, 'via' => 'publishWithRouting'], $edges[0]->attributes);
     }
 
+    public function test_router_reaches_a_configured_queue_without_a_local_handler(): void
+    {
+        $service = new class () {
+            #[Router('external.route')]
+            public function route(string $payload): array
+            {
+                return ['external.delivery'];
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$service::class],
+            containerOrAvailableServices: [$service],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('external.delivery')],
+            enabledModules: [],
+        )->getMessageFlowGraph();
+
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, 'handler:' . $service::class . '::route', 'channel:external.delivery'));
+        self::assertTrue($graph->node('channel:external.delivery')->attributes['pollable']);
+    }
+
 }

@@ -7,7 +7,9 @@ namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -195,6 +197,32 @@ final class MessageFlowChannelTest extends TestCase
         foreach ($edges as $edge) {
             self::assertTrue($graph->node($edge->from)->attributes['pollable']);
         }
+    }
+
+    public function test_scheduled_poller_feeds_an_internal_handler_requiring_a_reply(): void
+    {
+        $service = new class () {
+            #[Scheduled('scheduled.ticks', endpointId: 'scheduled.clock')]
+            #[Poller(fixedRateInMilliseconds: 1000)]
+            public function tick(): string
+            {
+                return 'tick';
+            }
+
+            #[InternalHandler('scheduled.ticks', outputChannelName: 'scheduled.done', requiresReply: true)]
+            public function process(string $payload): string
+            {
+                return $payload;
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [])->getMessageFlowGraph();
+
+        $scheduled = 'scheduled:' . $service::class . '::tick';
+        $handler = 'handler:' . $service::class . '::process';
+        self::assertSame('scheduled.clock', $graph->node($scheduled)->attributes['endpointId']);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, $scheduled, 'channel:scheduled.ticks'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:scheduled.ticks', $handler));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::OUTPUT, $handler, 'channel:scheduled.done'));
     }
 
 }

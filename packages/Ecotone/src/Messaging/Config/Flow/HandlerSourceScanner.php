@@ -22,6 +22,11 @@ final class HandlerSourceScanner
      */
     public function scan(array $targets): array
     {
+        return $this->scanMethods($targets, []);
+    }
+
+    private function scanMethods(array $targets, array $visited): array
+    {
         $facts = [];
         $methodsByFile = [];
         foreach ($targets as $key => [$className, $methodName]) {
@@ -51,6 +56,27 @@ final class HandlerSourceScanner
                 $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
                 $facts[$key] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
             }
+        }
+
+        foreach ($targets as $key => [$className, $methodName]) {
+            $path = $visited + [$className . '::' . $methodName => true];
+            $instantiations = $facts[$key]->instantiations;
+            $calls = $facts[$key]->calls;
+            $literals = $facts[$key]->stringLiterals;
+            foreach ($facts[$key]->calls as $call) {
+                $helperKey = $className . '::' . $call['method'];
+                if (! in_array($call['receiver'], ['this', 'self', 'static'], true) || isset($path[$helperKey]) || ! method_exists($className, $call['method'])) {
+                    continue;
+                }
+                $helper = $this->scanMethods([$helperKey => [$className, $call['method']]], $path)[$helperKey];
+                foreach ($helper->instantiations as $instantiation) {
+                    $instantiation['enclosingCall'] ??= $call['enclosingCall'];
+                    $instantiations[] = $instantiation;
+                }
+                $calls = [...$calls, ...$helper->calls];
+                $literals = [...$literals, ...$helper->stringLiterals];
+            }
+            $facts[$key] = new MethodSourceFacts($instantiations, $calls, array_values(array_unique($literals)));
         }
 
         return $facts;
@@ -148,10 +174,10 @@ final class HandlerSourceScanner
                 }
             } elseif ($id === 40) {
                 $call = $this->callBefore($tokens, $index);
-                $enclosingCalls[] = $call['method'] ?? null;
                 if ($call !== null) {
-                    $calls[] = $call + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
+                    $calls[] = $call + ['enclosingCall' => $this->innermostCall($enclosingCalls)] + $this->argumentsAt($tokens, $index + 1, $className, $namespace, $imports);
                 }
+                $enclosingCalls[] = $call['method'] ?? null;
             } elseif ($id === 41) {
                 array_pop($enclosingCalls);
             } elseif ($id === T_CONSTANT_ENCAPSED_STRING) {
@@ -180,7 +206,9 @@ final class HandlerSourceScanner
         $subject = $tokens[$parenthesisIndex - 3] ?? null;
         $subjectOperator = $tokens[$parenthesisIndex - 4] ?? null;
         $subjectOwner = $tokens[$parenthesisIndex - 5] ?? null;
-        if ($subject?->is(T_VARIABLE)) {
+        if ($operator->is(T_DOUBLE_COLON) && in_array(strtolower($subject?->text ?? ''), ['self', 'static'], true)) {
+            $receiver = strtolower($subject->text);
+        } elseif ($subject?->is(T_VARIABLE)) {
             $receiver = ltrim($subject->text, '$');
         } elseif ($subject?->is(T_STRING) && $subjectOperator?->is(T_OBJECT_OPERATOR) && $subjectOwner?->text === '$this') {
             $receiver = 'this.' . $subject->text;

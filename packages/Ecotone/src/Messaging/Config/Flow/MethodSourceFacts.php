@@ -11,7 +11,7 @@ final class MethodSourceFacts
 {
     /**
      * @param list<array{class: string, enclosingCall: string|null}> $instantiations
-     * @param list<array{receiver: string|null, method: string, literalArguments: list<string>, firstArgumentClass: string|null}> $calls
+     * @param list<array{receiver: string|null, method: string, enclosingCall: string|null, literalArguments: list<string>, firstArgumentClass: string|null}> $calls
      * @param list<string> $stringLiterals
      */
     public function __construct(

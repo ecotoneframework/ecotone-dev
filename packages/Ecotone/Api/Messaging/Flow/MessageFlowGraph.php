@@ -31,10 +31,15 @@ final class MessageFlowGraph implements DefinedObject
         foreach ($nodes as $node) {
             $graph->nodes[$node->id] = $node;
         }
+        $seenEdges = [];
         foreach ($edges as $edge) {
             $graph->nodes[$edge->from] ?? throw InvalidArgumentException::create("Flow edge {$edge->kind->value} starts at `{$edge->from}`, which is not a node of this graph. Add the node first with MessageFlowGraph::create() or withNode().");
             $graph->nodes[$edge->to] ?? throw InvalidArgumentException::create("Flow edge {$edge->kind->value} ends at `{$edge->to}`, which is not a node of this graph. Add the node first with MessageFlowGraph::create() or withNode().");
-            $graph->edges[] = $edge;
+            $key = serialize([$edge->from, $edge->to, $edge->kind->value]);
+            if (! isset($seenEdges[$key])) {
+                $graph->edges[] = $edge;
+                $seenEdges[$key] = true;
+            }
         }
 
         return $graph;

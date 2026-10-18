@@ -172,6 +172,52 @@ final class MessageFlowSourceNamesTest extends TestCase
         self::assertSame([], $graph->edgesOfKind(FlowEdgeKind::EMITS));
     }
 
+    public function test_bracketed_namespaces_keep_their_own_import_aliases(): void
+    {
+        $graph = $this->graphFromSource(<<<'PHP_SOURCE'
+            <?php
+            namespace FlowChallenge\First {
+            use Ecotone\Api\Attribute\CommandHandler;
+            use Ecotone\Api\Gateway\EventBus;
+            use Test\Ecotone\Messaging\Unit\Config\Flow\SourceNamesEvent as PublishedEvent;
+            return new class () {
+                #[CommandHandler('names.scoped')]
+                public function handle(EventBus $bus): void
+                {
+                    $bus->publish(new PublishedEvent());
+                }
+            };
+            }
+            namespace FlowChallenge\Second {
+            use Test\Ecotone\Messaging\Unit\Config\Flow\OtherSourceNamesEvent as PublishedEvent;
+            }
+            PHP_SOURCE);
+
+        self::assertSame(['message:' . SourceNamesEvent::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS), 'to'));
+    }
+
+    public function test_semicolon_namespaces_keep_their_own_import_aliases(): void
+    {
+        $graph = $this->graphFromSource(<<<'PHP_SOURCE'
+            <?php
+            namespace FlowChallenge\First;
+            use Ecotone\Api\Attribute\CommandHandler;
+            use Ecotone\Api\Gateway\EventBus;
+            use Test\Ecotone\Messaging\Unit\Config\Flow\SourceNamesEvent as PublishedEvent;
+            return new class () {
+                #[CommandHandler('names.scoped')]
+                public function handle(EventBus $bus): void
+                {
+                    $bus->publish(new PublishedEvent());
+                }
+            };
+            namespace FlowChallenge\Second;
+            use Test\Ecotone\Messaging\Unit\Config\Flow\OtherSourceNamesEvent as PublishedEvent;
+            PHP_SOURCE);
+
+        self::assertSame(['message:' . SourceNamesEvent::class], array_column($graph->edgesOfKind(FlowEdgeKind::EMITS), 'to'));
+    }
+
     private function graphFromSource(string $source): MessageFlowGraph
     {
         $file = tempnam(sys_get_temp_dir(), 'flow-source-');

@@ -33,7 +33,7 @@ final class HandlerSourceScanner
     /**
      * @param array<string, array{string, string}> $targets
      * @param array<string, bool> $visited
-     * @param array<string, array{list<PhpToken>, array<int, int>, int, string, array<string, string>}> $files
+     * @param array<string, array{list<PhpToken>, array<int, int>, int, array<int, array{string, array<string, string>}>}> $files
      * @param array<string, MethodSourceFacts> $methodFacts
      * @return array<string, MethodSourceFacts>
      */
@@ -67,14 +67,15 @@ final class HandlerSourceScanner
                     $firstIndexByLine[$token->line] ??= count($tokens);
                     $tokens[] = $token;
                 }
-                [$namespace, $imports] = $this->importsOf($tokens);
+                $contexts = $this->importContextsOf($tokens);
                 $lastLine = $tokens === [] ? 0 : end($tokens)->line;
-                $files[$fileName] = [$tokens, $firstIndexByLine, $lastLine, $namespace, $imports];
+                $files[$fileName] = [$tokens, $firstIndexByLine, $lastLine, $contexts];
             }
-            [$tokens, $firstIndexByLine, $lastLine, $namespace, $imports] = $files[$fileName];
+            [$tokens, $firstIndexByLine, $lastLine, $contexts] = $files[$fileName];
             foreach ($methods as [$key, $className, $startLine, $endLine]) {
                 $start = $this->firstIndexAtOrAfter($firstIndexByLine, $startLine, $lastLine, count($tokens));
                 $end = $this->firstIndexAtOrAfter($firstIndexByLine, $endLine + 1, $lastLine, count($tokens));
+                [$namespace, $imports] = $this->contextAt($contexts, $start);
                 $facts[$key] = $methodFacts[$className . '::' . $targets[$key][1]] = $this->factsOf(array_slice($tokens, $start, $end - $start), $className, $namespace, $imports);
             }
         }
@@ -122,26 +123,51 @@ final class HandlerSourceScanner
 
     /**
      * @param list<PhpToken> $tokens
-     * @return array{string, array<string, string>}
+     * @return array<int, array{string, array<string, string>}>
      */
-    private function importsOf(array $tokens): array
+    private function importContextsOf(array $tokens): array
     {
         $namespace = '';
         $imports = [];
         $braceDepth = 0;
+        $namespaceDepth = 0;
+        $contexts = [0 => ['', []]];
         foreach ($tokens as $index => $token) {
             if ($token->text === '{') {
                 $braceDepth++;
             } elseif ($token->text === '}') {
                 $braceDepth--;
-            } elseif ($token->is(T_NAMESPACE) && isset($tokens[$index + 1]) && $this->isName($tokens[$index + 1])) {
-                $namespace = $tokens[$index + 1]->text;
-            } elseif ($token->is(T_USE) && $braceDepth === 0) {
+            } elseif ($token->is(T_NAMESPACE)) {
+                $name = $tokens[$index + 1] ?? null;
+                $namespace = $name !== null && $this->isName($name) ? $name->text : '';
+                $delimiter = $tokens[$index + ($namespace === '' ? 1 : 2)] ?? null;
+                $namespaceDepth = $delimiter?->text === '{' ? 1 : 0;
+                $imports = [];
+                $contexts[$index] = [$namespace, $imports];
+            } elseif ($token->is(T_USE) && $braceDepth === $namespaceDepth && ($tokens[$index + 1] ?? null)?->text !== '(') {
                 $imports = array_merge($imports, $this->importStatementAt($tokens, $index + 1));
+                $contexts[$index] = [$namespace, $imports];
             }
         }
 
-        return [$namespace, $imports];
+        return $contexts;
+    }
+
+    /**
+     * @param array<int, array{string, array<string, string>}> $contexts
+     * @return array{string, array<string, string>}
+     */
+    private function contextAt(array $contexts, int $index): array
+    {
+        $result = ['', []];
+        foreach ($contexts as $position => $context) {
+            if ($position > $index) {
+                break;
+            }
+            $result = $context;
+        }
+
+        return $result;
     }
 
     /**

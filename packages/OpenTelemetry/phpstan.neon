@@ -2,6 +2,7 @@ parameters:
 	level: 3
 	reportUnmatchedIgnoredErrors: false
 	paths:
+		- Api
 		- src
 	excludePaths:
 		- src/Support/OTelTracer.php

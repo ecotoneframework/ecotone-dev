@@ -56,8 +56,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
         /** Command Bus and Command Handler */
         $this->assertCount(2, $spans);
 
-        $this->assertSpanWith('Command Handler: ' . User::class . '::register', $spans[0], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Command Bus', $spans[1], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('process User::register', $spans[0], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('send command', $spans[1], $messageId, $correlationId, $timestamp);
     }
 
     public function test_tracing_with_two_levels_of_nesting()
@@ -81,14 +81,14 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
 
         /** @var ImmutableSpan[] $spans */
         $spans = $exporter->getSpans();
-        /** Command Bus and Command Handler */
-        $this->assertCount(4, $spans);
+        $this->assertCount(5, $spans);
 
-        $this->assertChildSpan('Command Handler: ' . User::class . '::register', $spans[0], $messageId, $correlationId);
-        $this->assertChildSpan('Command Bus', $spans[1], $messageId, $correlationId);
+        $this->assertChildSpan('process User::register', $spans[0], $messageId, $correlationId);
+        $this->assertChildSpan('send command', $spans[1], $messageId, $correlationId);
 
-        $this->assertSpanWith('Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Event Bus', $spans[3], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('process MerchantSubscriberOne::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('route merchant.subscriber.one', $spans[3], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('send event', $spans[4], $messageId, $correlationId, $timestamp);
     }
 
     public function test_tracing_with_three_levels_of_nesting()
@@ -112,17 +112,17 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
 
         /** @var ImmutableSpan[] $spans */
         $spans = $exporter->getSpans();
-        /** Command Bus and Command Handler */
-        $this->assertCount(6, $spans);
+        $this->assertCount(7, $spans);
 
-        $this->assertChildSpan('Command Handler: ' . User::class . '::register', $spans[0], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
-        $this->assertChildSpan('Command Bus', $spans[1], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
+        $this->assertChildSpan('process User::register', $spans[0], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
+        $this->assertChildSpan('send command', $spans[1], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
 
-        $this->assertChildSpan('Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser', $spans[2], $messageId, $correlationId);
-        $this->assertChildSpan('Event Bus', $spans[3], $messageId, $correlationId);
+        $this->assertChildSpan('process MerchantSubscriberOne::merchantToUser', $spans[2], $messageId, $correlationId);
+        $this->assertChildSpan('route merchant.subscriber.one', $spans[3], $messageId, $correlationId);
+        $this->assertChildSpan('send event', $spans[4], $messageId, $correlationId);
 
-        $this->assertSpanWith('Command Handler: ' . Merchant::class . '::create', $spans[4], $messageId, $correlationId, $timestamp);
-        $this->assertSpanWith('Command Bus', $spans[5], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('process Merchant::create', $spans[5], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('send command', $spans[6], $messageId, $correlationId, $timestamp);
     }
 
     public function test_tracing_same_message_for_asynchronous_scenario()
@@ -148,11 +148,11 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
 
         $node = $this->getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'details' => ['name' => 'send async_channel'],
                     'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'details' => ['name' => 'receive async_channel'],
                     ],
                 ],
             ],
@@ -206,13 +206,13 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
 
         /** Command Handler */
         $this->assertSame(StatusCode::STATUS_ERROR, $spans[0]->getStatus()->getCode());
-        $event = $spans[0]->getEvents()[1];
+        $event = current(array_filter($spans[0]->getEvents(), fn ($event): bool => $event->getName() === 'exception'));
         $this->assertSame('exception', $event->getName());
         $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
 
         /** Command Bus */
         $this->assertSame(StatusCode::STATUS_ERROR, $spans[1]->getStatus()->getCode());
-        $event = $spans[1]->getEvents()[1];
+        $event = current(array_filter($spans[1]->getEvents(), fn ($event): bool => $event->getName() === 'exception'));
         $this->assertSame('exception', $event->getName());
         $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
     }

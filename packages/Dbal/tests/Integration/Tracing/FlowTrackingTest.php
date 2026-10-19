@@ -1,0 +1,1315 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Dbal\Integration\Tracing;
+
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
+use Ecotone\Api\Dbal\Tracing\TracingGateway;
+use Ecotone\Api\EventSourcing\Event;
+use Ecotone\Api\ExtensionObject\DynamicMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Api\Tracing\CurrentTrace;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StubLogger;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ * @internal
+ */
+final class FlowTrackingTest extends TestCase
+{
+    public function test_a_command_handled_synchronously_is_completed_when_the_bus_returns(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
+    }
+
+    public function test_an_asynchronous_handler_keeps_the_trace_pending_until_its_consumer_ran(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_an_asynchronous_projection_keeps_the_trace_pending_until_it_projected(): void
+    {
+        $projection = new #[Projection('users_list'), FromStream('users_stream'), Asynchronous('async_channel')] class () {
+            #[EventHandler('user.registered')]
+            public function whenRegistered(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->withEvents([Event::createWithType('user.registered', ['userId' => '1'])]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->publishEventWithRouting('user.registered', [], metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'users_list'));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'users_list'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_an_asynchronous_projection_is_awaited_by_its_class(): void
+    {
+        $projection = new #[Projection('users_list'), FromStream('users_stream'), Asynchronous('async_channel')] class () {
+            #[EventHandler('user.registered')]
+            public function whenRegistered(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->withEvents([Event::createWithType('user.registered', ['userId' => '1'])]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('user.registered', [], metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, $projection::class));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $projection::class));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), $projection::class));
+    }
+
+    public function test_a_handler_class_is_completed_once_every_one_of_its_handlers_the_flow_reached_ran(): void
+    {
+        $notifications = new class () {
+            #[Asynchronous('mail_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.mailer')]
+            public function mail(string $userId): void
+            {
+            }
+
+            #[Asynchronous('sms_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.texter')]
+            public function text(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifications], [SimpleMessageChannelBuilder::createQueueChannel('mail_channel'), SimpleMessageChannelBuilder::createQueueChannel('sms_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('mail_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+
+        $ecotone->run('sms_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $notifications::class));
+    }
+
+    public function test_a_synchronous_handler_without_an_endpoint_id_is_awaited_by_its_class(): void
+    {
+        $users = $this->users();
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, $users::class));
+    }
+
+    public function test_awaiting_a_class_with_no_handler_or_projection_is_refused_naming_what_it_takes(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(sprintf('%s has no handler or projection Ecotone registered, so no flow can reach it. Pass a class with a #[CommandHandler], #[EventHandler], #[QueryHandler] or #[InternalHandler] method, a #[Projection] class, an endpointId or a projection name.', FlowTrackingTest::class));
+
+        $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, FlowTrackingTest::class);
+    }
+
+    public function test_awaiting_a_polling_projection_by_its_class_is_refused_because_it_runs_outside_the_trace(): void
+    {
+        $projection = new #[Projection('orders_list'), FromStream('orders_stream'), Polling('orders_list_polling')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection]);
+
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling]');
+
+        $this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId, $projection::class);
+    }
+
+    public function test_waiting_for_a_flow_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowStepCompleted] receives a FlowStepCompleted once each step of the flow committed, and can ask TracingGateway::isCompletedFor() whether the flow completed with it.');
+
+        $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16));
+    }
+
+    public function test_waiting_for_a_destination_longer_than_fifteen_minutes_is_refused_proposing_notifications(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowStepCompleted] receives a FlowStepCompleted once each step of the flow committed, and can ask TracingGateway::isCompletedFor() whether the flow completed with it.');
+
+        $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16), 'user.registration');
+    }
+
+    public function test_waiting_for_a_completed_flow_for_exactly_fifteen_minutes_is_allowed(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::minutes(15)));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::minutes(15), 'user.registration'));
+    }
+
+    public function test_waiting_for_a_pending_flow_returns_false_and_the_flow_names_what_is_still_pending(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['user.notifier', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
+    }
+
+    public function test_waiting_for_a_completed_flow_returns_true_at_once(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertTrue($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), 'user.registration'));
+    }
+
+    public function test_a_fetched_flow_holds_its_steps_what_it_reached_and_what_is_still_pending(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $pending = $this->completion($ecotone)->fetchFlow($trace->traceId);
+        $this->assertSame($trace->traceId, $pending->tracingId);
+        $this->assertFalse($pending->isCompleted);
+        $this->assertSame(['user.notifier', 'async_channel'], $pending->pending);
+        $this->assertSame('send command', $pending->steps[0]->name);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $completed = $this->completion($ecotone)->fetchFlow($trace->traceId);
+        $this->assertTrue($completed->isCompleted);
+        $this->assertSame([], $completed->pending);
+        $this->assertEqualsCanonicalizing(['user.registration', 'user.notifier'], $completed->reached);
+        $this->assertContains('process class@anonymous::notify', array_map(fn (Span $step): string => preg_replace('/^process class@anonymous\S*::/', 'process class@anonymous::', $step->name), $completed->steps));
+    }
+
+    public function test_fetching_a_flow_nobody_recorded_returns_null(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->assertNull($this->completion($ecotone)->fetchFlow('0af7651916cd43dd8448eb211c80319c'));
+    }
+
+    public function test_a_synchronous_handler_without_an_explicit_endpoint_id_still_completes_its_route(): void
+    {
+        $notifier = new class () {
+            #[EventHandler('user.registered')]
+            public function notify(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifier]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_handler_the_container_serves_as_a_subclass_proxy_still_completes_its_route(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, RegistrationNotifier::class],
+            [$this->users(), RegistrationNotifier::class => new ProxiedRegistrationNotifier()],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_trace_nobody_recorded_is_not_completed(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor(SpanContext::newTrace()->traceId));
+    }
+
+    public function test_a_failing_asynchronous_handler_leaves_the_trace_pending(): void
+    {
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                throw new RuntimeException('Notification failed');
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        try {
+            $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (RuntimeException) {
+        }
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+    }
+
+    public function test_a_flow_step_completed_subscriber_receives_every_stored_span_of_the_trace(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $spanNames = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+                $this->spanNames[] = $event->step->name;
+            }
+        };
+        $users = $this->users();
+        $ecotone = $this->bootstrap([$users, $subscriber]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        $this->assertContains('send command', $subscriber->spanNames);
+        $this->assertContains('process class@anonymous::register', $subscriber->spanNames);
+    }
+
+    public function test_an_asynchronous_command_keeps_the_trace_pending_until_its_consumer_ran(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_waiting_for_an_asynchronous_command_leaves_its_channel_pending(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['order.placing', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
+    }
+
+    public function test_a_handler_that_succeeded_inside_a_failed_unit_of_work_is_not_completed(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('audit.record', $userId);
+
+                throw new RuntimeException('Registration failed after the audit was recorded');
+            }
+
+            #[CommandHandler('audit.record', endpointId: 'audit.recording')]
+            public function record(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $this->fail('Expected the registration failure to propagate');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
+    }
+
+    public function test_a_flow_step_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $notifiedTraces = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
+            {
+                $this->notifiedTraces[] = $event->step->traceId;
+                if (count($this->notifiedTraces) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
+                }
+            }
+
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
+    }
+
+    public function test_a_failing_flow_step_completed_subscriber_is_logged_and_does_not_fail_the_command(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+                throw new RuntimeException('Cache refresh failed');
+            }
+        };
+        $logger = StubLogger::create();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $subscriber::class],
+            [$this->users(), $subscriber, 'logger' => $logger],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame(['A subscriber of ecotone.tracing.flowStepCompleted failed and was skipped: Cache refresh failed'], array_values(array_unique($logger->getError())));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_flow_step_completed_subscriber_is_never_notified_about_the_synchronous_work_it_started(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $stepNames = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
+            {
+                $this->stepNames[] = $event->step->name;
+                if (count($this->stepNames) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
+                }
+            }
+
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+
+        $this->assertNotContains('process class@anonymous::refresh', $subscriber->stepNames);
+        $this->assertLessThan(20, count($subscriber->stepNames));
+    }
+
+    public function test_a_flow_step_completed_subscriber_sending_an_asynchronous_command_is_not_notified_about_its_consumer(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $stepNames = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event, CommandBus $commandBus): void
+            {
+                $this->stepNames[] = $event->step->name;
+                if (count($this->stepNames) < 20) {
+                    $commandBus->sendWithRouting('cache.refresh', $event->step->traceId);
+                }
+            }
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
+            public function refresh(string $traceId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone->sendCommandWithRouting('user.register', '1');
+        $notifiedBeforeTheConsumerRan = $subscriber->stepNames;
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame($notifiedBeforeTheConsumerRan, $subscriber->stepNames);
+    }
+
+    public function test_a_consumer_that_swallowed_its_handler_failure_leaves_the_trace_pending(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                throw new RuntimeException('Placing failed');
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+    }
+
+    public function test_a_consumer_whose_handler_failed_once_and_succeeded_on_the_instant_retry_completes_the_trace(): void
+    {
+        $orders = new class () {
+            public int $attempts = 0;
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+                if (++$this->attempts === 1) {
+                    throw new RuntimeException('Placing failed once');
+                }
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertSame(2, $orders->attempts);
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_an_output_channel_after_an_asynchronous_handler_completes_neither_while_a_delivery_that_feeds_them_is_still_queued(): void
+    {
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', outputChannelName: 'audit.record', endpointId: 'user.notifier')]
+            public function notify(string $userId): string
+            {
+                return $userId;
+            }
+
+            #[InternalHandler('audit.record', endpointId: 'audit.recording')]
+            public function record(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->publishEventWithRouting('user.registered', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->publishEventWithRouting('user.registered', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'audit.recording'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_flow_started_through_a_message_gateway_is_pending_until_its_asynchronous_handler_ran(): void
+    {
+        $notifications = new class () {
+            #[InternalHandler('notification.send', outputChannelName: 'notification.deliver', endpointId: 'notification.sending')]
+            public function send(string $text): string
+            {
+                return $text;
+            }
+
+            #[Asynchronous('async_channel')]
+            #[InternalHandler('notification.deliver', endpointId: 'notification.delivering')]
+            public function deliver(string $text): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$notifications::class, TracedNotificationGateway::class],
+            [$notifications],
+            [FlowTrackingConfiguration::createWithDefaults(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->getGateway(TracedNotificationGateway::class)->send('hello', [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'notification.sending'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_the_tracing_gateway_without_flow_tracking_names_the_configuration_it_needs(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$this->users()::class], [$this->users()]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
+
+        $this->completion($ecotone)->isCompletedFor('0af7651916cd43dd8448eb211c80319c');
+    }
+
+    public function test_awaiting_a_trace_whose_handler_failed_names_the_channel_and_how_to_recover(): void
+    {
+        $notifier = new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+                throw new RuntimeException('Notification failed');
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100)));
+        $this->assertSame(['user.notifier', 'async_channel'], $this->completion($ecotone)->fetchFlow($trace->traceId)->pending);
+    }
+
+    public function test_waiting_for_a_flow_nobody_recorded_returns_false(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(100)));
+    }
+
+    public function test_waiting_for_a_destination_the_flow_never_reached_returns_false_and_the_flow_names_what_it_reached(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedWithin($trace->traceId, Duration::milliseconds(100), 'user.notifierr'));
+        $this->assertSame(['user.registration'], $this->completion($ecotone)->fetchFlow($trace->traceId)->reached);
+    }
+
+    public function test_two_asynchronous_commands_to_one_handler_complete_it_only_after_both_ran(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->sendCommandWithRouting('order.place', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+    }
+
+    public function test_awaiting_a_polling_projection_is_refused_because_it_runs_outside_the_trace(): void
+    {
+        $projection = new #[Projection('orders_list'), FromStream('orders_stream'), Polling('orders_list_polling')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$projection]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Projection orders_list runs by #[Polling], so it is not part of the trace that appended its events and TracingGateway cannot wait for it. Await the handler that published the event, or make the projection event-driven by removing #[Polling].');
+
+        $this->completion($ecotone)->isCompletedWithin('0af7651916cd43dd8448eb211c80319c', Duration::milliseconds(10), 'orders_list');
+    }
+
+    public function test_a_flow_started_by_a_query_completes_once_the_asynchronous_command_it_sent_ran(): void
+    {
+        $orders = new class () {
+            #[QueryHandler('order.quote')]
+            public function quote(string $orderId, CommandBus $commandBus): string
+            {
+                $commandBus->sendWithRouting('order.reserve', $orderId);
+
+                return 'quote-' . $orderId;
+            }
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.reserve', endpointId: 'order.reserving')]
+            public function reserve(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $tracingId = '0af7651916cd43dd8448eb211c80319c';
+
+        $ecotone->sendQueryWithRouting('order.quote', '1', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($tracingId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($tracingId));
+    }
+
+    public function test_a_flow_a_consumer_starts_for_a_message_from_an_application_without_tracing_completes_once_that_consumer_ran(): void
+    {
+        $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel('async_channel');
+        $orders = new class () {
+            public ?string $tracingId = null;
+
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->tracingId = $currentTrace->tracingId();
+            }
+        };
+        $producer = EcotoneLite::bootstrapFlowTesting([$orders::class], [$orders], [$sharedChannel]);
+        $consumer = $this->bootstrap([$orders], [$sharedChannel]);
+
+        $producer->sendCommandWithRouting('order.place', '1');
+        $consumer->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertNotNull($orders->tracingId);
+        $this->assertTrue($this->completion($consumer)->isCompletedFor($orders->tracingId));
+    }
+
+    public function test_a_handler_can_read_the_trace_id_it_runs_in(): void
+    {
+        $users = new class () {
+            public ?string $traceId = null;
+
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->traceId = $currentTrace->tracingId();
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $this->assertSame($trace->traceId, $users->traceId);
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($users->traceId));
+    }
+
+    public function test_reading_the_current_trace_without_tracing_names_how_to_enable_it(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $currentTrace->tracingId();
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting([$users::class], [$users]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('No trace is recorded, so there is no current trace id. Enable tracing: register TracingConfiguration::createWithDefaults()->withSpanRecorder() or FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method, or install ecotone/open-telemetry with a TracerProviderInterface.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+    }
+
+    public function test_a_dynamic_channel_spreading_over_two_channels_completes_once_both_deliveries_were_consumed(): void
+    {
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$orders], [
+            DynamicMessageChannelBuilder::createRoundRobin('orders', ['orders_a', 'orders_b']),
+            SimpleMessageChannelBuilder::createQueueChannel('orders_a'),
+            SimpleMessageChannelBuilder::createQueueChannel('orders_b'),
+        ]);
+        $trace = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $ecotone->sendCommandWithRouting('order.place', '2', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'order.placing'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_with_only_requested_flows_tracked_a_command_sent_without_one_stores_nothing(): void
+    {
+        $subscriber = $this->flowStepCompletedSubscriber();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
+            [$this->users(), $this->asynchronousNotifier(), $subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('user.register', '1');
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame([], $subscriber->endedSpans);
+    }
+
+    public function test_with_only_requested_flows_tracked_a_command_sent_with_one_is_stored_through_its_asynchronous_hop(): void
+    {
+        $subscriber = $this->flowStepCompletedSubscriber();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $this->asynchronousNotifier()::class, $subscriber::class],
+            [$this->users(), $this->asynchronousNotifier(), $subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withOnlyRequestedFlows(true), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertArrayHasKey('receive async_channel', $subscriber->endedSpans);
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_vendor_entry_in_tracestate_survives_the_asynchronous_hop(): void
+    {
+        $notifier = new class () {
+            public array $headers = [];
+
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId, #[Headers] array $headers): void
+            {
+                $this->headers = $headers;
+            }
+        };
+        $ecotone = $this->bootstrap([$this->users(), $notifier], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $trace = SpanContext::newTrace();
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent(), MessageHeaders::TRACESTATE => 'congo=t61rcWkgMzE']);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertStringContainsString('congo=t61rcWkgMzE', $notifier->headers[MessageHeaders::TRACESTATE]);
+    }
+
+    public function test_a_command_sent_with_a_tracing_id_is_awaited_by_that_tracing_id(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
+    }
+
+    public function test_a_uuid_is_accepted_as_tracing_id_and_awaited_by_the_same_uuid(): void
+    {
+        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11']);
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11'));
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11', 'user.notifier'));
+    }
+
+    public function test_a_handler_reads_the_tracing_id_the_command_was_sent_with(): void
+    {
+        $users = new class () {
+            public ?string $tracingId = null;
+
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] CurrentTrace $currentTrace): void
+            {
+                $this->tracingId = $currentTrace->tracingId();
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '0199f2f4-5e3b-7a42-9b1c-2f7d3e8a6c11']);
+
+        $this->assertSame('0199f2f45e3b7a429b1c2f7d3e8a6c11', $users->tracingId);
+    }
+
+    public function test_a_message_carrying_both_a_tracing_id_and_a_traceparent_is_refused(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectExceptionMessage('The message carries both tracingId and traceparent, so it is not clear which trace it belongs to. Pass tracingId to track the flow with TracingGateway, or traceparent when the trace comes from OpenTelemetry instrumentation, not both.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736', MessageHeaders::TRACEPARENT => SpanContext::newTrace()->toTraceparent()]);
+    }
+
+    public function test_a_tracing_id_on_a_command_sent_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('user.activate', $userId, metadata: [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+
+            #[CommandHandler('user.activate', endpointId: 'user.activation')]
+            public function activate(string $userId): void
+            {
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+    }
+
+    public function test_a_tracing_id_on_an_event_published_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.registered', $userId, metadata: [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+        };
+        $ecotone = $this->bootstrap([$users]);
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+    }
+
+    public function test_a_tracing_id_on_a_gateway_call_made_from_inside_a_handler_is_refused_naming_the_flow_it_belongs_to(): void
+    {
+        $users = new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, #[Reference] TracedNotificationGateway $notifications): void
+            {
+                $notifications->send('welcome', [MessageHeaders::TRACING_ID => '0af7651916cd43dd8448eb211c80319c']);
+            }
+
+            #[InternalHandler('notification.send', endpointId: 'notification.sending')]
+            public function sendNotification(string $text): void
+            {
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$users::class, TracedNotificationGateway::class],
+            [$users],
+            [FlowTrackingConfiguration::createWithDefaults()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectExceptionMessage('tracingId names the flow a message starts, but this message is sent from inside flow 4bf92f3577b34da6a3ce929d0e0e4736, so it belongs to that flow already. Await 4bf92f3577b34da6a3ce929d0e0e4736 with TracingGateway, or send the message from outside a handler, where a flow starts.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+    }
+
+    public function test_an_invalid_tracing_id_is_refused_naming_the_expected_format(): void
+    {
+        $ecotone = $this->bootstrap([$this->users()]);
+
+        $this->expectExceptionMessage('tracingId `order-1` is neither 32 hexadecimal characters nor a UUID. Pass a UUID such as Uuid::v7()->toRfc4122(), or a W3C trace id.');
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => 'order-1']);
+    }
+
+    public function test_a_failed_unit_of_work_stores_nothing_by_default(): void
+    {
+        $subscriber = $this->flowStepCompletedSubscriber();
+        $ecotone = $this->bootstrap([$this->failingUsers(), $subscriber]);
+        $trace = SpanContext::newTrace();
+
+        try {
+            $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            $this->fail('Expected the registration failure to propagate');
+        } catch (RuntimeException) {
+        }
+
+        $this->assertSame([], $subscriber->endedSpans);
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
+    }
+
+    public function test_a_flow_step_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(string $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded is passed a ' . FlowStepCompleted::class . ' as its first parameter, but declares it as string, so every notification would fail. Declare that parameter as ' . FlowStepCompleted::class . '.');
+
+        $this->bootstrap([$subscriber]);
+    }
+
+    public function test_an_asynchronous_flow_step_completed_subscriber_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
+    {
+        $subscriber = new class () {
+            #[Asynchronous('notifications')]
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
+
+        $this->bootstrap([$subscriber], [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
+    }
+
+    public function test_a_flow_step_completed_subscriber_in_an_asynchronous_class_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
+    {
+        $subscriber = new #[Asynchronous('notifications')] class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
+
+        $this->bootstrap([$subscriber], [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
+    }
+
+    public function test_flow_tracking_configured_twice_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('FlowTrackingConfiguration was registered 2 times, so it is not clear which settings apply. Register it once, from one #[ServiceContext] method, chaining every setting on it: FlowTrackingConfiguration::createWithDefaults()->withRetention(...)->withNotifications(...).');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class],
+            [$this->users()],
+            [FlowTrackingConfiguration::createWithDefaults(), FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_with_notifications_turned_off_a_flow_is_still_tracked_and_awaited(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $this->asynchronousNotifier()::class],
+            [$this->users(), $this->asynchronousNotifier()],
+            [FlowTrackingConfiguration::createWithDefaults()->withNotifications(false), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+
+        $this->assertFalse($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
+        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertTrue($this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736'));
+    }
+
+    public function test_with_the_tracing_gateway_turned_off_asking_it_names_the_setting_while_subscribers_are_still_notified(): void
+    {
+        $subscriber = new class () {
+            /** @var string[] */
+            public array $completedFlows = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+                $this->completedFlows[] = $event->step->traceId;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$this->users()::class, $subscriber::class],
+            [$this->users(), $subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()->withTracingGateway(false)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
+        $this->assertSame(['4bf92f3577b34da6a3ce929d0e0e4736'], array_values(array_unique($subscriber->completedFlows)));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.');
+
+        $this->completion($ecotone)->isCompletedFor('4bf92f3577b34da6a3ce929d0e0e4736');
+    }
+
+    public function test_flow_tracking_requires_an_enterprise_licence(): void
+    {
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('FlowTrackingConfiguration requires an Ecotone Enterprise licence. Remove it to run without one.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [],
+            [FlowTrackingConfiguration::createWithDefaults()],
+        );
+    }
+
+    public function test_a_flow_step_completed_subscriber_requires_an_enterprise_licence(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded require an Ecotone Enterprise licence. Remove them to run without one.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
+            [FlowTrackingConfiguration::createWithDefaults()],
+        );
+    }
+
+    public function test_a_flow_step_completed_subscriber_requires_an_enterprise_licence_even_without_flow_tracking(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded requires an Ecotone Enterprise licence. Remove it to run without one.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
+        );
+    }
+
+    public function test_a_flow_step_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
+    {
+        $subscriber = new class () {
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded needs flow tracking, which records the steps of every flow. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$subscriber::class],
+            [$subscriber],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    /**
+     * @param object[] $services
+     * @param object[] $extensionObjects
+     */
+    private function bootstrap(array $services, array $extensionObjects = []): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            array_map(fn (object $service): string => $service::class, $services),
+            $services,
+            [FlowTrackingConfiguration::createWithDefaults(), ...$extensionObjects],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function completion(FlowTestSupport $ecotone): TracingGateway
+    {
+        return $ecotone->getGateway(TracingGateway::class);
+    }
+
+    private function users(): object
+    {
+        return new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('user.registered', $userId);
+            }
+        };
+    }
+
+    private function failingUsers(): object
+    {
+        return new class () {
+            #[CommandHandler('user.register', endpointId: 'user.registration')]
+            public function register(string $userId): void
+            {
+                throw new RuntimeException('Registration failed');
+            }
+        };
+    }
+
+    private function flowStepCompletedSubscriber(): object
+    {
+        return new class () {
+            /** @var array<string, SpanStatus> */
+            public array $endedSpans = [];
+
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
+            {
+                $this->endedSpans[$event->step->name] = $event->step->status;
+            }
+        };
+    }
+
+    private function asynchronousNotifier(): object
+    {
+        return new class () {
+            #[Asynchronous('async_channel')]
+            #[EventHandler('user.registered', endpointId: 'user.notifier')]
+            public function notify(string $userId): void
+            {
+            }
+        };
+    }
+}
+
+interface TracedNotificationGateway
+{
+    #[MessageGateway('notification.send')]
+    public function send(string $text, #[Headers] array $metadata): void;
+}
+
+class RegistrationNotifier
+{
+    #[EventHandler('user.registered')]
+    public function notify(string $userId): void
+    {
+    }
+}
+
+final class ProxiedRegistrationNotifier extends RegistrationNotifier
+{
+}

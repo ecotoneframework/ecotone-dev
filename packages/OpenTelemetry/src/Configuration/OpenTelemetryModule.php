@@ -6,18 +6,16 @@ namespace Ecotone\OpenTelemetry\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
+use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Lite\Test\Configuration\ResolvesExtensionObjectsForFlowTesting;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -29,12 +27,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
-use Ecotone\OpenTelemetry\TracerInterceptor;
-use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
-use OpenTelemetry\API\Trace\NoopTracerProvider;
+use Ecotone\OpenTelemetry\OpenTelemetryTracer;
+use Ecotone\Tracing\Config\TracerReference;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 #[ModuleAnnotation]
@@ -48,62 +43,38 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         return new self();
     }
 
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
+    {
+        if (ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $serviceExtensions)) {
+            return [];
+        }
+
+        return [new TracerReference(OpenTelemetryTracer::class)];
+    }
+
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
-        $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
+        $openTelemetryConfiguration = ExtensionObjectResolver::resolveUnique(OpenTelemetryConfiguration::class, $extensionObjects, OpenTelemetryConfiguration::createWithDefaults());
 
         if (ExtensionObjectResolver::contains(NoTracerProviderGiven::class, $extensionObjects)) {
-            $messagingConfiguration->registerServiceDefinition(TracerProviderInterface::class, new Definition(NoopTracerProvider::class));
+            return;
         }
-
-        $messagingConfiguration->addCompilerPass(new RegisterAddSpanEventLoggerCompilerPass());
-        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
 
         $messagingConfiguration->registerServiceDefinition(
-            TracerInterceptor::class,
-            new Definition(TracerInterceptor::class, [
+            OpenTelemetryTracer::class,
+            new Definition(OpenTelemetryTracer::class, [
                 new Reference(TracerProviderInterface::class),
-                new Reference(MessageBuilder::class),
+                new Reference(EcotoneClockInterface::class),
+                new Reference(SpanRecorder::class),
             ])
         );
-        if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
-            $this->registerTracerFor('trace', '*', $messagingConfiguration, $interfaceToCallRegistry);
-        }
-
-        foreach ($messageChannelBuilders as $messageChannelBuilder) {
-            if ($messageChannelBuilder->isPollable()) {
-                $messagingConfiguration->registerChannelInterceptor(new TracingChannelAdapterBuilder($messageChannelBuilder->getMessageChannelName()));
-            }
-        }
-
-        $this->registerTracerFor('traceCommandHandler', CommandHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceQueryHandler', QueryHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceEventHandler', EventHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceMessageHandler', InternalHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceCommandBus', CommandBus::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceQueryBus', QueryBus::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceEventBus', EventBus::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceAsynchronousEndpoint', AsynchronousRunningEndpoint::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceDistributedBus', DistributedBus::class, $messagingConfiguration, $interfaceToCallRegistry);
-
-        $messagingConfiguration->registerBeforeMethodInterceptor(
-            MethodInterceptorBuilder::create(
-                new Definition(TracerInterceptor::class, [
-                    Reference::to(TracerProviderInterface::class),
-                    Reference::to(MessageBuilder::class),
-                ]),
-                $interfaceToCallRegistry->getFor(TracerInterceptor::class, 'provideContextForDistributedBus'),
-                0,
-                DistributedBus::class
-            )
-        );
+        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
 
         $pointcut = '';
-        if ($tracingConfiguration->isFlushForcedOnBusExecution()) {
+        if ($openTelemetryConfiguration->forceFlushOnBusExecution) {
             $pointcut = CommandBus::class . '||' . QueryBus::class . '||' . DistributedBus::class;
         }
-        if ($tracingConfiguration->isForceFlushOnAsynchronousMessageHandled()) {
+        if ($openTelemetryConfiguration->forceFlushOnAsynchronousMessageHandled) {
             $pointcut .= $pointcut !== '' ? '||' . AsynchronousRunningEndpoint::class : AsynchronousRunningEndpoint::class;
         }
 
@@ -138,18 +109,5 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
     public function getModulePackageName(): string
     {
         return ModulePackageList::TRACING_PACKAGE;
-    }
-
-    private function registerTracerFor(string $tracingMethodToInvoke, string $pointcut, Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry): void
-    {
-        $messagingConfiguration
-            ->registerAroundMethodInterceptor(
-                AroundInterceptorBuilder::create(
-                    TracerInterceptor::class,
-                    $interfaceToCallRegistry->getFor(TracerInterceptor::class, $tracingMethodToInvoke),
-                    Precedence::TRACING_PRECEDENCE,
-                    $pointcut
-                )
-            );
     }
 }

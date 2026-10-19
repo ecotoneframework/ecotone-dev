@@ -227,6 +227,7 @@ Ecotone\DataProtection\Configuration\DataProtectionConfiguration,Ecotone\Api\Dat
 Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration,Ecotone\Api\DataProtection\ChannelProtectionConfiguration
 Ecotone\DataProtection\Encryption\Key,Ecotone\Api\DataProtection\Key
 Ecotone\EventSourcing\EventStreamEmitter,Ecotone\Api\EventSourcing\EventStreamEmitter
+Ecotone\OpenTelemetry\Configuration\TracingConfiguration,Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration
 Ecotone\Dbal\Connection\DbalConnectionFactory,Ecotone\Api\Dbal\DbalConnectionFactory
 Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory,Ecotone\Api\Dbal\ManagerRegistryConnectionFactory
 Ecotone\Sqs\Connection\SqsConnectionFactory,Ecotone\Api\Sqs\SqsConnectionFactory

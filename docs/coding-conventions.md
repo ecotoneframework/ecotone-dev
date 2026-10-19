@@ -15,7 +15,7 @@ branch `dgafka/dcb-docs` and is deliberately untracked here, since `docs/superpo
 paths resolve on that branch. Commit SHAs cited below resolve on any branch.
 
 Rules 1-11 are the maintainer's. Rules 12-19 are conventions the code holds to consistently. Section 20 lists the
-mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 6a, 10a,
+mechanics a tool enforces for you, and section 21 the gates and landmines. Lettered sub-rules (1a, 1b, 1c, 1d, 6a, 10a, 16a,
 12a, 13a, 14a) continue the rule they hang off; they are numbered that way so nothing above them ever renumbers.
 
 > **Verify names before you write them.** Every attribute, parameter, method and console option in code you write
@@ -136,6 +136,39 @@ validity are runtime checks for that reason (`d92883148`) — everything about *
 So, before adding a check: ask whether it could have been answered from the class, the method, the parameter types
 and the attributes alone. If it could, it belongs in a guard the module calls, and the test that proves it boots
 Ecotone and expects a `ConfigurationException`.
+
+
+### 1d. The common usage is the default; any other usage is refused, never given a second meaning
+
+Every attribute, configuration object and gateway defaults to the usage most applications need, so the shortest code
+is the right code. `#[EventHandler]` passes the message payload as the first parameter, because that is what almost
+every handler wants, and resolves the rest from headers and services; `#[CommandHandler]` without a routing key
+routes by the payload's class. Nobody has to opt into the normal case.
+
+A usage the feature is not meant for is refused at bootstrap, naming the meant one (rules 1, 1a). It is never quietly
+accepted with a meaning of its own, because then two applications read the same code differently, and the one that
+guessed wrong finds out in production. `#[EventHandler]` on a class is refused by its attribute target. When two
+readings are possible, refuse rather than pick one: two configurations of one feature, a message carrying both
+`tracingId` and `traceparent`, an attribute combined with one it cannot work with.
+
+Before shipping an attribute, a configuration or a gateway, go through what an application could write and decide,
+for each one, whether it is supported (with a test) or refused (with a message test). None may be left to chance:
+
+- **Placement** — the attribute's `#[Attribute(...)]` target is as narrow as the meant usage.
+- **Parameters** — the first parameter is checked against what it receives (rule 1c), so a wrong type fails at
+  bootstrap, not on the first message after the work committed.
+- **Combinations** — every other attribute that can sit beside it, `#[Asynchronous]` first, is either supported or
+  refused by the attribute itself, with its own reason. An endpoint attribute that cannot run asynchronously returns
+  that reason from `asynchronousExecutionRefusal()`, and `AsynchronousModule` uses it instead of asking for an
+  `endpointId` the attribute cannot take.
+- **Repetition** — a configuration object registered twice is refused; the first one never silently wins.
+- **Settings that contradict** — an option combination that cannot work, such as a subscriber with notifications
+  turned off, is refused naming the setting to remove.
+
+Evidence: flow tracking shipped three of these gaps at once. `#[Asynchronous]` on a flow notification subscriber asked for an
+`endpointId` the attribute cannot take, a second `FlowTrackingConfiguration` was silently dropped, and a subscriber
+with a mistyped first parameter failed on every notification at runtime (`FlowTrackingTest`, the three bootstrap
+refusals).
 
 ---
 
@@ -593,6 +626,20 @@ Never, in a test:
 - use reflection
 - count SQL statements
 - name an internal collaborator class in the test's own name
+- construct or call any class outside `Api/` — a store, recorder, ledger, module, extension object or channel
+  interceptor from `src/` — even to prove two implementations of a seam behave alike
+- drop, alter or write Ecotone's tables to simulate a failure
+
+The test of a test: rewrite every class under `src/` the feature touches, keep the behaviour, and the test must not
+change. A contract suite that constructs `InMemoryTraceStore` and `DbalTraceStore` and calls `append()` fails that test
+the moment the store's methods are renamed, while the behaviour it guards — a trace completes once and notifies once —
+is unchanged. Prove it instead through the application: boot it once per storage and drive both through the bus and
+the `TraceCompletion` gateway.
+
+A failure the test needs comes through a seam the application owns. A database outage right after a commit is a
+Doctrine connection the application hands Ecotone, whose statements start failing when an `#[Around]` interceptor
+just outside the transaction says so — not a `DROP TABLE` on Ecotone's tables. If a path cannot be reached from
+userland at all, the application cannot observe it: remove the code instead of testing it from the inside.
 
 ```php
 use Ecotone\Api\EventSourcing\EventStore;
@@ -1138,6 +1185,54 @@ a table inside an open transaction on MySQL and MariaDB. The whole story for use
 History: `230bcea5d` and `511b31428` first moved this DDL out of the transaction; `048f614d8` and the rest of rule
 1a replaced that with the refusal and the setup instructions; wave 10 removed runtime creation with
 `AutomaticTableInitializationSupport`, `AutoCreateLevel` and `EventSourcingConfiguration::withInitializeEventStoreOnStart()`.
+
+---
+
+## 16a. No database write after the transaction
+
+A message's unit of work owns a transaction: the transaction interceptor begins it, the handler and everything it
+calls write inside it, and it commits or rolls back as one. Anything a feature records about that message - stored
+traces, bookkeeping, a completion flag - is written inside the same transaction, or not at all.
+
+Never write after the commit, after a rollback, or in an interceptor that wraps the transaction from outside. At that
+point the work is already decided. If the database is down, the write throws out of a consumer whose message was
+already acknowledged, or out of a command whose data already committed: the caller sees a failure for work that
+succeeded, and the message is not retried. The same outage inside the transaction rolls back and leaves the message
+to the retry and dead-letter strategy, which is what they exist for.
+
+Wrong - the root span is inserted when it ends, after the commit:
+
+```php
+public function record(Span $span): void
+{
+    if ($this->scopeActive) { $this->buffer[] = $span; return; }
+    $this->traceStore->append([$span]);   // after the commit: fails a consumer whose work succeeded
+}
+```
+
+Right - the span that wraps the unit of work is written as it stands at the flush, inside the transaction, and
+nothing touches the database once the transaction has returned:
+
+```php
+$result = $methodInvocation->proceed();
+$this->recorder->flushWithOpenSpans();   // inside the transaction
+```
+
+Work that commits by itself - an asynchronous projection commits once per batch, with Ecotone turning the endpoint's
+transaction off - is recorded inside each of those commits, never once the work has returned: flow tracking joins
+the projection batch's transaction. A path the application chose to run with no transaction at all (the command bus
+with `withTransactionOnCommandBus(false)`, an event bus or gateway call from a controller) has no transaction to be
+inside, so what it stores is written when its work ends; that is the application's decision, and the default runs
+every command and consumer in a transaction.
+
+What may happen after the commit is work that does not depend on the database: publishing to subscribers from
+memory, and sending telemetry to an external collector such as OpenTelemetry, which is allowed to fail and never
+fails the message. A test proves the rule by making the database unavailable right after the commit, with an
+`#[Around]` interceptor just outside the transaction, and asserting that the command or consumer still succeeds.
+
+Evidence: stored traces wrote the root span and claimed completion after the commit, and an outage at that moment
+threw the missing-table refusal out of the consumer (`FlowTrackingConformanceTest`, the outage tests); an asynchronous
+projection wrote its spans after its own batch committed (`FlowTrackingProjectionTest`).
 
 ---
 

@@ -34,14 +34,17 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
@@ -113,6 +116,8 @@ final class MessageFlowDiscovery
         $this->discoverBusHandlers(EventHandler::class, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::EVENT);
         $this->discoverChannelHandlers();
         $this->discoverRouters();
+        $this->discoverSplitters();
+        $this->discoverOrchestrators();
         $this->discoverAppliedEvents();
         $this->discoverGateways();
         $this->discoverScheduled();
@@ -131,12 +136,16 @@ final class MessageFlowDiscovery
      */
     private function discoverServiceMaps(array $extensionObjects): void
     {
+        $serviceName = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName;
         foreach (ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects) as $serviceMap) {
             $bus = $this->distributedBusNode($serviceMap->getReferenceName());
             $subscriptions = array_map(fn (array $subscription) => $subscription['keys'], $serviceMap->eventSubscriptions);
             $this->nodes[$bus->id] = $bus->withAttributes(['commandMapping' => $serviceMap->commandMapping, 'eventSubscriptions' => $subscriptions]);
             foreach ($serviceMap->commandMapping as $targetService => $channelName) {
                 $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['targetService' => $targetService]);
+                if ($targetService === $serviceName) {
+                    $this->edges[] = new FlowEdge($this->channelNode($channelName)->id, $bus->id, FlowEdgeKind::INPUT);
+                }
             }
             foreach ($subscriptions as $channelName => $subscriptionKeys) {
                 $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['subscriptionKeys' => $subscriptionKeys]);
@@ -238,6 +247,27 @@ final class MessageFlowDiscovery
             /** @var Router $annotation */
             $annotation = $registration->getAnnotationForMethod();
             $handlerId = $this->registerHandler($registration, FlowNodeKind::ROUTER, ['inputChannel' => $annotation->getInputChannelName()]);
+            $this->edges[] = new FlowEdge($this->channelNode($annotation->getInputChannelName())->id, $handlerId, FlowEdgeKind::INPUT);
+        }
+    }
+
+    private function discoverSplitters(): void
+    {
+        foreach ($this->applicationMethods(Splitter::class) as $registration) {
+            /** @var Splitter $annotation */
+            $annotation = $registration->getAnnotationForMethod();
+            $handlerId = $this->registerHandler($registration, FlowNodeKind::SPLITTER, ['inputChannel' => $annotation->getInputChannelName()]);
+            $this->edges[] = new FlowEdge($this->channelNode($annotation->getInputChannelName())->id, $handlerId, FlowEdgeKind::INPUT);
+            $this->registerOutput($handlerId, $annotation->getOutputChannelName());
+        }
+    }
+
+    private function discoverOrchestrators(): void
+    {
+        foreach ($this->applicationMethods(Orchestrator::class) as $registration) {
+            /** @var Orchestrator $annotation */
+            $annotation = $registration->getAnnotationForMethod();
+            $handlerId = $this->registerHandler($registration, FlowNodeKind::ORCHESTRATOR, ['inputChannel' => $annotation->getInputChannelName()]);
             $this->edges[] = new FlowEdge($this->channelNode($annotation->getInputChannelName())->id, $handlerId, FlowEdgeKind::INPUT);
         }
     }

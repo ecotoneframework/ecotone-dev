@@ -7,13 +7,16 @@ namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -68,6 +71,73 @@ final class MessageFlowChannelTest extends TestCase
         }
         foreach (['left', 'right'] as $destination) {
             self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, 'handler:' . $service::class . '::route', 'channel:chain.' . $destination));
+            self::assertTrue($edges[0]->isInferred());
+        }
+    }
+
+    public function test_splitter_takes_its_input_channel_and_feeds_its_output_channel(): void
+    {
+        $service = new class () {
+            #[CommandHandler('batch.import', outputChannelName: 'batch.split')]
+            public function import(array $items): array
+            {
+                return $items;
+            }
+
+            #[Splitter('batch.split', outputChannelName: 'item.handle')]
+            public function split(array $items): array
+            {
+                return $items;
+            }
+
+            #[InternalHandler('item.handle')]
+            public function handle(string $item): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $splitter = 'handler:' . $service::class . '::split';
+        self::assertSame(FlowNodeKind::SPLITTER, $graph->node($splitter)->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:batch.split', $splitter));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::OUTPUT, $splitter, 'channel:item.handle'));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:item.handle', 'handler:' . $service::class . '::handle'));
+    }
+
+    public function test_orchestrator_routes_to_the_steps_its_source_names(): void
+    {
+        $service = new class () {
+            #[CommandHandler('approval.request', outputChannelName: 'approval.workflow')]
+            public function request(string $request): string
+            {
+                return $request;
+            }
+
+            #[Orchestrator('approval.workflow')]
+            public function workflow(): array
+            {
+                return ['approval.validate', 'approval.notify'];
+            }
+
+            #[InternalHandler('approval.validate')]
+            public function validate(string $request): string
+            {
+                return $request;
+            }
+
+            #[InternalHandler('approval.notify')]
+            public function notify(string $request): string
+            {
+                return $request;
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $orchestrator = 'handler:' . $service::class . '::workflow';
+        self::assertSame(FlowNodeKind::ORCHESTRATOR, $graph->node($orchestrator)->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:approval.workflow', $orchestrator));
+        foreach (['validate', 'notify'] as $step) {
+            self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, $orchestrator, 'channel:approval.' . $step));
             self::assertTrue($edges[0]->isInferred());
         }
     }

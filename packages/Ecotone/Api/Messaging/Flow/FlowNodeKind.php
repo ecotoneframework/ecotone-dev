@@ -19,6 +19,8 @@ enum FlowNodeKind: string
     case QUERY_HANDLER = 'queryHandler';
     case INTERNAL_HANDLER = 'internalHandler';
     case ROUTER = 'router';
+    case SPLITTER = 'splitter';
+    case ORCHESTRATOR = 'orchestrator';
     case AGGREGATE = 'aggregate';
     case SAGA = 'saga';
     case PROJECTION = 'projection';
@@ -34,7 +36,7 @@ enum FlowNodeKind: string
 
     public function isHandler(): bool
     {
-        return in_array($this, [self::COMMAND_HANDLER, self::EVENT_HANDLER, self::QUERY_HANDLER, self::INTERNAL_HANDLER, self::ROUTER], true);
+        return in_array($this, [self::COMMAND_HANDLER, self::EVENT_HANDLER, self::QUERY_HANDLER, self::INTERNAL_HANDLER, self::ROUTER, self::SPLITTER, self::ORCHESTRATOR], true);
     }
 
     public function isOwner(): bool

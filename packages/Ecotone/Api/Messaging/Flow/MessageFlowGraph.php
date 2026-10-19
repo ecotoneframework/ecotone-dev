@@ -205,7 +205,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowNodeKind::QUERY => sprintf('{{"%s"}}', $label),
             FlowNodeKind::CHANNEL => sprintf('[("%s")]', $label),
             FlowNodeKind::GATEWAY => sprintf('[["%s"]]', $label),
-            FlowNodeKind::ROUTER => sprintf('{"%s"}', $label),
+            FlowNodeKind::ROUTER, FlowNodeKind::ORCHESTRATOR => sprintf('{"%s"}', $label),
             FlowNodeKind::SCHEDULED => sprintf('(("%s"))', $label),
             FlowNodeKind::DISTRIBUTED_BUS => sprintf('[\\"%s"\\]', $label),
             FlowNodeKind::AGGREGATE, FlowNodeKind::SAGA, FlowNodeKind::PROJECTION => sprintf('[/"%s"/]', $this->mermaidText($this->kindTitle($node->kind) . ': ' . $node->label)),

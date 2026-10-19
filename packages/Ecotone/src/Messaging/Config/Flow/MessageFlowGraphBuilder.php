@@ -53,7 +53,7 @@ final class MessageFlowGraphBuilder
 
     public function build(): MessageFlowGraph
     {
-        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SCHEDULED);
+        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SPLITTER, FlowNodeKind::ORCHESTRATOR, FlowNodeKind::SCHEDULED);
         $targets = [];
         foreach ($handlers as $handler) {
             $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];
@@ -65,7 +65,7 @@ final class MessageFlowGraphBuilder
             $this->inferEmissions($inferred, $handler, $facts[$handler->id]);
             $this->inferCalls($inferred, $handler, $facts[$handler->id]);
             $this->inferDistribution($inferred, $handler, $facts[$handler->id]);
-            if ($handler->kind === FlowNodeKind::ROUTER) {
+            if ($handler->kind === FlowNodeKind::ROUTER || $handler->kind === FlowNodeKind::ORCHESTRATOR) {
                 $this->inferRoutes($inferred, $handler, $facts[$handler->id]);
             }
         }

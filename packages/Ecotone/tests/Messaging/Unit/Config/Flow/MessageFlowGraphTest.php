@@ -461,6 +461,29 @@ final class MessageFlowGraphTest extends TestCase
         self::assertSame(['billing', 'shipping'], array_map(fn ($edge) => $edge->attributes['targetService'], $routes));
     }
 
+    public function test_distributed_bus_publishes_events_only_to_channels_this_service_may_publish_to(): void
+    {
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('excluding_channel'),
+                SimpleMessageChannelBuilder::createQueueChannel('including_others_channel'),
+                SimpleMessageChannelBuilder::createQueueChannel('including_this_channel'),
+                DistributedServiceMap::initialize()
+                    ->withEventMapping('excluding_channel', ['order.*'], excludePublishingServices: ['orders'])
+                    ->withEventMapping('including_others_channel', ['order.*'], includePublishingServices: ['billing'])
+                    ->withEventMapping('including_this_channel', ['order.*'], includePublishingServices: ['orders']),
+                ServiceConfiguration::createWithDefaults()->withServiceName('orders'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        self::assertSame(
+            ['channel:including_this_channel'],
+            array_map(fn ($edge) => $edge->to, $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: 'distributed:' . DistributedBus::class)),
+        );
+    }
+
     public function test_channel_mapped_to_this_service_delivers_into_its_distributed_bus(): void
     {
         $graph = EcotoneLite::bootstrapFlowTesting(

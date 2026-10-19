@@ -162,8 +162,11 @@ final class MessageFlowDiscovery
                     $this->edges[] = new FlowEdge($this->channelNode($channelName)->id, $bus->id, FlowEdgeKind::INPUT);
                 }
             }
-            foreach ($subscriptions as $channelName => $subscriptionKeys) {
-                $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['subscriptionKeys' => $subscriptionKeys]);
+            foreach ($serviceMap->eventSubscriptions as $channelName => $subscription) {
+                if (in_array($serviceName, $subscription['exclude'], true) || ($subscription['include'] !== [] && ! in_array($serviceName, $subscription['include'], true))) {
+                    continue;
+                }
+                $this->edges[] = new FlowEdge($bus->id, $this->channelNode($channelName)->id, FlowEdgeKind::SENDS_TO, ['subscriptionKeys' => $subscription['keys']]);
             }
         }
     }

@@ -6,7 +6,6 @@ namespace Test\Ecotone\Tracing;
 
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Test\Flow\ExpectedSpan;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -29,13 +28,10 @@ final class TracingFlowConformanceTest extends TracingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        foreach ($scenario->stages as $stage) {
+        foreach ($scenario->stages as $index => $stage) {
             ($stage->action)($ecotone, []);
 
-            self::assertNull(ExpectedSpan::mismatchIn($stage->expectedSpans, $recorder->recordedSpans()));
-            foreach ($stage->absentSpanNames as $absentSpanName) {
-                self::assertFalse(ExpectedSpan::namedIn($absentSpanName, $recorder->recordedSpans()), "Span {$absentSpanName} was recorded");
-            }
+            self::assertNull($scenario->mismatchAfterStage($index, $recorder->recordedSpans()));
         }
     }
 }

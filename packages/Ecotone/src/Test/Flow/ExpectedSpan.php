@@ -63,6 +63,11 @@ final class ExpectedSpan
         return new self(...[...get_object_vars($this), 'children' => [...$this->children, ...$children]]);
     }
 
+    public function count(): int
+    {
+        return 1 + array_sum(array_map(fn (ExpectedSpan $child) => $child->count(), $this->children));
+    }
+
     /**
      * @param list<ExpectedSpan> $expected
      * @param Span[] $spans

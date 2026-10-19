@@ -8,9 +8,9 @@ use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
-use Ecotone\Api\Messaging\MessageHeaders;
-use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Test\Flow\ExpectedSpan;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -35,25 +35,35 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
     #[DataProvider('scenariosOnEveryStore')]
     public function test_every_catalogued_flow_is_stored_as_its_expected_spans_and_completes_after_its_last_stage(FlowScenario $scenario, string $implementation): void
     {
+        $recorder = new InMemorySpanRecorder();
         $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: $scenario->classesToResolve,
-            containerOrAvailableServices: [...$scenario->services, DbalConnectionFactory::class => $this->getConnectionFactory()],
-            extensionObjects: [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory'), ...$scenario->extensionObjects],
+            containerOrAvailableServices: [...$scenario->services, InMemorySpanRecorder::class => $recorder, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            extensionObjects: [
+                FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory'),
+                TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class),
+                ...$scenario->extensionObjects,
+            ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
         $tracing = $ecotone->getGateway(TracingGateway::class);
-        $trace = SpanContext::newTrace();
 
         foreach ($scenario->stages as $index => $stage) {
-            ($stage->action)($ecotone, [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
+            ($stage->action)($ecotone, []);
 
-            $steps = $tracing->fetchFlow($trace->traceId)?->steps ?? [];
-            self::assertNull(ExpectedSpan::mismatchIn($stage->expectedSpans, $steps));
-            foreach ($stage->absentSpanNames as $absentSpanName) {
-                self::assertFalse(ExpectedSpan::namedIn($absentSpanName, $steps), "Step {$absentSpanName} was stored");
+            $traceIds = array_values(array_unique(array_map(fn (Span $span): string => $span->traceId, $recorder->recordedSpans())));
+            $steps = [];
+            foreach ($traceIds as $traceId) {
+                $steps = [...$steps, ...($tracing->fetchFlow($traceId)?->steps ?? [])];
             }
-            self::assertSame($index === array_key_last($scenario->stages), $tracing->isCompletedFor($trace->traceId));
+            self::assertNull($scenario->mismatchAfterStage($index, $steps));
+            $completed = array_map(fn (string $traceId): bool => $tracing->isCompletedFor($traceId), $traceIds);
+            if ($index === array_key_last($scenario->stages)) {
+                self::assertNotContains(false, $completed);
+            } else {
+                self::assertContains(false, $completed);
+            }
         }
     }
 }

@@ -9,7 +9,6 @@ use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
-use Ecotone\Test\Flow\ExpectedSpan;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -37,14 +36,10 @@ final class OpenTelemetryFlowConformanceTest extends TracingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        foreach ($scenario->stages as $stage) {
+        foreach ($scenario->stages as $index => $stage) {
             ($stage->action)($ecotone, []);
 
-            $spans = array_map(self::asSpan(...), $exporter->getSpans());
-            self::assertNull(ExpectedSpan::mismatchIn($stage->expectedSpans, $spans));
-            foreach ($stage->absentSpanNames as $absentSpanName) {
-                self::assertFalse(ExpectedSpan::namedIn($absentSpanName, $spans), "Span {$absentSpanName} was exported");
-            }
+            self::assertNull($scenario->mismatchAfterStage($index, array_map(self::asSpan(...), $exporter->getSpans())));
         }
     }
 

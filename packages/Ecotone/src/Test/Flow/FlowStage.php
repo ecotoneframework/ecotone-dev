@@ -20,6 +20,7 @@ final class FlowStage
         public readonly Closure $action,
         public readonly array $expectedSpans = [],
         public readonly array $absentSpanNames = [],
+        public readonly bool $noOtherSpans = false,
     ) {
     }
 
@@ -34,6 +35,11 @@ final class FlowStage
     public function expect(ExpectedSpan ...$spans): self
     {
         return new self(...[...get_object_vars($this), 'expectedSpans' => [...$this->expectedSpans, ...$spans]]);
+    }
+
+    public function withNoOtherSpans(): self
+    {
+        return new self(...[...get_object_vars($this), 'noOtherSpans' => true]);
     }
 
     public function expectNoSpanNamed(string ...$names): self

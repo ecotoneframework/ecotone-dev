@@ -50,14 +50,13 @@ final class FlowScenario
 
     public function isFinishedAfterStage(int $stageIndex): bool
     {
-        if ($this->stages[$stageIndex]->leavesWorkPending) {
+        $stage = $this->stages[$stageIndex];
+        if ($stage->leavesWorkPending || $stage->expectedFailure !== null) {
             return false;
         }
-        foreach (array_slice($this->stages, 0, $stageIndex + 1) as $stage) {
-            foreach ($stage->expectedSpans as $expectedSpan) {
-                if ($expectedSpan->failsTheFlow()) {
-                    return false;
-                }
+        foreach ($stage->expectedSpans as $expectedSpan) {
+            if ($expectedSpan->failsTheFlow()) {
+                return false;
             }
         }
 

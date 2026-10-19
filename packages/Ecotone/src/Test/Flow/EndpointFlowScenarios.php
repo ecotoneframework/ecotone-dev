@@ -223,6 +223,7 @@ final class EndpointFlowScenarios
                     ),
                 ),
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->leavingWorkPending()
                 ->expect(
                     ExpectedSpan::named('receive notifications')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.notifying']),

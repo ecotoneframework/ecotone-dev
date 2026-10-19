@@ -245,7 +245,8 @@ final class ChannelFailureFlowScenarios
                     ),
                 )
                 ->expectNoSpanNamed('send notifications'),
-            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '2', metadata: [...$metadata, 'attempt' => 'second']))->leavingWorkPending()
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '2', metadata: [...$metadata, 'attempt' => 'second']))
+                ->leavingWorkPending()->leavingWorkPending()
                 ->expect(
                     ExpectedSpan::named('send command')->asRoot()->withAttributes(['attempt' => 'second'])->containing(
                         ExpectedSpan::named('send users'),

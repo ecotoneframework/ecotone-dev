@@ -11,6 +11,7 @@ use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\Flow\SpanTree;
@@ -116,15 +117,24 @@ final class MessageFlowGraphConformanceTest extends TestCase
         return $node !== null && $graph->hasNode($node) ? $node : null;
     }
 
-    private static function messageNodeOf(string $destination, MessageFlowGraph $graph): string
+    private static function messageNodeOf(string $destination, MessageFlowGraph $graph): ?string
     {
+        if ($graph->hasNode('message:' . $destination)) {
+            return 'message:' . $destination;
+        }
         foreach ($graph->nodes() as $node) {
-            if (($node->attributes['namedAs'] ?? null) === $destination) {
+            if (! $node->kind->isMessage()) {
+                continue;
+            }
+            $subscription = (string) ($node->attributes['routingKey'] ?? '');
+            if (($node->attributes['namedAs'] ?? null) === $destination
+                || ($subscription !== '' && BusRoutingMap::globMatch($subscription, $destination))
+                || ($subscription !== '' && class_exists($destination) && is_a($destination, $subscription, true))) {
                 return $node->id;
             }
         }
 
-        return 'message:' . $destination;
+        return null;
     }
 
     private static function hasPath(MessageFlowGraph $graph, string $from, string $to): bool

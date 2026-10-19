@@ -39,6 +39,7 @@ final class FlowScenarioCatalogue
             ...RecoverabilityFlowScenarios::all(),
             ...ChannelFlowScenarios::all(),
             ...EndpointFlowScenarios::all(),
+            ...RoutingFlowScenarios::all(),
         ];
     }
 }

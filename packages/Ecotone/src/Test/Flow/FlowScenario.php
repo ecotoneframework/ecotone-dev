@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Test\Flow;
 
+use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\Span;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -24,6 +26,25 @@ final class FlowScenario
         public readonly array $extensionObjects,
         public readonly array $stages,
     ) {
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    public function runStage(int $stageIndex, FlowTestSupport $ecotone, array $metadata = []): ?string
+    {
+        $stage = $this->stages[$stageIndex];
+        try {
+            ($stage->action)($ecotone, $metadata);
+        } catch (Throwable $failure) {
+            if ($stage->expectedFailure !== null && str_contains($failure->getMessage(), $stage->expectedFailure)) {
+                return null;
+            }
+
+            return "Stage {$stageIndex} failed unexpectedly: " . $failure::class . ': ' . $failure->getMessage();
+        }
+
+        return $stage->expectedFailure === null ? null : "Stage {$stageIndex} was expected to fail with \"{$stage->expectedFailure}\", but it completed";
     }
 
     public function endsInFailure(): bool

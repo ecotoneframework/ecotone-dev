@@ -21,6 +21,7 @@ final class FlowStage
         public readonly array $expectedSpans = [],
         public readonly array $absentSpanNames = [],
         public readonly bool $noOtherSpans = false,
+        public readonly ?string $expectedFailure = null,
     ) {
     }
 
@@ -35,6 +36,11 @@ final class FlowStage
     public function expect(ExpectedSpan ...$spans): self
     {
         return new self(...[...get_object_vars($this), 'expectedSpans' => [...$this->expectedSpans, ...$spans]]);
+    }
+
+    public function failingWith(string $messageFragment): self
+    {
+        return new self(...[...get_object_vars($this), 'expectedFailure' => $messageFragment]);
     }
 
     public function withoutFailedSpans(): self

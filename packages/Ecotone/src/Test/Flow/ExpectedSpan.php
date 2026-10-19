@@ -32,12 +32,18 @@ final class ExpectedSpan
         public readonly ?SpanStatus $status = null,
         public readonly array $attributes = [],
         public readonly array $children = [],
+        public readonly bool $root = false,
     ) {
     }
 
     public static function named(string $name): self
     {
         return new self($name);
+    }
+
+    public function asRoot(): self
+    {
+        return new self(...[...get_object_vars($this), 'root' => true]);
     }
 
     public function ofKind(SpanKind $kind): self
@@ -138,6 +144,7 @@ final class ExpectedSpan
     private function matches(Span $span, SpanTree $tree): bool
     {
         if ($span->name !== $this->name
+            || ($this->root && $span->parentSpanId !== null)
             || ($this->kind !== null && $span->kind !== $this->kind)
             || ($this->status !== null && $span->status !== $this->status)) {
             return false;
@@ -177,6 +184,7 @@ final class ExpectedSpan
     private function render(int $depth): string
     {
         $line = str_repeat('  ', $depth) . $this->name
+            . ($this->root ? ' <root>' : '')
             . ($this->kind === null ? '' : ' [' . $this->kind->name . ']')
             . ($this->status === null ? '' : ' (' . $this->status->name . ')')
             . ($this->attributes === [] ? '' : ' ' . implode(', ', array_map(fn (string $key, mixed $value) => $key . '=' . var_export($value, true), array_keys($this->attributes), $this->attributes)));

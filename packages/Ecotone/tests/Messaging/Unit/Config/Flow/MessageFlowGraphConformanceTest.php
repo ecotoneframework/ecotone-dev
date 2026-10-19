@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
@@ -40,8 +41,8 @@ final class MessageFlowGraphConformanceTest extends TestCase
             [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        foreach ($scenario->stages as $stage) {
-            ($stage->action)($ecotone, []);
+        foreach (array_keys($scenario->stages) as $index) {
+            self::assertNull($scenario->runStage($index, $ecotone));
         }
         $graph = $ecotone->getMessageFlowGraph();
         $tree = SpanTree::of($recorder->recordedSpans());
@@ -72,7 +73,8 @@ final class MessageFlowGraphConformanceTest extends TestCase
             $steps = [...$steps, ...self::stepsFrom($child, $node ?? $nearestNode, $tree, $graph)];
         }
         if ($isChannel && $nearestNode !== null && ! str_starts_with($nearestNode, 'channel:')) {
-            foreach (self::nearestNodesBelow($span, $tree, $graph) as $reached) {
+            $reachedBelow = self::nearestNodesBelow($span, $tree, $graph);
+            foreach ($reachedBelow === [] ? [$node] : $reachedBelow as $reached) {
                 $steps[] = [$nearestNode, $reached];
             }
         }
@@ -101,6 +103,7 @@ final class MessageFlowGraphConformanceTest extends TestCase
         $destination = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
         $node = match (true) {
             in_array($span->name, ['send command', 'send event', 'send query'], true) => self::messageNodeOf((string) $destination, $graph),
+            $span->name === 'send distributed' => 'distributed:' . DistributedBus::class,
             isset($span->attributes[SpanAttribute::PROJECTION_NAME]) && str_starts_with($span->name, 'process ') => 'projection:' . $span->attributes[SpanAttribute::PROJECTION_NAME],
             isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]) => 'handler:' . $span->attributes[SpanAttribute::CODE_FUNCTION_NAME],
             str_starts_with($span->name, 'send ') => 'channel:' . substr($span->name, 5),
@@ -128,6 +131,11 @@ final class MessageFlowGraphConformanceTest extends TestCase
             return true;
         }
         $targets = [$to => true];
+        if (str_starts_with($to, 'channel:') && $graph->hasNode($to)) {
+            foreach ($graph->edgesFrom($to) as $edge) {
+                $targets[$edge->to] = true;
+            }
+        }
         foreach ($graph->nodes() as $node) {
             if (($node->attributes['owner'] ?? null) === $to) {
                 $targets[$node->id] = true;

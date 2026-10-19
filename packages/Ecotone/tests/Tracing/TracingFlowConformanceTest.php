@@ -28,8 +28,8 @@ final class TracingFlowConformanceTest extends TracingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        foreach ($scenario->stages as $index => $stage) {
-            ($stage->action)($ecotone, []);
+        foreach (array_keys($scenario->stages) as $index) {
+            self::assertNull($scenario->runStage($index, $ecotone));
 
             self::assertNull($scenario->mismatchAfterStage($index, $recorder->recordedSpans()));
         }

@@ -41,12 +41,8 @@ final class FailureFlowScenarios
         };
 
         return new FlowScenario('synchronous handler failing', [$orders::class], [$orders], [], [
-            FlowStage::when(function (FlowTestSupport $ecotone, array $metadata): void {
-                try {
-                    $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata);
-                } catch (RuntimeException) {
-                }
-            })
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata))
+                ->failingWith('Order cannot be placed')
                 ->expect(
                     ExpectedSpan::named('send command')->withStatus(SpanStatus::Error)->containing(
                         ExpectedSpan::named('process class@anonymous::place')->withStatus(SpanStatus::Error)->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.placing']),

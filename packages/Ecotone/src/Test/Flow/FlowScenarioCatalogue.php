@@ -34,6 +34,7 @@ final class FlowScenarioCatalogue
             ...ModellingFlowScenarios::all(),
             ...InterceptorFlowScenarios::all(),
             ...FailureFlowScenarios::all(),
+            ...ChannelFailureFlowScenarios::all(),
         ];
     }
 }

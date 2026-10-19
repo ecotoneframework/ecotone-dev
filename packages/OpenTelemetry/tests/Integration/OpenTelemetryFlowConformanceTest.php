@@ -26,7 +26,7 @@ use PHPUnit\Framework\Attributes\DataProviderExternal;
 final class OpenTelemetryFlowConformanceTest extends TracingTestCase
 {
     #[DataProviderExternal(FlowScenarioCatalogue::class, 'dataProvider')]
-    public function test_every_catalogued_flow_is_exported_as_its_expected_spans(FlowScenario $scenario): void
+    public function test_every_catalogued_flow_is_exported_as_its_expected_spans_without_leaving_a_scope_attached(FlowScenario $scenario): void
     {
         $exporter = new InMemoryExporter();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -36,11 +36,22 @@ final class OpenTelemetryFlowConformanceTest extends TracingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        foreach ($scenario->stages as $index => $stage) {
-            ($stage->action)($ecotone, []);
+        $scopeNotices = [];
+        set_error_handler(static function (int $errorNumber, string $errorMessage) use (&$scopeNotices): bool {
+            $scopeNotices[] = $errorMessage;
 
-            self::assertNull($scenario->mismatchAfterStage($index, array_map(self::asSpan(...), $exporter->getSpans())));
+            return true;
+        }, E_USER_NOTICE);
+        try {
+            foreach (array_keys($scenario->stages) as $index) {
+                self::assertNull($scenario->runStage($index, $ecotone));
+
+                self::assertNull($scenario->mismatchAfterStage($index, array_map(self::asSpan(...), $exporter->getSpans())));
+            }
+        } finally {
+            restore_error_handler();
         }
+        self::assertSame([], $scopeNotices);
     }
 
     private static function asSpan(SpanDataInterface $exported): Span

@@ -463,6 +463,35 @@ final class MessageFlowGraphTest extends TestCase
         self::assertCount(0, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:billing_channel', $busId));
     }
 
+    public function test_event_channel_this_service_subscribes_to_delivers_into_its_distributed_bus(): void
+    {
+        $billing = new class () {
+            #[Distributed]
+            #[EventHandler('user.billing_changed')]
+            public function update(string $details): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            [$billing::class],
+            [$billing],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('billing_events'),
+                SimpleMessageChannelBuilder::createQueueChannel('audit_events'),
+                DistributedServiceMap::initialize()
+                    ->withEventMapping(channelName: 'billing_events', subscriptionKeys: ['user.*'])
+                    ->withEventMapping(channelName: 'audit_events', subscriptionKeys: ['order.*']),
+                ServiceConfiguration::createWithDefaults()->withServiceName('billing'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $busId = 'distributed:' . DistributedBus::class;
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:billing_events', $busId));
+        self::assertCount(0, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:audit_events', $busId));
+    }
+
     public function test_graph_serializes_to_array_and_back_without_loss(): void
     {
         $service = new class () {

@@ -53,7 +53,7 @@ final class MessageFlowGraphBuilder
 
     public function build(): MessageFlowGraph
     {
-        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SPLITTER, FlowNodeKind::ORCHESTRATOR, FlowNodeKind::SCHEDULED, FlowNodeKind::INTERCEPTOR);
+        $handlers = $this->declared->nodesOfKind(FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::INTERNAL_HANDLER, FlowNodeKind::ROUTER, FlowNodeKind::SPLITTER, FlowNodeKind::TRANSFORMER, FlowNodeKind::ORCHESTRATOR, FlowNodeKind::SCHEDULED, FlowNodeKind::INTERCEPTOR);
         $targets = [];
         foreach ($handlers as $handler) {
             $targets[$handler->id] = [(string) $handler->attributes['class'], (string) $handler->attributes['method']];
@@ -212,10 +212,20 @@ final class MessageFlowGraphBuilder
 
     private function inferRoutes(InferredFlow $flow, FlowNode $router, MethodSourceFacts $facts): void
     {
+        $steps = [];
         foreach ($facts->stringLiterals as $literal) {
             $channelId = 'channel:' . $literal;
             if ($flow->hasNode($channelId)) {
                 $flow->addEdge(new FlowEdge($router->id, $channelId, FlowEdgeKind::ROUTES_TO, ['inferred' => true]));
+                $steps[] = $channelId;
+            }
+        }
+        if ($router->kind !== FlowNodeKind::ORCHESTRATOR) {
+            return;
+        }
+        foreach (array_slice($steps, 0, -1) as $position => $stepChannelId) {
+            foreach ($this->declared->edgesOfKind(FlowEdgeKind::INPUT, $stepChannelId) as $input) {
+                $flow->addEdge(new FlowEdge($input->to, $steps[$position + 1], FlowEdgeKind::ROUTES_TO, ['inferred' => true]));
             }
         }
     }

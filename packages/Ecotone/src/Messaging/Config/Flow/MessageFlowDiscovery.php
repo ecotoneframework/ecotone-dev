@@ -45,6 +45,7 @@ use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
@@ -65,6 +66,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
+use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelHandlers;
 
@@ -122,9 +124,11 @@ final class MessageFlowDiscovery
         $this->discoverBusHandlers(CommandHandler::class, FlowNodeKind::COMMAND_HANDLER, FlowNodeKind::COMMAND);
         $this->discoverBusHandlers(QueryHandler::class, FlowNodeKind::QUERY_HANDLER, FlowNodeKind::QUERY);
         $this->discoverBusHandlers(EventHandler::class, FlowNodeKind::EVENT_HANDLER, FlowNodeKind::EVENT);
+        $this->connectSubscribedEventChannels($extensionObjects);
         $this->discoverChannelHandlers();
         $this->discoverRouters();
         $this->discoverSplitters();
+        $this->discoverTransformers();
         $this->discoverOrchestrators();
         $this->discoverInterceptors();
         $this->discoverAppliedEvents();
@@ -269,6 +273,53 @@ final class MessageFlowDiscovery
             $this->edges[] = new FlowEdge($this->channelNode($annotation->getInputChannelName())->id, $handlerId, FlowEdgeKind::INPUT);
             $this->registerOutput($handlerId, $annotation->getOutputChannelName());
         }
+    }
+
+    private function discoverTransformers(): void
+    {
+        foreach ($this->applicationMethods(Transformer::class) as $registration) {
+            /** @var Transformer $annotation */
+            $annotation = $registration->getAnnotationForMethod();
+            $handlerId = $this->registerHandler($registration, FlowNodeKind::TRANSFORMER, ['inputChannel' => $annotation->getInputChannelName()]);
+            $this->edges[] = new FlowEdge($this->channelNode($annotation->getInputChannelName())->id, $handlerId, FlowEdgeKind::INPUT);
+            $this->registerOutput($handlerId, $annotation->getOutputChannelName());
+        }
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function connectSubscribedEventChannels(array $extensionObjects): void
+    {
+        foreach (ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects) as $serviceMap) {
+            $busId = $this->distributedBusNode($serviceMap->getReferenceName())->id;
+            foreach ($serviceMap->eventSubscriptions as $channelName => $subscription) {
+                if ($this->subscribesToAnyOf($subscription['keys'])) {
+                    $this->edges[] = new FlowEdge($this->channelNode($channelName)->id, $busId, FlowEdgeKind::INPUT);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param string[] $subscriptionKeys
+     */
+    private function subscribesToAnyOf(array $subscriptionKeys): bool
+    {
+        foreach ($this->nodes as $node) {
+            if ($node->kind !== FlowNodeKind::EVENT_HANDLER || ($node->attributes['distributed'] ?? false) !== true) {
+                continue;
+            }
+            foreach ($node->attributes['routingKeys'] ?? [] as $routingKey) {
+                foreach ($subscriptionKeys as $subscriptionKey) {
+                    if (BusRoutingMap::globMatch($subscriptionKey, (string) $routingKey)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private function discoverOrchestrators(): void

@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Poller;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Api\Attribute\Splitter;
+use Ecotone\Api\Attribute\Transformer;
 use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
@@ -140,6 +141,71 @@ final class MessageFlowChannelTest extends TestCase
             self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, $orchestrator, 'channel:approval.' . $step));
             self::assertTrue($edges[0]->isInferred());
         }
+    }
+
+    public function test_transformer_takes_its_input_channel_and_feeds_its_output_channel(): void
+    {
+        $service = new class () {
+            #[CommandHandler('order.place', outputChannelName: 'order.enrich')]
+            public function place(string $orderId): string
+            {
+                return $orderId;
+            }
+
+            #[Transformer('order.enrich', outputChannelName: 'order.store')]
+            public function enrich(string $orderId): string
+            {
+                return 'order-' . $orderId;
+            }
+
+            #[InternalHandler('order.store')]
+            public function store(string $order): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        $transformer = 'handler:' . $service::class . '::enrich';
+        self::assertSame(FlowNodeKind::TRANSFORMER, $graph->node($transformer)->kind);
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:order.enrich', $transformer));
+        self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::OUTPUT, $transformer, 'channel:order.store'));
+    }
+
+    public function test_orchestrator_step_continues_to_the_next_step_its_orchestrator_names(): void
+    {
+        $service = new class () {
+            #[Orchestrator('approval.workflow')]
+            public function workflow(): array
+            {
+                return ['approval.validate', 'approval.review', 'approval.notify'];
+            }
+
+            #[InternalHandler('approval.validate')]
+            public function validate(string $request): string
+            {
+                return $request;
+            }
+
+            #[Asynchronous('reviews')]
+            #[InternalHandler('approval.review', endpointId: 'approval.reviewing')]
+            public function review(string $request): string
+            {
+                return $request;
+            }
+
+            #[InternalHandler('approval.notify')]
+            public function notify(string $request): string
+            {
+                return $request;
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting([$service::class], [$service], [SimpleMessageChannelBuilder::createQueueChannel('reviews')], enabledModules: [], licenceKey: LicenceTesting::VALID_LICENCE)->getMessageFlowGraph();
+
+        foreach (['validate' => 'review', 'review' => 'notify'] as $step => $next) {
+            self::assertCount(1, $edges = $graph->edgesOfKind(FlowEdgeKind::ROUTES_TO, 'handler:' . $service::class . '::' . $step, 'channel:approval.' . $next));
+            self::assertTrue($edges[0]->isInferred());
+        }
+        self::assertCount(0, $graph->edgesFrom('handler:' . $service::class . '::notify'));
     }
 
     public function test_optional_router_with_no_destinations_keeps_its_input_edge(): void

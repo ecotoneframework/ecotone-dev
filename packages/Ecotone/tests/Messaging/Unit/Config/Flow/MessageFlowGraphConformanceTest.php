@@ -39,6 +39,7 @@ final class MessageFlowGraphConformanceTest extends TestCase
             $scenario->classesToResolve,
             [...$scenario->services, InMemorySpanRecorder::class => $recorder],
             [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         foreach (array_keys($scenario->stages) as $index) {

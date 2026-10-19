@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
@@ -35,6 +36,7 @@ final class OpenTelemetryFlowConformanceTest extends TracingTestCase
             $scenario->classesToResolve,
             [...$scenario->services, TracerProviderInterface::class => self::prepareTracer($exporter)],
             $scenario->extensionObjects,
+            enabledModules: [ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

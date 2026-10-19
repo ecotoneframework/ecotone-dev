@@ -25,6 +25,7 @@ final class TracingFlowConformanceTest extends TracingTestCase
             $scenario->classesToResolve,
             [...$scenario->services, ...self::recordingSpansInto($recorder)],
             [...$scenario->extensionObjects, self::tracingConfiguration()],
+            enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

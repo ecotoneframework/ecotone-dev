@@ -139,7 +139,7 @@ final class TraceFlowScenarios
             }
         };
         $poll = FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1)))
-            ->expect(ExpectedSpan::named('receive nullChannel')->asRoot()->ofKind(SpanKind::Consumer))
+            ->expect(ExpectedSpan::named('poll scheduled_handler')->asRoot()->ofKind(SpanKind::Consumer))
             ->withNoOtherSpans();
 
         return new FlowScenario('scheduled endpoint without a request channel starts a trace on every poll', [$scheduled::class], [$scheduled], [], [$poll, $poll]);

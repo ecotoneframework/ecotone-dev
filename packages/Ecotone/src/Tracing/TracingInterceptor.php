@@ -15,6 +15,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -88,7 +89,7 @@ final class TracingInterceptor
         $headers = $message->getHeaders();
         $name = match (true) {
             $headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) => 'receive ' . $headers->get(MessageHeaders::POLLED_CHANNEL_NAME),
-            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) && ProjectingModule::projectionNameOfTriggerChannel((string) $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL)) === null => 'receive ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
+            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) && ! self::isPollOnlyChannel((string) $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL)) => 'receive ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
             default => 'poll ' . $headers->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId(),
         };
 
@@ -266,6 +267,11 @@ final class TracingInterceptor
         $this->tracer->currentSpan()?->markUnitOfWorkRecovered();
 
         return $result;
+    }
+
+    private static function isPollOnlyChannel(string $inboundRequestChannel): bool
+    {
+        return $inboundRequestChannel === NullableMessageChannel::CHANNEL_NAME || ProjectingModule::projectionNameOfTriggerChannel($inboundRequestChannel) !== null;
     }
 
     private static function busDestinationOf(Message $message, string $routingKeyHeader): string

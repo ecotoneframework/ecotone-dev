@@ -15,6 +15,7 @@ use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use InvalidArgumentException;
@@ -401,6 +402,36 @@ final class TracingTreeTest extends TracingTestCase
             ],
             self::buildTree($recorder->recordedSpans())
         );
+    }
+
+    public function test_bus_spans_name_the_message_they_carry_by_routing_key_or_by_class(): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $users = $this->users();
+        $listener = new class () {
+            #[EventHandler]
+            public function on(stdClass $event): void
+            {
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$users::class, $listener::class],
+            [$users, $listener, ...self::recordingSpansInto($recorder)],
+            [self::tracingConfiguration()],
+        );
+        $ecotone->sendCommandWithRouting('user.register', '1');
+        $ecotone->sendQueryWithRouting('user.get');
+        $ecotone->publishEvent(new stdClass());
+
+        $destinations = [];
+        foreach ($recorder->recordedSpans() as $span) {
+            if (in_array($span->name, ['send command', 'send query', 'send event'], true)) {
+                $destinations[$span->name] = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
+            }
+        }
+
+        self::assertSame(['send command' => 'user.register', 'send query' => 'user.get', 'send event' => stdClass::class], $destinations);
     }
 
     private function users(): object

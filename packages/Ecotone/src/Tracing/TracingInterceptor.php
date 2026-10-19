@@ -17,6 +17,7 @@ use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Throwable;
 
@@ -38,17 +39,26 @@ final class TracingInterceptor
 
     public function traceCommandBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->traceEntry('send command', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send command', $methodInvocation, $message, SpanKind::Server, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
+            SpanAttribute::MESSAGING_DESTINATION_NAME => self::busDestinationOf($message, MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME),
+        ]);
     }
 
     public function traceEventBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->traceEntry('send event', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send event', $methodInvocation, $message, SpanKind::Server, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
+            SpanAttribute::MESSAGING_DESTINATION_NAME => self::busDestinationOf($message, MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME),
+        ]);
     }
 
     public function traceQueryBus(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        return $this->traceEntry('send query', $methodInvocation, $message, SpanKind::Server, [SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND]);
+        return $this->traceEntry('send query', $methodInvocation, $message, SpanKind::Server, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
+            SpanAttribute::MESSAGING_DESTINATION_NAME => self::busDestinationOf($message, MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME),
+        ]);
     }
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, CommandHandler $endpoint): mixed
@@ -245,6 +255,17 @@ final class TracingInterceptor
         $this->tracer->currentSpan()?->markUnitOfWorkRecovered();
 
         return $result;
+    }
+
+    private static function busDestinationOf(Message $message, string $routingKeyHeader): string
+    {
+        $headers = $message->getHeaders();
+        if ($headers->containsKey($routingKeyHeader)) {
+            return (string) $headers->get($routingKeyHeader);
+        }
+        $payload = $message->getPayload();
+
+        return is_object($payload) ? $payload::class : get_debug_type($payload);
     }
 
     private static function shortNameOf(string $classAndMethod): string

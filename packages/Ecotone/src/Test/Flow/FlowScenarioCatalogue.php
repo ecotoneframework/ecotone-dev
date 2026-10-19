@@ -31,6 +31,8 @@ final class FlowScenarioCatalogue
             ...GatewayFlowScenarios::all(),
             ...ProjectionFlowScenarios::all(),
             ...DistributedFlowScenarios::all(),
+            ...ModellingFlowScenarios::all(),
+            ...InterceptorFlowScenarios::all(),
         ];
     }
 }

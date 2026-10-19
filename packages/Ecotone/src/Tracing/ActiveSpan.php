@@ -15,6 +15,8 @@ interface ActiveSpan
 {
     public function context(): SpanContext;
 
+    public function name(): string;
+
     /**
      * @return array<string, scalar>
      */

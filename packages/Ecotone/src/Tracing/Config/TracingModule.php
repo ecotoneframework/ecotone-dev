@@ -26,6 +26,8 @@ use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Tracing\CurrentTrace;
 use Ecotone\Api\Tracing\SpanRecorder;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Messaging\Channel\Collector\MessageCollectionObserver;
+use Ecotone\Messaging\Channel\Collector\UnobservedMessageCollection;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -47,6 +49,7 @@ use Ecotone\Tracing\Tracer;
 use Ecotone\Tracing\TracerCurrentTrace;
 use Ecotone\Tracing\TracingDisabledCurrentTrace;
 use Ecotone\Tracing\TracingInterceptor;
+use Ecotone\Tracing\TracingMessageCollectionObserver;
 
 #[ModuleAnnotation]
 /**
@@ -94,10 +97,12 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         $spanRecorderReferences = ExtensionObjectResolver::resolve(SpanRecorderReference::class, $extensionObjects);
         if ($tracingConfiguration->spanRecorderReferenceNames === [] && $tracerReferences === [] && $spanRecorderReferences === []) {
             $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracingDisabledCurrentTrace::class));
+            $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(UnobservedMessageCollection::class));
 
             return;
         }
         $messagingConfiguration->registerServiceDefinition(CurrentTrace::class, new Definition(TracerCurrentTrace::class, [new Reference(Tracer::class)]));
+        $messagingConfiguration->registerServiceDefinition(MessageCollectionObserver::class, new Definition(TracingMessageCollectionObserver::class, [new Reference(Tracer::class)]));
 
         $spanRecorders = [
             ...array_map(fn (string $referenceName): Reference => new Reference($referenceName), $tracingConfiguration->spanRecorderReferenceNames),

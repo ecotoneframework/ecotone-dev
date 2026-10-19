@@ -43,6 +43,7 @@ final class EndpointFlowScenarios
             self::afterInterceptorSendsACommandOnceTheHandlerReturned(),
             self::failedHandlerDropsTheMessagesItCollected(),
             self::handlerWithoutCollectorSendsImmediatelyEvenWhenItFails(),
+            self::handlerWithCollectorSendsWhatItPublishedOnceItSucceeds(),
         ];
     }
 
@@ -227,6 +228,55 @@ final class EndpointFlowScenarios
                 ->expect(
                     ExpectedSpan::named('receive notifications')->withStatus(SpanStatus::Ok)->containing(
                         ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.notifying']),
+                    ),
+                ),
+        ]);
+    }
+
+    private static function handlerWithCollectorSendsWhatItPublishedOnceItSucceeds(): FlowScenario
+    {
+        $notifier = new class () {
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'order.notifying')]
+            public function notify(string $orderId): void
+            {
+            }
+        };
+        $orders = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.place', endpointId: 'order.placing')]
+            public function place(string $orderId, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('order.placed', $orderId);
+            }
+        };
+
+        return new FlowScenario('handler with the message collector sends what it published once it succeeds', [$orders::class, $notifier::class], [$orders, $notifier], [
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+        ], [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata))
+                ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send orders')->ofKind(SpanKind::Producer)))
+                ->withNoOtherSpans()
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('process class@anonymous::place')->containing(
+                            ExpectedSpan::named('send event')->containing(
+                                ExpectedSpan::named('route order.notifying')->withAttributes([SpanAttribute::ROUTE_COLLECTED => true])->withoutAttributes(SpanAttribute::ROUTE_UNDELIVERED),
+                            ),
+                        ),
+                        ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Ok),
+                    ),
+                )
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('send notifications')->containing(
+                        ExpectedSpan::named('receive notifications')->containing(
+                            ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.notifying']),
+                        ),
                     ),
                 ),
         ]);

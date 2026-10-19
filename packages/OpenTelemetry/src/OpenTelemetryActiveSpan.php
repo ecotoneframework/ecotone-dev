@@ -46,6 +46,11 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
     ) {
     }
 
+    public function name(): string
+    {
+        return $this->name;
+    }
+
     public function attributes(): array
     {
         return $this->attributes;

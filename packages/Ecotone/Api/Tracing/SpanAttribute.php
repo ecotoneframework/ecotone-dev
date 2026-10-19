@@ -22,6 +22,7 @@ final class SpanAttribute
     public const CHANNEL_NAME = 'ecotone.channel.name';
     public const BATCH_DELIVERIES = 'ecotone.batch.deliveries';
     public const ROUTE_UNDELIVERED = 'ecotone.route.undelivered';
+    public const ROUTE_COLLECTED = 'ecotone.route.collected';
 
     public const ECOTONE = 'ecotone';
     public const OPERATION_SEND = 'send';

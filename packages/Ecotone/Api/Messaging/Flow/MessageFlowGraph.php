@@ -227,7 +227,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowEdgeKind::SENDS_TO => $edge->isInferred() ? 'sends (' . ($edge->attributes['via'] ?? '') . ')' : (isset($edge->attributes['targetService']) ? 'to ' . $edge->attributes['targetService'] : ''),
             default => '',
         };
-        $labelPart = $label === '' ? '' : '|' . $this->mermaidText($label) . '|';
+        $labelPart = $label === '' ? '' : '|"' . $this->mermaidText($label) . '"|';
         if ($edge->kind === FlowEdgeKind::ASYNCHRONOUS) {
             return '==>' . $labelPart;
         }

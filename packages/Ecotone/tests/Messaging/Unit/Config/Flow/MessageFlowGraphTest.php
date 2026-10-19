@@ -589,9 +589,8 @@ final class MessageFlowGraphTest extends TestCase
         self::assertStringContainsString('subgraph', $mermaid);
         self::assertStringContainsString('Aggregate', $mermaid);
         self::assertStringContainsString('PlaceOrderForFlowGraph', $mermaid);
-        self::assertStringContainsString('-.->|emits', $mermaid);
-        self::assertStringContainsString('recordThat', $mermaid);
-        self::assertStringContainsString('==>|async|', $mermaid);
+        self::assertStringContainsString('-.->|"emits (recordThat)"|', $mermaid);
+        self::assertStringContainsString('==>|"async"|', $mermaid);
         self::assertStringContainsString('[("orders")]', $mermaid);
     }
 

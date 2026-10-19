@@ -64,16 +64,20 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     private function relayBatch(Message $message, BatchMessage $batch): Message
     {
-        $entriesByTrace = [];
+        $entriesByParent = [];
+        $firstEntryOfParent = [];
         foreach ($batch->entries as $index => $entry) {
-            $headers = $entry['headers'] ?? [];
-            $entriesByTrace[(string) ($headers[MessageHeaders::TRACEPARENT] ?? $headers[MessageHeaders::TRACING_ID] ?? '')][$index] = $entry;
+            $entryMessage = $this->messageBuilder->withPayload('')->setMultipleHeaders($entry['headers'] ?? [])->build();
+            $parent = TracingInterceptor::remoteParentOf($entryMessage);
+            $parentKey = $parent === null ? '' : $parent->traceId . '-' . $parent->spanId;
+            $entriesByParent[$parentKey][$index] = $entry;
+            $firstEntryOfParent[$parentKey] ??= $entryMessage;
         }
 
         $spans = [];
         $entries = $batch->entries;
-        foreach ($entriesByTrace as $traceEntries) {
-            $firstEntry = $this->messageBuilder->withPayload('')->setMultipleHeaders(reset($traceEntries)['headers'] ?? [])->build();
+        foreach ($entriesByParent as $parentKey => $traceEntries) {
+            $firstEntry = $firstEntryOfParent[$parentKey];
             $firstDeliveries = array_filter($traceEntries, fn (array $entry): bool => ! self::isDeliveredAlready($entry['headers'] ?? []));
             $span = $this->startSendSpan($firstEntry, $firstDeliveries === [] ? [] : [SpanAttribute::CHANNEL_NAME => $this->channelName, SpanAttribute::BATCH_DELIVERIES => self::batchDeliveriesOf($firstDeliveries)], true);
             $spans[] = $span;
@@ -103,7 +107,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $this->channelName,
             ...$deliveryAttributes,
-            ...TracingInterceptor::trackingAttributesOf($this->tracer, $message, false),
+            ...($continuesTheMessageTrace ? TracingInterceptor::trackingAttributesCarriedBy($message, false) : TracingInterceptor::trackingAttributesOf($this->tracer, $message, false)),
         ];
         if (! $continuesTheMessageTrace) {
             return $this->tracer->startSpan($name, SpanKind::Producer, $attributes);

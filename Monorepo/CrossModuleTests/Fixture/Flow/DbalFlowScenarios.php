@@ -7,15 +7,18 @@ namespace Monorepo\CrossModuleTests\Fixture\Flow;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\WithoutMessageCollector;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -43,6 +46,7 @@ final class DbalFlowScenarios
             self::duplicatedCommandHandledOnce(),
             self::commandForwardedFromTheOutbox(),
             self::commandsOfTwoFlowsForwardedFromTheOutboxInOneHighThroughputBatch(),
+            self::commandsOfOneFlowForwardedFromTheOutboxInOneHighThroughputBatch(),
         ];
     }
 
@@ -167,7 +171,87 @@ final class DbalFlowScenarios
 
     private static function commandsOfTwoFlowsForwardedFromTheOutboxInOneHighThroughputBatch(): FlowScenario
     {
-        $orders = new class () {
+        $orders = self::placingAndCancellingOrders();
+        $sent = fn (string $routingKey, array $trackingAttributes) => ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey, ...$trackingAttributes])->containing(
+            ExpectedSpan::named('send outbox'),
+        );
+        $forwarded = fn (string $routingKey, ExpectedSpan $relay) => ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
+            ExpectedSpan::named('send outbox')->containing($relay),
+        );
+        $handled = fn (string $method) => ExpectedSpan::named('receive order_processing')->containing(ExpectedSpan::named('process class@anonymous::' . $method));
+
+        return new FlowScenario('commands of two flows forwarded from the outbox in one high-throughput batch', [$orders::class], [$orders], self::outboxForwardingInBatches(), [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: [...$metadata, MessageHeaders::TRACEPARENT => '00-' . bin2hex(random_bytes(16)) . '-' . bin2hex(random_bytes(8)) . '-01']))
+                ->expect($sent('order.place', [SpanAttribute::TRACE_CARRIED => true]))
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.cancel', '1', metadata: $metadata))
+                ->expect($sent('order.cancel', [])->withoutAttributes(SpanAttribute::TRACE_CARRIED))
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    $forwarded('order.place', ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->withAttributes([SpanAttribute::TRACE_CARRIED => true])),
+                    $forwarded('order.cancel', ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->withoutAttributes(SpanAttribute::TRACE_CARRIED)),
+                )
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    $forwarded('order.place', ExpectedSpan::named('send order_processing')->containing($handled('place'))),
+                    $forwarded('order.cancel', ExpectedSpan::named('send order_processing')->containing($handled('cancel'))),
+                ),
+        ]);
+    }
+
+    private static function commandsOfOneFlowForwardedFromTheOutboxInOneHighThroughputBatch(): FlowScenario
+    {
+        $orders = self::placingAndCancellingOrders();
+        $replacing = new class () {
+            #[Asynchronous('replacements', [new WithoutMessageCollector()])]
+            #[CommandHandler('order.replace', endpointId: 'order.replacing')]
+            public function replace(string $orderId, CommandBus $commandBus): void
+            {
+                $commandBus->sendWithRouting('order.cancel', $orderId);
+                $commandBus->sendWithRouting('order.place', $orderId);
+            }
+        };
+
+        $handledAfter = fn (string $routingKey, string $method) => ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
+            ExpectedSpan::named('send outbox')->containing(
+                ExpectedSpan::named('send order_processing')->containing(
+                    ExpectedSpan::named('receive order_processing')->containing(ExpectedSpan::named('process class@anonymous::' . $method)),
+                ),
+            ),
+        );
+
+        return new FlowScenario('commands of one flow forwarded from the outbox in one high-throughput batch', [$orders::class, $replacing::class], [$orders, $replacing], [SimpleMessageChannelBuilder::createQueueChannel('replacements'), ...self::outboxForwardingInBatches()], [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.replace', '1', metadata: $metadata))
+                ->expect(ExpectedSpan::named('send command')->asRoot()->containing(ExpectedSpan::named('send replacements')))
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('replacements', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive replacements')->containing(
+                        ExpectedSpan::named('process class@anonymous::replace')->containing(
+                            ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')),
+                            ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')),
+                        ),
+                    ),
+                )
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer))
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('process class@anonymous::replace')->containing(
+                        $handledAfter('order.cancel', 'cancel'),
+                        $handledAfter('order.place', 'place'),
+                    ),
+                ),
+        ]);
+    }
+
+    private static function placingAndCancellingOrders(): object
+    {
+        return new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.placing')]
             public function place(string $orderId): void
@@ -180,33 +264,17 @@ final class DbalFlowScenarios
             {
             }
         };
-        $forwardedIn = fn (string $routingKey) => ExpectedSpan::named('send command')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
-            ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)),
-        );
-        $handledIn = fn (string $routingKey, string $method) => ExpectedSpan::named('send command')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
-            ExpectedSpan::named('send outbox')->containing(
-                ExpectedSpan::named('send order_processing')->containing(
-                    ExpectedSpan::named('receive order_processing')->containing(ExpectedSpan::named('process class@anonymous::' . $method)),
-                ),
-            ),
-        );
+    }
 
-        return new FlowScenario('commands of two flows forwarded from the outbox in one high-throughput batch', [$orders::class], [$orders], [
+    /**
+     * @return list<object>
+     */
+    private static function outboxForwardingInBatches(): array
+    {
+        return [
             OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'order_processing'),
             DbalBackedMessageChannelBuilder::create('order_processing')->withHighThroughputPublishing(),
-        ], [
-            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata))
-                ->expect(ExpectedSpan::named('send command')->containing(ExpectedSpan::named('send outbox')))
-                ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.cancel', '1', metadata: $metadata))
-                ->expect(ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.cancel'])->containing(ExpectedSpan::named('send outbox')))
-                ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
-                ->expect($forwardedIn('order.place'), $forwardedIn('order.cancel'))
-                ->leavingWorkPending(),
-            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
-                ->expect($handledIn('order.place', 'place'), $handledIn('order.cancel', 'cancel')),
-        ]);
+        ];
     }
 
     private static function duplicatedCommandHandledOnce(): FlowScenario

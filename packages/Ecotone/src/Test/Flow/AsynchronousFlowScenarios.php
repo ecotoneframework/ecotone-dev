@@ -51,7 +51,7 @@ final class AsynchronousFlowScenarios
             [$notifier],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             [
-                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->publishEventWithRouting('merchant.created', '1', metadata: $metadata))
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->publishEventWithRouting('merchant.created', '1', metadata: $metadata))->leavingWorkPending()
                     ->expect(
                         ExpectedSpan::named('send event')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'merchant.created'])->containing(
                             ExpectedSpan::named('route merchant.notifying')->ofKind(SpanKind::Producer)->containing(
@@ -95,7 +95,7 @@ final class AsynchronousFlowScenarios
             [$orders, $notifier],
             [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
             [
-                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata))
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('order.place', '1', metadata: $metadata))->leavingWorkPending()
                     ->expect(
                         ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'order.place'])->containing(
                             ExpectedSpan::named('process class@anonymous::place')->containing(
@@ -143,7 +143,7 @@ final class AsynchronousFlowScenarios
             [$users, $notifier],
             [SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
             [
-                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '1', metadata: $metadata))
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '1', metadata: $metadata))->leavingWorkPending()
                     ->expect(
                         ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'user.register'])->containing(
                             ExpectedSpan::named('send async_channel')->ofKind(SpanKind::Producer),

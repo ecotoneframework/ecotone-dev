@@ -38,7 +38,7 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('scenariosOnEveryStore')]
-    public function test_every_catalogued_flow_stores_its_spans_except_failed_ones_and_completes_after_its_last_stage_unless_it_failed(FlowScenario $scenario, string $implementation): void
+    public function test_every_catalogued_flow_stores_its_spans_except_failed_ones_and_completes_once_no_work_is_pending_and_nothing_failed(FlowScenario $scenario, string $implementation): void
     {
         if (isset(self::KNOWN_GAPS[$scenario->name])) {
             self::markTestSkipped(self::KNOWN_GAPS[$scenario->name]);
@@ -68,7 +68,7 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
             }
             self::assertNull($stored->mismatchAfterStage($index, $steps));
             $completed = array_map(fn (string $traceId): bool => $tracing->isCompletedFor($traceId), $traceIds);
-            if ($index === array_key_last($scenario->stages) && ! $scenario->endsInFailure()) {
+            if ($scenario->isFinishedAfterStage($index)) {
                 self::assertNotContains(false, $completed);
             } else {
                 self::assertContains(false, $completed);

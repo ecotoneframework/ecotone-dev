@@ -6,6 +6,7 @@ namespace Ecotone\Test\Flow;
 
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
 use Throwable;
 
 /**
@@ -47,17 +48,20 @@ final class FlowScenario
         return $stage->expectedFailure === null ? null : "Stage {$stageIndex} was expected to fail with \"{$stage->expectedFailure}\", but it completed";
     }
 
-    public function endsInFailure(): bool
+    public function isFinishedAfterStage(int $stageIndex): bool
     {
-        foreach ($this->stages as $stage) {
+        if ($this->stages[$stageIndex]->leavesWorkPending) {
+            return false;
+        }
+        foreach (array_slice($this->stages, 0, $stageIndex + 1) as $stage) {
             foreach ($stage->expectedSpans as $expectedSpan) {
                 if ($expectedSpan->hasFailure()) {
-                    return true;
+                    return false;
                 }
             }
         }
 
-        return false;
+        return true;
     }
 
     public function withoutFailedSpans(): self
@@ -76,6 +80,11 @@ final class FlowScenario
             return $mismatch;
         }
         $tree = SpanTree::of($spans);
+        foreach ($tree->all() as $span) {
+            if (($span->attributes[SpanAttribute::MESSAGING_SYSTEM] ?? null) !== SpanAttribute::ECOTONE) {
+                return "Span {$span->name} does not name " . SpanAttribute::ECOTONE . ' as its ' . SpanAttribute::MESSAGING_SYSTEM . ". Recorded:\n" . $tree->render();
+            }
+        }
         foreach ($stage->absentSpanNames as $absentSpanName) {
             if (ExpectedSpan::namedIn($absentSpanName, $tree->all())) {
                 return "Span {$absentSpanName} was recorded, though the stage expects it not to be. Recorded:\n" . $tree->render();

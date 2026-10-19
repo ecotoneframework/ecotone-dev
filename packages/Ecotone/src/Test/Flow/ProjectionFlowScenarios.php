@@ -68,7 +68,7 @@ final class ProjectionFlowScenarios
             FlowStage::when(function (FlowTestSupport $ecotone, array $metadata): void {
                 $ecotone->withEvents([Event::createWithType('order.placed', ['orderId' => '1'])]);
                 $ecotone->publishEventWithRouting('order.placed', [], metadata: $metadata);
-            })
+            })->leavingWorkPending()
                 ->expect(
                     ExpectedSpan::named('send event')->containing(
                         ExpectedSpan::named('route orders')->ofKind(SpanKind::Producer)->containing(

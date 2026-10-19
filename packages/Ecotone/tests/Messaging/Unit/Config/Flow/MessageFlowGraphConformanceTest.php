@@ -52,7 +52,8 @@ final class MessageFlowGraphConformanceTest extends TestCase
             $steps = [...$steps, ...self::stepsFrom($root, null, $tree, $graph)];
         }
 
-        self::assertNotEmpty($steps);
+        $handlerRan = array_filter($tree->all(), fn (Span $span) => isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]));
+        self::assertTrue($steps !== [] || $handlerRan === [], 'Handlers ran, yet no recorded step could be placed in the message flow graph');
         foreach ($steps as [$from, $to]) {
             self::assertTrue(self::hasPath($graph, $from, $to), "The recorded step {$from} -> {$to} has no path in the message flow graph:\n" . $graph->toMermaid());
         }

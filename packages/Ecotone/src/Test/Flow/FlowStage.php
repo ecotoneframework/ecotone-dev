@@ -22,6 +22,7 @@ final class FlowStage
         public readonly array $absentSpanNames = [],
         public readonly bool $noOtherSpans = false,
         public readonly ?string $expectedFailure = null,
+        public readonly bool $leavesWorkPending = false,
     ) {
     }
 
@@ -36,6 +37,11 @@ final class FlowStage
     public function expect(ExpectedSpan ...$spans): self
     {
         return new self(...[...get_object_vars($this), 'expectedSpans' => [...$this->expectedSpans, ...$spans]]);
+    }
+
+    public function leavingWorkPending(): self
+    {
+        return new self(...[...get_object_vars($this), 'leavesWorkPending' => true]);
     }
 
     public function failingWith(string $messageFragment): self

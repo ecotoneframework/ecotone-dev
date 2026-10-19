@@ -20,11 +20,18 @@ final class SpanTree
     /**
      * @param list<Span> $spans
      * @param array<string, list<Span>> $childrenByParent
+     * @param array<string, Span> $spansById
      */
     private function __construct(
         private readonly array $spans,
         private readonly array $childrenByParent,
+        private readonly array $spansById,
     ) {
+    }
+
+    public function parentOf(Span $span): ?Span
+    {
+        return $span->parentSpanId === null ? null : ($this->spansById[$span->parentSpanId] ?? null);
     }
 
     /**
@@ -34,13 +41,15 @@ final class SpanTree
     {
         $spans = array_values(array_filter($spans, fn (Span $span) => ! ExpectedSpan::isFrameworkNoise($span)));
         $childrenByParent = [];
+        $spansById = [];
         foreach ($spans as $span) {
+            $spansById[$span->spanId] = $span;
             if ($span->parentSpanId !== null) {
                 $childrenByParent[$span->parentSpanId][] = $span;
             }
         }
 
-        return new self($spans, $childrenByParent);
+        return new self($spans, $childrenByParent, $spansById);
     }
 
     /**

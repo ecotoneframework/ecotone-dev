@@ -7,6 +7,7 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanEvent;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Test\Flow\FlowScenario;
@@ -15,6 +16,7 @@ use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\SpanKind as OpenTelemetrySpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
@@ -75,7 +77,10 @@ final class OpenTelemetryFlowConformanceTest extends TracingTestCase
                 default => SpanStatus::Unset,
             },
             $exported->getStatus()->getDescription(),
-            [],
+            array_map(
+                fn (EventInterface $event) => new SpanEvent($event->getName(), $event->getAttributes()->toArray(), DatePoint::createFromTimestamp($event->getEpochNanos() / 1_000_000_000)),
+                $exported->getEvents(),
+            ),
             DatePoint::createFromTimestamp($exported->getStartEpochNanos() / 1_000_000_000),
             DatePoint::createFromTimestamp($exported->getEndEpochNanos() / 1_000_000_000),
         );

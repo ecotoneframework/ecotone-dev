@@ -129,13 +129,13 @@ final class ChannelFailureFlowScenarios
 
         return new FlowScenario($name, [$users::class, $notifier::class], [$users, $notifier, ...$interceptors], [SimpleMessageChannelBuilder::createQueueChannel('users'), ...$channels], [
             self::registrationSentToTheQueue(),
-            ...($expectedFailure === null ? [$consume->withNoOtherSpans(), FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))] : [$consume->failingWith($expectedFailure)]),
+            ...($expectedFailure === null ? [$consume->withNoOtherSpans()->leavingWorkPending(), FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))] : [$consume->failingWith($expectedFailure)]),
         ]);
     }
 
     private static function registrationSentToTheQueue(): FlowStage
     {
-        return FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '1', metadata: $metadata))
+        return FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '1', metadata: $metadata))->leavingWorkPending()
             ->expect(
                 ExpectedSpan::named('send command')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'user.register'])->containing(
                     ExpectedSpan::named('send users')->ofKind(SpanKind::Producer),
@@ -186,7 +186,7 @@ final class ChannelFailureFlowScenarios
                     ),
                 )
                 ->expectNoSpanNamed('send notifications'),
-            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '2', metadata: [...$metadata, 'attempt' => 'second']))
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('user.register', '2', metadata: [...$metadata, 'attempt' => 'second']))->leavingWorkPending()
                 ->expect(
                     ExpectedSpan::named('send command')->asRoot()->withAttributes(['attempt' => 'second'])->containing(
                         ExpectedSpan::named('send users'),

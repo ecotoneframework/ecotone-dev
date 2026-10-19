@@ -49,7 +49,7 @@ final class DistributedFlowScenarios
                 ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
             ],
             [
-                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address', metadata: $metadata))
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->sendCommand('ticket_service', 'ticket.create', 'User changed billing address', metadata: $metadata))->leavingWorkPending()
                     ->expect(
                         ExpectedSpan::named('send distributed')->ofKind(SpanKind::Producer)->containing(
                             ExpectedSpan::named('send distributed_channel')->ofKind(SpanKind::Producer),

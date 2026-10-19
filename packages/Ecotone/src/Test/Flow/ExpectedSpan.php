@@ -25,6 +25,10 @@ final class ExpectedSpan
     /**
      * @param array<string, scalar> $attributes
      * @param list<ExpectedSpan> $children
+     * @param list<string> $absentAttributes
+     * @param array<string, scalar> $attributesOtherThan
+     * @param array<string, string> $attributesOfParent
+     * @param list<array{string, array<string, scalar>}> $events
      */
     private function __construct(
         public readonly string $name,
@@ -33,7 +37,47 @@ final class ExpectedSpan
         public readonly array $attributes = [],
         public readonly array $children = [],
         public readonly bool $root = false,
+        public readonly array $absentAttributes = [],
+        public readonly array $attributesOtherThan = [],
+        public readonly array $attributesOfParent = [],
+        public readonly array $events = [],
+        public readonly ?string $traceId = null,
+        public readonly ?string $parentSpanId = null,
+        public readonly ?string $statusDescription = null,
     ) {
+    }
+
+    public function withoutAttributes(string ...$keys): self
+    {
+        return new self(...[...get_object_vars($this), 'absentAttributes' => [...$this->absentAttributes, ...$keys]]);
+    }
+
+    public function withAttributeOtherThan(string $key, int|float|string|bool $value): self
+    {
+        return new self(...[...get_object_vars($this), 'attributesOtherThan' => [...$this->attributesOtherThan, $key => $value]]);
+    }
+
+    public function withAttributeEqualToParents(string $key, ?string $parentKey = null): self
+    {
+        return new self(...[...get_object_vars($this), 'attributesOfParent' => [...$this->attributesOfParent, $key => $parentKey ?? $key]]);
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    public function withEventStartingWith(string $namePrefix, array $attributes = []): self
+    {
+        return new self(...[...get_object_vars($this), 'events' => [...$this->events, [$namePrefix, $attributes]]]);
+    }
+
+    public function inTrace(string $traceId): self
+    {
+        return new self(...[...get_object_vars($this), 'traceId' => $traceId]);
+    }
+
+    public function withParentSpanId(string $parentSpanId): self
+    {
+        return new self(...[...get_object_vars($this), 'parentSpanId' => $parentSpanId]);
     }
 
     public static function named(string $name): self
@@ -51,9 +95,9 @@ final class ExpectedSpan
         return new self(...[...get_object_vars($this), 'kind' => $kind]);
     }
 
-    public function withStatus(SpanStatus $status): self
+    public function withStatus(SpanStatus $status, ?string $description = null): self
     {
-        return new self(...[...get_object_vars($this), 'status' => $status]);
+        return new self(...[...get_object_vars($this), 'status' => $status, 'statusDescription' => $description]);
     }
 
     /**
@@ -105,7 +149,7 @@ final class ExpectedSpan
     {
         $tree = SpanTree::of($spans);
         foreach ($expected as $expectedSpan) {
-            if (! $expectedSpan->matchesAnyOf($tree->all(), $tree)) {
+            if (! $expectedSpan->matchesAnyOf($tree->all(), $tree, null)) {
                 return "No recorded span tree matches:\n" . $expectedSpan->render(1) . "\nRecorded:\n" . $tree->render();
             }
         }
@@ -130,10 +174,10 @@ final class ExpectedSpan
     /**
      * @param Span[] $candidates
      */
-    private function matchesAnyOf(array $candidates, SpanTree $tree): bool
+    private function matchesAnyOf(array $candidates, SpanTree $tree, ?Span $parent): bool
     {
         foreach ($candidates as $candidate) {
-            if ($this->matches($candidate, $tree)) {
+            if ($this->matches($candidate, $tree, $parent ?? $tree->parentOf($candidate))) {
                 return true;
             }
         }
@@ -141,7 +185,7 @@ final class ExpectedSpan
         return false;
     }
 
-    private function matches(Span $span, SpanTree $tree): bool
+    private function matches(Span $span, SpanTree $tree, ?Span $parent): bool
     {
         if ($span->name !== $this->name
             || ($this->root && $span->parentSpanId !== null)
@@ -154,25 +198,71 @@ final class ExpectedSpan
                 return false;
             }
         }
+        foreach ($this->absentAttributes as $key) {
+            if (array_key_exists($key, $span->attributes)) {
+                return false;
+            }
+        }
+        foreach ($this->attributesOtherThan as $key => $value) {
+            if (! array_key_exists($key, $span->attributes) || $span->attributes[$key] === $value) {
+                return false;
+            }
+        }
+        foreach ($this->attributesOfParent as $key => $parentKey) {
+            if ($parent === null || ! array_key_exists($key, $span->attributes) || $span->attributes[$key] !== ($parent->attributes[$parentKey] ?? null)) {
+                return false;
+            }
+        }
+        foreach ($this->events as [$namePrefix, $eventAttributes]) {
+            if (! self::hasEvent($span, $namePrefix, $eventAttributes)) {
+                return false;
+            }
+        }
+        if (($this->traceId !== null && $span->traceId !== $this->traceId)
+            || ($this->parentSpanId !== null && $span->parentSpanId !== $this->parentSpanId)
+            || ($this->statusDescription !== null && $span->statusDescription !== $this->statusDescription)) {
+            return false;
+        }
 
-        return self::childrenMatch($this->children, $tree->childrenOf($span), $tree);
+        return self::childrenMatch($this->children, $tree->childrenOf($span), $tree, $span);
+    }
+
+    /**
+     * @param array<string, scalar> $attributes
+     */
+    private static function hasEvent(Span $span, string $namePrefix, array $attributes): bool
+    {
+        foreach ($span->events as $event) {
+            if (! str_starts_with($event->name, $namePrefix)) {
+                continue;
+            }
+            foreach ($attributes as $key => $value) {
+                if (($event->attributes[$key] ?? null) !== $value) {
+                    continue 2;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * @param list<ExpectedSpan> $expectedChildren
      * @param Span[] $available
      */
-    private static function childrenMatch(array $expectedChildren, array $available, SpanTree $tree): bool
+    private static function childrenMatch(array $expectedChildren, array $available, SpanTree $tree, Span $parent): bool
     {
         if ($expectedChildren === []) {
             return true;
         }
         $expected = array_shift($expectedChildren);
         foreach ($available as $index => $candidate) {
-            if ($expected->matches($candidate, $tree)) {
+            if ($expected->matches($candidate, $tree, $parent)) {
                 $remaining = $available;
                 unset($remaining[$index]);
-                if (self::childrenMatch($expectedChildren, $remaining, $tree)) {
+                if (self::childrenMatch($expectedChildren, $remaining, $tree, $parent)) {
                     return true;
                 }
             }
@@ -185,6 +275,12 @@ final class ExpectedSpan
     {
         $line = str_repeat('  ', $depth) . $this->name
             . ($this->root ? ' <root>' : '')
+            . ($this->absentAttributes === [] ? '' : ' without ' . implode(', ', $this->absentAttributes))
+            . ($this->attributesOtherThan === [] ? '' : ' ' . implode(', ', array_map(fn (string $key, mixed $value) => $key . '!=' . var_export($value, true), array_keys($this->attributesOtherThan), $this->attributesOtherThan)))
+            . ($this->attributesOfParent === [] ? '' : ' ' . implode(', ', array_map(fn (string $key, string $parentKey) => $key . '=parent.' . $parentKey, array_keys($this->attributesOfParent), $this->attributesOfParent)))
+            . ($this->events === [] ? '' : ' events: ' . implode(', ', array_map(fn (array $event) => $event[0] . '…', $this->events)))
+            . ($this->traceId === null ? '' : ' trace=' . $this->traceId)
+            . ($this->parentSpanId === null ? '' : ' parent=' . $this->parentSpanId)
             . ($this->kind === null ? '' : ' [' . $this->kind->name . ']')
             . ($this->status === null ? '' : ' (' . $this->status->name . ')')
             . ($this->attributes === [] ? '' : ' ' . implode(', ', array_map(fn (string $key, mixed $value) => $key . '=' . var_export($value, true), array_keys($this->attributes), $this->attributes)));

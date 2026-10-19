@@ -57,6 +57,8 @@ use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -210,6 +212,14 @@ final class MessageFlowDiscovery
             $streaming = $this->annotationFinder->findAttributeForClass($projectionClass, Streaming::class);
             if ($streaming instanceof Streaming) {
                 $this->edges[] = new FlowEdge($this->channelNode($streaming->channelName)->id, $id, FlowEdgeKind::INPUT);
+            }
+            foreach ([ProjectionBackfill::class, ProjectionRebuild::class] as $replayAttribute) {
+                $replay = $this->annotationFinder->findAttributeForClass($projectionClass, $replayAttribute);
+                if (($replay instanceof ProjectionBackfill || $replay instanceof ProjectionRebuild) && $replay->asyncChannelName !== null) {
+                    $channelId = $this->channelNode($replay->asyncChannelName)->id;
+                    $this->edges[] = new FlowEdge($id, $channelId, FlowEdgeKind::ASYNCHRONOUS);
+                    $this->edges[] = new FlowEdge($channelId, $id, FlowEdgeKind::INPUT);
+                }
             }
             $this->ownerByClass[$projectionClass] = $id;
         }

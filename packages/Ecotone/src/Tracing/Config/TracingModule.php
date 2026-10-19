@@ -38,6 +38,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Ecotone\Tracing\CompositeSpanRecorder;
 use Ecotone\Tracing\EcotoneTracer;
@@ -128,6 +129,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
             'traceEventHandler' => [EventHandler::class, Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceMessageHandler' => [InternalHandler::class . '&&not(' . MessageHeadersPropagatorInterceptor::class . ')', Precedence::TRACING_HANDLER_PRECEDENCE],
             'traceProjection' => [ProjectionTriggerEndpoint::class, Precedence::TRACING_HANDLER_PRECEDENCE],
+            'traceProjectionOperation' => [ProjectionOperationEndpoint::class, Precedence::TRACING_PRECEDENCE],
             'traceCommandBus' => [CommandBus::class, Precedence::TRACING_PRECEDENCE],
             'traceQueryBus' => [QueryBus::class, Precedence::TRACING_PRECEDENCE],
             'traceEventBus' => [EventBus::class, Precedence::TRACING_PRECEDENCE],

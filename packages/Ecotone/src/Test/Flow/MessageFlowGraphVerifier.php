@@ -16,6 +16,7 @@ use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
 use function in_array;
 use function is_a;
+use function is_string;
 use function str_starts_with;
 use function substr;
 
@@ -94,7 +95,7 @@ final class MessageFlowGraphVerifier
         $node = match (true) {
             in_array($span->name, ['send command', 'send event', 'send query'], true) => self::messageNodeOf((string) $destination, $graph),
             $span->name === 'send distributed' => 'distributed:' . DistributedBus::class,
-            isset($span->attributes[SpanAttribute::PROJECTION_NAME]) && str_starts_with($span->name, 'process ') => 'projection:' . $span->attributes[SpanAttribute::PROJECTION_NAME],
+            isset($span->attributes[SpanAttribute::PROJECTION_NAME]) && (str_starts_with($span->name, 'process ') || isset($span->attributes[SpanAttribute::PROJECTION_OPERATION])) => 'projection:' . $span->attributes[SpanAttribute::PROJECTION_NAME],
             isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]) => 'handler:' . $span->attributes[SpanAttribute::CODE_FUNCTION_NAME],
             str_starts_with($span->name, 'send ') => 'channel:' . substr($span->name, 5),
             str_starts_with($span->name, 'receive ') => 'channel:' . substr($span->name, 8),
@@ -130,6 +131,10 @@ final class MessageFlowGraphVerifier
             return true;
         }
         $targets = [$to => true];
+        $owner = $graph->hasNode($to) ? ($graph->node($to)->attributes['owner'] ?? null) : null;
+        if (is_string($owner) && str_starts_with($owner, 'projection:')) {
+            $targets[$owner] = true;
+        }
         if (str_starts_with($to, 'channel:') && $graph->hasNode($to)) {
             foreach ($graph->edgesFrom($to) as $edge) {
                 $targets[$edge->to] = true;

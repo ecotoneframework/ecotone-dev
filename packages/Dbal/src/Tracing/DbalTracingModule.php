@@ -56,6 +56,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
 
@@ -149,7 +150,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                     TraceRecordingInterceptor::class,
                     $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, $method),
                     $precedence,
-                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . DistributedBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
+                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . DistributedBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||' . ProjectionOperationEndpoint::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
                 )
             );
         }

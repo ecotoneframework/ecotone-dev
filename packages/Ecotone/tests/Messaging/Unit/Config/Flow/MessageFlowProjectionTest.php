@@ -17,6 +17,8 @@ use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -66,6 +68,28 @@ final class MessageFlowProjectionTest extends TestCase
 
         self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:projection.stream', 'projection:streaming.view'));
         self::assertSame('projection:streaming.view', $graph->node('handler:' . $projection::class . '::created')->attributes['owner']);
+    }
+
+    public function test_projection_backfilled_and_rebuilt_asynchronously_sends_through_and_is_fed_by_its_channels(): void
+    {
+        $projection = new #[Projection('replayed.view'), FromStream('orders'), ProjectionBackfill(asyncChannelName: 'backfill'), ProjectionRebuild(asyncChannelName: 'rebuild')] class () {
+            #[EventHandler('order.created')]
+            public function created(array $event): void
+            {
+            }
+        };
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class],
+            containerOrAvailableServices: [$projection],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('backfill'), SimpleMessageChannelBuilder::createQueueChannel('rebuild')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        foreach (['backfill', 'rebuild'] as $channel) {
+            self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, 'projection:replayed.view', 'channel:' . $channel));
+            self::assertCount(1, $graph->edgesOfKind(FlowEdgeKind::INPUT, 'channel:' . $channel, 'projection:replayed.view'));
+        }
     }
 
     public function test_projection_from_aggregate_stream_keeps_event_handler_ownership(): void

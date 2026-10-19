@@ -18,6 +18,8 @@ use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Projecting\Config\ProjectingModule;
+use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
 use Throwable;
 
@@ -86,7 +88,7 @@ final class TracingInterceptor
         $headers = $message->getHeaders();
         $name = match (true) {
             $headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) => 'receive ' . $headers->get(MessageHeaders::POLLED_CHANNEL_NAME),
-            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) => 'receive ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
+            $headers->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL) && ProjectingModule::projectionNameOfTriggerChannel((string) $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL)) === null => 'receive ' . $headers->get(MessageHeaders::INBOUND_REQUEST_CHANNEL),
             default => 'poll ' . $headers->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId(),
         };
 
@@ -104,6 +106,15 @@ final class TracingInterceptor
         return $this->trace('process ' . $trigger->projectionName, $methodInvocation, $message, SpanKind::Consumer, [
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
             SpanAttribute::PROJECTION_NAME => $trigger->projectionName,
+        ]);
+    }
+
+    public function traceProjectionOperation(MethodInvocation $methodInvocation, Message $message, ProjectionOperationEndpoint $endpoint): mixed
+    {
+        return $this->traceEntry($endpoint->operation . ' ' . $endpoint->projectionName, $methodInvocation, $message, SpanKind::Server, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
+            SpanAttribute::PROJECTION_NAME => $endpoint->projectionName,
+            SpanAttribute::PROJECTION_OPERATION => $endpoint->operation,
         ]);
     }
 

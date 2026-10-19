@@ -14,6 +14,7 @@ final class SpanAttribute
     public const MESSAGING_DESTINATION_NAME = 'messaging.destination.name';
     public const ENDPOINT_ID = 'ecotone.endpoint.id';
     public const PROJECTION_NAME = 'ecotone.projection.name';
+    public const PROJECTION_OPERATION = 'ecotone.projection.operation';
     public const TRACE_ROOT = 'ecotone.trace.root';
     public const TRACE_CARRIED = 'ecotone.trace.carried';
     public const TRACE_UNTRACKED = 'ecotone.trace.untracked';

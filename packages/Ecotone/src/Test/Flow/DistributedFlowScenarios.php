@@ -6,6 +6,7 @@ namespace Ecotone\Test\Flow;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -26,6 +27,7 @@ final class DistributedFlowScenarios
     {
         return [
             self::distributedCommandConsumedByTheTargetService(),
+            self::distributedEventDeliveredToEverySubscribedChannel(),
         ];
     }
 
@@ -66,6 +68,50 @@ final class DistributedFlowScenarios
                         ),
                     )
                     ->withNoOtherSpans(),
+            ],
+        );
+    }
+
+    private static function distributedEventDeliveredToEverySubscribedChannel(): FlowScenario
+    {
+        $billing = new class () {
+            #[Distributed]
+            #[EventHandler('user.billing_changed', endpointId: 'billing.updating')]
+            public function update(string $details): void
+            {
+            }
+        };
+
+        return new FlowScenario(
+            'distributed event delivered to every subscribed channel',
+            [$billing::class],
+            [$billing],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('billing_events'),
+                SimpleMessageChannelBuilder::createQueueChannel('audit_events'),
+                DistributedServiceMap::initialize()
+                    ->withEventMapping(channelName: 'billing_events', subscriptionKeys: ['user.*'])
+                    ->withEventMapping(channelName: 'audit_events', subscriptionKeys: ['order.*']),
+                ServiceConfiguration::createWithDefaults()->withServiceName('billing_service'),
+            ],
+            [
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->publishEvent('user.billing_changed', 'User changed billing address', metadata: $metadata))
+                    ->expect(ExpectedSpan::named('send distributed')->ofKind(SpanKind::Producer)->containing(ExpectedSpan::named('send billing_events')->ofKind(SpanKind::Producer)))
+                    ->expectNoSpanNamed('send audit_events')
+                    ->withNoOtherSpans()
+                    ->leavingWorkPending(),
+                FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('billing_events', ExecutionPollingMetadata::createWithTestingSetup()))
+                    ->expect(
+                        ExpectedSpan::named('send billing_events')->containing(
+                            ExpectedSpan::named('receive billing_events')->ofKind(SpanKind::Consumer)->containing(
+                                ExpectedSpan::named('send event')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'user.billing_changed'])->containing(
+                                    ExpectedSpan::named('route billing.updating')->containing(
+                                        ExpectedSpan::named('process class@anonymous::update')->withAttributes([SpanAttribute::ENDPOINT_ID => 'billing.updating']),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
             ],
         );
     }

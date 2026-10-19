@@ -36,6 +36,9 @@ final class FlowScenarioCatalogue
             ...FailureFlowScenarios::all(),
             ...ChannelFailureFlowScenarios::all(),
             ...TraceFlowScenarios::all(),
+            ...RecoverabilityFlowScenarios::all(),
+            ...ChannelFlowScenarios::all(),
+            ...EndpointFlowScenarios::all(),
         ];
     }
 }

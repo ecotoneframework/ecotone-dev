@@ -55,7 +55,7 @@ final class FlowScenario
         }
         foreach (array_slice($this->stages, 0, $stageIndex + 1) as $stage) {
             foreach ($stage->expectedSpans as $expectedSpan) {
-                if ($expectedSpan->hasFailure()) {
+                if ($expectedSpan->failsTheFlow()) {
                     return false;
                 }
             }

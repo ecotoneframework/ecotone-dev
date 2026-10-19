@@ -15,9 +15,14 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Modelling\WithAggregateVersioning;
 use Ecotone\Api\Modelling\WithEvents;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Test\Flow\Fixture\FlowOrder;
 use Ecotone\Test\Flow\Fixture\FlowOrderPlaced;
+use Ecotone\Test\Flow\Fixture\FlowPaymentReceived;
 
 /**
  * licence Apache-2.0
@@ -33,6 +38,9 @@ final class ModellingFlowScenarios
             self::stateStoredAggregateRecordingAnEvent(),
             self::eventSourcedAggregateReturningAnEvent(),
             self::sagaStartedByAnEventSendingACommand(),
+            self::sagaContinuedByASecondEventMappedToIt(),
+            self::eventForAnUnknownSagaIsDropped(),
+            self::eventSourcedAggregateFeedingAProjection(),
         ];
     }
 
@@ -148,6 +156,87 @@ final class ModellingFlowScenarios
                 )
                 ->withNoOtherSpans(),
         ]);
+    }
+
+    private static function sagaContinuedByASecondEventMappedToIt(): FlowScenario
+    {
+        $saga = self::shippingSaga();
+
+        return new FlowScenario('saga continued by a second event mapped to it', [$saga::class, FlowOrderPlaced::class, FlowPaymentReceived::class], [], [], [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->publishEvent(new FlowOrderPlaced('1'), metadata: $metadata))
+                ->expect(ExpectedSpan::named('send event')->containing(ExpectedSpan::named('route shipping.starting')->containing(ExpectedSpan::named('process class@anonymous::start'))))
+                ->withNoOtherSpans(),
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->publishEvent(new FlowPaymentReceived('1'), metadata: $metadata))
+                ->expect(
+                    ExpectedSpan::named('send event')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => FlowPaymentReceived::class])->containing(
+                        ExpectedSpan::named('route shipping.paying')->containing(
+                            ExpectedSpan::named('process class@anonymous::whenPaid')->withAttributes([SpanAttribute::ENDPOINT_ID => 'shipping.paying']),
+                        ),
+                    ),
+                )
+                ->withNoOtherSpans(),
+        ]);
+    }
+
+    private static function eventForAnUnknownSagaIsDropped(): FlowScenario
+    {
+        $saga = self::shippingSaga();
+
+        return new FlowScenario('event for an unknown saga is dropped', [$saga::class, FlowOrderPlaced::class, FlowPaymentReceived::class], [], [], [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->publishEvent(new FlowPaymentReceived('unknown'), metadata: $metadata))
+                ->expect(ExpectedSpan::named('send event')->containing(ExpectedSpan::named('route shipping.paying')->withStatus(SpanStatus::Ok)))
+                ->expectNoSpanNamed('process class@anonymous::whenPaid')
+                ->withNoOtherSpans(),
+        ]);
+    }
+
+    private static function eventSourcedAggregateFeedingAProjection(): FlowScenario
+    {
+        $projection = new #[Projection('order_list'), FromAggregateStream(FlowOrder::class)] class () {
+            #[EventHandler(endpointId: 'order_list.placed')]
+            public function whenPlaced(FlowOrderPlaced $event): void
+            {
+            }
+        };
+
+        return new FlowScenario('event-sourced aggregate feeding a projection', [FlowOrder::class, FlowOrderPlaced::class, $projection::class], [$projection], [], [
+            FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->sendCommandWithRouting('flow_order.place', ['orderId' => '1'], metadata: $metadata))
+                ->expect(
+                    ExpectedSpan::named('send command')->containing(
+                        ExpectedSpan::named('process FlowOrder::place')->withAttributes([SpanAttribute::ENDPOINT_ID => 'flow_order.placing']),
+                        ExpectedSpan::named('send event')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => FlowOrderPlaced::class])->containing(
+                            ExpectedSpan::named('route order_list')->ofKind(SpanKind::Producer)->containing(
+                                ExpectedSpan::named('process order_list')->ofKind(SpanKind::Consumer)->withAttributes([SpanAttribute::PROJECTION_NAME => 'order_list'])->containing(
+                                    ExpectedSpan::named('process class@anonymous::whenPlaced'),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                ->withNoOtherSpans(),
+        ]);
+    }
+
+    private static function shippingSaga(): object
+    {
+        return new #[Saga] class () {
+            #[Identifier]
+            public string $orderId = '';
+
+            #[EventHandler(endpointId: 'shipping.starting')]
+            public static function start(FlowOrderPlaced $event): self
+            {
+                $saga = new self();
+                $saga->orderId = $event->orderId;
+
+                return $saga;
+            }
+
+            #[EventHandler(endpointId: 'shipping.paying', dropMessageOnNotFound: true)]
+            public function whenPaid(FlowPaymentReceived $event): void
+            {
+            }
+        };
     }
 
     private static function orderPlacedSubscriber(): object

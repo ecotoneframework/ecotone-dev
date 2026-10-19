@@ -113,13 +113,15 @@ final class ExpectedSpan
         return new self(...[...get_object_vars($this), 'children' => [...$this->children, ...$children]]);
     }
 
-    public function hasFailure(): bool
+    public function failsTheFlow(): bool
     {
-        if ($this->status === SpanStatus::Error) {
-            return true;
-        }
+        return $this->status === SpanStatus::Error || $this->hasFailedConsumer();
+    }
+
+    private function hasFailedConsumer(): bool
+    {
         foreach ($this->children as $child) {
-            if ($child->hasFailure()) {
+            if ((str_starts_with($child->name, 'receive ') && $child->status === SpanStatus::Error) || $child->hasFailedConsumer()) {
                 return true;
             }
         }

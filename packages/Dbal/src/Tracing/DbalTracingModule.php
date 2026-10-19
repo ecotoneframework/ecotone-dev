@@ -121,6 +121,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(SpansTableManager::class, [SpansTableManager::DEFAULT_TABLE, $storesOnDatabase, $consoleInvocationPrefix, $connectionReference])
         );
         if ($flowTracking === null) {
+            $messagingConfiguration->registerServiceDefinition(FlowTrackingScope::class, new Definition(UntrackedFlowScope::class));
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.']));
 
             return;
@@ -144,6 +145,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             TraceRecordingInterceptor::class,
             new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class), new Reference(Tracer::class), new Reference(MessagingEntrypointService::class), new Reference(LoggingGateway::class)])
         );
+        $messagingConfiguration->registerServiceDefinition(FlowTrackingScope::class, new Reference(TraceRecordingInterceptor::class));
         foreach (['publishAfterCommit' => Precedence::TRACE_PUBLICATION_PRECEDENCE, 'recordUnitOfWork' => Precedence::TRACE_RECORDING_PRECEDENCE] as $method => $precedence) {
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorBuilder::create(

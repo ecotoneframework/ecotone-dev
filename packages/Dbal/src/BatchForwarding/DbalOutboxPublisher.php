@@ -14,6 +14,7 @@ use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Connection\DbalType;
+use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
@@ -59,10 +60,16 @@ final class DbalOutboxPublisher
         private int $maxBatchSize,
         private FinalFailureStrategy $finalFailureStrategy,
         private MessageBuilder $messageBuilder,
+        private FlowTrackingScope $flowTracking,
     ) {
     }
 
     public function publishBatch(): int
+    {
+        return $this->flowTracking->publishingStepsAfterCommit(fn (): int => $this->forwardClaimedBatch());
+    }
+
+    private function forwardClaimedBatch(): int
     {
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
@@ -83,9 +90,11 @@ final class DbalOutboxPublisher
 
             $deliveredRowIds = [];
             $releasedRowIds = [];
-            foreach ($this->groupByTargetChannel($drainedRecords, $releasedRowIds) as $groupTargetChannelName => $groupedRecords) {
-                $this->forwardGroup((string) $groupTargetChannelName, $groupedRecords, $deliveredRowIds, $releasedRowIds);
-            }
+            $this->flowTracking->storingSpansOf(function () use ($drainedRecords, &$deliveredRowIds, &$releasedRowIds): void {
+                foreach ($this->groupByTargetChannel($drainedRecords, $releasedRowIds) as $groupTargetChannelName => $groupedRecords) {
+                    $this->forwardGroup((string) $groupTargetChannelName, $groupedRecords, $deliveredRowIds, $releasedRowIds);
+                }
+            });
 
             $this->deleteRows($context, $connection, $deliveredRowIds);
             $this->releaseRows($context, $connection, $releasedRowIds);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tracing;
 
+use function array_filter;
 use function array_pop;
 use function array_reverse;
 
@@ -73,7 +74,8 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         $entries = $batch->entries;
         foreach ($entriesByTrace as $traceEntries) {
             $firstEntry = $this->messageBuilder->withPayload('')->setMultipleHeaders(reset($traceEntries)['headers'] ?? [])->build();
-            $span = $this->startSendSpan($firstEntry, [SpanAttribute::CHANNEL_NAME => $this->channelName, SpanAttribute::BATCH_DELIVERIES => self::batchDeliveriesOf($traceEntries)], true);
+            $firstDeliveries = array_filter($traceEntries, fn (array $entry): bool => ! self::isDeliveredAlready($entry['headers'] ?? []));
+            $span = $this->startSendSpan($firstEntry, $firstDeliveries === [] ? [] : [SpanAttribute::CHANNEL_NAME => $this->channelName, SpanAttribute::BATCH_DELIVERIES => self::batchDeliveriesOf($firstDeliveries)], true);
             $spans[] = $span;
             $carrier = TracingInterceptor::carrierOf($span);
             foreach ($traceEntries as $index => $entry) {
@@ -142,6 +144,16 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    private static function isDeliveredAlready(array $headers): bool
+    {
+        $delivery = (string) ($headers[MessageHeaders::TRACING_DELIVERY] ?? '');
+
+        return $delivery !== '' && str_ends_with($delivery, ':' . ($headers[MessageHeaders::MESSAGE_ID] ?? ''));
     }
 
     /**

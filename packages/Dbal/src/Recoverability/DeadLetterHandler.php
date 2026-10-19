@@ -8,6 +8,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageChannel;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -21,6 +22,7 @@ final class DeadLetterHandler
     public function __construct(
         private DeadLetterStore $deadLetterStore,
         private MessageBuilder $messageBuilder,
+        private FlowTrackingScope $flowTracking,
     ) {
     }
 
@@ -124,7 +126,9 @@ final class DeadLetterHandler
             )
             ->build();
 
-        $messagingEntrypoint->sendMessage($message);
-        $this->deadLetterStore->delete($messageId);
+        $this->flowTracking->publishingStepsAfterCommit(fn () => $this->flowTracking->storingSpansOf(function () use ($messagingEntrypoint, $message, $messageId): void {
+            $messagingEntrypoint->sendMessage($message);
+            $this->deadLetterStore->delete($messageId);
+        }));
     }
 }

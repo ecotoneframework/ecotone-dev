@@ -5,6 +5,7 @@ namespace Ecotone\Api\Dbal\ExtensionObject;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Dbal\Recoverability\DeadLetterHandler;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
+use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -158,6 +159,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             $builder->register($deadLetterHandlerReference, new Definition(DeadLetterHandler::class, [
                 Reference::to(self::storeReferenceFor($this->referenceName)),
                 Reference::to(MessageBuilder::class),
+                Reference::to(FlowTrackingScope::class),
             ]));
         }
 

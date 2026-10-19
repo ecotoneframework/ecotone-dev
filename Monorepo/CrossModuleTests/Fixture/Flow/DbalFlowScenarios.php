@@ -109,11 +109,21 @@ final class DbalFlowScenarios
                     ),
                 ),
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->getGateway(DeadLetterGateway::class)->replayAll())
+                ->expect(
+                    ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error)->containing(
+                        ExpectedSpan::named('send orders')->containing(
+                            ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Error),
+                            ExpectedSpan::named('send orders')->withStatus(SpanStatus::Ok),
+                        ),
+                    ),
+                )
                 ->leavingWorkPending(),
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup()))
                 ->expect(
-                    ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Ok)->containing(
-                        ExpectedSpan::named('process class@anonymous::place')->withStatus(SpanStatus::Ok)->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.placing']),
+                    ExpectedSpan::named('send orders')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('receive orders')->withStatus(SpanStatus::Ok)->containing(
+                            ExpectedSpan::named('process class@anonymous::place')->withStatus(SpanStatus::Ok)->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.placing']),
+                        ),
                     ),
                 ),
         ]);
@@ -140,13 +150,13 @@ final class DbalFlowScenarios
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('outbox', ExecutionPollingMetadata::createWithTestingSetup()))
                 ->expect(
                     ExpectedSpan::named('send command')->asRoot()->containing(
-                        ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->relayedOutsideAUnitOfWork()),
+                        ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)),
                     ),
                 )
                 ->leavingWorkPending(),
             FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('order_processing', ExecutionPollingMetadata::createWithTestingSetup()))
                 ->expect(
-                    ExpectedSpan::named('send order_processing')->relayedOutsideAUnitOfWork()->containing(
+                    ExpectedSpan::named('send order_processing')->containing(
                         ExpectedSpan::named('receive order_processing')->ofKind(SpanKind::Consumer)->containing(
                             ExpectedSpan::named('process class@anonymous::place')->withAttributes([SpanAttribute::ENDPOINT_ID => 'order.placing']),
                         ),
@@ -171,11 +181,11 @@ final class DbalFlowScenarios
             }
         };
         $forwardedIn = fn (string $routingKey) => ExpectedSpan::named('send command')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
-            ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)->relayedOutsideAUnitOfWork()),
+            ExpectedSpan::named('send outbox')->containing(ExpectedSpan::named('send order_processing')->ofKind(SpanKind::Producer)),
         );
         $handledIn = fn (string $routingKey, string $method) => ExpectedSpan::named('send command')->asRoot()->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => $routingKey])->containing(
             ExpectedSpan::named('send outbox')->containing(
-                ExpectedSpan::named('send order_processing')->relayedOutsideAUnitOfWork()->containing(
+                ExpectedSpan::named('send order_processing')->containing(
                     ExpectedSpan::named('receive order_processing')->containing(ExpectedSpan::named('process class@anonymous::' . $method)),
                 ),
             ),

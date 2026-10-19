@@ -13,6 +13,7 @@ use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\Tracing\FlowTrackingScope;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -134,6 +135,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             $outboxForwardingChannel->getMaxForwardingBatchSize(),
             $outboxForwardingChannel->getFinalFailureStrategy() ?? $inboundChannelAdapter->getFinalFailureStrategy(),
             new Reference(MessageBuilder::class),
+            new Reference(FlowTrackingScope::class),
         ]);
     }
 }

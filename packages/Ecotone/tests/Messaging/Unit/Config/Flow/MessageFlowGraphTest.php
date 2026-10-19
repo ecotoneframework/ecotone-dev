@@ -591,7 +591,47 @@ final class MessageFlowGraphTest extends TestCase
         self::assertStringContainsString('PlaceOrderForFlowGraph', $mermaid);
         self::assertStringContainsString('-.->|"emits (recordThat)"|', $mermaid);
         self::assertStringContainsString('==>|"async"|', $mermaid);
-        self::assertStringContainsString('[("orders")]', $mermaid);
+        self::assertStringContainsString('[("Queue<br/>orders")]', $mermaid);
+    }
+
+    public function test_mermaid_draws_an_asynchronous_handler_behind_its_queue_in_the_order_the_message_travels(): void
+    {
+        $notifications = new class () {
+            #[Asynchronous('notifications')]
+            #[EventHandler('order.placed', endpointId: 'notifications.orderPlaced')]
+            public function whenPlaced(string $orderId): void
+            {
+            }
+        };
+        $invoicing = new class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(string $orderId): void
+            {
+            }
+        };
+        $mermaid = EcotoneLite::bootstrapFlowTesting(
+            [$notifications::class, $invoicing::class],
+            [$notifications, $invoicing],
+            [SimpleMessageChannelBuilder::createQueueChannel('notifications')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph()->toMermaid();
+
+        $idOf = function (string $nodeLine) use ($mermaid): string {
+            self::assertSame(1, preg_match('/^\s*(n\d+)' . preg_quote($nodeLine, '/') . '$/m', $mermaid), "Missing node {$nodeLine} in:\n{$mermaid}");
+            preg_match('/^\s*(n\d+)' . preg_quote($nodeLine, '/') . '$/m', $mermaid, $match);
+
+            return $match[1];
+        };
+        $event = $idOf('(["order.placed"])');
+        $queue = $idOf('[("Queue<br/>notifications")]');
+        $asynchronous = $idOf('["Event Handler<br/>' . $notifications::class . '::whenPlaced"]');
+        $synchronous = $idOf('["Event Handler<br/>' . $invoicing::class . '::whenPlaced"]');
+
+        self::assertStringContainsString("{$event} --> {$queue}\n", $mermaid);
+        self::assertStringContainsString("{$queue} ==>|\"async\"| {$asynchronous}\n", $mermaid);
+        self::assertStringContainsString("{$event} --> {$synchronous}\n", $mermaid);
+        self::assertStringNotContainsString("{$event} --> {$asynchronous}\n", $mermaid);
     }
 
     public function test_dump_console_command_writes_mermaid_by_default_and_json_on_request(): void

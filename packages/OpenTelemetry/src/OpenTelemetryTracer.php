@@ -26,6 +26,8 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
  */
 final class OpenTelemetryTracer implements Tracer
 {
+    public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php.ecotone';
+
     /** @var OpenTelemetryActiveSpan[] */
     private array $activeSpans = [];
 
@@ -59,7 +61,7 @@ final class OpenTelemetryTracer implements Tracer
     private function spanBuilderFor(string $name, SpanKind $kind, array $attributes): SpanBuilderInterface
     {
         return $this->tracerProvider
-            ->getTracer(EcotoneSpanBuilder::ECOTONE_TRACER_NAME)
+            ->getTracer(self::ECOTONE_TRACER_NAME)
             ->spanBuilder($name)
             ->setSpanKind(self::kindOf($kind))
             ->setAttributes($attributes);

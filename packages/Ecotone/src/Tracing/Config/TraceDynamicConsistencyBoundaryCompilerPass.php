@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\OpenTelemetry\Configuration;
+namespace Ecotone\Tracing\Config;
 
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
@@ -10,9 +10,10 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
-use Ecotone\OpenTelemetry\TracedDecisionModelBatchLoader;
-use Ecotone\OpenTelemetry\TracedEventStore;
-use OpenTelemetry\API\Trace\TracerProviderInterface;
+use Ecotone\Tracing\MessageSpanAttributes;
+use Ecotone\Tracing\TracedDecisionModelBatchLoader;
+use Ecotone\Tracing\TracedEventStore;
+use Ecotone\Tracing\Tracer;
 
 use function str_starts_with;
 use function strlen;
@@ -27,12 +28,6 @@ final class TraceDynamicConsistencyBoundaryCompilerPass implements CompilerPass
 
     public function process(ContainerBuilder $builder): void
     {
-        $this->traceEachDecisionModelLoad($builder);
-        $this->traceConditionalAppends($builder);
-    }
-
-    private function traceEachDecisionModelLoad(ContainerBuilder $builder): void
-    {
         foreach ($builder->getDefinitions() as $id => $definition) {
             if (! str_starts_with($id, self::BATCH_LOADER_REFERENCE_PREFIX) || ! $definition instanceof Definition || $definition->getClassName() !== DecisionModelBatchLoader::class) {
                 continue;
@@ -41,20 +36,16 @@ final class TraceDynamicConsistencyBoundaryCompilerPass implements CompilerPass
             $builder->replace($id, new Definition(TracedDecisionModelBatchLoader::class, [
                 $definition,
                 substr($id, strlen(self::BATCH_LOADER_REFERENCE_PREFIX)),
-                new Reference(TracerProviderInterface::class),
+                new Reference(Tracer::class),
+                new Reference(MessageSpanAttributes::class),
             ]));
         }
-    }
 
-    private function traceConditionalAppends(ContainerBuilder $builder): void
-    {
-        if (! $builder->has(EventStore::RAW_REFERENCE)) {
-            return;
+        if ($builder->has(EventStore::RAW_REFERENCE)) {
+            $builder->replace(EventStore::RAW_REFERENCE, new Definition(TracedEventStore::class, [
+                $builder->getDefinition(EventStore::RAW_REFERENCE),
+                new Reference(Tracer::class),
+            ]));
         }
-
-        $builder->replace(EventStore::RAW_REFERENCE, new Definition(TracedEventStore::class, [
-            $builder->getDefinition(EventStore::RAW_REFERENCE),
-            new Reference(TracerProviderInterface::class),
-        ]));
     }
 }

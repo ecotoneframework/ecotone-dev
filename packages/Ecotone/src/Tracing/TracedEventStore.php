@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\OpenTelemetry;
+namespace Ecotone\Tracing;
 
 use function count;
 
@@ -12,11 +12,8 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventStore;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Api\EventSourcing\MetadataMatcher;
-use OpenTelemetry\API\Trace\SpanInterface;
-use OpenTelemetry\API\Trace\SpanKind;
-use OpenTelemetry\API\Trace\StatusCode;
-use OpenTelemetry\API\Trace\TracerProviderInterface;
-use OpenTelemetry\Context\ScopeInterface;
+use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanKind;
 use Throwable;
 
 /**
@@ -26,7 +23,7 @@ final class TracedEventStore implements EventStore
 {
     public function __construct(
         private readonly EventStore $eventStore,
-        private readonly TracerProviderInterface $tracerProvider,
+        private readonly Tracer $tracer,
     ) {
     }
 
@@ -38,25 +35,27 @@ final class TracedEventStore implements EventStore
             return;
         }
 
-        $span = $this->conditionalAppendSpan($streamName, $streamEvents, $appendCondition);
-        $spanScope = $span->activate();
+        $span = $this->tracer->startSpan('Conditional Append: ' . $streamName, SpanKind::Internal, [
+            SpanAttribute::MESSAGING_SYSTEM => SpanAttribute::ECOTONE,
+            DynamicConsistencyBoundarySpanAttributes::TAGS => DynamicConsistencyBoundarySpanAttributes::userTags($appendCondition->expectedTagVersions()),
+            DynamicConsistencyBoundarySpanAttributes::AGGREGATES => DynamicConsistencyBoundarySpanAttributes::aggregates($appendCondition->expectedTagVersions()),
+            DynamicConsistencyBoundarySpanAttributes::EVENTS_APPENDED => count($streamEvents),
+        ]);
 
         try {
             $this->eventStore->appendTo($streamName, $streamEvents, $appendCondition);
         } catch (DecisionModelConcurrencyException $conflict) {
             $span->addEvent(DynamicConsistencyBoundarySpanAttributes::CONFLICT_EVENT_NAME, $conflict->conflictFields());
-            $span->recordException($conflict);
-            self::closeSpan($span, $spanScope, StatusCode::STATUS_ERROR, $conflict->getMessage());
+            $span->fail($conflict);
 
             throw $conflict;
-        } catch (Throwable $exception) {
-            $span->recordException($exception);
-            self::closeSpan($span, $spanScope, StatusCode::STATUS_ERROR, $exception->getMessage());
+        } catch (Throwable $failure) {
+            $span->fail($failure);
 
-            throw $exception;
+            throw $failure;
         }
 
-        self::closeSpan($span, $spanScope, StatusCode::STATUS_OK, null);
+        $span->end();
     }
 
     public function delete(string $streamName): void
@@ -94,27 +93,5 @@ final class TracedEventStore implements EventStore
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {
         return $this->eventStore->loadByCriteria($criteria);
-    }
-
-    /**
-     * @param object[]|array[] $streamEvents
-     */
-    private function conditionalAppendSpan(string $streamName, array $streamEvents, AppendCondition $appendCondition): SpanInterface
-    {
-        return $this->tracerProvider
-            ->getTracer(EcotoneSpanBuilder::ECOTONE_TRACER_NAME)
-            ->spanBuilder('Conditional Append: ' . $streamName)
-            ->setSpanKind(SpanKind::KIND_INTERNAL)
-            ->setAttribute(DynamicConsistencyBoundarySpanAttributes::TAGS, DynamicConsistencyBoundarySpanAttributes::userTags($appendCondition->expectedTagVersions()))
-            ->setAttribute(DynamicConsistencyBoundarySpanAttributes::AGGREGATES, DynamicConsistencyBoundarySpanAttributes::aggregates($appendCondition->expectedTagVersions()))
-            ->setAttribute(DynamicConsistencyBoundarySpanAttributes::EVENTS_APPENDED, count($streamEvents))
-            ->startSpan();
-    }
-
-    private static function closeSpan(SpanInterface $span, ScopeInterface $spanScope, string $statusCode, ?string $descriptionStatusCode): void
-    {
-        $span->setStatus($statusCode, $descriptionStatusCode);
-        $spanScope->detach();
-        $span->end();
     }
 }

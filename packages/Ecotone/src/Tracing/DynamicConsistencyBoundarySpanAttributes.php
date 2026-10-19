@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\OpenTelemetry;
+namespace Ecotone\Tracing;
 
 use function array_filter;
 use function array_map;

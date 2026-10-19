@@ -112,6 +112,7 @@ final class TracingModule extends NoExternalConfigurationModule implements Annot
         );
         $messagingConfiguration->addCompilerPass(new RegisterSpanEventLoggerCompilerPass());
         $messagingConfiguration->addCompilerPass(new TraceEventRoutesCompilerPass());
+        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
         $messagingConfiguration->registerServiceDefinition(
             TracingInterceptor::class,
             new Definition(TracingInterceptor::class, [new Reference(Tracer::class), new Reference(MessageBuilder::class), new Reference(MessageSpanAttributes::class), $this->endpointIdsByHandler])

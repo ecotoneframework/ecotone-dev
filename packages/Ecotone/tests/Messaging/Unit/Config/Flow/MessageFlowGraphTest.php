@@ -443,6 +443,24 @@ final class MessageFlowGraphTest extends TestCase
         self::assertSame(['order.*'], $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $busId, to: 'channel:events_channel')[0]->attributes['subscriptionKeys']);
     }
 
+    public function test_services_sharing_a_transport_channel_each_keep_their_route_from_the_distributed_bus(): void
+    {
+        $graph = EcotoneLite::bootstrapFlowTesting(
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel('shared_channel'),
+                DistributedServiceMap::initialize()
+                    ->withCommandMapping('billing', 'shared_channel')
+                    ->withCommandMapping('shipping', 'shared_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('orders'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )->getMessageFlowGraph();
+
+        $routes = $graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: 'distributed:' . DistributedBus::class, to: 'channel:shared_channel');
+        self::assertSame(['billing', 'shipping'], array_map(fn ($edge) => $edge->attributes['targetService'], $routes));
+    }
+
     public function test_channel_mapped_to_this_service_delivers_into_its_distributed_bus(): void
     {
         $graph = EcotoneLite::bootstrapFlowTesting(

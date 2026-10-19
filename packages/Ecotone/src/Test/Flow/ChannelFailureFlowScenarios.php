@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\RetryTemplateBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\EventBus;
@@ -21,6 +22,7 @@ use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Test\StaticMessageBuilder;
 use RuntimeException;
@@ -74,6 +76,8 @@ final class ChannelFailureFlowScenarios
             self::presendInterceptorFailingBeforeTheAsynchronousSend(),
             self::failingHandlerWhoseErrorChannelSendFails(),
             self::distributedSendFailing(),
+            self::sendSucceedingOnRetry(),
+            self::sendFailingIntoTheChannelErrorChannel(),
         ];
     }
 
@@ -165,6 +169,56 @@ final class ChannelFailureFlowScenarios
                     ),
                 )
                 ->expectNoSpanNamed('process class@anonymous::notify'),
+        ]);
+    }
+
+    private static function sendSucceedingOnRetry(): FlowScenario
+    {
+        [$users, $notifier] = self::registrationForwardedToNotifications();
+
+        return new FlowScenario('event forwarded to a channel whose send succeeds on retry', [$users::class, $notifier::class], [$users, $notifier], [
+            SimpleMessageChannelBuilder::createQueueChannel('users'),
+            ExceptionalQueueChannel::createWithExceptionOnSend('notifications', 1),
+            PollableChannelConfiguration::create('notifications', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(1)->build()),
+        ], [
+            self::registrationSentToTheQueue(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Ok),
+                    ),
+                )
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('send notifications')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('receive notifications')->containing(
+                            ExpectedSpan::named('process class@anonymous::notify')->withAttributes([SpanAttribute::ENDPOINT_ID => 'user.notifying']),
+                        ),
+                    ),
+                ),
+        ]);
+    }
+
+    private static function sendFailingIntoTheChannelErrorChannel(): FlowScenario
+    {
+        [$users, $notifier] = self::registrationForwardedToNotifications();
+
+        return new FlowScenario('event forwarded to a channel whose send fails into the channel error channel', [$users::class, $notifier::class], [$users, $notifier], [
+            SimpleMessageChannelBuilder::createQueueChannel('users'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications_failed_sends'),
+            ExceptionalQueueChannel::createWithExceptionOnSend('notifications'),
+            PollableChannelConfiguration::neverRetry('notifications')->withErrorChannel('notifications_failed_sends'),
+        ], [
+            self::registrationSentToTheQueue(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Error, 'Exception on send'),
+                    ),
+                )
+                ->expectNoSpanNamed('process class@anonymous::notify')
+                ->leavingWorkPending(),
         ]);
     }
 

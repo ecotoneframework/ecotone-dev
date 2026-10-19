@@ -25,6 +25,7 @@ use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Test\Ecotone\EventSourcing\SecondaryTestDatabaseConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -35,6 +36,7 @@ final class CrossModuleFlowConformanceTest extends TestCase
     protected function setUp(): void
     {
         EventSourcingMessagingTestCase::clearDataTables(DbalMessagingTestCase::prepareConnection()->createContext()->getDbalConnection());
+        EventSourcingMessagingTestCase::clearDataTables((new DbalConnectionFactory(SecondaryTestDatabaseConnectionFactory::resolveDsn()))->createContext()->getDbalConnection());
     }
 
     #[DataProviderExternal(CrossModuleFlowScenarioCatalogue::class, 'dataProvider')]

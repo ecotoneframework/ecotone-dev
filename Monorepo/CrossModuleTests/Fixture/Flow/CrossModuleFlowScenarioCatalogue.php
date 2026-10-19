@@ -29,6 +29,7 @@ final class CrossModuleFlowScenarioCatalogue
         return [
             ...DbalFlowScenarios::all(),
             ...EventSourcingFlowScenarios::all(),
+            ...MultiTenantFlowScenarios::all(),
         ];
     }
 }

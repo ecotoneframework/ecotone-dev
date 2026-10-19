@@ -185,14 +185,14 @@ final class MessageFlowGraph implements DefinedObject
         }
         $edgeLines = [];
         foreach ($this->edges as $edge) {
-            $queues = $edge->kind === FlowEdgeKind::ROUTED_TO ? $this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) : [];
-            if ($queues === []) {
+            $asynchronousChannels = $edge->kind === FlowEdgeKind::ROUTED_TO ? $this->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS, to: $edge->to) : [];
+            if ($asynchronousChannels === []) {
                 $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$edge->to]);
 
                 continue;
             }
-            foreach ($queues as $queue) {
-                $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$queue->from]);
+            foreach ($asynchronousChannels as $asynchronousChannel) {
+                $edgeLines[] = sprintf('    %s %s %s', $mermaidIds[$edge->from], $this->mermaidArrow($edge), $mermaidIds[$asynchronousChannel->from]);
             }
         }
 
@@ -212,7 +212,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowNodeKind::COMMAND => sprintf('>"%s"]', $label),
             FlowNodeKind::EVENT => sprintf('(["%s"])', $label),
             FlowNodeKind::QUERY => sprintf('{{"%s"}}', $label),
-            FlowNodeKind::CHANNEL => sprintf('[("%s")]', ($node->attributes['pollable'] ?? false) ? 'Queue<br/>' . $label : $label),
+            FlowNodeKind::CHANNEL => sprintf('[("Channel<br/>%s")]', $label),
             FlowNodeKind::GATEWAY => sprintf('[["%s"]]', $label),
             FlowNodeKind::ROUTER, FlowNodeKind::ORCHESTRATOR => sprintf('{"%s"}', $label),
             FlowNodeKind::SCHEDULED => sprintf('(("%s"))', $label),

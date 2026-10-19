@@ -591,10 +591,10 @@ final class MessageFlowGraphTest extends TestCase
         self::assertStringContainsString('PlaceOrderForFlowGraph', $mermaid);
         self::assertStringContainsString('-.->|"emits (recordThat)"|', $mermaid);
         self::assertStringContainsString('==>|"async"|', $mermaid);
-        self::assertStringContainsString('[("Queue<br/>orders")]', $mermaid);
+        self::assertStringContainsString('[("Channel<br/>orders")]', $mermaid);
     }
 
-    public function test_mermaid_draws_an_asynchronous_handler_behind_its_queue_in_the_order_the_message_travels(): void
+    public function test_mermaid_draws_an_asynchronous_handler_behind_its_channel_in_the_order_the_message_travels(): void
     {
         $notifications = new class () {
             #[Asynchronous('notifications')]
@@ -624,12 +624,12 @@ final class MessageFlowGraphTest extends TestCase
             return $match[1];
         };
         $event = $idOf('(["order.placed"])');
-        $queue = $idOf('[("Queue<br/>notifications")]');
+        $channel = $idOf('[("Channel<br/>notifications")]');
         $asynchronous = $idOf('["Event Handler<br/>' . $notifications::class . '::whenPlaced"]');
         $synchronous = $idOf('["Event Handler<br/>' . $invoicing::class . '::whenPlaced"]');
 
-        self::assertStringContainsString("{$event} --> {$queue}\n", $mermaid);
-        self::assertStringContainsString("{$queue} ==>|\"async\"| {$asynchronous}\n", $mermaid);
+        self::assertStringContainsString("{$event} --> {$channel}\n", $mermaid);
+        self::assertStringContainsString("{$channel} ==>|\"async\"| {$asynchronous}\n", $mermaid);
         self::assertStringContainsString("{$event} --> {$synchronous}\n", $mermaid);
         self::assertStringNotContainsString("{$event} --> {$asynchronous}\n", $mermaid);
     }

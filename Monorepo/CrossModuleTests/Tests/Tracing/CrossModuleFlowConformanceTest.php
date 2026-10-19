@@ -17,13 +17,14 @@ use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\MessageFlowGraphVerifier;
 use Ecotone\Test\LicenceTesting;
 use Monorepo\CrossModuleTests\Fixture\Flow\CrossModuleFlowScenarioCatalogue;
-use Monorepo\CrossModuleTests\Tests\MessagingTestCase;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
  * licence Apache-2.0
@@ -33,7 +34,7 @@ final class CrossModuleFlowConformanceTest extends TestCase
 {
     protected function setUp(): void
     {
-        MessagingTestCase::cleanUpDbal();
+        EventSourcingMessagingTestCase::clearDataTables(DbalMessagingTestCase::prepareConnection()->createContext()->getDbalConnection());
     }
 
     #[DataProviderExternal(CrossModuleFlowScenarioCatalogue::class, 'dataProvider')]
@@ -54,7 +55,7 @@ final class CrossModuleFlowConformanceTest extends TestCase
                 TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class),
                 ...$scenario->extensionObjects,
             ],
-            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::TRACING_PACKAGE],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::TRACING_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
         $tracing = $ecotone->getGateway(TracingGateway::class);

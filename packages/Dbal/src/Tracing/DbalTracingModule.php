@@ -56,6 +56,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
 
@@ -120,6 +121,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(SpansTableManager::class, [SpansTableManager::DEFAULT_TABLE, $storesOnDatabase, $consoleInvocationPrefix, $connectionReference])
         );
         if ($flowTracking === null) {
+            $messagingConfiguration->registerServiceDefinition(FlowTrackingScope::class, new Definition(UntrackedFlowScope::class));
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.']));
 
             return;
@@ -143,13 +145,14 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             TraceRecordingInterceptor::class,
             new Definition(TraceRecordingInterceptor::class, [new Reference(StoringSpanRecorder::class), new Reference(Tracer::class), new Reference(MessagingEntrypointService::class), new Reference(LoggingGateway::class)])
         );
+        $messagingConfiguration->registerServiceDefinition(FlowTrackingScope::class, new Reference(TraceRecordingInterceptor::class));
         foreach (['publishAfterCommit' => Precedence::TRACE_PUBLICATION_PRECEDENCE, 'recordUnitOfWork' => Precedence::TRACE_RECORDING_PRECEDENCE] as $method => $precedence) {
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorBuilder::create(
                     TraceRecordingInterceptor::class,
                     $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, $method),
                     $precedence,
-                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . DistributedBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
+                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . DistributedBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . OrchestratorGateway::class . '||' . ProjectionOperationEndpoint::class . '||(' . self::USER_MESSAGE_GATEWAYS_POINTCUT . ')'
                 )
             );
         }

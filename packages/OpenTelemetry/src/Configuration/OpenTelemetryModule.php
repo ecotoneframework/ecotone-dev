@@ -68,7 +68,6 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 new Reference(SpanRecorder::class),
             ])
         );
-        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
 
         $pointcut = '';
         if ($openTelemetryConfiguration->forceFlushOnBusExecution) {

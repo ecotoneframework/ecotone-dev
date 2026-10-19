@@ -38,7 +38,7 @@ final class FlowScenario
         try {
             ($stage->action)($ecotone, $metadata);
         } catch (Throwable $failure) {
-            if ($stage->expectedFailure !== null && str_contains($failure->getMessage(), $stage->expectedFailure)) {
+            if ($stage->expectedFailure !== null && ($failure instanceof $stage->expectedFailure || str_contains($failure->getMessage(), $stage->expectedFailure))) {
                 return null;
             }
 

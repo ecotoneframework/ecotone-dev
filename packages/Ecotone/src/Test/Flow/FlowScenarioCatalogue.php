@@ -40,6 +40,7 @@ final class FlowScenarioCatalogue
             ...ChannelFlowScenarios::all(),
             ...EndpointFlowScenarios::all(),
             ...RoutingFlowScenarios::all(),
+            ...DynamicConsistencyBoundaryFlowScenarios::all(),
         ];
     }
 }

@@ -28,8 +28,8 @@
     },
     "require": {
         "beberlei/assert": "^3.3.2",
-        "ecotone/jms-converter": "~2.0.0-beta.5",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.5",
+        "ecotone/jms-converter": "~2.0.0-beta.6",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.6",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

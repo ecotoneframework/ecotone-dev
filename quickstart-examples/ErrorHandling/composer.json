@@ -21,9 +21,9 @@
         }
     },
     "require": {
-        "ecotone/amqp": "~2.0.0-beta.5",
-        "ecotone/dbal": "~2.0.0-beta.5",
-        "ecotone/jms-converter": "~2.0.0-beta.5",
+        "ecotone/amqp": "~2.0.0-beta.6",
+        "ecotone/dbal": "~2.0.0-beta.6",
+        "ecotone/jms-converter": "~2.0.0-beta.6",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

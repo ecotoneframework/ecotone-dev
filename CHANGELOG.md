@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.6] - 2026-10-19
+
+## What's Changed
+* feat: vizualize the message flow graph, and prove tracing, OpenTelemetry, flow tracking and the graph against one catalogue of flows by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/725
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.5...2.0.0-beta.6
+
 ## [2.0.0-beta.5] - 2026-10-19
 
 ## What's Changed

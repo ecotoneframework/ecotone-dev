@@ -52,7 +52,7 @@
     },
     "require": {
         "php": "^8.4",
-        "ecotone/ecotone": "~2.0.0-beta.5",
+        "ecotone/ecotone": "~2.0.0-beta.6",
         "tempest/framework": "^3.11"
     },
     "suggest": {
@@ -62,7 +62,7 @@
         "phpunit/phpunit": "^11.0|^12.0",
         "phpstan/phpstan": "^2.1",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
-        "ecotone/dbal": "~2.0.0-beta.5",
+        "ecotone/dbal": "~2.0.0-beta.6",
         "doctrine/dbal": "^4.0"
     },
     "scripts": {
@@ -96,6 +96,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-10-19 07:04:39"
+        "release-time": "2026-10-19 20:43:21"
     }
 }

@@ -197,7 +197,7 @@ final class MessageFlowGraph implements DefinedObject
 
     private function mermaidNode(string $mermaidId, FlowNode $node): string
     {
-        $label = $this->mermaidText($node->kind->isHandler() ? $this->kindTitle($node->kind) . '<br/>' . $node->label : $node->label);
+        $label = $this->mermaidText($node->kind->isHandler() || $node->kind === FlowNodeKind::INTERCEPTOR ? $this->kindTitle($node->kind) . '<br/>' . $node->label : $node->label);
 
         return $mermaidId . match ($node->kind) {
             FlowNodeKind::COMMAND => sprintf('>"%s"]', $label),
@@ -223,6 +223,7 @@ final class MessageFlowGraph implements DefinedObject
             FlowEdgeKind::CALLS => 'calls',
             FlowEdgeKind::ROUTES_TO => 'routes',
             FlowEdgeKind::DISTRIBUTES => 'distributed',
+            FlowEdgeKind::INTERCEPTED_BY => 'intercepted by',
             FlowEdgeKind::SENDS_TO => $edge->isInferred() ? 'sends (' . ($edge->attributes['via'] ?? '') . ')' : (isset($edge->attributes['targetService']) ? 'to ' . $edge->attributes['targetService'] : ''),
             default => '',
         };

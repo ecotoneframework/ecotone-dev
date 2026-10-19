@@ -28,6 +28,7 @@ enum FlowNodeKind: string
     case CHANNEL = 'channel';
     case SCHEDULED = 'scheduled';
     case DISTRIBUTED_BUS = 'distributedBus';
+    case INTERCEPTOR = 'interceptor';
 
     public function isMessage(): bool
     {

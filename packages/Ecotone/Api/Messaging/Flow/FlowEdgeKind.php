@@ -21,4 +21,5 @@ enum FlowEdgeKind: string
     case CALLS = 'calls';
     case ROUTES_TO = 'routesTo';
     case DISTRIBUTES = 'distributes';
+    case INTERCEPTED_BY = 'interceptedBy';
 }

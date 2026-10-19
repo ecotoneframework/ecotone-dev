@@ -24,9 +24,12 @@ namespace Ecotone\Messaging\Config\Flow;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\After;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Apply;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Before;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
@@ -36,6 +39,7 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\Attribute\Orchestrator;
 use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\Presend;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Router;
 use Ecotone\Api\Attribute\Saga;
@@ -55,7 +59,9 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
@@ -80,6 +86,8 @@ final class MessageFlowDiscovery
     private array $ownerByClass = [];
     /** @var array<string, string> event name => event class */
     private array $namedEvents = [];
+    /** @var array<string, AnnotatedFinding> */
+    private array $handlerRegistrations = [];
 
     private function __construct(
         private readonly AnnotationFinder $annotationFinder,
@@ -118,6 +126,7 @@ final class MessageFlowDiscovery
         $this->discoverRouters();
         $this->discoverSplitters();
         $this->discoverOrchestrators();
+        $this->discoverInterceptors();
         $this->discoverAppliedEvents();
         $this->discoverGateways();
         $this->discoverScheduled();
@@ -272,6 +281,34 @@ final class MessageFlowDiscovery
         }
     }
 
+    private function discoverInterceptors(): void
+    {
+        $parameterConverters = ParameterConverterAnnotationFactory::create();
+        foreach (['presend' => Presend::class, 'before' => Before::class, 'around' => Around::class, 'after' => After::class] as $position => $attribute) {
+            foreach ($this->applicationMethods($attribute) as $registration) {
+                /** @var Presend|Before|Around|After $annotation */
+                $annotation = $registration->getAnnotationForMethod();
+                $interface = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+                $pointcut = $annotation->pointcut !== ''
+                    ? Pointcut::createWith($annotation->pointcut)
+                    : Pointcut::initializeFrom($interface, $parameterConverters->createParameterConverters($interface));
+                $id = 'interceptor:' . $registration->getClassName() . '::' . $registration->getMethodName();
+                $this->nodes[$id] = new FlowNode($id, FlowNodeKind::INTERCEPTOR, $this->shortName($registration->getClassName()) . '::' . $registration->getMethodName(), [
+                    'class' => $registration->getClassName(),
+                    'method' => $registration->getMethodName(),
+                    'position' => $position,
+                    'pointcut' => $annotation->pointcut,
+                ]);
+                $this->collaborators[$id] = $this->collaboratorsOf($registration);
+                foreach ($this->handlerRegistrations as $handlerId => $handler) {
+                    if ($pointcut->doesItCut($this->interfaceToCallRegistry->getFor($handler->getClassName(), $handler->getMethodName()), [$handler->getAnnotationForMethod()])) {
+                        $this->edges[] = new FlowEdge($handlerId, $id, FlowEdgeKind::INTERCEPTED_BY);
+                    }
+                }
+            }
+        }
+    }
+
     private function discoverAppliedEvents(): void
     {
         foreach ($this->applicationMethods(Apply::class) as $registration) {
@@ -339,6 +376,7 @@ final class MessageFlowDiscovery
             'owner' => $this->ownerByClass[$registration->getClassName()] ?? null,
         ], $attributes));
         $this->collaborators[$id] = $this->collaboratorsOf($registration);
+        $this->handlerRegistrations[$id] = $registration;
 
         return $id;
     }

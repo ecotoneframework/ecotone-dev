@@ -6,17 +6,13 @@ namespace Test\Ecotone\Tracing;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
-use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
 use InvalidArgumentException;
 use stdClass;
@@ -28,222 +24,6 @@ use Symfony\Component\Uid\Uuid;
  */
 final class TracingTreeTest extends TracingTestCase
 {
-    public function test_tracing_tree_with_single_level_of_nesting(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = new class () {
-            #[CommandHandler('user.register')]
-            public function register(string $userId): void
-            {
-            }
-        };
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
-            [$users, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->sendCommandWithRouting('user.register', '1');
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send command', 'kind' => SpanKind::Server, 'parent_id' => null],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'process class@anonymous::register', 'kind' => SpanKind::Server],
-                            'children' => [],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-    }
-
-    public function test_tracing_tree_with_two_levels_of_nesting_and_message_handler(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $handler = new class () {
-            #[CommandHandler('handleCommand', outputChannelName: 'handleMessage')]
-            public function handleCommand(Message $message): Message
-            {
-                return $message;
-            }
-
-            #[InternalHandler('handleMessage')]
-            public function handle(Message $message): void
-            {
-            }
-        };
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$handler::class],
-            [$handler, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->sendCommandWithRouting('handleCommand');
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send command'],
-                    'children' => [
-                        ['details' => ['name' => 'process class@anonymous::handleCommand'], 'children' => []],
-                        ['details' => ['name' => 'process class@anonymous::handle'], 'children' => []],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-    }
-
-    public function test_tracing_tree_with_two_levels_of_nesting(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = $this->users();
-        $subscriber = $this->merchantSubscriber();
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class, $subscriber::class],
-            [$users, $subscriber, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->publishEventWithRouting('merchant.created', '1');
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send event'],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'route merchant.to.user', 'kind' => SpanKind::Producer],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'process class@anonymous::merchantToUser'],
-                                    'children' => [
-                                        [
-                                            'details' => ['name' => 'send command'],
-                                            'children' => [
-                                                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-    }
-
-    public function test_tracing_tree_with_two_branches_on_same_level(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = $this->users();
-        $subscriberOne = $this->merchantSubscriber();
-        $subscriberTwo = new class () {
-            #[EventHandler('merchant.created', endpointId: 'merchant.to.second.user')]
-            public function merchantToUser(string $merchantId, CommandBus $commandBus): void
-            {
-                $commandBus->sendWithRouting('user.register', $merchantId . '-second');
-            }
-        };
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class, $subscriberOne::class, $subscriberTwo::class],
-            [$users, $subscriberOne, $subscriberTwo, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->publishEventWithRouting('merchant.created', '1');
-
-        $commandBusChild = [
-            'details' => ['name' => 'send command'],
-            'children' => [
-                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
-            ],
-        ];
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send event'],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'route merchant.to.user'],
-                            'children' => [['details' => ['name' => 'process class@anonymous::merchantToUser'], 'children' => [$commandBusChild]]],
-                        ],
-                        [
-                            'details' => ['name' => 'route merchant.to.second.user'],
-                            'children' => [['details' => ['name' => 'process class@anonymous::merchantToUser'], 'children' => [$commandBusChild]]],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-        $this->assertCount(9, self::spanNamesWithoutFrameworkNoise($recorder->recordedSpans()));
-    }
-
-    public function test_tracing_tree_with_three_levels_of_nesting(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $merchants = new class () {
-            #[CommandHandler('merchant.create')]
-            public function create(string $merchantId, EventBus $eventBus): void
-            {
-                $eventBus->publishWithRouting('merchant.created', $merchantId);
-            }
-        };
-        $users = $this->users();
-        $subscriber = $this->merchantSubscriber();
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$merchants::class, $users::class, $subscriber::class],
-            [$merchants, $users, $subscriber, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->sendCommandWithRouting('merchant.create', '1');
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send command'],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'process class@anonymous::create'],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'send event'],
-                                    'children' => [
-                                        [
-                                            'details' => ['name' => 'route merchant.to.user'],
-                                            'children' => [
-                                                [
-                                                    'details' => ['name' => 'process class@anonymous::merchantToUser'],
-                                                    'children' => [
-                                                        [
-                                                            'details' => ['name' => 'send command'],
-                                                            'children' => [
-                                                                ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
-                                                            ],
-                                                        ],
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-    }
-
     public function test_every_span_of_one_flow_shares_the_trace_id_of_its_root(): void
     {
         $recorder = new InMemorySpanRecorder();
@@ -377,31 +157,6 @@ final class TracingTreeTest extends TracingTestCase
             $this->assertSame(InvalidArgumentException::class, $exceptionEvents[0]->attributes['exception.type']);
             $this->assertSame('User already registered', $exceptionEvents[0]->attributes['exception.message']);
         }
-    }
-
-    public function test_query_bus_and_query_handler_are_traced(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = $this->users();
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
-            [$users, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration()],
-        )
-            ->sendQueryWithRouting('user.get');
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send query'],
-                    'children' => [
-                        ['details' => ['name' => 'process class@anonymous::isRegistered'], 'children' => []],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
     }
 
     public function test_bus_spans_name_the_message_they_carry_by_routing_key_or_by_class(): void

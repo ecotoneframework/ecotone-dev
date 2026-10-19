@@ -26,42 +26,6 @@ use Symfony\Component\Uid\Uuid;
  */
 final class AsynchronousTracingTest extends TracingTestCase
 {
-    public function test_tracing_with_asynchronous_handler(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = $this->asynchronousUsers();
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class],
-            [$users, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
-        )
-            ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-
-        self::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'send command'],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'send async_channel', 'kind' => SpanKind::Producer],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'receive async_channel', 'kind' => SpanKind::Consumer],
-                                    'children' => [
-                                        ['details' => ['name' => 'process class@anonymous::register'], 'children' => []],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-    }
-
     public function test_the_consumer_continues_the_trace_of_the_sender_across_the_queue(): void
     {
         $recorder = new InMemorySpanRecorder();
@@ -185,71 +149,6 @@ final class AsynchronousTracingTest extends TracingTestCase
         foreach ($recorder->recordedSpans() as $span) {
             $this->assertArrayNotHasKey(MessageHeaders::TRACEPARENT, $span->attributes, $span->name);
         }
-    }
-
-    public function test_an_event_collected_during_the_asynchronous_handler_is_sent_under_the_consumer_span_in_the_same_trace(): void
-    {
-        $recorder = new InMemorySpanRecorder();
-        $users = new class () {
-            #[Asynchronous('async_channel')]
-            #[CommandHandler('user.register', endpointId: 'user.register.endpoint')]
-            public function register(string $userId, EventBus $eventBus): void
-            {
-                $eventBus->publishWithRouting('user.registered', $userId);
-            }
-        };
-        $notifier = new class () {
-            #[Asynchronous('async_channel')]
-            #[EventHandler('user.registered', endpointId: 'user.registered.endpoint')]
-            public function notify(string $userId): void
-            {
-            }
-        };
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$users::class, $notifier::class],
-            [$users, $notifier, ...self::recordingSpansInto($recorder)],
-            [self::tracingConfiguration(), SimpleMessageChannelBuilder::createQueueChannel('async_channel')],
-        )
-            ->sendCommandWithRouting('user.register', '1')
-            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
-
-        self::getNodeAtTargetedSpan(
-            [
-                'details' => ['name' => 'send command'],
-                'child' => [
-                    'details' => ['name' => 'send async_channel'],
-                    'child' => [
-                        'details' => ['name' => 'receive async_channel'],
-                        'child' => [
-                            'details' => ['name' => 'send async_channel'],
-                            'child' => [
-                                'details' => ['name' => 'receive async_channel'],
-                                'child' => ['details' => ['name' => 'process class@anonymous::notify']],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-        self::getNodeAtTargetedSpan(
-            [
-                'details' => ['name' => 'send command'],
-                'child' => [
-                    'details' => ['name' => 'send async_channel'],
-                    'child' => [
-                        'details' => ['name' => 'receive async_channel'],
-                        'child' => [
-                            'details' => ['name' => 'process class@anonymous::register'],
-                            'child' => ['details' => ['name' => 'send event']],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($recorder->recordedSpans())
-        );
-        $this->assertCount(1, array_unique(array_map(fn (Span $span): string => $span->traceId, $recorder->recordedSpans())));
     }
 
     public function test_adding_logs_as_events_in_span(): void

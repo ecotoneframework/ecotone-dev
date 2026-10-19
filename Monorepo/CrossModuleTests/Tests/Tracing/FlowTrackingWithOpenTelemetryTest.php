@@ -10,9 +10,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -59,8 +59,7 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
     public function test_one_trace_is_exported_to_open_telemetry_and_stored_in_the_database_across_an_asynchronous_dbal_channel(): void
     {
         $exporter = new InMemoryExporter(new ArrayObject());
-        $subscriber = $this->flowCompletedSubscriber();
-        $ecotone = $this->bootstrap($exporter, [$this->users(), $this->asynchronousNotifier(), $subscriber]);
+        $ecotone = $this->bootstrap($exporter, [$this->users(), $this->asynchronousNotifier()]);
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
@@ -71,7 +70,6 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
         self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
-        self::assertSame([], $subscriber->completedTraces);
 
         $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -81,13 +79,12 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         );
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
-        self::assertSame([$trace->traceId], $subscriber->completedTraces);
     }
 
-    public function test_the_flow_completed_subscriber_is_exported_in_a_trace_of_its_own(): void
+    public function test_each_flow_step_completed_notification_is_exported_in_a_trace_of_its_own(): void
     {
         $exporter = new InMemoryExporter(new ArrayObject());
-        $ecotone = $this->bootstrap($exporter, [$this->users(), $this->flowCompletedSubscriber()]);
+        $ecotone = $this->bootstrap($exporter, [$this->users(), $this->flowStepCompletedSubscriber()]);
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
@@ -95,16 +92,18 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         $notificationTraceIds = [];
         /** @var SpanDataInterface $span */
         foreach ($exporter->getSpans() as $span) {
-            if ($span->getName() === 'send ecotone.tracing.flowCompleted') {
+            if ($span->getName() === 'send ecotone.tracing.flowStepCompleted') {
                 $notificationTraceIds[] = $span->getContext()->getTraceId();
             }
         }
-        self::assertCount(1, $notificationTraceIds);
-        self::assertNotSame($trace->traceId, $notificationTraceIds[0]);
-        self::assertSame(
-            ['process class@anonymous::whenCompleted', 'send ecotone.tracing.flowCompleted'],
-            self::exportedSpanNamesOf($exporter, $notificationTraceIds[0]),
-        );
+        self::assertNotEmpty($notificationTraceIds);
+        self::assertNotContains($trace->traceId, $notificationTraceIds);
+        foreach ($notificationTraceIds as $notificationTraceId) {
+            self::assertSame(
+                ['process class@anonymous::whenStepCompleted', 'send ecotone.tracing.flowStepCompleted'],
+                self::exportedSpanNamesOf($exporter, $notificationTraceId),
+            );
+        }
     }
 
     public function test_a_second_application_on_the_same_database_sees_the_completion_the_first_one_stored(): void
@@ -184,16 +183,12 @@ final class FlowTrackingWithOpenTelemetryTest extends TestCase
         };
     }
 
-    private function flowCompletedSubscriber(): object
+    private function flowStepCompletedSubscriber(): object
     {
         return new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenStepCompleted(FlowStepCompleted $event): void
             {
-                $this->completedTraces[] = $event->tracingId;
             }
         };
     }

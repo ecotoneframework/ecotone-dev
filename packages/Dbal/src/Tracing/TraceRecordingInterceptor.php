@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Tracing\SpanAttribute;
@@ -113,9 +111,9 @@ final class TraceRecordingInterceptor
         }
     }
 
-    private function deliver(FlowStepCompleted|FlowCompleted $notification): void
+    private function deliver(FlowStepCompleted $notification): void
     {
-        $channel = $notification instanceof FlowCompleted ? OnFlowCompleted::CHANNEL : OnFlowStepCompleted::CHANNEL;
+        $channel = OnFlowStepCompleted::CHANNEL;
         $span = $this->tracer->startRootSpan('send ' . $channel, SpanKind::Producer, [
             SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_SEND,
             SpanAttribute::MESSAGING_DESTINATION_NAME => $channel,

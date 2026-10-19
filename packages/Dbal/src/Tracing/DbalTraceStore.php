@@ -7,11 +7,9 @@ namespace Ecotone\Dbal\Tracing;
 use Closure;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Api\Messaging\ConcurrencyException;
 use Ecotone\Api\Scheduling\DatePoint;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\Span;
@@ -21,7 +19,6 @@ use Ecotone\Api\Tracing\SpanStatus;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Dbal\Database\SpansTableManager;
-use Ecotone\Dbal\Database\TracesTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Interop\Queue\ConnectionFactory;
@@ -53,7 +50,6 @@ final class DbalTraceStore implements TraceStore
 {
     public function __construct(
         private ConnectionFactory $connectionFactory,
-        private TracesTableManager $tracesTableManager,
         private SpansTableManager $spansTableManager,
         private EcotoneClockInterface $clock,
     ) {
@@ -61,25 +57,8 @@ final class DbalTraceStore implements TraceStore
 
     public function append(array $spans): void
     {
-        $spansByTrace = [];
-        foreach ($spans as $span) {
-            $spansByTrace[$span->traceId][] = $span;
-        }
-
         $connection = $this->connection();
-        foreach ($spansByTrace as $traceId => $traceSpans) {
-            $this->onTables(function () use ($connection, $traceId, $traceSpans): void {
-                $this->claimTrace($connection, $traceId, $traceSpans);
-                $this->insertSpans($connection, $traceSpans);
-            });
-        }
-    }
-
-    public function markCompletedIfDone(string $traceId, DatePoint $now): bool
-    {
-        $connection = $this->connection();
-
-        return $this->onTables(fn (): bool => TraceLedger::progressOf($traceId, $this->spansOf($connection, $traceId))->isCompleted() && $this->markCompleted($connection, $traceId, $now));
+        $this->onTables(fn () => $this->insertSpans($connection, $spans));
     }
 
     public function stepsOf(string $traceId): array
@@ -92,11 +71,11 @@ final class DbalTraceStore implements TraceStore
         return $this->onTables(fn (): TraceProgress => TraceLedger::progressOf($traceId, $this->spansOf($this->connection(), $traceId)));
     }
 
-    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void
+    public function removeTracesStartedBefore(DatePoint $startedBefore, int $batchSize): void
     {
         $connection = $this->connection();
         do {
-            $removed = $this->onTables(fn (): int => $connection->transactional(fn (): int => $this->removeExpiredBatch($connection, $completedTracesStartedBefore, $anyTraceStartedBefore, $batchSize)));
+            $removed = $this->onTables(fn (): int => $connection->transactional(fn (): int => $this->removeBatchStartedBefore($connection, $startedBefore, $batchSize)));
         } while ($removed === $batchSize);
     }
 
@@ -105,14 +84,13 @@ final class DbalTraceStore implements TraceStore
         return $this->connection()->transactional($work);
     }
 
-    private function removeExpiredBatch(Connection $connection, DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): int
+    private function removeBatchStartedBefore(Connection $connection, DatePoint $startedBefore, int $batchSize): int
     {
         $traceIds = $connection->createQueryBuilder()
-            ->select('trace_id')
-            ->from($this->tracesTableManager->getTableName())
-            ->where('started_at < :anyStartedBefore OR (completed_at IS NOT NULL AND started_at < :completedStartedBefore)')
-            ->setParameter('anyStartedBefore', $anyTraceStartedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
-            ->setParameter('completedStartedBefore', $completedTracesStartedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
+            ->select('DISTINCT trace_id')
+            ->from($this->spansTableManager->getTableName())
+            ->where('started_at < :startedBefore')
+            ->setParameter('startedBefore', $startedBefore->unixTime()->inMicroseconds(), Types::BIGINT)
             ->setMaxResults($batchSize)
             ->executeQuery()
             ->fetchFirstColumn();
@@ -120,56 +98,13 @@ final class DbalTraceStore implements TraceStore
             return 0;
         }
 
-        foreach ([$this->spansTableManager->getTableName(), $this->tracesTableManager->getTableName()] as $tableName) {
-            $connection->createQueryBuilder()
-                ->delete($tableName)
-                ->where('trace_id IN (:traceIds)')
-                ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
-                ->executeStatement();
-        }
+        $connection->createQueryBuilder()
+            ->delete($this->spansTableManager->getTableName())
+            ->where('trace_id IN (:traceIds)')
+            ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
+            ->executeStatement();
 
         return count($traceIds);
-    }
-
-    /**
-     * @param Span[] $traceSpans
-     */
-    private function claimTrace(Connection $connection, string $traceId, array $traceSpans): void
-    {
-        $tableName = $this->tracesTableManager->getTableName();
-        $readVersion = $connection->fetchOne("SELECT version FROM {$tableName} WHERE trace_id = :traceId", ['traceId' => $traceId]);
-        if ($readVersion === false) {
-            try {
-                $connection->insert($tableName, [
-                    'trace_id' => $traceId,
-                    'started_at' => min(array_map(fn (Span $span): int => $span->startedAt->unixTime()->inMicroseconds(), $traceSpans)),
-                    'completed_at' => null,
-                    'version' => 1,
-                ], ['started_at' => Types::BIGINT]);
-            } catch (UniqueConstraintViolationException) {
-                throw ConcurrencyException::forConcurrentlyRecordedFlow($traceId);
-            }
-
-            return;
-        }
-
-        $reopened = $connection->executeStatement(
-            "UPDATE {$tableName} SET version = version + 1, completed_at = NULL WHERE trace_id = :traceId AND version = :readVersion",
-            ['traceId' => $traceId, 'readVersion' => (int) $readVersion],
-            ['readVersion' => Types::INTEGER],
-        );
-        if ($reopened === 0) {
-            throw ConcurrencyException::forConcurrentlyRecordedFlow($traceId);
-        }
-    }
-
-    private function markCompleted(Connection $connection, string $traceId, DatePoint $now): bool
-    {
-        return $connection->executeStatement(
-            "UPDATE {$this->tracesTableManager->getTableName()} SET completed_at = :completedAt WHERE trace_id = :traceId AND completed_at IS NULL",
-            ['completedAt' => $now->unixTime()->inMicroseconds(), 'traceId' => $traceId],
-            ['completedAt' => Types::BIGINT],
-        ) === 1;
     }
 
     /**
@@ -256,7 +191,7 @@ final class DbalTraceStore implements TraceStore
         try {
             return $statement();
         } catch (Throwable $failure) {
-            throw MissingTableFailure::explained(MissingTableFailure::explained($failure, $this->tracesTableManager), $this->spansTableManager);
+            throw MissingTableFailure::explained($failure, $this->spansTableManager);
         }
     }
 

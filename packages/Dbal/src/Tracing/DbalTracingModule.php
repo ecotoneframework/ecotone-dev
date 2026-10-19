@@ -17,10 +17,8 @@ use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -36,7 +34,6 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
-use Ecotone\Dbal\Database\TracesTableManager;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -87,14 +84,12 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     private const USER_MESSAGE_GATEWAYS_POINTCUT = MessageGateway::class . '&&not(' . CommandBus::class . ')&&not(' . EventBus::class . ')&&not(' . QueryBus::class . ')';
 
     /**
-     * @param string[] $flowCompletedSubscribers
      * @param string[] $flowStepCompletedSubscribers
      * @param array<array{attribute: string, notification: string, class: string, method: string}> $subscriberMethods
      * @param string[] $pollingProjectionNames
      * @param array<string, string[]> $destinationsByClass
      */
     private function __construct(
-        private array $flowCompletedSubscribers,
         private array $flowStepCompletedSubscribers,
         private array $subscriberMethods,
         private array $pollingProjectionNames,
@@ -105,12 +100,8 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         return new self(
-            self::placementsOf($annotationRegistrationService, OnFlowCompleted::class),
             self::placementsOf($annotationRegistrationService, OnFlowStepCompleted::class),
-            [
-                ...self::subscriberMethodsOf($annotationRegistrationService, OnFlowCompleted::class, FlowCompleted::class),
-                ...self::subscriberMethodsOf($annotationRegistrationService, OnFlowStepCompleted::class, FlowStepCompleted::class),
-            ],
+            self::subscriberMethodsOf($annotationRegistrationService, OnFlowStepCompleted::class, FlowStepCompleted::class),
             self::pollingProjectionNames($annotationRegistrationService),
             self::destinationsByClass($annotationRegistrationService),
         );
@@ -125,10 +116,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
         $storesOnDatabase = $flowTracking !== null && ! $flowTracking->inMemory;
         $messagingConfiguration->registerServiceDefinition(
-            TracesTableManager::class,
-            new Definition(TracesTableManager::class, [TracesTableManager::DEFAULT_TABLE, $storesOnDatabase, $consoleInvocationPrefix, $connectionReference])
-        );
-        $messagingConfiguration->registerServiceDefinition(
             SpansTableManager::class,
             new Definition(SpansTableManager::class, [SpansTableManager::DEFAULT_TABLE, $storesOnDatabase, $consoleInvocationPrefix, $connectionReference])
         );
@@ -141,7 +128,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration->registerServiceDefinition(
             TraceStore::class,
             $storesOnDatabase
-                ? new Definition(DbalTraceStore::class, [new Reference($connectionReference), new Reference(TracesTableManager::class), new Reference(SpansTableManager::class), new Reference(EcotoneClockInterface::class)])
+                ? new Definition(DbalTraceStore::class, [new Reference($connectionReference), new Reference(SpansTableManager::class), new Reference(EcotoneClockInterface::class)])
                 : new Definition(InMemoryTraceStore::class)
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -149,9 +136,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(StoringSpanRecorder::class, [
                 new Reference(TraceStore::class),
                 $flowTracking->notifications && $this->flowStepCompletedSubscribers !== [],
-                $flowTracking->notifications && $this->flowCompletedSubscribers !== [],
                 $flowTracking->onlyRequestedFlows,
-                new Reference(EcotoneClockInterface::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -177,7 +162,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             )
         );
         if ($flowTracking->notifications) {
-            $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowCompleted::CHANNEL));
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));
         }
         if ($flowTracking->tracingGateway) {
@@ -206,7 +190,6 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
     {
         $connectionReference = self::connectionReferenceOf($serviceExtensions);
         $extensions = [
-            new DbalTableManagerReference(TracesTableManager::class, $connectionReference),
             new DbalTableManagerReference(SpansTableManager::class, $connectionReference),
         ];
         if (self::flowTrackingOf($serviceExtensions) !== null) {
@@ -236,7 +219,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
 
     private function refuseMisconfiguredFlowTracking(Configuration $messagingConfiguration, ?FlowTrackingConfiguration $flowTracking): void
     {
-        $subscribers = [...$this->flowCompletedSubscribers, ...$this->flowStepCompletedSubscribers];
+        $subscribers = $this->flowStepCompletedSubscribers;
         $enterpriseUsages = [...($flowTracking !== null ? ['FlowTrackingConfiguration'] : []), ...$subscribers];
         if ($enterpriseUsages !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create(sprintf(
@@ -250,7 +233,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             return;
         }
         if ($flowTracking === null) {
-            throw ConfigurationException::create(implode(', ', $subscribers) . ' needs flow tracking, which decides when a flow is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
+            throw ConfigurationException::create(implode(', ', $subscribers) . ' needs flow tracking, which records the steps of every flow. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
         }
         if (! $flowTracking->notifications) {
             throw ConfigurationException::create(implode(', ', $subscribers) . ' would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');

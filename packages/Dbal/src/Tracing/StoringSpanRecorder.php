@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Tracing;
 
 use Closure;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanRecorder;
@@ -43,15 +41,11 @@ final class StoringSpanRecorder implements SpanRecorder
     private bool $unitOfWorkActive = false;
     /** @var Span[] */
     private array $committedSpans = [];
-    /** @var string[] */
-    private array $completedTraces = [];
 
     public function __construct(
         private TraceStore $traceStore,
         private bool $publishesEndedSpans,
-        private bool $publishesCompletedTraces,
         private bool $storesOnlyCarriedTraces,
-        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -76,7 +70,6 @@ final class StoringSpanRecorder implements SpanRecorder
     {
         $this->unitOfWorkActive = false;
         $this->committedSpans = [];
-        $this->completedTraces = [];
     }
 
     public function openScope(?ActiveSpan $wrappingSpan): void
@@ -154,14 +147,7 @@ final class StoringSpanRecorder implements SpanRecorder
         foreach ($spans as $span) {
             $this->storedSpanIds[$span->spanId] = true;
         }
-        $completedTraces = [];
-        foreach (array_unique(array_map(fn (Span $span): string => $span->traceId, $spans)) as $traceId) {
-            if ($this->traceStore->markCompletedIfDone($traceId, $this->clock->now())) {
-                $completedTraces[] = $traceId;
-            }
-        }
         $this->committedSpans = [...$this->committedSpans, ...$spans];
-        $this->completedTraces = [...$this->completedTraces, ...$completedTraces];
     }
 
     public function discard(): void
@@ -170,14 +156,11 @@ final class StoringSpanRecorder implements SpanRecorder
     }
 
     /**
-     * @return array<FlowStepCompleted|FlowCompleted>
+     * @return FlowStepCompleted[]
      */
     public function popCommittedNotifications(): array
     {
-        $notifications = [
-            ...array_map(fn (Span $span): FlowStepCompleted => new FlowStepCompleted($span), $this->publishesEndedSpans ? $this->committedSpans : []),
-            ...array_map(fn (string $traceId): FlowCompleted => new FlowCompleted($traceId), $this->publishesCompletedTraces ? array_values(array_unique($this->completedTraces)) : []),
-        ];
+        $notifications = array_map(fn (Span $span): FlowStepCompleted => new FlowStepCompleted($span), $this->publishesEndedSpans ? $this->committedSpans : []);
         $this->endUnitOfWork();
 
         return $notifications;

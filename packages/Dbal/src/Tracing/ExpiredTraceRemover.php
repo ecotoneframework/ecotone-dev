@@ -37,7 +37,6 @@ final class ExpiredTraceRemover
 
     public function removeExpiredTraces(): void
     {
-        $now = $this->clock->now();
-        $this->traceStore->removeExpiredTraces($now->sub(Duration::milliseconds($this->retentionInMilliseconds)), $now->sub(Duration::milliseconds(2 * $this->retentionInMilliseconds)), $this->removalBatchSize);
+        $this->traceStore->removeTracesStartedBefore($this->clock->now()->sub(Duration::milliseconds($this->retentionInMilliseconds)), $this->removalBatchSize);
     }
 }

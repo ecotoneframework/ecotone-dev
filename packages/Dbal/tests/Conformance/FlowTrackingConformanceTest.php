@@ -17,10 +17,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
@@ -123,28 +121,27 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_flow_completed_subscriber_is_called_once_after_the_last_handler_committed(string $implementation): void
+    public function test_a_step_subscriber_asking_the_gateway_sees_the_flow_completed_once_the_last_handler_committed(string $implementation): void
     {
         $subscriber = new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
+            /** @var array<string, bool> */
+            public array $completedAfterStep = [];
 
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenStepCompleted(FlowStepCompleted $event, TracingGateway $tracingGateway): void
             {
-                $this->completedTraces[] = $event->tracingId;
+                $this->completedAfterStep[$event->step->name] = $tracingGateway->isCompletedFor($event->step->traceId);
             }
         };
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->asynchronousNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        self::assertSame([], $subscriber->completedTraces);
+        self::assertNotContains(true, $subscriber->completedAfterStep);
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertSame([$trace->traceId], $subscriber->completedTraces);
+        self::assertTrue($subscriber->completedAfterStep['receive async_channel']);
     }
 
     #[DataProvider('implementations')]
@@ -475,23 +472,16 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_a_pending_trace_older_than_the_retention_survives_until_twice_the_retention(string $implementation): void
+    public function test_a_pending_flow_older_than_the_retention_is_removed_like_a_completed_one(string $implementation): void
     {
         $ecotone = $this->bootstrap($implementation, [$this->users(), $this->asynchronousNotifier()], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')], Duration::minutes(10));
-        $delayed = SpanContext::newTrace();
-        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $delayed->toTraceparent()]);
+        $abandoned = SpanContext::newTrace();
+        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $abandoned->toTraceparent()]);
 
         $ecotone->advanceTimeBy(TimeSpan::withMinutes(11));
         $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        self::assertTrue($this->completion($ecotone)->isCompletedFor($delayed->traceId));
 
-        $abandoned = SpanContext::newTrace();
-        $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $abandoned->toTraceparent()]);
-        $ecotone->advanceTimeBy(TimeSpan::withMinutes(21));
-        $ecotone->runConsoleCommand('ecotone:tracing:remove-expired-traces');
-
-        self::assertFalse($this->completion($ecotone)->isCompletedFor($abandoned->traceId, 'user.registration'));
+        self::assertNull($this->completion($ecotone)->fetchFlow($abandoned->traceId));
     }
 
     #[DataProvider('implementations')]
@@ -501,10 +491,10 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             /** @var string[] */
             public array $completedTraces = [];
 
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenStepCompleted(FlowStepCompleted $event): void
             {
-                $this->completedTraces[] = $event->tracingId;
+                $this->completedTraces[] = $event->step->traceId;
                 if (count($this->completedTraces) === 1) {
                     throw new RuntimeException('Websocket is down');
                 }
@@ -515,26 +505,17 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
         $second = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $first->toTraceparent()]);
-        self::assertSame([$first->traceId], $subscriber->completedTraces);
+        $stepsOfFirst = count($subscriber->completedTraces);
 
         $ecotone->sendCommandWithRouting('user.register', '2', metadata: [MessageHeaders::TRACEPARENT => $second->toTraceparent()]);
 
-        self::assertSame([$first->traceId, $second->traceId], $subscriber->completedTraces);
+        self::assertSame([$first->traceId], array_values(array_unique(array_slice($subscriber->completedTraces, 0, $stepsOfFirst))));
+        self::assertSame([$second->traceId], array_values(array_unique(array_slice($subscriber->completedTraces, $stepsOfFirst))));
     }
 
     #[DataProvider('implementations')]
-    public function test_a_trace_that_receives_new_work_after_completing_is_notified_again_when_it_completes_again(string $implementation): void
+    public function test_a_flow_that_receives_new_work_after_completing_is_pending_until_that_work_completes(string $implementation): void
     {
-        $subscriber = new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
-            {
-                $this->completedTraces[] = $event->tracingId;
-            }
-        };
         $orders = new class () {
             #[Asynchronous('async_channel')]
             #[CommandHandler('order.place', endpointId: 'order.placing')]
@@ -542,20 +523,18 @@ final class FlowTrackingConformanceTest extends DbalMessagingTestCase
             {
             }
         };
-        $ecotone = $this->bootstrap($implementation, [$this->users(), $orders, $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
+        $ecotone = $this->bootstrap($implementation, [$this->users(), $orders], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
         $trace = SpanContext::newTrace();
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        self::assertSame([$trace->traceId], $subscriber->completedTraces);
+        self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
 
         $ecotone->sendCommandWithRouting('order.place', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
         self::assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
-        self::assertSame([$trace->traceId], $subscriber->completedTraces);
 
         $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
-        self::assertSame([$trace->traceId, $trace->traceId], $subscriber->completedTraces);
     }
 
     public function test_a_channel_published_through_the_outbox_completes_once_its_consumer_ran(): void

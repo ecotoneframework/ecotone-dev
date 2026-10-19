@@ -13,10 +13,8 @@ use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\EventSourcing\Event;
@@ -204,7 +202,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone = $this->bootstrap([$this->users()]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowStepCompleted] receives a FlowStepCompleted once each step of the flow committed, and can ask TracingGateway::isCompletedFor() whether the flow completed with it.');
 
         $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16));
     }
@@ -214,7 +212,7 @@ final class FlowTrackingTest extends TestCase
         $ecotone = $this->bootstrap([$this->users()]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.');
+        $this->expectExceptionMessage('TracingGateway::isCompletedWithin() was asked to wait 960000 milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowStepCompleted] receives a FlowStepCompleted once each step of the flow committed, and can ask TracingGateway::isCompletedFor() whether the flow completed with it.');
 
         $this->completion($ecotone)->isCompletedWithin(SpanContext::newTrace()->traceId, Duration::minutes(16), 'user.registration');
     }
@@ -338,51 +336,6 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.notifier'));
     }
 
-    public function test_a_flow_completed_subscriber_is_called_once_after_the_last_handler_committed(): void
-    {
-        $subscriber = new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
-            {
-                $this->completedTraces[] = $event->tracingId;
-            }
-        };
-        $ecotone = $this->bootstrap([$this->users(), $this->asynchronousNotifier(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
-        $trace = SpanContext::newTrace();
-
-        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        $this->assertSame([], $subscriber->completedTraces);
-
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertSame([$trace->traceId], $subscriber->completedTraces);
-
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertSame([$trace->traceId], $subscriber->completedTraces);
-    }
-
-    public function test_a_synchronous_trace_notifies_its_subscriber_when_the_bus_returns(): void
-    {
-        $subscriber = new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
-            {
-                $this->completedTraces[] = $event->tracingId;
-            }
-        };
-        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
-        $trace = SpanContext::newTrace();
-
-        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-
-        $this->assertSame([$trace->traceId], $subscriber->completedTraces);
-    }
-
     public function test_a_flow_step_completed_subscriber_receives_every_stored_span_of_the_trace(): void
     {
         $subscriber = new class () {
@@ -473,32 +426,6 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId, 'user.registration'));
     }
 
-    public function test_a_flow_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
-    {
-        $subscriber = new class () {
-            public int $notifications = 0;
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event, CommandBus $commandBus): void
-            {
-                $this->notifications++;
-                if ($this->notifications < 5) {
-                    $commandBus->sendWithRouting('cache.refresh', $event->tracingId);
-                }
-            }
-
-            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
-            public function refresh(string $traceId): void
-            {
-            }
-        };
-        $ecotone = $this->bootstrap([$this->users(), $subscriber]);
-
-        $ecotone->sendCommandWithRouting('user.register', '1');
-
-        $this->assertSame(1, $subscriber->notifications);
-    }
-
     public function test_a_flow_step_completed_subscriber_sending_a_command_does_not_notify_itself_again(): void
     {
         $subscriber = new class () {
@@ -527,11 +454,11 @@ final class FlowTrackingTest extends TestCase
         $this->assertSame([$trace->traceId], array_values(array_unique($subscriber->notifiedTraces)));
     }
 
-    public function test_a_failing_flow_completed_subscriber_is_logged_and_does_not_fail_the_command(): void
+    public function test_a_failing_flow_step_completed_subscriber_is_logged_and_does_not_fail_the_command(): void
     {
         $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
                 throw new RuntimeException('Cache refresh failed');
             }
@@ -547,7 +474,7 @@ final class FlowTrackingTest extends TestCase
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
 
-        $this->assertSame(['A subscriber of ecotone.tracing.flowCompleted failed and was skipped: Cache refresh failed'], $logger->getError());
+        $this->assertSame(['A subscriber of ecotone.tracing.flowStepCompleted failed and was skipped: Cache refresh failed'], array_values(array_unique($logger->getError())));
         $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
@@ -577,38 +504,6 @@ final class FlowTrackingTest extends TestCase
 
         $this->assertNotContains('process class@anonymous::refresh', $subscriber->stepNames);
         $this->assertLessThan(20, count($subscriber->stepNames));
-    }
-
-    public function test_a_flow_completed_subscriber_sending_an_asynchronous_command_is_notified_once(): void
-    {
-        $subscriber = new class () {
-            /** @var string[] */
-            public array $completedTraces = [];
-
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event, CommandBus $commandBus): void
-            {
-                $this->completedTraces[] = $event->tracingId;
-                if (count($this->completedTraces) < 20) {
-                    $commandBus->sendWithRouting('cache.refresh', $event->tracingId);
-                }
-            }
-
-            #[Asynchronous('async_channel')]
-            #[CommandHandler('cache.refresh', endpointId: 'cache.refreshing')]
-            public function refresh(string $tracingId): void
-            {
-            }
-        };
-        $ecotone = $this->bootstrap([$this->users(), $subscriber], [SimpleMessageChannelBuilder::createQueueChannel('async_channel')]);
-        $trace = SpanContext::newTrace();
-
-        $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACEPARENT => $trace->toTraceparent()]);
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        $ecotone->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
-
-        $this->assertSame([$trace->traceId], $subscriber->completedTraces);
-        $this->assertTrue($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
     public function test_a_flow_step_completed_subscriber_sending_an_asynchronous_command_is_not_notified_about_its_consumer(): void
@@ -1144,21 +1039,6 @@ final class FlowTrackingTest extends TestCase
         $this->assertFalse($this->completion($ecotone)->isCompletedFor($trace->traceId));
     }
 
-    public function test_a_flow_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
-    {
-        $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowStepCompleted $event): void
-            {
-            }
-        };
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted is passed a ' . FlowCompleted::class . ' as its first parameter, but declares it as ' . FlowStepCompleted::class . ', so every notification would fail. Declare that parameter as ' . FlowCompleted::class . '.');
-
-        $this->bootstrap([$subscriber]);
-    }
-
     public function test_a_flow_step_completed_subscriber_whose_first_parameter_cannot_receive_the_notification_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
@@ -1174,18 +1054,18 @@ final class FlowTrackingTest extends TestCase
         $this->bootstrap([$subscriber]);
     }
 
-    public function test_an_asynchronous_flow_completed_subscriber_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
+    public function test_an_asynchronous_flow_step_completed_subscriber_is_refused_at_bootstrap_naming_how_to_run_its_work_in_the_background(): void
     {
         $subscriber = new class () {
             #[Asynchronous('notifications')]
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
             }
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded cannot run #[Asynchronous]: a flow notification is delivered from memory once the work committed, so it is never queued. Remove #[Asynchronous], and send a command to an #[Asynchronous] handler from this method for the work that should run in the background.');
 
         $this->bootstrap([$subscriber], [SimpleMessageChannelBuilder::createQueueChannel('notifications')]);
     }
@@ -1221,14 +1101,14 @@ final class FlowTrackingTest extends TestCase
     public function test_with_notifications_turned_off_a_subscriber_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
             }
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded would never be called, because FlowTrackingConfiguration::withNotifications(false) turned notifications off. Remove that call, or remove the attribute.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -1259,10 +1139,10 @@ final class FlowTrackingTest extends TestCase
             /** @var string[] */
             public array $completedFlows = [];
 
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
-                $this->completedFlows[] = $event->tracingId;
+                $this->completedFlows[] = $event->step->traceId;
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -1273,7 +1153,7 @@ final class FlowTrackingTest extends TestCase
         );
 
         $ecotone->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => '4bf92f3577b34da6a3ce929d0e0e4736']);
-        $this->assertSame(['4bf92f3577b34da6a3ce929d0e0e4736'], $subscriber->completedFlows);
+        $this->assertSame(['4bf92f3577b34da6a3ce929d0e0e4736'], array_values(array_unique($subscriber->completedFlows)));
 
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.');
@@ -1293,17 +1173,17 @@ final class FlowTrackingTest extends TestCase
         );
     }
 
-    public function test_a_flow_completed_subscriber_requires_an_enterprise_licence(): void
+    public function test_a_flow_step_completed_subscriber_requires_an_enterprise_licence(): void
     {
         $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
             }
         };
 
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted require an Ecotone Enterprise licence. Remove them to run without one.');
+        $this->expectExceptionMessage('FlowTrackingConfiguration and #[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded require an Ecotone Enterprise licence. Remove them to run without one.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],
@@ -1330,17 +1210,17 @@ final class FlowTrackingTest extends TestCase
         );
     }
 
-    public function test_a_flow_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
+    public function test_a_flow_step_completed_subscriber_without_flow_tracking_is_refused_at_bootstrap(): void
     {
         $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenEnded(FlowStepCompleted $event): void
             {
             }
         };
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('#[OnFlowCompleted] on ' . $subscriber::class . '::whenCompleted needs flow tracking, which decides when a flow is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
+        $this->expectExceptionMessage('#[OnFlowStepCompleted] on ' . $subscriber::class . '::whenEnded needs flow tracking, which records the steps of every flow. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.');
 
         EcotoneLite::bootstrapFlowTesting(
             [$subscriber::class],

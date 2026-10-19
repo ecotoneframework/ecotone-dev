@@ -30,8 +30,6 @@ final class InMemoryTraceStore implements TraceStore
 {
     /** @var array<string, array<string, Span>> */
     private array $spansByTrace = [];
-    /** @var array<string, DatePoint> */
-    private array $completedAt = [];
 
     public function append(array $spans): void
     {
@@ -40,18 +38,7 @@ final class InMemoryTraceStore implements TraceStore
                 continue;
             }
             $this->spansByTrace[$span->traceId][$span->spanId] = $span;
-            unset($this->completedAt[$span->traceId]);
         }
-    }
-
-    public function markCompletedIfDone(string $traceId, DatePoint $now): bool
-    {
-        if (isset($this->completedAt[$traceId]) || ! $this->progressOf($traceId)->isCompleted()) {
-            return false;
-        }
-        $this->completedAt[$traceId] = $now;
-
-        return true;
     }
 
     public function progressOf(string $traceId): TraceProgress
@@ -64,12 +51,11 @@ final class InMemoryTraceStore implements TraceStore
         return array_values($this->spansByTrace[$traceId] ?? []);
     }
 
-    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void
+    public function removeTracesStartedBefore(DatePoint $startedBefore, int $batchSize): void
     {
         foreach ($this->spansByTrace as $traceId => $spans) {
-            $startedAt = min(array_map(fn (Span $span): DatePoint => $span->startedAt, $spans));
-            if ($startedAt < $anyTraceStartedBefore || (isset($this->completedAt[$traceId]) && $startedAt < $completedTracesStartedBefore)) {
-                unset($this->spansByTrace[$traceId], $this->completedAt[$traceId]);
+            if (min(array_map(fn (Span $span): DatePoint => $span->startedAt, $spans)) < $startedBefore) {
+                unset($this->spansByTrace[$traceId]);
             }
         }
     }

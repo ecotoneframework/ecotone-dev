@@ -109,7 +109,7 @@ final class StoredTracingGateway
         }
 
         throw InvalidArgumentException::create(sprintf(
-            'TracingGateway::isCompletedWithin() was asked to wait %d milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowCompleted] receives a FlowCompleted once the flow completes, and one with #[OnFlowStepCompleted] a FlowStepCompleted for each of its steps.',
+            'TracingGateway::isCompletedWithin() was asked to wait %d milliseconds, but it blocks the calling process for as long as it waits, which past 15 minutes ties that process up for an extensive period. Wait at most 15 minutes, or react to the flow event-driven instead: a method with #[OnFlowStepCompleted] receives a FlowStepCompleted once each step of the flow committed, and can ask TracingGateway::isCompletedFor() whether the flow completed with it.',
             $timeout->inMilliseconds(),
         ));
     }

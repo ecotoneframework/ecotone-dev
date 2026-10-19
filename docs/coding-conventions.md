@@ -165,7 +165,7 @@ for each one, whether it is supported (with a test) or refused (with a message t
 - **Settings that contradict** — an option combination that cannot work, such as a subscriber with notifications
   turned off, is refused naming the setting to remove.
 
-Evidence: flow tracking shipped three of these gaps at once. `#[Asynchronous]` on `#[OnFlowCompleted]` asked for an
+Evidence: flow tracking shipped three of these gaps at once. `#[Asynchronous]` on a flow notification subscriber asked for an
 `endpointId` the attribute cannot take, a second `FlowTrackingConfiguration` was silently dropped, and a subscriber
 with a mistyped first parameter failed on every notification at runtime (`FlowTrackingTest`, the three bootstrap
 refusals).

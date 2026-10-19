@@ -118,6 +118,7 @@ final class SpansTableManager implements DbalTableManager
         $table->addColumn('started_at', Types::BIGINT);
         $table->addColumn('ended_at', Types::BIGINT);
         $table->setPrimaryKey(['trace_id', 'span_id']);
+        $table->addIndex(['started_at']);
 
         return $table;
     }

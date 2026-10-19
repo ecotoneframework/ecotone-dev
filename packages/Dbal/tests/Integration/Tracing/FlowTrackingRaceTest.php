@@ -12,9 +12,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Dbal\Tracing\FlowCompleted;
+use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
-use Ecotone\Api\Dbal\Tracing\OnFlowCompleted;
+use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -53,15 +53,15 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
 {
     private const MILLISECONDS_THE_FIRST_CONSUMER_STAYS_UNCOMMITTED = 1000;
 
+    public static string $observationsFile = '';
+
     public function tearDown(): void
     {
         CommitHoldingConnection::$beforeCommit = null;
         parent::tearDown();
     }
 
-    public static string $notificationsFile = '';
-
-    public function test_two_consumers_finishing_the_same_flow_at_the_same_moment_notify_its_completion_once(): void
+    public function test_two_consumers_of_one_flow_commit_without_waiting_for_each_other_and_the_last_step_sees_the_flow_completed(): void
     {
         if ($this->getConnectionFactory()->createContext()->getDbalConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             self::markTestSkipped('SQLite serialises writers with a database lock, so the second consumer cannot run while the first one holds its transaction open. The race is left unproved on SQLite.');
@@ -72,7 +72,7 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
             'connection' => ['wrapperClass' => CommitHoldingConnection::class],
         ]), setUpTables: true);
         $tracingId = '0af7651916cd43dd8448eb211c80319c';
-        self::$notificationsFile = $this->signalFile();
+        self::$observationsFile = $this->signalFile();
         $first->sendCommandWithRouting('user.register', '1', metadata: [MessageHeaders::TRACING_ID => $tracingId]);
         $ready = $this->signalFile();
         $outcome = $this->signalFile();
@@ -85,20 +85,21 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
                 $this->consumeTheOtherDeliveryOnASecondConnection($ready, $outcome);
             }
             $this->waitUntilWritten($ready);
-            usleep(self::MILLISECONDS_THE_FIRST_CONSUMER_STAYS_UNCOMMITTED * 1000);
+            $this->waitUntilWritten($outcome, self::MILLISECONDS_THE_FIRST_CONSUMER_STAYS_UNCOMMITTED);
         };
         $first->run('mail_channel', ExecutionPollingMetadata::createWithTestingSetup());
         pcntl_waitpid($second, $status);
 
-        [$consumed, $waitedMilliseconds] = explode('|', file_get_contents($outcome));
-        $notified = file_exists(self::$notificationsFile) ? file(self::$notificationsFile, FILE_IGNORE_NEW_LINES) : [];
+        [$consumed, $tookMilliseconds] = explode('|', file_get_contents($outcome));
+        $observations = file(self::$observationsFile, FILE_IGNORE_NEW_LINES);
         unlink($ready);
         unlink($outcome);
-        @unlink(self::$notificationsFile);
+        unlink(self::$observationsFile);
         self::assertSame('consumed', $consumed);
+        self::assertLessThan(self::MILLISECONDS_THE_FIRST_CONSUMER_STAYS_UNCOMMITTED, (int) $tookMilliseconds);
+        self::assertSame(['user.mailer ran', 'user.texter ran'], array_values(array_filter($observations, fn (string $line): bool => str_ends_with($line, 'ran'))));
+        self::assertSame('flow completed', end($observations));
         self::assertTrue($first->getGateway(TracingGateway::class)->isCompletedFor($tracingId));
-        self::assertSame([$tracingId], $notified);
-        self::assertGreaterThanOrEqual(self::MILLISECONDS_THE_FIRST_CONSUMER_STAYS_UNCOMMITTED / 2, (int) $waitedMilliseconds);
     }
 
     private function consumeTheOtherDeliveryOnASecondConnection(string $ready, string $outcome): never
@@ -130,10 +131,12 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
             }
         };
         $subscriber = new class () {
-            #[OnFlowCompleted]
-            public function whenCompleted(FlowCompleted $event): void
+            #[OnFlowStepCompleted]
+            public function whenStepCompleted(FlowStepCompleted $event, TracingGateway $tracingGateway): void
             {
-                file_put_contents(FlowTrackingRaceTest::$notificationsFile, $event->tracingId . PHP_EOL, FILE_APPEND | LOCK_EX);
+                if ($tracingGateway->isCompletedFor($event->step->traceId)) {
+                    file_put_contents(FlowTrackingRaceTest::$observationsFile, 'flow completed' . PHP_EOL, FILE_APPEND | LOCK_EX);
+                }
             }
         };
         $notifications = new class () {
@@ -141,12 +144,14 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
             #[EventHandler('user.registered', endpointId: 'user.mailer')]
             public function mail(string $userId): void
             {
+                file_put_contents(FlowTrackingRaceTest::$observationsFile, 'user.mailer ran' . PHP_EOL, FILE_APPEND | LOCK_EX);
             }
 
             #[Asynchronous('sms_channel')]
             #[EventHandler('user.registered', endpointId: 'user.texter')]
             public function text(string $userId): void
             {
+                file_put_contents(FlowTrackingRaceTest::$observationsFile, 'user.texter ran' . PHP_EOL, FILE_APPEND | LOCK_EX);
             }
         };
 
@@ -177,9 +182,9 @@ final class FlowTrackingRaceTest extends DbalMessagingTestCase
         return $file;
     }
 
-    private function waitUntilWritten(string $file): void
+    private function waitUntilWritten(string $file, int $atMostMilliseconds = 30_000): void
     {
-        $deadline = hrtime(true) + 30 * 1e9;
+        $deadline = hrtime(true) + $atMostMilliseconds * 1e6;
         while (! file_exists($file) && hrtime(true) < $deadline) {
             usleep(10_000);
         }

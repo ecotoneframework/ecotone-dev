@@ -33,8 +33,6 @@ interface TraceStore
      */
     public function append(array $spans): void;
 
-    public function markCompletedIfDone(string $traceId, DatePoint $now): bool;
-
     public function progressOf(string $traceId): TraceProgress;
 
     /**
@@ -42,7 +40,7 @@ interface TraceStore
      */
     public function stepsOf(string $traceId): array;
 
-    public function removeExpiredTraces(DatePoint $completedTracesStartedBefore, DatePoint $anyTraceStartedBefore, int $batchSize): void;
+    public function removeTracesStartedBefore(DatePoint $startedBefore, int $batchSize): void;
 
     public function withinTransaction(Closure $work): mixed;
 }

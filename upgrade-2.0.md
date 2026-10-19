@@ -3099,8 +3099,8 @@ in an external collector, after the fact.
 
 **Now:** registering `Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration::createWithDefaults()` from a
 `#[ServiceContext]` method tracks every flow a message starts: the handlers, routes, channels and projections it
-reaches, synchronously or asynchronously, across processes. What it tracks is kept in `ecotone_traces` and
-`ecotone_tracing`, created by `ecotone:migration:database:setup`; a flow test given no connection keeps it in memory.
+reaches, synchronously or asynchronously, across processes. What it tracks is kept in one table, `ecotone_tracing`,
+created by `ecotone:migration:database:setup`; a flow test given no connection keeps it in memory.
 Two features are on by default and each can be turned off while the flows are still tracked:
 
 - **`TracingGateway`** has three methods. `isCompletedFor($tracingId)` tells whether the flow is complete, and
@@ -3118,12 +3118,15 @@ Two features are on by default and each can be turned off while the flows are st
   `isCompletedWithin($tracingId, $timeout, UsersListProjection::class)` needs no name to be repeated, and the class
   completes once every one of its handlers the flow reached ran. A class with no handler or projection is refused at
   once. Waiting blocks the calling process while it polls, so a timeout above 15 minutes is refused, pointing to
-  `#[OnFlowCompleted]` and `#[OnFlowStepCompleted]`: a flow that takes longer is reacted to when it completes, not
-  waited for.
+  `#[OnFlowStepCompleted]`: a flow that takes longer is reacted to as its steps commit, not waited for.
   `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
-- **Notifications**: a method with `#[OnFlowCompleted]` receives a `FlowCompleted` each time its flow reaches
-  completion, and one with `#[OnFlowStepCompleted]` receives a `FlowStepCompleted` for every step of the flow whose unit of work committed, a bus call, a handler run, a route, a message sent or received, with the step's span in `$event->step`. `withNotifications(false)` turns them off,
-  and an application that still declares either attribute is refused at bootstrap.
+- **Notifications**: a method with `#[OnFlowStepCompleted]` receives a `FlowStepCompleted` for every step of the
+  flow whose unit of work committed, a bus call, a handler run, a route, a message sent or received, with the step's
+  span in `$event->step`. To react to the whole flow, or to one destination, the subscriber asks
+  `TracingGateway::isCompletedFor()`: it is called after its unit of work committed, so the part of the flow that
+  commits last always sees the flow complete. When two parts commit at the same moment, both can see it complete, so
+  a reaction to completion is delivered at least once. `withNotifications(false)` turns notifications off, and an
+  application that still declares the attribute is refused at bootstrap.
 
 The flow is named by the **`tracingId`** header, `MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters
 the application chooses and sends with the command, then passes to `TracingGateway`. Ecotone turns it into the W3C
@@ -3141,13 +3144,13 @@ it sent to a channel was consumed from that channel, so an asynchronous command,
 pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
 satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
 high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
-two commands under one `tracingId`, completes and notifies again once that work is done. `isCompletedFor()` and
+two commands under one `tracingId`, is pending again until that work is done. `isCompletedFor()` and
 `isCompletedWithin()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
 events.
 
 Everything is written inside the transaction of the unit of work it describes, a bus call or an asynchronous
-consumption: the spans buffered during the work, the span that wraps it as it stands at that moment, and the decision
-whether the flow is complete. An asynchronous projection, which commits once per batch, is recorded inside each
+consumption: the spans buffered during the work, and the span that wraps it as it stands at that moment. Whether a
+flow is complete is never stored: it is decided from the committed spans each time it is asked. An asynchronous projection, which commits once per batch, is recorded inside each
 batch's transaction, and is marked processed in the batch that finds it caught up. A path run with no transaction at
 all, an event bus call from a controller or a command bus with `withTransactionOnCommandBus(false)`, has none to be
 inside and writes when its work ends. Nothing is written after the commit or after a rollback, so a database that goes down
@@ -3159,20 +3162,16 @@ notification is delivered in a trace of its own, marked `ecotone=untracked` in t
 subscriber sends, synchronously or through an asynchronous channel, is neither stored nor notified and can never reopen
 the flow it was told about; OpenTelemetry still exports it, as its own trace. A subscriber runs synchronously, as that delivery
 happens; `#[Asynchronous]` on it is refused at bootstrap, so work meant for the background is a command it sends to an
-`#[Asynchronous]` handler. A subscriber whose first parameter is not `FlowCompleted` or `FlowStepCompleted`, and a
-`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Each flow's row carries a version: a unit
-of work reads it, and writes the row only if no other part of the same flow committed in between. When two parts of
-one flow finish at the same moment, the second one's write fails with `ConcurrencyException`, its transaction rolls
-back, and the retry reads the flow again from a fresh snapshot, sees the first part and claims completion, so the flow
-notifies exactly once on PostgreSQL, MySQL and MariaDB alike. The retried part runs its handler again: an asynchronous
-endpoint retries by default; a command does with `withCommandBusRetry(true, 3, [ConcurrencyException::class])`.
+`#[Asynchronous]` handler. A subscriber whose first parameter is not `FlowStepCompleted`, and a
+`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Each step is its own row, keyed by its
+trace and span id, so parts of one flow committing at the same moment never write the same row and never wait for
+each other, on PostgreSQL, MySQL and MariaDB alike.
 
 `withOnlyRequestedFlows(true)` tracks only flows sent with a `tracingId` or a `traceparent`, carrying that choice
 across channels in the W3C `tracestate` as `ecotone=carried` next to any other vendor's entry, so ordinary traffic
-costs nothing. `withRetention()` sets how long `ecotone:tracing:remove-expired-traces` keeps completed flows, seven
-days by default; a flow still pending is kept twice as long, so a message delayed past the retention still completes
-it. Nothing runs the command for you: schedule it, from cron or the framework's scheduler, or the tables keep every
-flow. It removes expired flows in batches of 1000, each batch's spans and flow rows in one short transaction, until
+costs nothing. `withRetention()` sets how long `ecotone:tracing:remove-expired-traces` keeps a flow, counted from its
+first step, seven days by default, completed or not. Nothing runs the command for you: schedule it, from cron or the framework's scheduler, or the tables keep every
+flow. It removes expired flows in batches of 1000, each batch's spans in one short transaction, until
 none is left, so a large backlog never holds one long lock; `withRemovalBatchSize()` changes the size. A multi-tenant application tracks each flow in the database of its tenant, inside the tenant's transaction, so a
 flow is never complete before the tenant's data committed. `TracingGateway` is then asked with the tenant,
 `$tracingGateway->isCompletedWithin($tracingId, $timeout, metadata: ['tenant' => 'tenant_a'])`, and a call without one is refused
@@ -3194,15 +3193,17 @@ if (! $tracingGateway->isCompletedWithin($tracingId, Duration::seconds(5), 'orde
 
 final class OrdersWebsocket
 {
-    #[OnFlowCompleted]
-    public function push(FlowCompleted $event): void
+    #[OnFlowStepCompleted]
+    public function push(FlowStepCompleted $event, TracingGateway $tracingGateway): void
     {
+        if ($tracingGateway->isCompletedFor($event->step->traceId, 'orders_list')) {
+        }
     }
 }
 ```
 
-**How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for the
-two tables, and give each handler you want to ask about an explicit `endpointId`.
+**How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for its
+table, and give each handler you want to ask about an explicit `endpointId`.
 
 ## 15. Testing and developer-experience changes
 

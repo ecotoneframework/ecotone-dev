@@ -63,9 +63,9 @@ final class FlowScenario
         return true;
     }
 
-    public function withoutFailedSpans(): self
+    public function asStoredByFlowTracking(): self
     {
-        return new self($this->name, $this->classesToResolve, $this->services, $this->extensionObjects, array_map(fn (FlowStage $stage) => $stage->withoutFailedSpans(), $this->stages));
+        return new self($this->name, $this->classesToResolve, $this->services, $this->extensionObjects, array_map(fn (FlowStage $stage) => $stage->asStoredByFlowTracking(), $this->stages));
     }
 
     /**

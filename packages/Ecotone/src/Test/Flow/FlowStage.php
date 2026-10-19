@@ -49,9 +49,9 @@ final class FlowStage
         return new self(...[...get_object_vars($this), 'expectedFailure' => $messageFragment]);
     }
 
-    public function withoutFailedSpans(): self
+    public function asStoredByFlowTracking(): self
     {
-        return new self(...[...get_object_vars($this), 'expectedSpans' => array_values(array_filter(array_map(fn (ExpectedSpan $span) => $span->withoutFailedSpans(), $this->expectedSpans)))]);
+        return new self(...[...get_object_vars($this), 'expectedSpans' => array_values(array_filter(array_map(fn (ExpectedSpan $span) => $span->asStoredByFlowTracking(), $this->expectedSpans)))]);
     }
 
     public function withNoOtherSpans(): self

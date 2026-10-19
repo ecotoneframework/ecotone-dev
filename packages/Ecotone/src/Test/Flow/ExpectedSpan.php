@@ -44,6 +44,7 @@ final class ExpectedSpan
         public readonly ?string $traceId = null,
         public readonly ?string $parentSpanId = null,
         public readonly ?string $statusDescription = null,
+        public readonly bool $relayedOutsideAUnitOfWork = false,
     ) {
     }
 
@@ -83,6 +84,11 @@ final class ExpectedSpan
     public static function named(string $name): self
     {
         return new self($name);
+    }
+
+    public function relayedOutsideAUnitOfWork(): self
+    {
+        return new self(...[...get_object_vars($this), 'relayedOutsideAUnitOfWork' => true]);
     }
 
     public function asRoot(): self
@@ -129,13 +135,13 @@ final class ExpectedSpan
         return false;
     }
 
-    public function withoutFailedSpans(): ?self
+    public function asStoredByFlowTracking(): ?self
     {
-        if ($this->status === SpanStatus::Error) {
+        if ($this->status === SpanStatus::Error || $this->relayedOutsideAUnitOfWork) {
             return null;
         }
 
-        return new self(...[...get_object_vars($this), 'children' => array_values(array_filter(array_map(fn (ExpectedSpan $child) => $child->withoutFailedSpans(), $this->children)))]);
+        return new self(...[...get_object_vars($this), 'children' => array_values(array_filter(array_map(fn (ExpectedSpan $child) => $child->asStoredByFlowTracking(), $this->children)))]);
     }
 
     public function count(): int

@@ -30,7 +30,7 @@ final class StoredFlowVerifier
         foreach ($traceIds as $traceId) {
             $steps = [...$steps, ...($tracing->fetchFlow($traceId)?->steps ?? [])];
         }
-        $mismatch = $scenario->withoutFailedSpans()->mismatchAfterStage($stageIndex, $steps);
+        $mismatch = $scenario->asStoredByFlowTracking()->mismatchAfterStage($stageIndex, $steps);
         if ($mismatch !== null) {
             return $mismatch;
         }

@@ -7,6 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config\Flow;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -29,12 +30,12 @@ final class MessageFlowLicenceTest extends TestCase
         $ecotone->getMessageFlowGraph();
     }
 
-    public function test_flow_dump_command_without_enterprise_licence_is_refused_with_the_way_to_enable_it(): void
+    public function test_flow_dump_command_is_not_registered_without_enterprise_licence(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(enabledModules: []);
 
-        $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage(self::REFUSAL);
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Console command `ecotone:flow:dump` is not registered.');
 
         $ecotone->runConsoleCommand('ecotone:flow:dump');
     }

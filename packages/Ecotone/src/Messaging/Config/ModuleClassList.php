@@ -59,7 +59,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
-use Ecotone\Messaging\Config\Flow\MessageFlowConsoleCommands;
 use Ecotone\Messaging\Config\Flow\MessageFlowModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
@@ -153,7 +152,6 @@ class ModuleClassList
         QueryBus::class,
         EventBus::class,
         ProjectingConsoleCommands::class,
-        MessageFlowConsoleCommands::class,
     ];
 
     public const AMQP_MODULES = [

@@ -1,0 +1,138 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Messaging\Unit\Config\Flow;
+
+use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\SpanAttribute;
+use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Test\Flow\FlowScenario;
+use Ecotone\Test\Flow\FlowScenarioCatalogue;
+use Ecotone\Test\Flow\SpanTree;
+use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * licence Apache-2.0
+ * @internal
+ */
+final class MessageFlowGraphConformanceTest extends TestCase
+{
+    #[DataProviderExternal(FlowScenarioCatalogue::class, 'dataProvider')]
+    public function test_every_recorded_step_of_a_catalogued_flow_is_a_path_in_the_message_flow_graph(FlowScenario $scenario): void
+    {
+        $recorder = new InMemorySpanRecorder();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            $scenario->classesToResolve,
+            [...$scenario->services, InMemorySpanRecorder::class => $recorder],
+            [...$scenario->extensionObjects, TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        foreach ($scenario->stages as $stage) {
+            ($stage->action)($ecotone, []);
+        }
+        $graph = $ecotone->getMessageFlowGraph();
+        $tree = SpanTree::of($recorder->recordedSpans());
+
+        $steps = [];
+        foreach ($tree->roots() as $root) {
+            $steps = [...$steps, ...self::stepsFrom($root, null, $tree, $graph)];
+        }
+
+        self::assertNotEmpty($steps);
+        foreach ($steps as [$from, $to]) {
+            self::assertTrue(self::hasPath($graph, $from, $to), "The recorded step {$from} -> {$to} has no path in the message flow graph:\n" . $graph->toMermaid());
+        }
+    }
+
+    /**
+     * @return list<array{string, string}>
+     */
+    private static function stepsFrom(Span $span, ?string $nearestNode, SpanTree $tree, MessageFlowGraph $graph): array
+    {
+        $node = self::nodeOf($span, $graph);
+        $isChannel = $node !== null && str_starts_with($node, 'channel:');
+        $steps = [];
+        if ($node !== null && ! $isChannel && $nearestNode !== null && $nearestNode !== $node) {
+            $steps[] = [$nearestNode, $node];
+        }
+        foreach ($tree->childrenOf($span) as $child) {
+            $steps = [...$steps, ...self::stepsFrom($child, $node ?? $nearestNode, $tree, $graph)];
+        }
+        if ($isChannel && $nearestNode !== null && ! str_starts_with($nearestNode, 'channel:')) {
+            foreach (self::nearestNodesBelow($span, $tree, $graph) as $reached) {
+                $steps[] = [$nearestNode, $reached];
+            }
+        }
+
+        return $steps;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function nearestNodesBelow(Span $span, SpanTree $tree, MessageFlowGraph $graph): array
+    {
+        $nodes = [];
+        foreach ($tree->childrenOf($span) as $child) {
+            $node = self::nodeOf($child, $graph);
+            $nodes = $node === null || str_starts_with($node, 'channel:')
+                ? [...$nodes, ...self::nearestNodesBelow($child, $tree, $graph)]
+                : [...$nodes, $node];
+        }
+
+        return $nodes;
+    }
+
+    private static function nodeOf(Span $span, MessageFlowGraph $graph): ?string
+    {
+        $destination = $span->attributes[SpanAttribute::MESSAGING_DESTINATION_NAME] ?? null;
+        $node = match (true) {
+            in_array($span->name, ['send command', 'send event', 'send query'], true) => self::messageNodeOf((string) $destination, $graph),
+            isset($span->attributes[SpanAttribute::PROJECTION_NAME]) && str_starts_with($span->name, 'process ') => 'projection:' . $span->attributes[SpanAttribute::PROJECTION_NAME],
+            isset($span->attributes[SpanAttribute::CODE_FUNCTION_NAME]) => 'handler:' . $span->attributes[SpanAttribute::CODE_FUNCTION_NAME],
+            $span->kind === SpanKind::Producer && $span->name === 'send ' . $destination => 'channel:' . $destination,
+            $span->kind === SpanKind::Consumer && $span->name === 'receive ' . $destination => 'channel:' . $destination,
+            default => null,
+        };
+
+        return $node !== null && $graph->hasNode($node) ? $node : null;
+    }
+
+    private static function messageNodeOf(string $destination, MessageFlowGraph $graph): string
+    {
+        foreach ($graph->nodes() as $node) {
+            if (($node->attributes['namedAs'] ?? null) === $destination) {
+                return $node->id;
+            }
+        }
+
+        return 'message:' . $destination;
+    }
+
+    private static function hasPath(MessageFlowGraph $graph, string $from, string $to): bool
+    {
+        $visited = [$from => true];
+        $queue = [$from];
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            if ($current === $to) {
+                return true;
+            }
+            foreach ($graph->edgesFrom($current) as $edge) {
+                if (! isset($visited[$edge->to])) {
+                    $visited[$edge->to] = true;
+                    $queue[] = $edge->to;
+                }
+            }
+        }
+
+        return false;
+    }
+}

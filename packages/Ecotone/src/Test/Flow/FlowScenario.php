@@ -26,6 +26,24 @@ final class FlowScenario
     ) {
     }
 
+    public function endsInFailure(): bool
+    {
+        foreach ($this->stages as $stage) {
+            foreach ($stage->expectedSpans as $expectedSpan) {
+                if ($expectedSpan->hasFailure()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public function withoutFailedSpans(): self
+    {
+        return new self($this->name, $this->classesToResolve, $this->services, $this->extensionObjects, array_map(fn (FlowStage $stage) => $stage->withoutFailedSpans(), $this->stages));
+    }
+
     /**
      * @param Span[] $spans
      */

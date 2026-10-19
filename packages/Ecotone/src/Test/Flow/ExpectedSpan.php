@@ -63,6 +63,29 @@ final class ExpectedSpan
         return new self(...[...get_object_vars($this), 'children' => [...$this->children, ...$children]]);
     }
 
+    public function hasFailure(): bool
+    {
+        if ($this->status === SpanStatus::Error) {
+            return true;
+        }
+        foreach ($this->children as $child) {
+            if ($child->hasFailure()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function withoutFailedSpans(): ?self
+    {
+        if ($this->status === SpanStatus::Error) {
+            return null;
+        }
+
+        return new self(...[...get_object_vars($this), 'children' => array_values(array_filter(array_map(fn (ExpectedSpan $child) => $child->withoutFailedSpans(), $this->children)))]);
+    }
+
     public function count(): int
     {
         return 1 + array_sum(array_map(fn (ExpectedSpan $child) => $child->count(), $this->children));

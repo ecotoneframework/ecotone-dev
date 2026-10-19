@@ -33,7 +33,7 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('scenariosOnEveryStore')]
-    public function test_every_catalogued_flow_is_stored_as_its_expected_spans_and_completes_after_its_last_stage(FlowScenario $scenario, string $implementation): void
+    public function test_every_catalogued_flow_stores_its_spans_except_failed_ones_and_completes_after_its_last_stage_unless_it_failed(FlowScenario $scenario, string $implementation): void
     {
         $recorder = new InMemorySpanRecorder();
         $ecotone = $this->bootstrapFlowTesting(
@@ -48,6 +48,7 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
         $tracing = $ecotone->getGateway(TracingGateway::class);
+        $stored = $scenario->withoutFailedSpans();
 
         foreach ($scenario->stages as $index => $stage) {
             ($stage->action)($ecotone, []);
@@ -57,9 +58,9 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
             foreach ($traceIds as $traceId) {
                 $steps = [...$steps, ...($tracing->fetchFlow($traceId)?->steps ?? [])];
             }
-            self::assertNull($scenario->mismatchAfterStage($index, $steps));
+            self::assertNull($stored->mismatchAfterStage($index, $steps));
             $completed = array_map(fn (string $traceId): bool => $tracing->isCompletedFor($traceId), $traceIds);
-            if ($index === array_key_last($scenario->stages)) {
+            if ($index === array_key_last($scenario->stages) && ! $scenario->endsInFailure()) {
                 self::assertNotContains(false, $completed);
             } else {
                 self::assertContains(false, $completed);

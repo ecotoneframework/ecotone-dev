@@ -37,6 +37,11 @@ final class FlowStage
         return new self(...[...get_object_vars($this), 'expectedSpans' => [...$this->expectedSpans, ...$spans]]);
     }
 
+    public function withoutFailedSpans(): self
+    {
+        return new self(...[...get_object_vars($this), 'expectedSpans' => array_values(array_filter(array_map(fn (ExpectedSpan $span) => $span->withoutFailedSpans(), $this->expectedSpans)))]);
+    }
+
     public function withNoOtherSpans(): self
     {
         return new self(...[...get_object_vars($this), 'noOtherSpans' => true]);

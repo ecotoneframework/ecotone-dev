@@ -9,8 +9,8 @@ use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\TracingGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
-use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\TracingConfiguration;
+use Ecotone\Dbal\Test\StoredFlowVerifier;
 use Ecotone\Test\Flow\FlowScenario;
 use Ecotone\Test\Flow\FlowScenarioCatalogue;
 use Ecotone\Test\LicenceTesting;
@@ -48,23 +48,11 @@ final class FlowTrackingScenarioConformanceTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         )->setupDatabaseTables();
         $tracing = $ecotone->getGateway(TracingGateway::class);
-        $stored = $scenario->withoutFailedSpans();
 
         foreach (array_keys($scenario->stages) as $index) {
             self::assertNull($scenario->runStage($index, $ecotone));
 
-            $traceIds = array_values(array_unique(array_map(fn (Span $span): string => $span->traceId, $recorder->recordedSpans())));
-            $steps = [];
-            foreach ($traceIds as $traceId) {
-                $steps = [...$steps, ...($tracing->fetchFlow($traceId)?->steps ?? [])];
-            }
-            self::assertNull($stored->mismatchAfterStage($index, $steps));
-            $completed = array_map(fn (string $traceId): bool => $tracing->isCompletedFor($traceId), $traceIds);
-            if ($scenario->isFinishedAfterStage($index)) {
-                self::assertNotContains(false, $completed);
-            } else {
-                self::assertContains(false, $completed);
-            }
+            self::assertNull(StoredFlowVerifier::mismatchAfterStage($scenario, $index, $tracing, $recorder->recordedSpans()));
         }
     }
 }

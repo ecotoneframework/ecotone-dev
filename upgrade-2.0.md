@@ -3031,6 +3031,180 @@ flushes only a provider that can — an SDK one. Any other provider handles mess
 forced flush left on. Bind an SDK tracer provider (`OpenTelemetry\SDK\Trace\TracerProvider`) when you want spans
 actually flushed.
 
+### Tracing is part of Core, and OpenTelemetry is one of its exporters
+
+**Before:** every span was produced by the `ecotone/open-telemetry` package: `TracerInterceptor` around the buses and
+handlers, `TracingChannelInterceptor` on every pollable channel, and `AddSpanEventLogger` turning log lines into span
+events. The trace context travelled between processes as a JSON `ecotoneTracingCarrier` header, the parent of a
+synchronous span came from OpenTelemetry's ambient context, and without that package there was no trace at all.
+
+**Now:** Core produces the spans. `Ecotone\Api\Tracing` holds the model — `Span`, `SpanKind`, `SpanStatus`,
+`SpanEvent` — plus the `SpanRecorder` seam and an `InMemorySpanRecorder`; `TracingConfiguration::createWithDefaults()
+->withSpanRecorder($referenceName)` names the recorders that receive every ended span. The trace context travels as
+the W3C `traceparent` and `tracestate` headers (`MessageHeaders::TRACEPARENT`, `MessageHeaders::TRACESTATE`), which
+are framework headers: they are not copied into the next message as user metadata, are not reported as span
+attributes, and a root span continues the trace a message already carries, so a command sent with a `traceparent`
+header from an HTTP request becomes a child of that request's span. Span kinds, the message attributes and the
+`exception` event are unchanged. Span names follow the OpenTelemetry messaging convention, `{operation} {target}`,
+short and in lower case, with the detail in attributes: a bus call is `send command`, `send event`, `send query` or
+`send distributed`; a channel send is `send <channel>` and its consumption `receive <channel>`; a handler is
+`process <Class::method>` with the short class name, the fully qualified one in `code.function.name`; a projection
+run is `process <projection>`. Three spans are added. Every route the event bus resolves is a PRODUCER span,
+`route <endpointId>` or `route <projection>`, between the `send event` span and the handler it leads to, synchronous
+or asynchronous, so a trace shows which handlers an event was dispatched to and a failing synchronous handler fails
+its route. An event-driven projection run is a CONSUMER span. And every span carries the OpenTelemetry messaging
+attributes: `messaging.system` is `ecotone`, `messaging.operation.type` is `send` for buses, routes and channel sends
+and `process` for handlers, consumers and projections, `messaging.destination.name` names the route or channel, and
+`ecotone.endpoint.id` or `ecotone.projection.name` name the handler; the names are constants on
+`Ecotone\Api\Tracing\SpanAttribute`. Every scalar user header of the message is a span attribute as well, unless
+`TracingConfiguration::createWithDefaults()->withSpanAttributesFromHeaders('tenant', 'orderId')` names the ones to
+report, which an application holding tokens or personal data in headers should do; a header whose name starts with
+`ecotone.`, `messaging.` or `code.` is never reported, so a message cannot forge the attributes the framework sets.
+A flow entered through an application's own `#[MessageGateway]` or `#[OrchestratorGateway]` is traced from that
+call, `send <requestChannel>` or `send orchestrator`, so an orchestrator's steps share one trace. The tracing interceptors are registered only when a recorder is configured or a
+tracing package hands over its `Tracer`, so an application without tracing pays nothing. `ecotone/open-telemetry`
+becomes an implementation of that `Tracer`: it starts live SDK spans with the same ids Core reports, keeps the
+forced flush and the Dynamic Consistency Boundary spans, and records nothing when a flow test is given no
+`TracerProviderInterface`, in which case Core's own tracer serves the configured recorders. Its configuration moved
+to `Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; the never-settable tracing level is gone.
+`MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER`, which nothing set, is removed.
+
+**How to adapt:** rename dashboards and alerts keyed on the 1.x span names: `Command Bus` is `send command`,
+`Event Bus` is `send event`, `Query Bus` is `send query`, `Sending to Channel: orders` is `send orders`,
+`Receiving from channel: orders` is `receive orders`, `Command Handler: App\OrderService::place` is
+`process OrderService::place`, and `Projection: orders` is `process orders`. A trace tree asserted in a test gains
+the `route` level under `send event`; give the handler an explicit `endpointId` to make that span's name stable. Rename `Ecotone\OpenTelemetry\Configuration\TracingConfiguration` to
+`Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration`; `withForceFlushOnBusExecution()` and
+`withForceFlushOnAsynchronousMessageHandled()` keep their names. A consumer outside Ecotone that read the
+`ecotoneTracingCarrier` header reads `traceparent` instead, which any OpenTelemetry propagator already does. To
+assert on spans in a flow test without the OpenTelemetry SDK, register an `InMemorySpanRecorder` as a service and
+name it in `TracingConfiguration`:
+
+```php
+$recorder = new InMemorySpanRecorder();
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [OrderService::class],
+    [new OrderService(), InMemorySpanRecorder::class => $recorder],
+    [TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class)],
+);
+$ecotone->sendCommand(new PlaceOrder('1'));
+$recorder->recordedSpans(); // Span[] with traceId, spanId, parentSpanId, name, kind, status, attributes, events
+```
+
+### Flow tracking answers "has it completed yet?" (Enterprise, `ecotone/dbal`)
+
+**Before:** an application that wrote through a command and then read through an asynchronous projection had no way
+to know when the projection had caught up: it polled its own read model, or guessed with a delay. Spans existed only
+in an external collector, after the fact.
+
+**Now:** registering `Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration::createWithDefaults()` from a
+`#[ServiceContext]` method tracks every flow a message starts: the handlers, routes, channels and projections it
+reaches, synchronously or asynchronously, across processes. What it tracks is kept in one table, `ecotone_tracing`,
+created by `ecotone:migration:database:setup`; a flow test given no connection keeps it in memory.
+Two features are on by default and each can be turned off while the flows are still tracked:
+
+- **`TracingGateway`** has three methods. `isCompletedFor($tracingId)` tells whether the flow is complete, and
+  `isCompletedFor($tracingId, $destination)` whether one `endpointId`, projection name or class is.
+  `isCompletedWithin($tracingId, $timeout, $destination = null)` polls until that holds and returns `true`, or
+  returns `false` once the timeout passed; it never throws for a flow that is late. `fetchFlow($tracingId)` returns
+  a `Flow` with `isCompleted`, `pending` (the handlers and channels still waited for), `reached` (the destinations
+  the flow was sent to or processed by) and `steps` (its stored spans, in the order they started), or `null` for a
+  flow nobody recorded, so a `false` is explained by reading the flow rather than by an exception.
+  A destination is complete once it processed every message the flow sent it and nothing still pending upstream of
+  it could send it another: only work its own handling caused, through a new message, may still be pending. A
+  message it forwards unchanged, through an output channel, is waited for too, since it carries the same message id
+  as an event's copy queued for a sibling handler. A class stands for everything in it the flow can reach: a
+  `#[Projection]` class for its projection, any other class for every handler method in it, endpoint id or not, so
+  `isCompletedWithin($tracingId, $timeout, UsersListProjection::class)` needs no name to be repeated, and the class
+  completes once every one of its handlers the flow reached ran. A class with no handler or projection is refused at
+  once. Waiting blocks the calling process while it polls, so a timeout above 15 minutes is refused, pointing to
+  `#[OnFlowStepCompleted]`: a flow that takes longer is reacted to as its steps commit, not waited for.
+  `withTracingGateway(false)` turns it off; the gateway stays injectable and every call names that setting.
+- **Notifications**: a method with `#[OnFlowStepCompleted]` receives a `FlowStepCompleted` for every step of the
+  flow whose unit of work committed, a bus call, a handler run, a route, a message sent or received, with the step's
+  span in `$event->step`. To react to the whole flow, or to one destination, the subscriber asks
+  `TracingGateway::isCompletedFor()`: it is called after its unit of work committed, so the part of the flow that
+  commits last always sees the flow complete. When two parts commit at the same moment, both can see it complete, so
+  a reaction to completion is delivered at least once. `withNotifications(false)` turns notifications off, and an
+  application that still declares the attribute is refused at bootstrap.
+
+The flow is named by the **`tracingId`** header, `MessageHeaders::TRACING_ID`: a UUID or 32 hexadecimal characters
+the application chooses and sends with the command, then passes to `TracingGateway`. Ecotone turns it into the W3C
+`traceparent` of the first span, so a command that already carries a `traceparent`, as one from an instrumented HTTP
+request does, is tracked by that trace id instead; a message carrying both is refused, because it is not clear which
+one names the flow, and a `tracingId` in neither format is refused naming the expected one. A `tracingId` names where
+a flow starts, so one passed to a bus or gateway called from inside a handler is refused, naming the flow the call
+already belongs to. A handler reads the id of
+the flow it runs in from `Ecotone\Api\Tracing\CurrentTrace::tracingId()`.
+
+A flow starts at a command, event or query bus call, a distributed bus send, an application or orchestrator gateway
+call, or a consumer receiving a message that carries no trace, such as one from an application without tracing or a
+scheduled poll. A flow is complete once the work that started it ended, every route it sent has an ended handler, and every message
+it sent to a channel was consumed from that channel, so an asynchronous command, event or projection keeps the flow
+pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
+satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
+high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
+two commands under one `tracingId`, is pending again until that work is done. `isCompletedFor()` and
+`isCompletedWithin()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
+events.
+
+Everything is written inside the transaction of the unit of work it describes, a bus call or an asynchronous
+consumption: the spans buffered during the work, and the span that wraps it as it stands at that moment. Whether a
+flow is complete is never stored: it is decided from the committed spans each time it is asked. An asynchronous projection, which commits once per batch, is recorded inside each
+batch's transaction, and is marked processed in the batch that finds it caught up. A path run with no transaction at
+all, an event bus call from a controller or a command bus with `withTransactionOnCommandBus(false)`, has none to be
+inside and writes when its work ends. Nothing is written after the commit or after a rollback, so a database that goes down
+right after a commit cannot fail a consumer or a command whose work already committed, and an outage inside the
+transaction rolls back with the work and leaves the message to be retried. A unit of work that fails stores nothing;
+its failure is visible in OpenTelemetry. Notifications are published from memory once the transaction committed, at
+most once: a subscriber that throws does not fail the work that committed, is logged, and is not called again. Each
+notification is delivered in a trace of its own, marked `ecotone=untracked` in the W3C `tracestate`, so whatever a
+subscriber sends, synchronously or through an asynchronous channel, is neither stored nor notified and can never reopen
+the flow it was told about; OpenTelemetry still exports it, as its own trace. A subscriber runs synchronously, as that delivery
+happens; `#[Asynchronous]` on it is refused at bootstrap, so work meant for the background is a command it sends to an
+`#[Asynchronous]` handler. A subscriber whose first parameter is not `FlowStepCompleted`, and a
+`FlowTrackingConfiguration` registered twice, are refused at bootstrap too. Each step is its own row, keyed by its
+trace and span id, so parts of one flow committing at the same moment never write the same row and never wait for
+each other, on PostgreSQL, MySQL and MariaDB alike.
+
+`withOnlyRequestedFlows(true)` tracks only flows sent with a `tracingId` or a `traceparent`, carrying that choice
+across channels in the W3C `tracestate` as `ecotone=carried` next to any other vendor's entry, so ordinary traffic
+costs nothing. `withRetention()` sets how long `ecotone:tracing:remove-expired-traces` keeps a flow, counted from its
+first step, seven days by default, completed or not. Nothing runs the command for you: schedule it, from cron or the framework's scheduler, or the tables keep every
+flow. It removes expired flows in batches of 1000, each batch's spans in one short transaction, until
+none is left, so a large backlog never holds one long lock; `withRemovalBatchSize()` changes the size. A multi-tenant application tracks each flow in the database of its tenant, inside the tenant's transaction, so a
+flow is never complete before the tenant's data committed. `TracingGateway` is then asked with the tenant,
+`$tracingGateway->isCompletedWithin($tracingId, $timeout, metadata: ['tenant' => 'tenant_a'])`, and a call without one is refused
+naming that metadata; the retention command runs once per tenant,
+`ecotone:tracing:remove-expired-traces --header=tenant:tenant_a`.
+
+```php
+#[ServiceContext]
+public function flowTracking(): FlowTrackingConfiguration
+{
+    return FlowTrackingConfiguration::createWithDefaults();
+}
+
+$tracingId = Uuid::v7()->toRfc4122();
+$commandBus->sendWithRouting('order.place', $order, metadata: [MessageHeaders::TRACING_ID => $tracingId]);
+if (! $tracingGateway->isCompletedWithin($tracingId, Duration::seconds(5), 'orders_list')) {
+    $pending = $tracingGateway->fetchFlow($tracingId)->pending;
+}
+
+final class OrdersWebsocket
+{
+    #[OnFlowStepCompleted]
+    public function push(FlowStepCompleted $event, TracingGateway $tracingGateway): void
+    {
+        if ($tracingGateway->isCompletedFor($event->step->traceId, 'orders_list')) {
+        }
+    }
+}
+```
+
+**How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for its
+table, and give each handler you want to ask about an explicit `endpointId`.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
@@ -3353,6 +3527,7 @@ normal section with "How to adapt" steps when it ships.
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only. (The other half — an in-memory queue channel for every unconfigured `#[Asynchronous]` channel — has shipped; see §1) | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
+| Flow completion by depth | Flow tracking (§14) answers whether a whole flow or one destination completed. `#[OnTraceDepthCompleted]`, notified when every handler at one depth of the flow ended (the command handler is depth 1, the event handlers it triggered depth 2, and so on), is not implemented; it needs the depth carried in `tracestate` across the asynchronous boundary | Design recorded in the conversation that produced §14's tracing sections; no spec file yet |
 | Stateless `#[Apply]` | A second, opt-in fold style: the handler **returns** the changed state instead of mutating `$this`, for both event-sourced aggregates and DCB decision models. A command handler then runs against the last state the fold returned. The existing mutating style stays and needs no change. Detected from the declared return type at configuration time — `void` is stateful, the model's own type is stateless — which is unambiguous because a non-void `#[Apply]` is already rejected at bootstrap today. A stateless state object may carry its own `#[Version]`; **userland increments it in each apply** and Ecotone verifies it increased on every applied event, which also makes a fully `readonly` state class possible on PHP 8.2. Returning the wrong type is rejected rather than ignored | `docs/superpowers/specs/2026-09-30-stateless-event-sourcing-handler-design.md` — researched against Axon 5, Marten, Akka/Pekko, Emmett/Decider and Eventuous, with the fold cost measured. Maintainer decisions on all four open questions are recorded in it. Note the measured hazard: a state object that copies a growing collection makes the fold O(n²) (19.9 µs/event by 10k events against 6.3–6.8 µs today), so the documentation must lead with the shape that avoids it |
 
 ---

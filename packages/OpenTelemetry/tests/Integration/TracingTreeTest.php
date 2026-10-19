@@ -9,7 +9,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
-use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
+use Ecotone\Api\OpenTelemetry\OpenTelemetryConfiguration;
 use Ecotone\OpenTelemetry\Support\OTelTracer;
 use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
@@ -57,10 +57,10 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                            'details' => ['name' => 'process User::register'],
                             'children' => [],
                         ],
                     ],
@@ -84,14 +84,14 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . ExampleMessageHandler::class . '::handleCommand'],
+                            'details' => ['name' => 'process ExampleMessageHandler::handleCommand'],
                             'children' => [],
                         ],
                         [
-                            'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
+                            'details' => ['name' => 'process ExampleMessageHandler::handle'],
                             'children' => [],
                         ],
                     ],
@@ -115,11 +115,11 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Receiving from inbound channel adapter: nullChannel'],
+                    'details' => ['name' => 'receive nullChannel'],
                     'children' => [],
                 ],
                 [
-                    'details' => ['name' => 'Receiving from inbound channel adapter: nullChannel'],
+                    'details' => ['name' => 'receive nullChannel'],
                     'children' => [],
                 ],
             ],
@@ -141,19 +141,19 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Receiving from inbound channel adapter: add'],
+                    'details' => ['name' => 'receive add'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],
+                            'details' => ['name' => 'process WorkflowScheduledHandler::add'],
                             'children' => [],
                         ],
                     ],
                 ],
                 [
-                    'details' => ['name' => 'Receiving from inbound channel adapter: add'],
+                    'details' => ['name' => 'receive add'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],
+                            'details' => ['name' => 'process WorkflowScheduledHandler::add'],
                             'children' => [],
                         ],
                     ],
@@ -192,7 +192,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(false)->withForceFlushOnAsynchronousMessageHandled(false)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
@@ -215,7 +215,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         )
             ->sendCommand(new RegisterUser('1'));
@@ -223,10 +223,10 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                            'details' => ['name' => 'process User::register'],
                             'children' => [],
                         ],
                     ],
@@ -248,7 +248,7 @@ final class TracingTreeTest extends TracingTestCase
                     ClockFactory::getDefault()
                 )
             )],
-            extensionObjects: [TracingConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
+            extensionObjects: [OpenTelemetryConfiguration::createWithDefaults()->withForceFlushOnBusExecution(true)->withForceFlushOnAsynchronousMessageHandled(true)],
             enabledModules: [ModulePackageList::TRACING_PACKAGE],
         );
 
@@ -267,18 +267,15 @@ final class TracingTreeTest extends TracingTestCase
 
         $node = $this->getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                    'details' => ['name' => 'process User::register'],
                 ],
             ],
             self::buildTree($exporter)
         );
 
-        $this->assertSame(
-            'exception',
-            $node['details']['events'][1]->getName()
-        );
+        $this->assertContains('exception', array_map(fn ($event): string => $event->getName(), $node['details']['events']));
     }
 
     public function test_separate_traces()
@@ -296,19 +293,19 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '1']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '1']],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . User::class . '::register', 'attributes' => ['flowId' => '1']],
+                            'details' => ['name' => 'process User::register', 'attributes' => ['flowId' => '1']],
                             'children' => [],
                         ],
                     ],
                 ],
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '2']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '2']],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . User::class . '::register', 'attributes' => ['flowId' => '2']],
+                            'details' => ['name' => 'process User::register', 'attributes' => ['flowId' => '2']],
                             'children' => [],
                         ],
                     ],
@@ -332,17 +329,22 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'details' => ['name' => 'route merchant.subscriber.one'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'process MerchantSubscriberOne::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'send command'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'process User::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -369,31 +371,41 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Event Bus'],
+                    'details' => ['name' => 'send event'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'details' => ['name' => 'route merchant.subscriber.one'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'process MerchantSubscriberOne::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'send command'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'process User::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
                             ],
                         ],
                         [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
+                            'details' => ['name' => 'route merchant.subscriber.two'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Command Bus'],
+                                    'details' => ['name' => 'process MerchantSubscriberTwo::merchantToUser'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
+                                            'details' => ['name' => 'send command'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'process User::register'],
+                                                    'children' => [],
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -420,23 +432,28 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . Merchant::class . '::create'],
+                            'details' => ['name' => 'process Merchant::create'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Event Bus'],
+                                    'details' => ['name' => 'send event'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                                            'details' => ['name' => 'route merchant.subscriber.one'],
                                             'children' => [
                                                 [
-                                                    'details' => ['name' => 'Command Bus'],
+                                                    'details' => ['name' => 'process MerchantSubscriberOne::merchantToUser'],
                                                     'children' => [
                                                         [
-                                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                                            'children' => [],
+                                                            'details' => ['name' => 'send command'],
+                                                            'children' => [
+                                                                [
+                                                                    'details' => ['name' => 'process User::register'],
+                                                                    'children' => [],
+                                                                ],
+                                                            ],
                                                         ],
                                                     ],
                                                 ],
@@ -470,16 +487,16 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Sending to Channel: async_channel'],
+                            'details' => ['name' => 'send async_channel'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Receiving from channel: async_channel'],
+                                    'details' => ['name' => 'receive async_channel'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register'],
+                                            'details' => ['name' => 'process User::register'],
                                             'children' => [],
                                         ],
                                     ],
@@ -514,13 +531,13 @@ final class TracingTreeTest extends TracingTestCase
 
         $result = self::getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
                 'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'details' => ['name' => 'send async_channel'],
                     'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'details' => ['name' => 'receive async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Event Bus'],
+                            'details' => ['name' => 'send event'],
                         ],
                     ],
                 ],
@@ -528,17 +545,13 @@ final class TracingTreeTest extends TracingTestCase
             self::buildTree($exporter)
         );
 
-        /** @var Event $event */
-        $event = $result['details']['events'][0];
-        $this->stringStartsWith(
-            'Publishing Event Message',
-        )->evaluate($event->getName());
+        $eventBusEvents = array_map(fn (Event $event): string => $event->getName(), $result['details']['events']);
+        $this->assertNotEmpty(array_filter($eventBusEvents, fn (string $name): bool => str_starts_with($name, 'Publishing Event Message')));
 
-        /** @var Event $event */
-        $event = $result['details']['events'][2];
-        $this->stringStartsWith(
-            'Collecting message with id',
-        )->evaluate($event->getName());
+        $route = $result['children'][array_key_first($result['children'])];
+        $this->assertSame('route user.registered', $route['details']['name']);
+        $routeEvents = array_map(fn (Event $event): string => $event->getName(), $route['details']['events']);
+        $this->assertNotEmpty(array_filter($routeEvents, fn (string $name): bool => str_starts_with($name, 'Collecting message with id')));
     }
 
     public function test_two_traces_with_asynchronous_handlers()
@@ -560,16 +573,16 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '1']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '1']],
                     'children' => [
                         [
-                            'details' => ['name' => 'Sending to Channel: async_channel', 'attributes' => ['flowId' => '1']],
+                            'details' => ['name' => 'send async_channel', 'attributes' => ['flowId' => '1']],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Receiving from channel: async_channel', 'attributes' => ['flowId' => '1']],
+                                    'details' => ['name' => 'receive async_channel', 'attributes' => ['flowId' => '1']],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register', 'attributes' => ['flowId' => '1']],
+                                            'details' => ['name' => 'process User::register', 'attributes' => ['flowId' => '1']],
                                             'children' => [],
                                         ],
                                     ],
@@ -579,16 +592,16 @@ final class TracingTreeTest extends TracingTestCase
                     ],
                 ],
                 [
-                    'details' => ['name' => 'Command Bus', 'attributes' => ['flowId' => '2']],
+                    'details' => ['name' => 'send command', 'attributes' => ['flowId' => '2']],
                     'children' => [
                         [
-                            'details' => ['name' => 'Sending to Channel: async_channel', 'attributes' => ['flowId' => '2']],
+                            'details' => ['name' => 'send async_channel', 'attributes' => ['flowId' => '2']],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Receiving from channel: async_channel', 'attributes' => ['flowId' => '2']],
+                                    'details' => ['name' => 'receive async_channel', 'attributes' => ['flowId' => '2']],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register', 'attributes' => ['flowId' => '2']],
+                                            'details' => ['name' => 'process User::register', 'attributes' => ['flowId' => '2']],
                                             'children' => [],
                                         ],
                                     ],
@@ -625,25 +638,25 @@ final class TracingTreeTest extends TracingTestCase
             [
                 [
                     'details' => [
-                        'name' => 'Command Bus',
+                        'name' => 'send command',
                         'attributes' => ['user_id' => '123'],
                     ],
                     'children' => [
                         [
                             'details' => [
-                                'name' => 'Sending to Channel: async_channel',
+                                'name' => 'send async_channel',
                                 'attributes' => ['user_id' => '123'],
                             ],
                             'children' => [
                                 [
                                     'details' => [
-                                        'name' => 'Receiving from channel: async_channel',
+                                        'name' => 'receive async_channel',
                                         'attributes' => ['user_id' => '123'],
                                     ],
                                     'children' => [
                                         [
                                             'details' => [
-                                                'name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register',
+                                                'name' => 'process User::register',
                                                 'attributes' => ['user_id' => '123'],
                                             ],
                                             'children' => [],
@@ -677,7 +690,7 @@ final class TracingTreeTest extends TracingTestCase
 
         $node = $this->getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus'],
+                'details' => ['name' => 'send command'],
             ],
             self::buildTree($exporter)
         );
@@ -738,7 +751,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => $tracerProvider,
             ],
             extensionObjects: [
-                TracingConfiguration::createWithDefaults(),
+                OpenTelemetryConfiguration::createWithDefaults(),
                 SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
             ],
             enabledModules: [ModulePackageList::TRACING_PACKAGE, ],

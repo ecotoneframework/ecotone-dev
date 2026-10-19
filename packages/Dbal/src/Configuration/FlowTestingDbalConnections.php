@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Lite\Test\Configuration\ProvidedReferences;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -48,9 +49,11 @@ final class FlowTestingDbalConnections
 
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $this->extensionObjects, DbalConfiguration::createWithDefaults());
 
+
         return [
-            ...array_filter($this->extensionObjects, fn (object $extensionObject) => ! $extensionObject instanceof DbalConfiguration),
+            ...array_filter($this->extensionObjects, fn (object $extensionObject) => ! $extensionObject instanceof DbalConfiguration && ! $extensionObject instanceof FlowTrackingConfiguration),
             $this->inMemoryWhereTheConnectionIsMissing($dbalConfiguration),
+            ...$this->flowTrackingInMemoryWhereTheConnectionIsMissing($dbalConfiguration),
         ];
     }
 
@@ -98,6 +101,20 @@ final class FlowTestingDbalConnections
         }
 
         return $dbalConfiguration;
+    }
+
+    /**
+     * @return FlowTrackingConfiguration[]
+     */
+    private function flowTrackingInMemoryWhereTheConnectionIsMissing(DbalConfiguration $dbalConfiguration): array
+    {
+        $flowTracking = ExtensionObjectResolver::resolve(FlowTrackingConfiguration::class, $this->extensionObjects);
+        if ($flowTracking === []) {
+            return [];
+        }
+        $connectionReferenceName = $dbalConfiguration->defaultConnectionReferenceNames[0] ?? DbalConnectionReference::DEFAULT;
+
+        return array_map(fn (FlowTrackingConfiguration $configuration): FlowTrackingConfiguration => $this->has($connectionReferenceName) ? $configuration : $configuration->withInMemoryStorage(true), $flowTracking);
     }
 
     private function refuseDbalChannelsWithoutTheirConnection(): void

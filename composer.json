@@ -53,6 +53,7 @@
             "Ecotone\\Api\\Laravel\\": "packages/Laravel/Api",
             "Ecotone\\Api\\Tempest\\": "packages/Tempest/Api",
             "Ecotone\\Api\\Kafka\\": "packages/Kafka/Api",
+            "Ecotone\\Api\\OpenTelemetry\\": "packages/OpenTelemetry/Api",
             "Ecotone\\Api\\Symfony\\": "packages/Symfony/Api",
             "Ecotone\\Amqp\\": "packages/Amqp/src",
             "Ecotone\\AnnotationFinder\\": "packages/Ecotone/src/AnnotationFinder/",

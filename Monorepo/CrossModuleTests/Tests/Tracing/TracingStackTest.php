@@ -10,17 +10,17 @@ use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
-use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
-use Monorepo\ExampleApp\Common\Domain\Order\Order;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
-use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\OpenTelemetry\Integration\TracingTestCase;
 
+/**
+ * @internal
+ */
 final class TracingStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
@@ -103,45 +103,45 @@ final class TracingStackTest extends FullAppTestCase
         TracingTestCase::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Command Bus'],
+                    'details' => ['name' => 'send command'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Command Handler: ' . Order::class . '::create'],
-                            'children' => []
+                            'details' => ['name' => 'process Order::create'],
+                            'children' => [],
                         ],
                         [
-                            'details' => ['name' => 'Event Bus'],
-                            'children' => []
+                            'details' => ['name' => 'send event'],
+                            'children' => [],
                         ],
                         [
-                            'details' => ['name' => 'Sending to Channel: delivery'],
-                            'children' => []
+                            'details' => ['name' => 'send delivery'],
+                            'children' => [],
                         ],
                         [
-                            'details' => ['name' => 'Sending to Channel: notifications'],
+                            'details' => ['name' => 'send notifications'],
                             'children' => [
                                 [
-                                    'details' => ['name' => 'Receiving from channel: notifications'],
+                                    'details' => ['name' => 'receive notifications'],
                                     'children' => [
                                         [
-                                            'details' => ['name' => 'Event Handler: ' . NotificationSubscriber::class . '::whenOrderWasPlaced'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
+                                            'details' => ['name' => 'process NotificationSubscriber::whenOrderWasPlaced'],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
                 [
-                    'details' => ['name' => 'Query Bus'],
+                    'details' => ['name' => 'send query'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Query Handler: ' . Output::class . '::getMessages'],
-                            'children' => []
-                        ]
-                    ]
-                ]
+                            'details' => ['name' => 'process Output::getMessages'],
+                            'children' => [],
+                        ],
+                    ],
+                ],
             ],
             TracingTestCase::buildTree($exporter)
         );

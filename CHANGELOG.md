@@ -3,6 +3,18 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-beta.5] - 2026-10-19
+
+## What's Changed
+* refactor: name Ecotone's framework headers ecotone_{module}_{feature}_{action}, starting with those that never leave the process by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/720
+* refactor: resolve every leftover TODO and deprecated API before 2.0.0 by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/719
+* feat: name the full retry budget, keep microseconds through JMS, refuse #[Repository] on an interface, and move the types an application names into Api by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/721
+* fix(amqp): name only the stream start positions the adapter supports in the next refusal by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/722
+* feat: let an application wait for, or be notified when, the asynchronous work a command started has completed (fixes #711) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/723
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/2.0.0-beta.4...2.0.0-beta.5
+
 ## [2.0.0-beta.4] - 2026-10-16
 
 ## What's Changed

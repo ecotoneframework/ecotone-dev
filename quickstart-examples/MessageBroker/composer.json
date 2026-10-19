@@ -17,8 +17,8 @@
         }
     ],
     "require": {
-        "ecotone/amqp": "~2.0.0-beta.4",
-        "ecotone/jms-converter": "~2.0.0-beta.4",
+        "ecotone/amqp": "~2.0.0-beta.5",
+        "ecotone/jms-converter": "~2.0.0-beta.5",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

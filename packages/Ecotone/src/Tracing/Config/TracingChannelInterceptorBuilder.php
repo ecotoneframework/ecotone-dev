@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\OpenTelemetry;
+namespace Ecotone\Tracing\Config;
 
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -10,12 +10,14 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Support\MessageBuilder;
-use OpenTelemetry\API\Trace\TracerProviderInterface;
+use Ecotone\Tracing\MessageSpanAttributes;
+use Ecotone\Tracing\Tracer;
+use Ecotone\Tracing\TracingChannelInterceptor;
 
 /**
  * licence Apache-2.0
  */
-final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
+final class TracingChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(private string $channelName)
     {
@@ -35,8 +37,9 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
     {
         return new Definition(TracingChannelInterceptor::class, [
             $this->channelName,
-            new Reference(TracerProviderInterface::class),
+            new Reference(Tracer::class),
             new Reference(MessageBuilder::class),
+            new Reference(MessageSpanAttributes::class),
         ]);
     }
 }

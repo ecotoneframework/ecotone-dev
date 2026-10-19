@@ -28,9 +28,9 @@
     },
     "require": {
         "beberlei/assert": "^3.3.2",
-        "ecotone/ecotone": "~2.0.0-beta.4",
-        "ecotone/jms-converter": "~2.0.0-beta.4",
-        "ecotone/pdo-event-sourcing": "~2.0.0-beta.4",
+        "ecotone/ecotone": "~2.0.0-beta.5",
+        "ecotone/jms-converter": "~2.0.0-beta.5",
+        "ecotone/pdo-event-sourcing": "~2.0.0-beta.5",
         "moneyphp/money": "^4.1.0",
         "ramsey/uuid": "^4.0"
     },

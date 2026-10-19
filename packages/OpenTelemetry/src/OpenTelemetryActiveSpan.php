@@ -27,6 +27,7 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
     private array $events = [];
     private bool $ended = false;
     private bool $unitOfWorkFailed = false;
+    private bool $childrenStarted = false;
 
     /**
      * @param array<string, scalar> $attributes
@@ -48,6 +49,22 @@ final class OpenTelemetryActiveSpan implements ActiveSpan
     public function attributes(): array
     {
         return $this->attributes;
+    }
+
+    public function setAttribute(string $key, int|float|string|bool $value): void
+    {
+        $this->span->setAttribute($key, $value);
+        $this->attributes[$key] = $value;
+    }
+
+    public function childStarted(): void
+    {
+        $this->childrenStarted = true;
+    }
+
+    public function hasStartedChildren(): bool
+    {
+        return $this->childrenStarted;
     }
 
     public function context(): SpanContext

@@ -43,6 +43,8 @@ final class OpenTelemetryTracer implements Tracer
             $spanBuilder->setParent(TraceContextPropagator::getInstance()->extract([MessageHeaders::TRACEPARENT => $remoteParent->toTraceparent(), MessageHeaders::TRACESTATE => $remoteParent->traceState]));
         }
 
+        $this->currentSpan()?->childStarted();
+
         return $this->start($spanBuilder, $name, $kind, $attributes, $remoteParent ?? $this->currentSpan()?->context());
     }
 

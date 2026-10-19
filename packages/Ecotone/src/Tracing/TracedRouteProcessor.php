@@ -43,6 +43,9 @@ final class TracedRouteProcessor implements MessageProcessor
             throw $failure;
         }
 
+        if (! $span->hasStartedChildren()) {
+            $span->setAttribute(SpanAttribute::ROUTE_UNDELIVERED, true);
+        }
         $span->end();
 
         return $result;

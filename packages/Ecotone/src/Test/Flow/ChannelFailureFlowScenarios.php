@@ -46,16 +46,8 @@ final class ChannelFailureFlowScenarios
                 {
                     throw new RuntimeException('Exception before send');
                 }
-            }], 'Exception before send'),
-            self::forwarded('event forwarded to a channel whose interceptor filters it out', [
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-                SimpleChannelInterceptorBuilder::create('notifications', 'filteringOut'),
-            ], ['filteringOut' => new class () extends AbstractChannelInterceptor {
-                public function preSend(Message $message, MessageChannel $messageChannel): ?Message
-                {
-                    return null;
-                }
-            }], null, SpanStatus::Ok),
+            }], 'Exception before send', null),
+            self::filteredOutBeforeTheSend(),
             self::forwarded('event forwarded to a failing channel whose other interceptor fails during cleanup', [
                 ExceptionalQueueChannel::createWithExceptionOnSend('notifications'),
                 SimpleChannelInterceptorBuilder::create('notifications', 'failingCleanup')->withPrecedence(500),
@@ -78,15 +70,7 @@ final class ChannelFailureFlowScenarios
                     throw new RuntimeException('Exception after send');
                 }
             }], 'Exception after send', SpanStatus::Ok),
-            self::forwarded('event forwarded to a channel whose interceptor rebuilds the message without framework headers', [
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-                SimpleChannelInterceptorBuilder::create('notifications', 'rebuilding'),
-            ], ['rebuilding' => new class () extends AbstractChannelInterceptor {
-                public function preSend(Message $message, MessageChannel $messageChannel): ?Message
-                {
-                    return StaticMessageBuilder::withPayload($message->getPayload())->build();
-                }
-            }], null, SpanStatus::Ok),
+            self::rebuiltWithoutFrameworkHeadersBeforeTheSend(),
             self::presendInterceptorFailingBeforeTheAsynchronousSend(),
             self::failingHandlerWhoseErrorChannelSendFails(),
             self::distributedSendFailing(),
@@ -97,40 +81,115 @@ final class ChannelFailureFlowScenarios
      * @param list<object> $channels
      * @param array<string, object> $interceptors
      */
-    private static function forwarded(string $name, array $channels, array $interceptors, ?string $expectedFailure, SpanStatus $notificationsSend = SpanStatus::Error): FlowScenario
+    private static function forwarded(string $name, array $channels, array $interceptors, string $expectedFailure, ?SpanStatus $notificationsSend = SpanStatus::Error): FlowScenario
     {
-        $users = new class () {
-            #[Asynchronous('users')]
-            #[CommandHandler('user.register', endpointId: 'user.registration')]
-            public function register(string $userId, EventBus $eventBus): void
-            {
-                $eventBus->publishWithRouting('user.registered', $userId);
-            }
-        };
-        $notifier = new class () {
-            #[Asynchronous('notifications')]
-            #[EventHandler('user.registered', endpointId: 'user.notifying')]
-            public function notify(string $userId): void
-            {
-            }
-        };
+        [$users, $notifier] = self::registrationForwardedToNotifications();
+        $registered = ExpectedSpan::named('process class@anonymous::register')->withStatus(SpanStatus::Ok)->withAttributes([SpanAttribute::ENDPOINT_ID => 'user.registration'])->containing(
+            ExpectedSpan::named('send event')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'user.registered'])->containing(
+                ExpectedSpan::named('route user.notifying')->ofKind(SpanKind::Producer),
+            ),
+        );
         $consume = FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
             ->expect(
-                ExpectedSpan::named('receive users')->ofKind(SpanKind::Consumer)->withStatus($expectedFailure === null ? SpanStatus::Ok : SpanStatus::Error)->containing(
-                    ExpectedSpan::named('process class@anonymous::register')->withStatus(SpanStatus::Ok)->withAttributes([SpanAttribute::ENDPOINT_ID => 'user.registration'])->containing(
-                        ExpectedSpan::named('send event')->withAttributes([SpanAttribute::MESSAGING_DESTINATION_NAME => 'user.registered'])->containing(
-                            ExpectedSpan::named('route user.notifying')->ofKind(SpanKind::Producer),
-                        ),
+                $notificationsSend === null
+                    ? ExpectedSpan::named('receive users')->ofKind(SpanKind::Consumer)->withStatus(SpanStatus::Error)->containing($registered)
+                    : ExpectedSpan::named('receive users')->ofKind(SpanKind::Consumer)->withStatus(SpanStatus::Error)->containing(
+                        $registered,
+                        ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus($notificationsSend),
                     ),
-                    ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus($notificationsSend),
-                ),
             )
-            ->expectNoSpanNamed('process class@anonymous::notify');
+            ->expectNoSpanNamed('process class@anonymous::notify', ...($notificationsSend === null ? ['send notifications'] : []));
 
         return new FlowScenario($name, [$users::class, $notifier::class], [$users, $notifier, ...$interceptors], [SimpleMessageChannelBuilder::createQueueChannel('users'), ...$channels], [
             self::registrationSentToTheQueue(),
-            ...($expectedFailure === null ? [$consume->withNoOtherSpans()->leavingWorkPending(), FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))] : [$consume->failingWith($expectedFailure)]),
+            $consume->failingWith($expectedFailure),
         ]);
+    }
+
+    private static function filteredOutBeforeTheSend(): FlowScenario
+    {
+        [$users, $notifier] = self::registrationForwardedToNotifications();
+        $filteringOut = new class () extends AbstractChannelInterceptor {
+            public function preSend(Message $message, MessageChannel $messageChannel): ?Message
+            {
+                return null;
+            }
+        };
+
+        return new FlowScenario('event forwarded to a channel whose interceptor filters it out is not sent', [$users::class, $notifier::class], [$users, $notifier, 'filteringOut' => $filteringOut], [
+            SimpleMessageChannelBuilder::createQueueChannel('users'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            SimpleChannelInterceptorBuilder::create('notifications', 'filteringOut'),
+        ], [
+            self::registrationSentToTheQueue(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('process class@anonymous::register')->containing(
+                            ExpectedSpan::named('send event')->containing(ExpectedSpan::named('route user.notifying')),
+                        ),
+                    ),
+                )
+                ->expectNoSpanNamed('send notifications')
+                ->withNoOtherSpans(),
+        ]);
+    }
+
+    private static function rebuiltWithoutFrameworkHeadersBeforeTheSend(): FlowScenario
+    {
+        [$users, $notifier] = self::registrationForwardedToNotifications();
+        $rebuilding = new class () extends AbstractChannelInterceptor {
+            public function preSend(Message $message, MessageChannel $messageChannel): ?Message
+            {
+                return StaticMessageBuilder::withPayload($message->getPayload())->build();
+            }
+        };
+
+        return new FlowScenario('event forwarded to a channel whose interceptor rebuilds the message without framework headers keeps its trace', [$users::class, $notifier::class], [$users, $notifier, 'rebuilding' => $rebuilding], [
+            SimpleMessageChannelBuilder::createQueueChannel('users'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            SimpleChannelInterceptorBuilder::create('notifications', 'rebuilding'),
+        ], [
+            self::registrationSentToTheQueue(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('users', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('receive users')->withStatus(SpanStatus::Ok)->containing(
+                        ExpectedSpan::named('send notifications')->ofKind(SpanKind::Producer)->withStatus(SpanStatus::Ok),
+                    ),
+                )
+                ->leavingWorkPending(),
+            FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup()))
+                ->expect(
+                    ExpectedSpan::named('send notifications')->containing(
+                        ExpectedSpan::named('receive notifications')->ofKind(SpanKind::Consumer),
+                    ),
+                )
+                ->expectNoSpanNamed('process class@anonymous::notify'),
+        ]);
+    }
+
+    /**
+     * @return array{object, object}
+     */
+    private static function registrationForwardedToNotifications(): array
+    {
+        return [
+            new class () {
+                #[Asynchronous('users')]
+                #[CommandHandler('user.register', endpointId: 'user.registration')]
+                public function register(string $userId, EventBus $eventBus): void
+                {
+                    $eventBus->publishWithRouting('user.registered', $userId);
+                }
+            },
+            new class () {
+                #[Asynchronous('notifications')]
+                #[EventHandler('user.registered', endpointId: 'user.notifying')]
+                public function notify(string $userId): void
+                {
+                }
+            },
+        ];
     }
 
     private static function registrationSentToTheQueue(): FlowStage

@@ -73,7 +73,7 @@ final class TraceLedger
                 }
             }
             $destination = self::destinationOf($span);
-            if ($destination === null) {
+            if ($destination === null || ($span->attributes[SpanAttribute::ROUTE_UNDELIVERED] ?? false)) {
                 continue;
             }
             $operation = $span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null;

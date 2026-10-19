@@ -25,6 +25,12 @@ interface ActiveSpan
      */
     public function addEvent(string $name, array $attributes = []): void;
 
+    public function setAttribute(string $key, int|float|string|bool $value): void;
+
+    public function childStarted(): void;
+
+    public function hasStartedChildren(): bool;
+
     public function end(): void;
 
     public function endedSoFar(): Span;

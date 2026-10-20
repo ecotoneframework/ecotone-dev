@@ -21,9 +21,9 @@ interface DeadLetterGateway
 
     public function count(): int;
 
-    public function replay(string|array $messageId): void;
+    public function replay(string|array $messageId, ?string $targetChannel = null): void;
 
-    public function replayAll(): void;
+    public function replayAll(?string $targetChannel = null): void;
 
     public function delete(string|array $messageId): void;
 

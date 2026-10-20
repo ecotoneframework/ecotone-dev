@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -27,6 +28,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
     public const LIMIT_HEADER  = 'ecotone_dbal_deadletter_limit';
     public const OFFSET_HEADER = 'ecotone_dbal_deadletter_offset';
+    public const TARGET_CHANNEL_HEADER = 'ecotone_dbal_deadletter_target_channel';
 
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';
@@ -101,7 +103,11 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             'replay',
             $referenceName,
             self::getChannelName($referenceName, self::REPLAY_CHANNEL),
-            []
+            [
+                PayloadBuilder::create('messageId'),
+                ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
+                HeaderBuilder::createOptional('targetChannel', self::TARGET_CHANNEL_HEADER),
+            ]
         );
     }
 
@@ -113,6 +119,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             self::getChannelName($referenceName, self::REPLAY_ALL_CHANNEL),
             [
                 ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
+                HeaderBuilder::createOptional('targetChannel', self::TARGET_CHANNEL_HEADER),
             ]
         );
     }
@@ -160,6 +167,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 Reference::to(self::storeReferenceFor($this->referenceName)),
                 Reference::to(MessageBuilder::class),
                 Reference::to(FlowTrackingScope::class),
+                Reference::to(ChannelResolver::class),
             ]));
         }
 

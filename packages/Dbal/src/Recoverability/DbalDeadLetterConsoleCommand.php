@@ -21,8 +21,8 @@ class DbalDeadLetterConsoleCommand
             [
                 [DbalDeadLetterModule::LIST_COMMAND_NAME . ' {page:int}', 'List all dead messages'],
                 [DbalDeadLetterModule::SHOW_COMMAND_NAME . ' {messageId:string} {fullDetails:bool}', 'Show more details about specific message'],
-                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string}', 'Replay chosen dead message'],
-                [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME, 'Replay ALL dead messages'],
+                [DbalDeadLetterModule::REPLAY_COMMAND_NAME . ' {messageId:string} {targetChannel:?string}', 'Replay chosen dead message, to its source channel or to the target channel'],
+                [DbalDeadLetterModule::REPLAY_ALL_COMMAND_NAME . ' {targetChannel:?string}', 'Replay ALL dead messages, to their source channels or to the target channel'],
                 [DbalDeadLetterModule::DELETE_COMMAND_NAME . ' {messageId:string}', 'Delete chosen dead message'],
             ]
         );
@@ -65,9 +65,9 @@ class DbalDeadLetterConsoleCommand
         );
     }
 
-    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId, ?string $targetChannel = null): void
     {
-        $deadLetterGateway->replay($messageId);
+        $deadLetterGateway->replay($messageId, $targetChannel);
     }
 
     public function delete(DeadLetterGateway $deadLetterGateway, string $messageId): void
@@ -75,9 +75,9 @@ class DbalDeadLetterConsoleCommand
         $deadLetterGateway->delete($messageId);
     }
 
-    public function replayAll(DeadLetterGateway $deadLetterGateway): void
+    public function replayAll(DeadLetterGateway $deadLetterGateway, ?string $targetChannel = null): void
     {
-        $deadLetterGateway->replayAll();
+        $deadLetterGateway->replayAll($targetChannel);
     }
 
     private function convertTimestampToReadableFormat(int $timestamp)

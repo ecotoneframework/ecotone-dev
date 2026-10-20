@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
-use Ecotone\Api\Attribute\Header;
-use Ecotone\Api\ExtensionObject\DistributedServiceMap;
-use Ecotone\Api\Gateway\DistributedBusHeader;
-use Ecotone\Messaging\Config\ConfigurationException;
-
 use function array_key_exists;
 use function array_keys;
 use function array_map;
 use function array_values;
 use function count;
+
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\Messaging\Config\ConfigurationException;
+
 use function implode;
 
 /**

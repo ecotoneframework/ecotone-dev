@@ -9,6 +9,9 @@ use App\Tests\Support\PulseEnvironmentTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * @internal
+ */
 final class EnvironmentRefusalTest extends KernelTestCase
 {
     use PulseEnvironmentTrait;
@@ -20,6 +23,30 @@ final class EnvironmentRefusalTest extends KernelTestCase
         self::bootKernel();
 
         self::assertTrue(self::$booted);
+    }
+
+    #[DataProvider('supported_transports')]
+    public function test_every_supported_transport_boots(string $dsn): void
+    {
+        $this->configurePulse(['PULSE_TRANSPORT_DSN' => $dsn]);
+
+        self::bootKernel();
+
+        self::assertTrue(self::$booted);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function supported_transports(): iterable
+    {
+        yield 'amqp' => ['amqp://guest:guest@rabbitmq:5672'];
+        yield 'redis' => ['redis://redis:6379'];
+        yield 'sqs' => ['sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest'];
+        yield 'kafka' => ['kafka://kafka:9092'];
+        yield 'postgres' => ['pgsql://ecotone:secret@database:5432/ecotone'];
+        yield 'mysql' => ['mysql://ecotone:secret@database-mysql:3306/ecotone'];
+        yield 'sqlite' => ['sqlite:///:memory:'];
     }
 
     /**

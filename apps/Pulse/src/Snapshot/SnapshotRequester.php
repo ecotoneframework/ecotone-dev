@@ -9,6 +9,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 final readonly class SnapshotRequester
 {
@@ -20,7 +21,16 @@ final readonly class SnapshotRequester
 
     public function request(string $service): void
     {
-        $this->store->storeRequest($service, DateTimeImmutable::createFromInterface($this->clock->now()));
-        $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+        $requestedAt = DateTimeImmutable::createFromInterface($this->clock->now());
+
+        try {
+            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+        } catch (Throwable $exception) {
+            $this->store->storeRequest($service, $requestedAt, $exception->getMessage());
+
+            return;
+        }
+
+        $this->store->storeRequest($service, $requestedAt);
     }
 }

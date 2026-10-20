@@ -22,9 +22,9 @@ final readonly class SnapshotStore
         $this->write('snapshot.' . $service, ['receivedAt' => $receivedAt->format(DATE_ATOM), 'snapshot' => $snapshot]);
     }
 
-    public function storeRequest(string $service, DateTimeImmutable $requestedAt): void
+    public function storeRequest(string $service, DateTimeImmutable $requestedAt, ?string $failure = null): void
     {
-        $this->write('request.' . $service, ['requestedAt' => $requestedAt->format(DATE_ATOM)]);
+        $this->write('request.' . $service, ['requestedAt' => $requestedAt->format(DATE_ATOM), 'failure' => $failure]);
     }
 
     /**
@@ -42,6 +42,11 @@ final readonly class SnapshotStore
         $stored = $this->read('request.' . $service);
 
         return $stored === null ? null : new DateTimeImmutable($stored['requestedAt']);
+    }
+
+    public function requestFailure(string $service): ?string
+    {
+        return $this->read('request.' . $service)['failure'] ?? null;
     }
 
     /**

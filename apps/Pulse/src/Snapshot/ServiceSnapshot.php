@@ -17,6 +17,7 @@ final readonly class ServiceSnapshot
         public ?DateTimeImmutable $lastSeenAt,
         public ?int $ageSeconds,
         public array $snapshot,
+        public ?string $requestFailure,
     ) {
     }
 

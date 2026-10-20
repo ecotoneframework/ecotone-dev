@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Snapshot;
 
 use App\Settings\PulseSettings;
+use DateTimeImmutable;
 use Ecotone\Api\Attribute\InternalHandler;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,6 +27,6 @@ final readonly class SnapshotReceiver
             return;
         }
 
-        $this->store->storeSnapshot($service, $decoded, \DateTimeImmutable::createFromInterface($this->clock->now()));
+        $this->store->storeSnapshot($service, $decoded, DateTimeImmutable::createFromInterface($this->clock->now()));
     }
 }

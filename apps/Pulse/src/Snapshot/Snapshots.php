@@ -91,13 +91,16 @@ final readonly class Snapshots
         $receivedAt = $stored['receivedAt'] ?? null;
         $age = $receivedAt === null ? null : $this->secondsBetween($receivedAt, $now);
 
+        $failure = $requestedAt !== null && ($receivedAt === null || $requestedAt > $receivedAt) ? $this->store->requestFailure($service) : null;
+
         $status = match (true) {
             $age !== null && $age < self::FRESHNESS_SECONDS => ServiceStatus::Connected,
+            $failure !== null => ServiceStatus::Unreachable,
             $requestedAt !== null && ($receivedAt === null || $requestedAt > $receivedAt) && $this->secondsBetween($requestedAt, $now) >= $this->settings->replyTimeoutSeconds => ServiceStatus::Unreachable,
             default => ServiceStatus::Waiting,
         };
 
-        return new ServiceSnapshot($service, $status, $receivedAt, $age, $stored['snapshot'] ?? []);
+        return new ServiceSnapshot($service, $status, $receivedAt, $age, $stored['snapshot'] ?? [], $failure);
     }
 
     private function now(): DateTimeImmutable

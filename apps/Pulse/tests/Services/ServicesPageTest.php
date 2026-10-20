@@ -9,6 +9,9 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
+/**
+ * @internal
+ */
 final class ServicesPageTest extends WebTestCase
 {
     use PulseServicesTrait;
@@ -133,6 +136,19 @@ final class ServicesPageTest extends WebTestCase
         $this->runPulseWorker($client->getKernel());
 
         self::assertSame('0s', $this->ageOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_a_broker_that_cannot_be_reached_shows_every_service_as_unreachable_with_the_reason(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'pgsql://ecotone:secret@127.0.0.1:1/ecotone', 'PULSE_SERVICES' => 'orders:orders_channel']);
+        $client = $this->pulseClient();
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertCount(1, $crawler->filter('[data-service="orders"] [data-request-error]'));
     }
 
     public function test_the_page_refreshes_itself_while_a_service_is_waiting(): void

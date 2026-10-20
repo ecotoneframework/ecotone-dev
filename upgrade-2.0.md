@@ -3224,6 +3224,15 @@ bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
 **How to adapt:** nothing is required. To use it, register `PulseConfiguration` and the command mapping to the Pulse
 service.
 
+With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
+and exception class, and the 100 `recent` dead letters newest first, each with its message id, name (the distributed
+routing key, else the `__TypeId__`), `failedAt`, exception, stack trace and payload (both cut at 4096 bytes with a
+`... [truncated]` marker), content type and original channel. Pulse can act on them with the routing keys
+`ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`) and `ecotone.pulse.dead_letter.delete`, sending
+`{"messageIds": [...]}` or `{"filter": {"messageName": ..., "exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`
+and receiving a fresh snapshot as the reply. A filter applies to every stored dead letter, an empty filter is refused,
+and a service without a dead letter refuses the action with how to enable it.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

@@ -23,9 +23,12 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
+use stdClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -56,6 +59,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     private object $handled;
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
+    private array $channels;
 
     public static function implementations(): iterable
     {
@@ -180,8 +184,8 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     public function test_a_distributed_routing_key_names_the_message_before_its_type_id(string $implementation): void
     {
         $this->bootstrap($implementation);
-        $this->deadLetter('m-1', 'App\\PlaceOrder', 'RuntimeException', 'boom', self::FAILED_AT);
-        $this->deadLetter('m-2', 'App\\PlaceOrder', 'RuntimeException', 'boom', self::FAILED_AT + 1, headers: [DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => 'order.place']);
+        $this->deadLetter('m-1', '', 'RuntimeException', 'boom', self::FAILED_AT, headers: [MessageHeaders::TYPE_ID => 'App\\PlaceOrder']);
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1, headers: [MessageHeaders::TYPE_ID => 'App\\PlaceOrder']);
 
         $names = array_column($this->requestSnapshot()['deadLetters']['recent'], 'messageName', 'messageId');
 
@@ -227,15 +231,288 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         self::assertArrayNotHasKey('deadLetters', $this->requestSnapshot());
     }
 
+    #[DataProvider('implementations')]
+    public function test_replaying_by_message_ids_runs_those_messages_again_and_replies_with_a_fresh_snapshot(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1, 'tea');
+        $this->deadLetter('m-3', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 2, 'water');
+
+        $snapshot = $this->replay(['messageIds' => ['m-1', 'm-3']]);
+
+        self::assertSame(['coffee', 'water'], $this->sorted($this->handled->payloads));
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+        self::assertSame(['m-2'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+        self::assertSame('order_service', $snapshot['serviceName']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_message_name_replays_every_matching_dead_letter_beyond_the_recent_ones(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        for ($position = 1; $position <= 105; $position++) {
+            $this->deadLetter(sprintf('m-%03d', $position), 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + $position, 'placed');
+        }
+        $this->deadLetter('m-cancel', 'order.cancel', 'RuntimeException', 'boom', self::FAILED_AT, 'cancelled');
+
+        $snapshot = $this->replay(['filter' => ['messageName' => 'order.place']]);
+
+        self::assertCount(105, $this->handled->payloads);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+        self::assertSame(['m-cancel'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_exception_class_replays_only_the_matching_failures(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-2', 'order.place', 'LogicException', 'boom', self::FAILED_AT + 1, 'tea');
+
+        $snapshot = $this->replay(['filter' => ['exceptionClass' => 'LogicException']]);
+
+        self::assertSame(['tea'], $this->handled->payloads);
+        self::assertSame(['m-1'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_time_range_replays_the_dead_letters_that_failed_within_it(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'early');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 3600, 'inside');
+        $this->deadLetter('m-3', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 7200, 'inside too');
+        $this->deadLetter('m-4', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 10800, 'late');
+
+        $snapshot = $this->replay(['filter' => ['failedFrom' => '2026-10-14T18:46:40+00:00', 'failedTo' => '2026-10-14T19:46:40+00:00']]);
+
+        self::assertSame(['inside', 'inside too'], $this->sorted($this->handled->payloads));
+        self::assertSame(['m-4', 'm-1'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_filter_with_several_conditions_matches_all_of_them(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-2', 'order.place', 'LogicException', 'boom', self::FAILED_AT, 'tea');
+        $this->deadLetter('m-3', 'order.cancel', 'LogicException', 'boom', self::FAILED_AT, 'water');
+
+        $this->replay(['filter' => ['messageName' => 'order.place', 'exceptionClass' => 'LogicException']]);
+
+        self::assertSame(['tea'], $this->handled->payloads);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_to_a_target_channel_sends_the_messages_there_instead_of_where_they_were_polled_from(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+
+        $snapshot = $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.audited']);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(['coffee'], $this->handled->audited);
+        self::assertSame(0, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_to_an_unknown_target_channel_is_refused_and_keeps_the_dead_letters(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+
+        try {
+            $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.missing']);
+            self::fail('The replay to an unknown channel was not refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('order.missing'), $exception->getMessage());
+        }
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_a_filter_that_matches_nothing_replies_with_the_snapshot_untouched(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+
+        $snapshot = $this->replay(['filter' => ['messageName' => 'order.unknown']]);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_deleting_by_message_ids_removes_them_without_running_them(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1, 'tea');
+
+        $snapshot = $this->delete(['messageIds' => ['m-1']]);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(['m-2'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_deleting_by_filter_removes_every_matching_dead_letter_beyond_the_recent_ones(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        for ($position = 1; $position <= 105; $position++) {
+            $this->deadLetter(sprintf('m-%03d', $position), 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + $position);
+        }
+        $this->deadLetter('m-cancel', 'order.cancel', 'LogicException', 'boom', self::FAILED_AT);
+
+        $snapshot = $this->delete(['filter' => ['exceptionClass' => 'RuntimeException']]);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+        self::assertSame(['m-cancel'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_selection_by_both_message_ids_and_filter_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had both. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.');
+        $this->replay(['messageIds' => ['m-1'], 'filter' => ['messageName' => 'order.place']]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_selection_by_neither_message_ids_nor_filter_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A Pulse dead letter action selects messages with exactly one of `messageIds` or `filter`, but the payload had neither. Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.');
+        $this->ask('ecotone.pulse.dead_letter.delete', '{}');
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_empty_filter_is_refused_instead_of_matching_every_dead_letter(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT);
+
+        try {
+            $this->delete(['filter' => new stdClass()]);
+            self::fail('An empty filter was not refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame('The `filter` of a Pulse dead letter action is empty, and an empty filter would match every dead letter. Name at least one of messageName, exceptionClass, failedFrom, failedTo, or select the messages by id with `messageIds`.', $exception->getMessage());
+        }
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_filter_with_an_unknown_condition_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The `filter` of a Pulse dead letter action has an unknown condition `all`. Use only messageName, exceptionClass, failedFrom, failedTo.');
+        $this->delete(['filter' => ['all' => true]]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_filter_with_a_malformed_time_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The `failedFrom` of a Pulse dead letter filter is `yesterday`, which is not an ISO-8601 date time. Send it as in 2026-10-20T12:00:00+00:00.');
+        $this->delete(['filter' => ['failedFrom' => 'yesterday']]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_message_ids_that_are_not_a_list_of_names_are_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The `messageIds` of a Pulse dead letter action must be a non-empty list of message id strings, as in {"messageIds": ["id-1", "id-2"]}.');
+        $this->delete(['messageIds' => []]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_deleting_with_a_target_channel_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A Pulse dead letter delete takes no `targetChannel`, as a deleted message is not sent anywhere. Remove `targetChannel` from the payload, or use the replay action to send the messages to a channel.');
+        $this->delete(['messageIds' => ['m-1'], 'targetChannel' => 'order.audited']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_payload_that_is_not_a_json_object_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A Pulse dead letter action payload must be a JSON object such as {"messageIds": ["id-1"]} or {"filter": {"messageName": "order.place"}}, but `nope` was sent.');
+        $this->ask('ecotone.pulse.dead_letter.delete', 'nope');
+    }
+
+    #[DataProvider('implementations')]
+    public function test_an_action_from_a_service_other_than_the_pulse_service_is_refused_and_acts_on_nothing(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $intruder = $this->bootstrapFlowTesting(
+            extensionObjects: [
+                ...$this->channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('intruder'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $intruder->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.dead_letter.delete', '{"messageIds": ["m-1"]}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+
+        try {
+            $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+            self::fail('The action from another service was not refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertStringContainsString('only answers the configured Pulse service ecotone_pulse', $exception->getMessage());
+        }
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    public function test_an_action_without_a_dead_letter_is_refused_with_how_to_enable_it(): void
+    {
+        $this->bootstrap('in-memory', DbalConfiguration::createWithDefaults()->withDeadLetter(false));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Service order_service was asked by Pulse to act on its dead letters, but no dead letter is configured there, so it holds none. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in a #[ServiceContext] of order_service, or stop sending dead letter actions to this service.');
+        $this->delete(['messageIds' => ['m-1']]);
+    }
+
     private function bootstrap(string $implementation, ?DbalConfiguration $dbalConfiguration = null): void
     {
         $this->handled = new class () {
             public array $payloads = [];
+            public array $audited = [];
 
             #[InternalHandler('order.replayed')]
             public function replayed(string $payload): void
             {
                 $this->payloads[] = $payload;
+            }
+
+            #[InternalHandler('order.audited')]
+            public function audited(string $payload): void
+            {
+                $this->audited[] = $payload;
             }
         };
         $this->pulse = new class () {
@@ -247,7 +524,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 $this->snapshots[] = $snapshot;
             }
         };
-        $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
+        $this->channels = $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $this->orderService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->handled::class],
             containerOrAvailableServices: [$this->handled, DbalConnectionFactory::class => $this->getConnectionFactory()],
@@ -283,7 +560,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 ->setMultipleHeaders([
                     MessageHeaders::MESSAGE_ID => $messageId,
                     MessageHeaders::TIMESTAMP => $failedAt,
-                    MessageHeaders::TYPE_ID => $messageName,
+                    ...($messageName === '' ? [] : [DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => $messageName]),
                     MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
                     MessageHeaders::POLLED_CHANNEL_NAME => 'order.replayed',
                     ErrorContext::EXCEPTION_CLASS => $exceptionClass,
@@ -296,6 +573,23 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 ])
                 ->build()
         );
+    }
+
+    private function replay(array $payload): array
+    {
+        return $this->ask('ecotone.pulse.dead_letter.replay', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    private function delete(array $payload): array
+    {
+        return $this->ask('ecotone.pulse.dead_letter.delete', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    private function sorted(array $values): array
+    {
+        sort($values);
+
+        return $values;
     }
 
     private function requestSnapshot(): array

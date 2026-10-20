@@ -210,6 +210,9 @@ final class DbalDeadLetterModule implements AnnotationModule
                     'replay',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_CHANNEL)
                 )
+                    ->withParameterConverters([
+                        GatewayHeaderBuilder::create('targetChannel', DbalDeadLetterBuilder::TARGET_CHANNEL_HEADER),
+                    ])
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
@@ -218,6 +221,9 @@ final class DbalDeadLetterModule implements AnnotationModule
                     'replayAll',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
                 )
+                    ->withParameterConverters([
+                        GatewayHeaderBuilder::create('targetChannel', DbalDeadLetterBuilder::TARGET_CHANNEL_HEADER),
+                    ])
             )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(

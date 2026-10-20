@@ -17,6 +17,9 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\InMemorySpanRecorder;
+use Ecotone\Api\Tracing\Span;
+use Ecotone\Api\Tracing\TracingConfiguration;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StaticMessageBuilder;
@@ -106,6 +109,42 @@ final class DistributedBusMessageReplyTest extends TestCase
         $ticketService->run('ticket_work', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertSame(['ticket for: Printer is broken'], $users->replies);
+    }
+
+    public function test_the_reply_continues_the_senders_trace_through_a_receiver_without_tracing(): void
+    {
+        $channels = $this->channels();
+        $recorder = new InMemorySpanRecorder();
+        $users = new class () {
+            public array $replies = [];
+
+            #[InternalHandler('ticket.created')]
+            public function created(string $ticket): void
+            {
+                $this->replies[] = $ticket;
+            }
+        };
+        $userService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$users::class],
+            containerOrAvailableServices: [$users, InMemorySpanRecorder::class => $recorder],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+                TracingConfiguration::createWithDefaults()->withSpanRecorder(InMemorySpanRecorder::class),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ticketService = $this->ticketService($this->ticketsReturningDescription(), $channels);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['ticket for: Printer is broken'], $users->replies);
+        self::assertCount(1, array_unique(array_map(fn (Span $span) => $span->traceId, $recorder->recordedSpans())));
+        self::assertCount(1, array_filter($recorder->recordedSpans(), fn (Span $span) => $span->isRoot()));
     }
 
     public function test_the_reply_carries_the_request_metadata_and_correlation_id(): void

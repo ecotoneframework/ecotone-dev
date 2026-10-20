@@ -12,6 +12,9 @@ use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
+use function array_flip;
+use function array_intersect_key;
+
 /**
  * licence Apache-2.0
  */
@@ -83,6 +86,7 @@ class DistributedMessageHandler
     {
         return [
             ...FrameworkHeaders::unsetAllFrameworkHeaders($resultMetadata),
+            ...array_intersect_key($resultMetadata, array_flip([MessageHeaders::TRACEPARENT, MessageHeaders::TRACESTATE, MessageHeaders::TRACING_ID])),
             MessageHeaders::MESSAGE_CORRELATION_ID => $resultMetadata[MessageHeaders::MESSAGE_CORRELATION_ID],
             MessageHeaders::PARENT_MESSAGE_ID => $resultMetadata[MessageHeaders::MESSAGE_ID],
             MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,

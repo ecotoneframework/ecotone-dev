@@ -1,0 +1,118 @@
+name: Ecotone Pulse
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
+
+concurrency:
+  group: pulse-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Pulse tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      database:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: ecotone
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecotone"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+      COMPOSER_ROOT_VERSION: dev-main
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: amqp, rdkafka, redis, pdo_pgsql, pdo_mysql, sockets, intl
+          coverage: none
+
+      - name: Install Pulse with fresh path packages
+        working-directory: apps/Pulse
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run Pulse tests
+        working-directory: apps/Pulse
+        run: composer tests:ci
+
+  docker:
+    name: Pulse Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the Pulse image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/Pulse/Dockerfile
+          push: false
+          load: true
+          tags: ecotone-pulse:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test, a missing configuration is refused with the expected message
+        run: |
+          set +e
+          output="$(docker run --rm ecotone-pulse:ci web 2>&1)"
+          status=$?
+          echo "$output"
+          test "$status" -ne 0
+          echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"
+
+      - name: Smoke test, the web role answers on /
+        run: |
+          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
+          docker run -d --name pulse-web -p 8080:8080 \
+            -e APP_SECRET=ci \
+            -e ECOTONE_LICENCE_KEY="$licence" \
+            -e PULSE_TRANSPORT_DSN=amqp://guest:guest@127.0.0.1:5672 \
+            -e PULSE_SERVICES=orders:orders_channel \
+            -e PULSE_RENDER_WAIT=0 \
+            ecotone-pulse:ci web
+          for attempt in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ || true)"
+            test "$code" = "200" && break
+            sleep 2
+          done
+          docker logs pulse-web
+          test "$code" = "200"
+
+      - name: Smoke test, the worker role refuses a missing configuration
+        run: |
+          set +e
+          output="$(docker run --rm ecotone-pulse:ci worker 2>&1)"
+          status=$?
+          echo "$output"
+          test "$status" -ne 0
+          echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"

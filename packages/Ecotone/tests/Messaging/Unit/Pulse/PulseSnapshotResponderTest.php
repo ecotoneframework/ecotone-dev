@@ -130,7 +130,7 @@ final class PulseSnapshotResponderTest extends TestCase
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
-    public function test_a_responder_with_an_asynchronous_distributed_bus_still_replies_to_the_pulse_service(): void
+    public function test_the_reply_does_not_wait_for_the_responders_asynchronous_distributed_bus(): void
     {
         $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('order_bus')];
         $orderService = $this->orderService($this->orders(), $channels, $this->pulseMap()->withAsynchronousChannel('order_bus'));
@@ -142,15 +142,19 @@ final class PulseSnapshotResponderTest extends TestCase
         $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertCount(1, $pulse->snapshots);
+        $orderService->run('order_bus', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertCount(1, $pulse->snapshots);
         self::assertSame('order_bus', json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['topology']['serviceMaps'][0]['asynchronousChannel']);
     }
 
     public function test_a_request_without_a_source_service_is_refused(): void
     {
         $channels = $this->channels();
+        $orders = $this->orders();
         $orderService = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$this->orders()::class, SourcelessPulseRequest::class],
-            containerOrAvailableServices: [$this->orders()],
+            classesToResolve: [$orders::class, SourcelessPulseRequest::class],
+            containerOrAvailableServices: [$orders],
             extensionObjects: [
                 ...$channels,
                 $this->pulseMap(),

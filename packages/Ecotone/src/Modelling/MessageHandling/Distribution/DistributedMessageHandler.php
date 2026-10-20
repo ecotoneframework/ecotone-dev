@@ -2,6 +2,9 @@
 
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
+use function array_flip;
+use function array_intersect_key;
+
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBusHeader;
@@ -11,9 +14,6 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Support\FrameworkHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
-
-use function array_flip;
-use function array_intersect_key;
 
 /**
  * licence Apache-2.0

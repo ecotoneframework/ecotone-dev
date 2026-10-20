@@ -40,26 +40,24 @@ final class PulseDeadLetters implements PulseSnapshotSection
      */
     public function snapshot(): array
     {
-        $total = 0;
         $counts = [];
         $recent = [];
         foreach (PulseDeadLetterScan::newestFirst($this->store) as $entry) {
-            $total++;
-            $group = [$entry->messageName(), $entry->exceptionClass()];
-            $counts[json_encode($group)] = ($counts[json_encode($group)] ?? 0) + 1;
+            $counts[$entry->messageName()][$entry->exceptionClass()] = ($counts[$entry->messageName()][$entry->exceptionClass()] ?? 0) + 1;
             if (count($recent) < self::RECENT_LIMIT) {
                 $recent[] = $entry->toArray();
             }
         }
 
         $groups = [];
-        foreach ($counts as $group => $count) {
-            [$messageName, $exceptionClass] = json_decode($group, true);
-            $groups[] = ['messageName' => $messageName, 'exceptionClass' => $exceptionClass, 'count' => $count];
+        foreach ($counts as $messageName => $countsByException) {
+            foreach ($countsByException as $exceptionClass => $count) {
+                $groups[] = ['messageName' => (string) $messageName, 'exceptionClass' => (string) $exceptionClass, 'count' => $count];
+            }
         }
 
         usort($groups, fn (array $first, array $second): int => [$second['count'], $first['messageName'], $first['exceptionClass']] <=> [$first['count'], $second['messageName'], $second['exceptionClass']]);
 
-        return ['total' => $total, 'groups' => $groups, 'recent' => $recent];
+        return ['total' => $this->store->count(), 'groups' => $groups, 'recent' => $recent];
     }
 }

@@ -99,7 +99,7 @@ final class DeadLetterHandler
         $this->deadLetterStore->store($message);
     }
 
-    private function assertTargetChannelExists(?string $targetChannel): void
+    public function assertTargetChannelExists(?string $targetChannel): void
     {
         if ($targetChannel !== null && ! $this->channelResolver->hasChannelWithName($targetChannel)) {
             throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel($targetChannel));

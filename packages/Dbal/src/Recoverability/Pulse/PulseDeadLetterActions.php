@@ -42,7 +42,10 @@ final class PulseDeadLetterActions
         $snapshot->authorizeRequestFrom($sourceService);
         $selection = PulseDeadLetterSelection::forReplay($payload);
 
-        $this->deadLetterHandler->replay($selection->messageIds($this->store), $messagingEntrypoint, $selection->targetChannel);
+        $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
+        foreach ($this->existing($selection) as $messageId) {
+            $this->deadLetterHandler->replay($messageId, $messagingEntrypoint, $selection->targetChannel);
+        }
 
         return $snapshot->snapshotJson($sourceService);
     }
@@ -52,8 +55,24 @@ final class PulseDeadLetterActions
         $snapshot->authorizeRequestFrom($sourceService);
         $selection = PulseDeadLetterSelection::forDelete($payload);
 
-        $this->deadLetterHandler->delete($selection->messageIds($this->store));
+        foreach ($this->existing($selection) as $messageId) {
+            $this->deadLetterHandler->delete($messageId);
+        }
 
         return $snapshot->snapshotJson($sourceService);
+    }
+
+    /**
+     * @return iterable<string>
+     */
+    private function existing(PulseDeadLetterSelection $selection): iterable
+    {
+        foreach ($selection->messageIds($this->store) as $messageId) {
+            if ($selection->selectsByFilter() && $this->store->find($messageId) === null) {
+                continue;
+            }
+
+            yield $messageId;
+        }
     }
 }

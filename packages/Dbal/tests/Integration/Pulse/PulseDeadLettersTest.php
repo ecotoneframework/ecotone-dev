@@ -22,7 +22,6 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterStore;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
@@ -60,6 +59,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
     private array $channels;
+    private bool $deadLetterIsConfigured = false;
 
     public static function implementations(): iterable
     {
@@ -67,16 +67,10 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         yield 'dbal' => ['dbal'];
     }
 
-    public function setUp(): void
-    {
-        parent::setUp();
-        $this->dropDeadLetterTable();
-    }
-
     public function tearDown(): void
     {
+        $this->clearDeadLetters();
         parent::tearDown();
-        $this->dropDeadLetterTable();
     }
 
     #[DataProvider('implementations')]
@@ -160,13 +154,14 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     public function test_a_long_payload_and_stack_trace_are_truncated_with_a_marker(string $implementation): void
     {
         $this->bootstrap($implementation);
-        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, str_repeat('é', 3000), [ErrorContext::EXCEPTION_STACKTRACE => str_repeat('#', 5000)]);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'a' . str_repeat('é', 3000), [ErrorContext::EXCEPTION_STACKTRACE => str_repeat('#', 5000)]);
 
         $recent = $this->requestSnapshot()['deadLetters']['recent'][0];
 
         self::assertLessThanOrEqual(4096, strlen($recent['payload']));
         self::assertStringEndsWith('... [truncated]', $recent['payload']);
-        self::assertStringStartsWith('éééé', $recent['payload']);
+        self::assertStringStartsWith('aéé', $recent['payload']);
+        self::assertTrue(mb_check_encoding($recent['payload'], 'UTF-8'));
         self::assertSame(4096, strlen($recent['stackTrace']));
         self::assertStringEndsWith('... [truncated]', $recent['stackTrace']);
     }
@@ -289,6 +284,55 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
 
         self::assertSame(['inside', 'inside too'], $this->sorted($this->handled->payloads));
         self::assertSame(['m-4', 'm-1'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_time_range_includes_the_dead_letters_that_failed_exactly_at_both_bounds(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        foreach (['before', 'from', 'to', 'after'] as $position => $payload) {
+            $this->deadLetter('m-' . $payload, 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + $position, $payload);
+        }
+
+        $this->replay(['filter' => ['failedFrom' => gmdate(DATE_ATOM, self::FAILED_AT + 1), 'failedTo' => gmdate(DATE_ATOM, self::FAILED_AT + 2)]]);
+
+        self::assertSame(['from', 'to'], $this->sorted($this->handled->payloads));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_time_range_that_ends_before_it_starts_is_refused(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The `failedFrom` of a Pulse dead letter filter (2026-10-20T12:00:00+00:00) is later than its `failedTo` (2026-10-20T11:00:00+00:00), so no dead letter can match. Swap the two, or drop one of them.');
+        $this->delete(['filter' => ['failedFrom' => '2026-10-20T12:00:00+00:00', 'failedTo' => '2026-10-20T11:00:00+00:00']]);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_filtered_replay_skips_a_dead_letter_another_replay_removed_in_the_meantime(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'one');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 1, 'two');
+        $this->handled->deadLetter = $this->orderService->getGateway(DeadLetterGateway::class);
+        $this->handled->deleteWhenReplayed = ['m-1'];
+
+        $snapshot = $this->replay(['filter' => ['messageName' => 'order.place']]);
+
+        self::assertSame(['two'], $this->handled->payloads);
+        self::assertSame(0, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_filtered_delete_skips_a_dead_letter_removed_in_the_meantime(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'one');
+
+        $this->orderService->getGateway(DeadLetterGateway::class)->delete('m-1');
+
+        self::assertSame(0, $this->delete(['filter' => ['messageName' => 'order.place']])['deadLetters']['total']);
     }
 
     #[DataProvider('implementations')]
@@ -502,11 +546,16 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->handled = new class () {
             public array $payloads = [];
             public array $audited = [];
+            public ?DeadLetterGateway $deadLetter = null;
+            public array $deleteWhenReplayed = [];
 
             #[InternalHandler('order.replayed')]
             public function replayed(string $payload): void
             {
                 $this->payloads[] = $payload;
+                foreach ($this->deleteWhenReplayed as $messageId) {
+                    $this->deadLetter->delete($messageId);
+                }
             }
 
             #[InternalHandler('order.audited')]
@@ -540,6 +589,8 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
         );
         $this->orderService->setupDatabaseTables();
+        $this->deadLetterIsConfigured = $dbalConfiguration === null;
+        $this->clearDeadLetters();
         $this->pulseService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->pulse::class],
             containerOrAvailableServices: [$this->pulse],
@@ -608,11 +659,10 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         return json_decode($this->pulse->snapshots[$received], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function dropDeadLetterTable(): void
+    private function clearDeadLetters(): void
     {
-        $connection = $this->getConnection();
-        if (self::checkIfTableExists($connection, DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE)) {
-            $connection->executeStatement('DROP TABLE ' . DbalDeadLetterStore::DEFAULT_DEAD_LETTER_TABLE);
+        if ($this->deadLetterIsConfigured) {
+            $this->orderService->getGateway(DeadLetterGateway::class)->deleteAll();
         }
     }
 }

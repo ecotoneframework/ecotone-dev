@@ -57,6 +57,11 @@ final class PulseDeadLetterSelection
         return self::fromPayload($payload, false);
     }
 
+    public function selectsByFilter(): bool
+    {
+        return $this->messageIds === null;
+    }
+
     /**
      * @return string[]
      */
@@ -157,6 +162,10 @@ final class PulseDeadLetterSelection
                 throw InvalidArgumentException::create("The `{$condition}` of a Pulse dead letter filter must be a non-empty string.");
             }
             $conditions[$condition] = in_array($condition, ['failedFrom', 'failedTo'], true) ? self::dateTime($condition, $value) : $value;
+        }
+
+        if (isset($conditions['failedFrom'], $conditions['failedTo']) && $conditions['failedFrom'] > $conditions['failedTo']) {
+            throw InvalidArgumentException::create("The `failedFrom` of a Pulse dead letter filter ({$filter['failedFrom']}) is later than its `failedTo` ({$filter['failedTo']}), so no dead letter can match. Swap the two, or drop one of them.");
         }
 
         return $conditions;

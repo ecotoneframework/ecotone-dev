@@ -3226,11 +3226,14 @@ service.
 
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first, each with its message id, name (the distributed
-routing key, else the `__TypeId__`), `failedAt`, exception, stack trace and payload (both cut at 4096 bytes with a
+routing key, else the message class; a message sent by routing key and failed in an asynchronous handler carries
+neither, so its name is empty), `failedAt`, exception, stack trace and payload (both cut at 4096 bytes with a
 `... [truncated]` marker), content type and original channel. Pulse can act on them with the routing keys
 `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`) and `ecotone.pulse.dead_letter.delete`, sending
 `{"messageIds": [...]}` or `{"filter": {"messageName": ..., "exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`
-and receiving a fresh snapshot as the reply. A filter applies to every stored dead letter, an empty filter is refused,
+and receiving a fresh snapshot as the reply. A filter applies to every stored dead letter, only the name shown in the snapshot can be filtered by, `failedFrom` and
+`failedTo` are inclusive at whole-second precision (`failedFrom` later than `failedTo` is refused), a dead letter removed
+while a filtered action runs is skipped, an empty filter is refused,
 and a service without a dead letter refuses the action with how to enable it.
 
 ## 15. Testing and developer-experience changes

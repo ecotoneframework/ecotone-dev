@@ -35,6 +35,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 final class PulseDeadLetterEntry
 {
     private const TRUNCATION_LIMIT_IN_BYTES = 4096;
+    private const BUILT_IN_TYPES = ['array', 'string', 'int', 'float', 'bool', 'null', 'mixed', 'object', 'iterable', 'callable'];
     private const TRUNCATION_MARKER = "\n... [truncated]";
 
     private function __construct(private Message $message)
@@ -54,13 +55,13 @@ final class PulseDeadLetterEntry
     public function messageName(): string
     {
         $headers = $this->message->getHeaders();
-        foreach ([DistributedBusHeader::DISTRIBUTED_ROUTING_KEY, MessageHeaders::TYPE_ID] as $nameHeader) {
-            if ($headers->containsKey($nameHeader)) {
-                return (string) $headers->get($nameHeader);
-            }
+        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)) {
+            return (string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
         }
 
-        return '';
+        $typeId = $this->header(MessageHeaders::TYPE_ID) ?? '';
+
+        return preg_match('/^[A-Za-z_\\\\][\w\\\\.:-]*$/', $typeId) === 1 && ! in_array($typeId, self::BUILT_IN_TYPES, true) ? $typeId : '';
     }
 
     public function exceptionClass(): string
@@ -100,7 +101,13 @@ final class PulseDeadLetterEntry
     {
         $payload = $this->message->getPayload();
 
-        return is_string($payload) ? $payload : (json_encode($payload, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_SLASHES) ?: get_debug_type($payload));
+        if (is_string($payload)) {
+            return $payload;
+        }
+
+        $encoded = json_encode($payload, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+        return $encoded === false ? get_debug_type($payload) : $encoded;
     }
 
     private static function truncated(string $text): string

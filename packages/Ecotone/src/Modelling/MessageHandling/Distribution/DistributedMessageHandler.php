@@ -18,6 +18,7 @@ use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 class DistributedMessageHandler
 {
     public const REPLY_CHANNEL = 'ecotone.distributed.reply';
+    public const REPLY_ROUTING_CHANNEL = 'ecotone.distributed.reply.route';
 
     public function __construct(
         private BusRoutingMap $distributedEventHandlerRoutingKeys,
@@ -62,27 +63,33 @@ class DistributedMessageHandler
                 throw InvalidArgumentException::create("Received command message which targets {$targetedServiceName} Service, but consuming in {$this->thisServiceName}. Message was wrongly distributed.");
             }
 
-            $result = $messagingEntrypoint->sendWithHeaders($payload, $metadata, $routingKey);
-
-            if ($replyToChannelName !== null && $result !== null) {
-                $messagingEntrypoint->sendWithHeaders($result, $this->replyHeaders($metadata, $replyToChannelName), self::REPLY_CHANNEL);
-            }
+            $messagingEntrypoint->sendWithHeaders($payload, $metadata, $routingKey, $replyToChannelName === null ? null : self::REPLY_CHANNEL);
         } else {
             throw InvalidArgumentException::create("Trying to call distributed command handler for payload type {$payloadType} and allowed are event/command/message");
         }
     }
 
-    private function replyHeaders(array $requestMetadata, string $replyToChannelName): array
+    public function reply(
+        mixed $result,
+        array $metadata,
+        #[Header(DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL)]
+        string $replyToChannelName,
+        MessagingEntrypointService $messagingEntrypoint
+    ): void {
+        $messagingEntrypoint->sendWithHeaders($result, $this->replyHeaders($metadata, $replyToChannelName), self::REPLY_ROUTING_CHANNEL);
+    }
+
+    private function replyHeaders(array $resultMetadata, string $replyToChannelName): array
     {
         return [
-            ...FrameworkHeaders::unsetAllFrameworkHeaders($requestMetadata),
-            MessageHeaders::MESSAGE_CORRELATION_ID => $requestMetadata[MessageHeaders::MESSAGE_CORRELATION_ID],
-            MessageHeaders::PARENT_MESSAGE_ID => $requestMetadata[MessageHeaders::MESSAGE_ID],
+            ...FrameworkHeaders::unsetAllFrameworkHeaders($resultMetadata),
+            MessageHeaders::MESSAGE_CORRELATION_ID => $resultMetadata[MessageHeaders::MESSAGE_CORRELATION_ID],
+            MessageHeaders::PARENT_MESSAGE_ID => $resultMetadata[MessageHeaders::MESSAGE_ID],
             MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,
             DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE => 'message',
             DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => $replyToChannelName,
             DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME => $this->thisServiceName,
-            DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => $requestMetadata[DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME] ?? null,
+            DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => $resultMetadata[DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME] ?? null,
         ];
     }
 }

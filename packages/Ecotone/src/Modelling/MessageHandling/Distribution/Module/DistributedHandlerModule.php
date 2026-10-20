@@ -122,6 +122,16 @@ final class DistributedHandlerModule implements AnnotationModule
                     ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
                 ])
         );
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(DistributedMessageHandler::class, $interfaceToCallRegistry->getFor(DistributedMessageHandler::class, 'reply'))
+                ->withInputChannelName(DistributedMessageHandler::REPLY_CHANNEL)
+                ->withMethodParameterConverters([
+                    PayloadBuilder::create('result'),
+                    AllHeadersBuilder::createWith('metadata'),
+                    HeaderBuilder::create('replyToChannelName', DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL),
+                    ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
+                ])
+        );
     }
 
     public function getModulePackageName(): string

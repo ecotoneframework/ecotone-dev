@@ -223,7 +223,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
         );
         $configuration->registerMessageHandler(
             RouterBuilder::create(DistributedReplyRouter::class, $interfaceToCallRegistry->getFor(DistributedReplyRouter::class, 'route'))
-                ->withInputChannelName(DistributedMessageHandler::REPLY_CHANNEL)
+                ->withInputChannelName(DistributedMessageHandler::REPLY_ROUTING_CHANNEL)
                 ->withMethodParameterConverters([
                     HeaderBuilder::createOptional('targetedServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
                     HeaderBuilder::create('replyToChannelName', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),

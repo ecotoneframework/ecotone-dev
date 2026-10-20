@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Distributed;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -70,6 +71,40 @@ final class DistributedBusMessageReplyTest extends TestCase
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
+        self::assertSame(['ticket for: Printer is broken'], $users->replies);
+    }
+
+    public function test_an_asynchronous_target_replies_once_its_work_is_consumed(): void
+    {
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('ticket_work')];
+        $tickets = new class () {
+            #[Asynchronous('ticket_work')]
+            #[Distributed]
+            #[InternalHandler('ticket.create', endpointId: 'ticket.creation')]
+            public function create(string $description): string
+            {
+                return 'ticket for: ' . $description;
+            }
+        };
+        $users = new class () {
+            public array $replies = [];
+
+            #[InternalHandler('ticket.created')]
+            public function created(string $ticket): void
+            {
+                $this->replies[] = $ticket;
+            }
+        };
+        $userService = $this->userService($users, $channels);
+        $ticketService = $this->ticketService($tickets, $channels);
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertSame([], $users->replies);
+
+        $ticketService->run('ticket_work', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertSame(['ticket for: Printer is broken'], $users->replies);
     }
 

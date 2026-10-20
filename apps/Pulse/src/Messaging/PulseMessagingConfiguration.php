@@ -19,6 +19,8 @@ use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 
 final class PulseMessagingConfiguration
 {
+    private const RECEIVE_TIMEOUT_MILLISECONDS = 1000;
+
     #[ServiceContext]
     public function serviceConfiguration(): ServiceConfiguration
     {
@@ -49,11 +51,11 @@ final class PulseMessagingConfiguration
 
         $channels = array_map(
             static fn (string $name) => match ($settings->transport) {
-                Transport::Amqp => AmqpBackedMessageChannelBuilder::create($name),
-                Transport::Redis => RedisBackedMessageChannelBuilder::create($name),
-                Transport::Sqs => SqsBackedMessageChannelBuilder::create($name),
-                Transport::Kafka => KafkaMessageChannelBuilder::create($name),
-                Transport::Dbal => DbalBackedMessageChannelBuilder::create($name),
+                Transport::Amqp => AmqpBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+                Transport::Redis => RedisBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+                Transport::Sqs => SqsBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+                Transport::Kafka => KafkaMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+                Transport::Dbal => DbalBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
             },
             array_values(array_unique($channelNames))
         );

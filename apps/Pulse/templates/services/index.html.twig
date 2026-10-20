@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Services · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <div class="heading">
+        <h1>Services</h1>
+        <form method="post" action="{{ path('services_refresh') }}"><button type="submit">Refresh</button></form>
+    </div>
+
+    {% if versions|length > 1 %}
+        <p class="drift" data-version-drift>Ecotone version drift: services run {{ versions|join(', ') }}.</p>
+    {% endif %}
+
+    <div class="cards">
+        {% for service in services %}
+            {% set version = service.ecotoneVersion %}
+            <section class="card status-{{ service.status.value }}" data-service="{{ service.service }}">
+                <h2>{{ service.service }}</h2>
+                <p class="status" data-status="{{ service.status.value }}">{{ service.status.name }}</p>
+                <dl>
+                    <dt>Last seen</dt>
+                    <dd>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}</dd>
+                    {% if service.hasSnapshot %}
+                        <dt>Snapshot age</dt>
+                        <dd data-age>{{ service.ageSeconds }}s</dd>
+                        <dt>Service name</dt>
+                        <dd>{{ service.snapshot.serviceName|default(service.service) }}</dd>
+                        <dt>Ecotone</dt>
+                        <dd{% if versions|length > 1 and version is not null and version != versions|last %} class="drifted" data-drifted{% endif %}>{{ version ?? 'unknown' }}</dd>
+                        <dt>PHP</dt>
+                        <dd>{{ service.snapshot.overview.phpVersion|default('unknown') }}</dd>
+                        <dt>Framework</dt>
+                        <dd>{{ service.snapshot.overview.framework|default('unknown') }}</dd>
+                        <dt>Licence expires</dt>
+                        <dd>{{ service.snapshot.overview.licence.expiresAt|default('never') }}</dd>
+                        {% if service.deadLetterTotal is not null %}
+                            <dt>Dead letters</dt>
+                            <dd data-dead-letters>{{ service.deadLetterTotal }}</dd>
+                        {% endif %}
+                    {% endif %}
+                </dl>
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

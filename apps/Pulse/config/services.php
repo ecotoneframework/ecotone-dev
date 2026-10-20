@@ -31,6 +31,7 @@ return static function (ContainerConfigurator $container): void {
         '$cacheDir' => $settings->cacheDir,
     ]);
 
+    $services->alias('pulse.clock', 'clock');
     $services->set('pulse.cache', FilesystemAdapter::class)->args(['pulse', 0, $settings->cacheDir]);
 
     $connectionFactory = match ($settings->transport) {

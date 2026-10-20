@@ -195,7 +195,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayPayloadBuilder::create('payload'),
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            GatewayHeaderBuilder::create('targetChannelName', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
                             GatewayHeaderBuilder::create('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),

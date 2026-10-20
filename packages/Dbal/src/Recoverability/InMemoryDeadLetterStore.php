@@ -68,6 +68,16 @@ final class InMemoryDeadLetterStore implements DeadLetterStore
         );
     }
 
+    public function listMessages(int $limit, int $offset): array
+    {
+        return array_map(
+            fn (ErrorContext $errorContext): Message => $this->messageBuilder->withPayload($this->messages[$errorContext->getMessageId()]['payload'])
+                ->setMultipleHeaders(array_merge($this->messages[$errorContext->getMessageId()]['headers'], [MessageHeaders::MESSAGE_ID => $errorContext->getMessageId()]))
+                ->build(),
+            $this->list($limit, $offset),
+        );
+    }
+
     public function find(string $messageId): ?Message
     {
         if (! isset($this->messages[$messageId])) {

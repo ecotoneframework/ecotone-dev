@@ -64,22 +64,20 @@ final class DbalDeadLetterStore implements DeadLetterStore
 
     public function list(int $limit, int $offset): array
     {
-        $messages = $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
-            ->select('*')
-            ->from($this->getTableName())
-            ->setMaxResults($limit)
-            ->setFirstResult($offset)
-            ->orderBy('failed_at', 'DESC')
-            ->addOrderBy('message_id', 'ASC')
-            ->executeQuery()
-            ->fetchAllAssociative());
-
         return array_map(function (array $message) {
             return ErrorContext::fromHeaders(array_merge(
                 $this->decodeHeaders($message),
                 [MessageHeaders::MESSAGE_ID => $message['message_id']]
             ));
-        }, $messages);
+        }, $this->page($limit, $offset));
+    }
+
+    public function listMessages(int $limit, int $offset): array
+    {
+        return array_map(
+            fn (array $message): Message => $this->toMessage($message, [MessageHeaders::MESSAGE_ID => $message['message_id']]),
+            $this->page($limit, $offset)
+        );
     }
 
     public function find(string $messageId): ?Message
@@ -97,9 +95,7 @@ final class DbalDeadLetterStore implements DeadLetterStore
             return null;
         }
 
-        return $this->messageBuilder->withPayload($message['payload'])
-            ->setMultipleHeaders($this->decodeHeaders($message))
-            ->build();
+        return $this->toMessage($message);
     }
 
     public function count(): int
@@ -157,6 +153,26 @@ final class DbalDeadLetterStore implements DeadLetterStore
                 'headers' => Types::TEXT,
             ]
         );
+    }
+
+    private function page(int $limit, int $offset): array
+    {
+        return $this->onTable(fn () => $this->getConnection()->createQueryBuilder()
+            ->select('*')
+            ->from($this->getTableName())
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->orderBy('failed_at', 'DESC')
+            ->addOrderBy('message_id', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative());
+    }
+
+    private function toMessage(array $message, array $headers = []): Message
+    {
+        return $this->messageBuilder->withPayload($message['payload'])
+            ->setMultipleHeaders(array_merge($this->decodeHeaders($message), $headers))
+            ->build();
     }
 
     private function getTableName(): string

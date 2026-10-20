@@ -10,10 +10,12 @@ use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -32,6 +34,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 
 #[ModuleAnnotation]
 /**
@@ -88,6 +91,13 @@ final class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
 
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
+            $messagingConfiguration->registerServiceDefinition(
+                PulseDeadLetters::class,
+                new Definition(PulseDeadLetters::class, [Reference::to(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class))])
+            );
+        }
+
         $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, DbalDeadLetterBuilder::STORE_CHANNEL, $dbalConfiguration->deadLetterInMemory, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
             $referenceName = $customDeadLetterGateway->getGatewayReferenceName();
@@ -107,10 +117,15 @@ final class DbalDeadLetterModule implements AnnotationModule
             $connectionReferences[] = $customDeadLetterGateway->getConnectionReferenceName();
         }
 
-        return array_map(
+        $extensions = array_map(
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
         );
+        if ($dbalConfiguration->deadLetterEnabled && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class);
+        }
+
+        return $extensions;
     }
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, string $description = ''): void

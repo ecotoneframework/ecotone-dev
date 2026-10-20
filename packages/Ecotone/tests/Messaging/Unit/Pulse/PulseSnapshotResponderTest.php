@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -65,7 +67,8 @@ final class PulseSnapshotResponderTest extends TestCase
         self::assertSame(PHP_VERSION, $snapshot['overview']['phpVersion']);
         self::assertSame('lite', $snapshot['overview']['framework']);
         self::assertSame(['enterprise' => true, 'expiresAt' => null], $snapshot['overview']['licence']);
-        self::assertTrue($snapshot['overview']['ecotoneVersion'] === null || is_string($snapshot['overview']['ecotoneVersion']));
+        self::assertIsString($snapshot['overview']['ecotoneVersion']);
+        self::assertNotSame('', $snapshot['overview']['ecotoneVersion']);
         self::assertArrayHasKey('nodes', $snapshot['flowGraph']);
         self::assertArrayHasKey('edges', $snapshot['flowGraph']);
         self::assertContains('order.place', array_column($snapshot['flowGraph']['nodes'], 'label'));
@@ -86,6 +89,7 @@ final class PulseSnapshotResponderTest extends TestCase
         $orderService = $this->orderService($this->orders(), $channels, DistributedServiceMap::initialize()
             ->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')
             ->withEventMapping(channelName: 'order_channel', subscriptionKeys: ['order.*'], excludePublishingServices: ['legacy'])
+            ->withEventMapping(channelName: 'audit_channel', subscriptionKeys: ['audit.*'], includePublishingServices: ['billing'])
             ->withAsynchronousChannel('order_channel'));
         $pulse = $this->pulseReplies();
         $pulseService = $this->pulseService($pulse, $channels);
@@ -96,7 +100,10 @@ final class PulseSnapshotResponderTest extends TestCase
 
         $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(
-            [['channel' => 'order_channel', 'subscriptionKeys' => ['order.*'], 'excludePublishingServices' => ['legacy'], 'includePublishingServices' => []]],
+            [
+                ['channel' => 'order_channel', 'subscriptionKeys' => ['order.*'], 'excludePublishingServices' => ['legacy'], 'includePublishingServices' => []],
+                ['channel' => 'audit_channel', 'subscriptionKeys' => ['audit.*'], 'excludePublishingServices' => [], 'includePublishingServices' => ['billing']],
+            ],
             $snapshot['topology']['serviceMaps'][0]['eventSubscriptions'],
         );
         self::assertSame('order_channel', $snapshot['topology']['serviceMaps'][0]['asynchronousChannel']);
@@ -121,6 +128,42 @@ final class PulseSnapshotResponderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Service order_service was asked for its Pulse snapshot by intruder, but it only answers the configured Pulse service ecotone_pulse. Send the request from the Pulse service, or change the accepted service with PulseConfiguration::createWithDefaults(pulseServiceName: 'intruder') in a #[ServiceContext].");
         $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+    }
+
+    public function test_a_responder_with_an_asynchronous_distributed_bus_still_replies_to_the_pulse_service(): void
+    {
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('order_bus')];
+        $orderService = $this->orderService($this->orders(), $channels, $this->pulseMap()->withAsynchronousChannel('order_bus'));
+        $pulse = $this->pulseReplies();
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+        self::assertSame('order_bus', json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['topology']['serviceMaps'][0]['asynchronousChannel']);
+    }
+
+    public function test_a_request_without_a_source_service_is_refused(): void
+    {
+        $channels = $this->channels();
+        $orderService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$this->orders()::class, SourcelessPulseRequest::class],
+            containerOrAvailableServices: [$this->orders()],
+            extensionObjects: [
+                ...$channels,
+                $this->pulseMap(),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('was asked for its Pulse snapshot by no service');
+        $orderService->getGateway(SourcelessPulseRequest::class)->ask('{}');
     }
 
     public function test_pulse_without_an_enterprise_licence_is_refused_at_bootstrap(): void
@@ -245,4 +288,10 @@ final class PulseSnapshotResponderTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+}
+
+interface SourcelessPulseRequest
+{
+    #[MessageGateway('ecotone.pulse.snapshot')]
+    public function ask(#[Payload] string $payload): string;
 }

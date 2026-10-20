@@ -110,6 +110,7 @@ final class FrameworkHeaders
             $metadata[DistributedBusHeader::DISTRIBUTED_ROUTING_KEY],
             $metadata[DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME],
             $metadata[DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME],
+            $metadata[DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY],
         );
 
         return $metadata;

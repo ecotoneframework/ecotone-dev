@@ -71,6 +71,7 @@ use Ecotone\Modelling\Config\ServiceHandlerModule;
 use Ecotone\Modelling\DecisionModel\Config\DecisionModelModule;
 use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedBusWithServiceMapModule;
 use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedHandlerModule;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseModule;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
 use Ecotone\Projecting\Config\PartitionProviderRegistryModule;
@@ -99,6 +100,7 @@ class ModuleClassList
     public const CORE_MODULES = [
         DistributedHandlerModule::class,
         DistributedBusWithServiceMapModule::class,
+        PulseModule::class,
         AggregateModule::class,
         ServiceHandlerModule::class,
         EventTaggingModule::class,

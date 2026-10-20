@@ -7,8 +7,14 @@ namespace Ecotone\Modelling\MessageHandling\Distribution;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\Messaging\Config\ConfigurationException;
 
 use function array_key_exists;
+use function array_keys;
+use function array_map;
+use function array_values;
+use function count;
+use function implode;
 
 /**
  * licence Enterprise
@@ -48,12 +54,30 @@ final class DistributedReplyRouter
         #[Header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)]
         string $replyToChannelName,
     ): array {
+        if ($targetedServiceName === null) {
+            throw UnknownDistributedDestination::create("A reply to channel '{$replyToChannelName}' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
+        }
+
+        $channelsByServiceMap = [];
+        $outboundChannelsByChannel = [];
         foreach ($this->serviceMapsByOutboundChannel as $outboundChannel => $serviceMap) {
             if (array_key_exists($targetedServiceName, $serviceMap->commandMapping)) {
-                return [$outboundChannel];
+                $channel = $serviceMap->commandMapping[$targetedServiceName];
+                $channelsByServiceMap[$serviceMap->getReferenceName()] = $channel;
+                $outboundChannelsByChannel[$channel] ??= $outboundChannel;
             }
         }
 
-        return [];
+        if ($outboundChannelsByChannel === []) {
+            throw UnknownDistributedDestination::create("A reply to channel '{$replyToChannelName}' of service '{$targetedServiceName}' cannot be sent, because no Service Map in service '{$this->thisServiceName}' maps service '{$targetedServiceName}' to a channel. Register the channel '{$targetedServiceName}' consumes with DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: '{$targetedServiceName}', channelName: '...') in service '{$this->thisServiceName}', or send the message without replyToChannelName.");
+        }
+
+        if (count($outboundChannelsByChannel) > 1) {
+            $mappings = implode(', ', array_map(fn (string $referenceName, string $channel) => "'{$referenceName}' to '{$channel}'", array_keys($channelsByServiceMap), $channelsByServiceMap));
+
+            throw ConfigurationException::create("A reply to channel '{$replyToChannelName}' of service '{$targetedServiceName}' cannot be sent, because Service Maps in service '{$this->thisServiceName}' map service '{$targetedServiceName}' to different channels: {$mappings}. Map service '{$targetedServiceName}' in one Service Map only, or to the same channel in each.");
+        }
+
+        return array_values($outboundChannelsByChannel);
     }
 }

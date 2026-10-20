@@ -359,6 +359,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $handler = new class () {
             public const TARGET_CHANNEL = 'allTargetChannel';
 
+            public int $sourceInvocations = 0;
             /** @var string[] */
             public array $handledByTarget = [];
             private bool $hasEmitted = false;
@@ -378,6 +379,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             #[\Ecotone\Api\Attribute\InternalHandler('allSourceChannel')]
             public function handleBySource(string $payload): void
             {
+                $this->sourceInvocations++;
+
                 throw new RuntimeException('simulated');
             }
 
@@ -410,6 +413,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replayAll($handler::TARGET_CHANNEL);
 
         $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertSame(1, $handler->sourceInvocations);
         $this->assertSame(['payload'], $handler->handledByTarget);
     }
 
@@ -483,6 +487,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $handler = new class () {
             public const TARGET_CHANNEL = 'consoleTargetChannel';
 
+            public int $sourceInvocations = 0;
             /** @var string[] */
             public array $handledByTarget = [];
             private bool $hasEmitted = false;
@@ -502,6 +507,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             #[\Ecotone\Api\Attribute\InternalHandler('consoleSourceChannel')]
             public function handleBySource(string $payload): void
             {
+                $this->sourceInvocations++;
+
                 throw new RuntimeException('simulated');
             }
 
@@ -535,6 +542,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->runConsoleCommand('ecotone:deadletter:replay', ['messageId' => $messageId, 'targetChannel' => $handler::TARGET_CHANNEL]);
 
         $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertSame(1, $handler->sourceInvocations);
         $this->assertSame(['payload'], $handler->handledByTarget);
     }
 

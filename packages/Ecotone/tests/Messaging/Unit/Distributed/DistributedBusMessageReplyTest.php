@@ -7,7 +7,10 @@ namespace Test\Ecotone\Messaging\Unit\Distributed;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -20,9 +23,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\InMemorySpanRecorder;
 use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\TracingConfiguration;
-use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Test\StaticMessageBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -344,6 +345,33 @@ final class DistributedBusMessageReplyTest extends TestCase
         self::assertSame(['ticket for: Printer is broken'], $users->replies);
     }
 
+    public function test_a_reply_is_sent_directly_even_when_the_receivers_service_map_sends_asynchronously(): void
+    {
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('distributed_bus_async')];
+        $users = new class () {
+            public array $replies = [];
+
+            #[InternalHandler('ticket.created')]
+            public function created(string $ticket): void
+            {
+                $this->replies[] = $ticket;
+            }
+        };
+        $userService = $this->userService($users, $channels);
+        $ticketService = $this->service(
+            'ticket_service',
+            $this->ticketsReturningDescription(),
+            $channels,
+            DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel')->withAsynchronousChannel('distributed_bus_async'),
+        );
+
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['ticket for: Printer is broken'], $users->replies);
+    }
+
     public function test_a_reply_is_refused_when_no_service_map_of_the_receiver_maps_the_sender(): void
     {
         $channels = $this->channels();
@@ -381,17 +409,25 @@ final class DistributedBusMessageReplyTest extends TestCase
     public function test_a_reply_is_refused_when_the_message_names_no_source_service(): void
     {
         $channels = $this->channels();
-        $ticketService = $this->ticketService($this->ticketsReturningDescription(), $channels);
-        ChannelTestSupport::of($ticketService)->getMessageChannel('ticket_channel')->send(
-            StaticMessageBuilder::withPayload('Printer is broken')
-                ->setHeader(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE)
-                ->setHeader(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY, 'ticket.create')
-                ->setHeader(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'message')
-                ->setHeader(DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME, 'ticket_service')
-                ->setHeader(DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL, 'ticket.created')
-                ->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)
-                ->build()
+        $tickets = $this->ticketsReturningDescription();
+        $ticketService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$tickets::class, ExternalTicketProducer::class],
+            containerOrAvailableServices: [$tickets],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ticketService->getGateway(ExternalTicketProducer::class)->send('Printer is broken', DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE, [
+            DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => 'ticket.create',
+            DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE => 'message',
+            DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => 'ticket_service',
+            DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL => 'ticket.created',
+            MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
+        ]);
 
         $this->expectExceptionMessage("A reply to channel 'ticket.created' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
 
@@ -442,4 +478,10 @@ final class TicketWasCreated
     public function __construct(public readonly string $ticketId, public readonly string $description)
     {
     }
+}
+
+interface ExternalTicketProducer
+{
+    #[MessageGateway('ticket_channel')]
+    public function send(#[Payload] string $description, #[Header(MessageHeaders::ROUTING_SLIP)] string $routingSlip, #[Headers] array $headers): void;
 }

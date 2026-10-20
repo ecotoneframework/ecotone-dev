@@ -116,7 +116,7 @@ final class DistributedHandlerModule implements AnnotationModule
                     HeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                     HeaderBuilder::create('contentType', MessageHeaders::CONTENT_TYPE),
                     HeaderBuilder::createOptional('targetedServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
-                    HeaderBuilder::createOptional('replyToChannelName', DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL),
+                    HeaderBuilder::createOptional('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY),
                     ReferenceBuilder::create('commandBus', CommandBus::class),
                     ReferenceBuilder::create('eventBus', EventBus::class),
                     ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
@@ -128,7 +128,7 @@ final class DistributedHandlerModule implements AnnotationModule
                 ->withMethodParameterConverters([
                     PayloadBuilder::create('result'),
                     AllHeadersBuilder::createWith('metadata'),
-                    HeaderBuilder::create('replyToChannelName', DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL),
+                    HeaderBuilder::create('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY),
                     ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
                 ])
         );

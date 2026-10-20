@@ -43,7 +43,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class DbalDistributedMessageReplyTest extends DbalMessagingTestCase
 {
-    public function test_the_result_of_a_distributed_message_reaches_the_reply_to_channel_over_dbal_channels(): void
+    public function test_the_result_of_a_distributed_message_reaches_the_reply_routing_key_over_dbal_channels(): void
     {
         $tickets = new class () {
             #[Distributed]
@@ -66,7 +66,7 @@ final class DbalDistributedMessageReplyTest extends DbalMessagingTestCase
         $userService = $this->service('user_service', $users, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'), $this->getConnectionFactory());
         $ticketService = $this->service('ticket_service', $tickets, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'), $this->getConnectionFactory());
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: ['requestedBy' => 'johny'], replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: ['requestedBy' => 'johny'], replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -112,7 +112,7 @@ final class DbalDistributedMessageReplyTest extends DbalMessagingTestCase
         $userService = $this->service('user_service', $users, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'), $connectionFactory);
         $ticketService = $this->service('ticket_service', $tickets, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'), $connectionFactory);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 

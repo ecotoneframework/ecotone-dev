@@ -197,7 +197,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
                             GatewayHeaderBuilder::create('targetChannelName', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
-                            GatewayHeaderBuilder::create('replyToChannelName', DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL),
+                            GatewayHeaderBuilder::create('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->serviceName),
                             GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'message'),
                             GatewayHeaderValueBuilder::create(MessageHeaders::ROUTING_SLIP, DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE),
@@ -226,7 +226,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                 ->withInputChannelName(DistributedMessageHandler::REPLY_ROUTING_CHANNEL)
                 ->withMethodParameterConverters([
                     HeaderBuilder::createOptional('targetedServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
-                    HeaderBuilder::create('replyToChannelName', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                    HeaderBuilder::create('replyRoutingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                 ])
         );
     }

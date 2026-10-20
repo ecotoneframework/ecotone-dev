@@ -53,10 +53,10 @@ final class DistributedReplyRouter
         #[Header(DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME)]
         ?string $targetedServiceName,
         #[Header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)]
-        string $replyToChannelName,
+        string $replyRoutingKey,
     ): array {
         if ($targetedServiceName === null) {
-            throw UnknownDistributedDestination::create("A reply to channel '{$replyToChannelName}' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
+            throw UnknownDistributedDestination::create("A reply to routing key '{$replyRoutingKey}' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
         }
 
         $channelsByServiceMap = [];
@@ -70,13 +70,13 @@ final class DistributedReplyRouter
         }
 
         if ($outboundChannelsByChannel === []) {
-            throw UnknownDistributedDestination::create("A reply to channel '{$replyToChannelName}' of service '{$targetedServiceName}' cannot be sent, because no Service Map in service '{$this->thisServiceName}' maps service '{$targetedServiceName}' to a channel. Register the channel '{$targetedServiceName}' consumes with DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: '{$targetedServiceName}', channelName: '...') in service '{$this->thisServiceName}', or send the message without replyToChannelName.");
+            throw UnknownDistributedDestination::create("A reply to routing key '{$replyRoutingKey}' of service '{$targetedServiceName}' cannot be sent, because no Service Map in service '{$this->thisServiceName}' maps service '{$targetedServiceName}' to a channel. Register the channel '{$targetedServiceName}' consumes with DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: '{$targetedServiceName}', channelName: '...') in service '{$this->thisServiceName}', or send the message without replyRoutingKey.");
         }
 
         if (count($outboundChannelsByChannel) > 1) {
             $mappings = implode(', ', array_map(fn (string $referenceName, string $channel) => "'{$referenceName}' to '{$channel}'", array_keys($channelsByServiceMap), $channelsByServiceMap));
 
-            throw ConfigurationException::create("A reply to channel '{$replyToChannelName}' of service '{$targetedServiceName}' cannot be sent, because Service Maps in service '{$this->thisServiceName}' map service '{$targetedServiceName}' to different channels: {$mappings}. Map service '{$targetedServiceName}' in one Service Map only, or to the same channel in each.");
+            throw ConfigurationException::create("A reply to routing key '{$replyRoutingKey}' of service '{$targetedServiceName}' cannot be sent, because Service Maps in service '{$this->thisServiceName}' map service '{$targetedServiceName}' to different channels: {$mappings}. Map service '{$targetedServiceName}' in one Service Map only, or to the same channel in each.");
         }
 
         return array_values($outboundChannelsByChannel);

@@ -136,7 +136,7 @@ final class DistributedFlowScenarios
         };
 
         return new FlowScenario(
-            'distributed message answered on its reply-to channel',
+            'distributed message answered on its reply routing key',
             [$tickets::class],
             [$tickets],
             [
@@ -145,7 +145,7 @@ final class DistributedFlowScenarios
                 ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
             ],
             [
-                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: $metadata, replyToChannelName: 'ticket.created'))->leavingWorkPending()
+                FlowStage::when(fn (FlowTestSupport $ecotone, array $metadata) => $ecotone->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: $metadata, replyRoutingKey: 'ticket.created'))->leavingWorkPending()
                     ->expect(ExpectedSpan::named('send distributed')->ofKind(SpanKind::Producer)->containing(ExpectedSpan::named('send distributed_channel')->ofKind(SpanKind::Producer)))
                     ->withNoOtherSpans(),
                 FlowStage::when(fn (FlowTestSupport $ecotone) => $ecotone->run('distributed_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)))->leavingWorkPending()

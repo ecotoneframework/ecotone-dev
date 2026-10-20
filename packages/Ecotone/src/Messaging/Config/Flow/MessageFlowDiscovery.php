@@ -277,7 +277,7 @@ final class MessageFlowDiscovery
         $busId = $this->distributedBusNode($distributedAttribute->distributionReference)->id;
         $this->edges[] = new FlowEdge($busId, $this->channelNode($inputChannelName)->id, FlowEdgeKind::DISTRIBUTES);
         if ($this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->canReturnValue()) {
-            $this->edges[] = new FlowEdge($handlerId, $busId, FlowEdgeKind::SENDS_TO, ['via' => 'replyToChannelName']);
+            $this->edges[] = new FlowEdge($handlerId, $busId, FlowEdgeKind::SENDS_TO, ['via' => 'replyRoutingKey']);
         }
     }
 

@@ -48,7 +48,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class DistributedBusMessageReplyTest extends TestCase
 {
-    public function test_the_result_of_a_distributed_message_triggers_the_reply_to_channel_in_the_sending_service(): void
+    public function test_the_result_of_a_distributed_message_triggers_the_reply_routing_key_in_the_sending_service(): void
     {
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'), SimpleMessageChannelBuilder::createQueueChannel('user_channel')];
         $tickets = new class () {
@@ -71,7 +71,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->service('user_service', $users, $channels, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'));
         $ticketService = $this->service('ticket_service', $tickets, $channels, DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'));
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -102,7 +102,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->userService($users, $channels);
         $ticketService = $this->ticketService($tickets, $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertSame([], $users->replies);
@@ -139,7 +139,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         );
         $ticketService = $this->ticketService($this->ticketsReturningDescription(), $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -175,7 +175,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->userService($users, $channels);
         $ticketService = $this->ticketService($tickets, $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: ['requestedBy' => 'johny'], replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', metadata: ['requestedBy' => 'johny'], replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -205,7 +205,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->userService($users, $channels);
         $ticketService = $this->ticketService($tickets, $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -242,7 +242,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->userService($users, $channels);
         $ticketService = $this->ticketService($tickets, $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
@@ -252,7 +252,7 @@ final class DistributedBusMessageReplyTest extends TestCase
         self::assertSame(['ticket for: Printer is broken'], $users->replies);
     }
 
-    public function test_an_object_result_reaches_the_reply_to_channel_as_the_same_object(): void
+    public function test_an_object_result_reaches_the_reply_routing_key_as_the_same_object(): void
     {
         $channels = $this->channels();
         $tickets = new class () {
@@ -275,14 +275,14 @@ final class DistributedBusMessageReplyTest extends TestCase
         $userService = $this->userService($users, $channels);
         $ticketService = $this->ticketService($tickets, $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertEquals([new TicketWasCreated('ticket-1', 'Printer is broken')], $users->replies);
     }
 
-    public function test_sending_a_message_without_reply_to_channel_sends_no_reply(): void
+    public function test_sending_a_message_without_reply_routing_key_sends_no_reply(): void
     {
         $channels = $this->channels();
         $tickets = new class () {
@@ -338,7 +338,7 @@ final class DistributedBusMessageReplyTest extends TestCase
             DistributedServiceMap::initialize('second_distributed_bus')->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'),
         );
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -365,7 +365,7 @@ final class DistributedBusMessageReplyTest extends TestCase
             DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel')->withAsynchronousChannel('distributed_bus_async'),
         );
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $userService->run('user_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -379,9 +379,9 @@ final class DistributedBusMessageReplyTest extends TestCase
         }, $channels);
         $ticketService = $this->service('ticket_service', $this->ticketsReturningDescription(), $channels);
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
 
-        $this->expectExceptionMessage("A reply to channel 'ticket.created' of service 'user_service' cannot be sent, because no Service Map in service 'ticket_service' maps service 'user_service' to a channel. Register the channel 'user_service' consumes with DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: '...') in service 'ticket_service', or send the message without replyToChannelName.");
+        $this->expectExceptionMessage("A reply to routing key 'ticket.created' of service 'user_service' cannot be sent, because no Service Map in service 'ticket_service' maps service 'user_service' to a channel. Register the channel 'user_service' consumes with DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: '...') in service 'ticket_service', or send the message without replyRoutingKey.");
 
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
     }
@@ -399,9 +399,9 @@ final class DistributedBusMessageReplyTest extends TestCase
             DistributedServiceMap::initialize('second_distributed_bus')->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel_2'),
         );
 
-        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyToChannelName: 'ticket.created');
+        $userService->getDistributedBus()->sendMessage('ticket_service', 'ticket.create', 'Printer is broken', replyRoutingKey: 'ticket.created');
 
-        $this->expectExceptionMessage("A reply to channel 'ticket.created' of service 'user_service' cannot be sent, because Service Maps in service 'ticket_service' map service 'user_service' to different channels: 'Ecotone\\Api\\Gateway\\DistributedBus' to 'user_channel', 'second_distributed_bus' to 'user_channel_2'. Map service 'user_service' in one Service Map only, or to the same channel in each.");
+        $this->expectExceptionMessage("A reply to routing key 'ticket.created' of service 'user_service' cannot be sent, because Service Maps in service 'ticket_service' map service 'user_service' to different channels: 'Ecotone\\Api\\Gateway\\DistributedBus' to 'user_channel', 'second_distributed_bus' to 'user_channel_2'. Map service 'user_service' in one Service Map only, or to the same channel in each.");
 
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
     }
@@ -425,11 +425,11 @@ final class DistributedBusMessageReplyTest extends TestCase
             DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => 'ticket.create',
             DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE => 'message',
             DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => 'ticket_service',
-            DistributedBusHeader::DISTRIBUTED_REPLY_TO_CHANNEL => 'ticket.created',
+            DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY => 'ticket.created',
             MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
         ]);
 
-        $this->expectExceptionMessage("A reply to channel 'ticket.created' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
+        $this->expectExceptionMessage("A reply to routing key 'ticket.created' cannot be sent, because the message names no source service in header '" . DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME . "', so there is no service to reply to. Send the message with DistributedBus::sendMessage(), which sets that header, or set it to the name of the sending service.");
 
         $ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
     }

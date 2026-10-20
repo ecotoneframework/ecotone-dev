@@ -3206,6 +3206,24 @@ final class OrdersWebsocket
 **How to adapt:** nothing is required. To use it, register `FlowTrackingConfiguration`, run the setup command for its
 table, and give each handler you want to ask about an explicit `endpointId`.
 
+### A service answers Ecotone Pulse over the Distributed Bus (Enterprise)
+
+**Before:** there was no way for a tool outside the application to ask it what it runs: versions, handlers, the
+message flow, or how it is wired to other services.
+
+**Now:** registering `Ecotone\Api\Pulse\PulseConfiguration::createWithDefaults(pulseServiceName: 'ecotone_pulse')` from a
+`#[ServiceContext]` method makes the service answer the routing key `ecotone.pulse.snapshot`. The Pulse service sends
+`DistributedBus::sendMessage($service, 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey:
+'ecotone.pulse.snapshot_received')` and receives one JSON reply: `schemaVersion`, `serviceName`, `takenAt`, an
+`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph` and the distributed `topology` of the
+`DistributedServiceMap`s. Only requests from the configured Pulse service are served; any other source fails the
+handler with a message naming the expected service. The application needs an Enterprise licence, a service name, and a
+`DistributedServiceMap` command mapping from the Pulse service to the channel the Pulse service consumes, otherwise
+bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
+
+**How to adapt:** nothing is required. To use it, register `PulseConfiguration` and the command mapping to the Pulse
+service.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

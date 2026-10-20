@@ -26,7 +26,5 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
  */
 interface PulseSnapshotSection
 {
-    public function sectionName(): string;
-
     public function snapshot(): array;
 }

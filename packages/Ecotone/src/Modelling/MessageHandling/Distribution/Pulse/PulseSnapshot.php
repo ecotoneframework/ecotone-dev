@@ -34,10 +34,11 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param PulseSnapshotSection[] $sections
+     * @param array<string, PulseSnapshotSection> $sections
      */
     public function __construct(
         private string $serviceName,
@@ -52,7 +53,7 @@ final class PulseSnapshot
 
     public function snapshotJson(?string $sourceService): string
     {
-        $this->refuseUnlessFromPulse($sourceService);
+        $this->authorizeRequestFrom($sourceService);
 
         return json_encode($this->snapshot(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
@@ -83,14 +84,14 @@ final class PulseSnapshot
             'topology' => ['serviceMaps' => $this->serviceMaps],
         ];
 
-        foreach ($this->sections as $section) {
-            $snapshot[$section->sectionName()] = $section->snapshot();
+        foreach ($this->sections as $sectionName => $section) {
+            $snapshot[$sectionName] = $section->snapshot();
         }
 
         return $snapshot;
     }
 
-    private function refuseUnlessFromPulse(?string $sourceService): void
+    public function authorizeRequestFrom(?string $sourceService): void
     {
         if ($sourceService === $this->pulseServiceName) {
             return;

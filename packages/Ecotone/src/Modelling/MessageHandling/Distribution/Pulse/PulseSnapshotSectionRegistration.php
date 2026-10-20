@@ -26,7 +26,7 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
  */
 final class PulseSnapshotSectionRegistration
 {
-    public function __construct(public readonly string $serviceReference)
+    public function __construct(public readonly string $sectionName, public readonly string $serviceReference)
     {
     }
 }

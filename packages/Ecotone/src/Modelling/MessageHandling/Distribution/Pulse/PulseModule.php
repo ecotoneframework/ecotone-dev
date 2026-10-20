@@ -19,7 +19,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -59,7 +58,6 @@ final class PulseModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        /** @var PulseConfiguration[] $pulseConfigurations */
         $pulseConfigurations = ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects);
         if ($pulseConfigurations === []) {
             return;
@@ -79,24 +77,20 @@ final class PulseModule implements AnnotationModule
             throw ConfigurationException::create("PulseConfiguration needs this service to be named, so Pulse can tell which service answered. Set it with ServiceConfiguration::createWithDefaults()->withServiceName('my_service') in a #[ServiceContext].");
         }
 
-        /** @var DistributedServiceMap[] $serviceMaps */
         $serviceMaps = ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects);
         if (! self::anyMapReaches($serviceMaps, $pulseServiceName)) {
             throw ConfigurationException::create("PulseConfiguration answers Pulse service {$pulseServiceName}, but no DistributedServiceMap maps it to a channel, so the reply could not be routed. Add DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: '{$pulseServiceName}', channelName: 'channel_pulse_consumes') to a #[ServiceContext], or change the Pulse service name in PulseConfiguration::createWithDefaults().");
         }
 
         $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
-        $sections = array_map(
-            fn (PulseSnapshotSectionRegistration $registration) => new Reference($registration->serviceReference),
-            ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects),
-        );
+        $sections = self::sectionReferences(ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects));
 
         $messagingConfiguration->registerServiceDefinition(
             PulseSnapshot::class,
             Definition::createFor(PulseSnapshot::class, [
                 $serviceConfiguration->serviceName,
                 $pulseServiceName,
-                ConsoleInvocationResolver::resolveFramework($bootstrapConfiguration),
+                PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
@@ -120,6 +114,26 @@ final class PulseModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    /**
+     * @param PulseSnapshotSectionRegistration[] $registrations
+     * @return array<string, Reference>
+     */
+    private static function sectionReferences(array $registrations): array
+    {
+        $references = [];
+        foreach ($registrations as $registration) {
+            if (in_array($registration->sectionName, PulseSnapshot::CORE_KEYS, true)) {
+                throw ConfigurationException::create("Pulse snapshot section `{$registration->sectionName}` collides with a key the snapshot already has. Name the section anything but " . implode(', ', PulseSnapshot::CORE_KEYS) . '.');
+            }
+            if (array_key_exists($registration->sectionName, $references)) {
+                throw ConfigurationException::create("Pulse snapshot section `{$registration->sectionName}` was registered twice, so the snapshot could hold only one of them. Register each section under its own name, or remove the duplicate registration.");
+            }
+            $references[$registration->sectionName] = new Reference($registration->serviceReference);
+        }
+
+        return $references;
     }
 
     /**

@@ -28,18 +28,7 @@ final class ConsoleInvocationResolver
         return null;
     }
 
-    public static function resolveFramework(BootstrapConfiguration $bootstrapConfiguration): string
-    {
-        foreach ([ModulePackageList::SYMFONY_PACKAGE, ModulePackageList::LARAVEL_PACKAGE, ModulePackageList::TEMPEST_PACKAGE] as $packageName) {
-            if (self::isPackageActive($bootstrapConfiguration, $packageName)) {
-                return $packageName;
-            }
-        }
-
-        return 'lite';
-    }
-
-    private static function isPackageActive(BootstrapConfiguration $bootstrapConfiguration, string $packageName): bool
+    public static function isPackageActive(BootstrapConfiguration $bootstrapConfiguration, string $packageName): bool
     {
         if (! $bootstrapConfiguration->isModulePackageEnabled($packageName)) {
             return false;

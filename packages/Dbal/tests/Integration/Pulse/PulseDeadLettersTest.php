@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -351,16 +352,35 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
-    public function test_replaying_to_a_target_channel_sends_the_messages_there_instead_of_where_they_were_polled_from(string $implementation): void
+    public function test_replaying_to_an_asynchronous_target_channel_runs_the_original_handler_once_that_channel_is_consumed(string $implementation): void
     {
         $this->bootstrap($implementation);
-        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee', [MessageHeaders::ROUTING_SLIP => 'order.audited.execute']);
 
-        $snapshot = $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.audited']);
+        $snapshot = $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order_async']);
+        self::assertSame([], $this->handled->audited);
+        $this->orderService->run('order_async', ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame([], $this->handled->payloads);
         self::assertSame(['coffee'], $this->handled->audited);
         self::assertSame(0, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_to_a_target_channel_that_is_not_asynchronous_is_refused_and_keeps_the_dead_letters(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+
+        try {
+            $this->replay(['messageIds' => ['m-1'], 'targetChannel' => 'order.replayed']);
+            self::fail('The replay to a channel that is not asynchronous was not refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToNonAsynchronousChannel('order.replayed'), $exception->getMessage());
+        }
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+        self::assertSame([], $this->handled->payloads);
     }
 
     #[DataProvider('implementations')]
@@ -560,7 +580,8 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 }
             }
 
-            #[InternalHandler('order.audited')]
+            #[Asynchronous('order_async')]
+            #[InternalHandler('order.audited', endpointId: 'order.audited.endpoint')]
             public function audited(string $payload): void
             {
                 $this->audited[] = $payload;
@@ -581,6 +602,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$this->handled, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
+                SimpleMessageChannelBuilder::createQueueChannel('order_async'),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),

@@ -169,6 +169,7 @@ docker run -p 8080:8080 \
 | `PULSE_QUEUE_WARNING` | `1000` | Ready messages from which a channel shows a warning. A whole number, optionally with per-channel overrides: `orders:invoices=500,*=1000` |
 | `PULSE_QUEUE_CRITICAL` | `10000` | Ready messages from which a channel shows as critical. Same form as `PULSE_QUEUE_WARNING`, and always above it |
 | `PULSE_PROJECTION_STALLED_AFTER` | `300` | Seconds a projection that is behind may keep the same position across Pulse's snapshots before the projections page (`/services/{name}/projections`) calls it stalled. Whole number, `1` or more. |
+| `PULSE_TRACKING_DAYS` | `7` | How many days back Pulse looks for tracked projection rebuilds, on the projections page (`/services/{name}/projections`) and in its recent rebuilds list. Whole number from `1` to `365`. |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
 | `APP_SECRET` (or `APP_SECRET_FILE`) | generated | Pulse signs nothing with it. When unset the entrypoint generates one for the lifetime of the container and logs one line saying so |

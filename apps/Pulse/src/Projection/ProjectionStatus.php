@@ -16,6 +16,8 @@ final readonly class ProjectionStatus
         public ProjectionState $state,
         public ?int $changedSecondsAgo,
         public ?string $unavailable,
+        public ?string $rebuildAsyncChannel,
+        public ?Rebuild $latestRebuild,
     ) {
     }
 

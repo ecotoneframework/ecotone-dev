@@ -3352,6 +3352,18 @@ ALTER TABLE ecotone_tracing
 Or drop the table, as tracked flows are only kept for the retention, and create it again:
 `DROP TABLE ecotone_tracing;` followed by `ecotone:migration:database:setup --initialize --feature=tracing`.
 
+### Ecotone Pulse tracks the projection rebuilds it starts in a new table (Enterprise)
+
+**Before:** a projection was rebuilt from the console (`ecotone:projection:rebuild`) or `ProjectionOperations`, and nothing recorded that a rebuild had been requested or how far it had got.
+
+**Now:** a service with `PulseConfiguration` answers `ecotone.pulse.projections.rebuild` (payload `{"projection": "orders"}`, with the `tracingId` header Pulse sends on every action) and `ecotone.pulse.trackings.list` (payload `{"since": "<ISO 8601 time>", "category": "ecotone-pulse", "type": "projection-rebuild", "reference": "orders", "limit": 100}`, `since` required, `limit` at most 100). In the transaction of the request, the service inserts one row into the new `ecotone_pulse_tracking` table: the tracing id, the category `ecotone-pulse`, the type `projection-rebuild`, the projection name as the reference, the active tenant (`NULL` without multi-tenancy) and the start time. The row is written once and never updated. The rebuild then runs under the request's tracing id: through the projection's `#[ProjectionRebuild(asyncChannelName: ...)]` channel when it has one, otherwise inside the request, and a failure of that synchronous rebuild fails the request and leaves no row.
+
+Every rebuild batch message carries `ecotone_projecting_rebuild_batch_number`, `ecotone_projecting_rebuild_batch_count` and `ecotone_projecting_rebuild_partition_count`, which tracing records as span attributes even when `TracingConfiguration::withSpanAttributesFromHeaders()` names other headers, and each batch is traced as a `process partition batch <projection>` span. The trackings query derives each rebuild's state from those spans and the dead letters: `running` (batches done out of the batch count, or the elapsed time), `done` (with its duration) or `failed` (the dead letter carrying the tracking's trace id), newest first and capped at 100. The projections of the Pulse snapshot report `rebuildAsyncChannel`.
+
+The table is created by the migration setup feature `pulse_tracking` only, in the database flow tracking stores to (with in-memory flow tracking, the tracking is in memory too). A service whose table is missing fails the rebuild request with a `ConfigurationException` naming the command.
+
+**How to adapt:** create the table with `ecotone:migration:database:setup --initialize` (or `--feature=pulse_tracking`), or `$messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('pulse_tracking')`, or generate the SQL for your own migrations with `getCreateSqlStatementsForFeatures(['pulse_tracking'])`. Expect one more span, `process partition batch <projection>`, in the trace of a backfill or a rebuild. Pulse reads rebuilds back from the service for the last `PULSE_TRACKING_DAYS` days (default 7), so a restart of Pulse loses nothing.
+
 ### A channel can refuse to create its destination on send: `withRequiredExistingDestination()`
 
 **Before:** an AMQP channel declared its queue on every first send, an SQS channel created its queue on send, and a Kafka

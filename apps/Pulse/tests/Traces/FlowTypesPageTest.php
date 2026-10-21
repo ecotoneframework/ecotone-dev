@@ -69,4 +69,16 @@ final class FlowTypesPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-flow-type="order.invoice"][data-service="orders"]'));
         self::assertCount(1, $crawler->filter('[data-flow-type="invoice.create"][data-service="billing"]'));
     }
+
+    public function test_a_trace_id_with_a_slash_is_refused_with_a_message_instead_of_being_ignored(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+
+        $crawler = $client->request('GET', '/traces', ['traceId' => 'a/b']);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('"a/b"', $crawler->filter('[data-search-error]')->text());
+        self::assertStringContainsString('cannot contain a slash', $crawler->filter('[data-search-error]')->text());
+    }
 }

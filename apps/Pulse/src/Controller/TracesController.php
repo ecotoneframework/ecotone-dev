@@ -27,7 +27,10 @@ final class TracesController extends AbstractController
     public function index(Request $request): Response
     {
         $traceId = trim((string) $request->query->get('traceId', ''));
-        if ($traceId !== '' && ! str_contains($traceId, '/')) {
+        $searchError = null;
+        if ($traceId !== '' && str_contains($traceId, '/')) {
+            $searchError = sprintf('"%s" cannot be a trace id: a trace id cannot contain a slash. Paste the trace id as the service logged it.', $traceId);
+        } elseif ($traceId !== '') {
             return new RedirectResponse($this->generateUrl('trace_detail', ['traceId' => $traceId]));
         }
 
@@ -35,6 +38,7 @@ final class TracesController extends AbstractController
 
         return $this->render('traces/index.html.twig', [
             'services' => FlowTypeOverview::of($snapshots),
+            'searchError' => $searchError,
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
         ]);
     }

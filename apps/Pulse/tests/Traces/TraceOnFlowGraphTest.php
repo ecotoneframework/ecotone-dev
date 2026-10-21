@@ -78,7 +78,7 @@ final class TraceOnFlowGraphTest extends WebTestCase
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed command', 'billing', 'invoice.sync'));
         self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed event', 'billing', 'invoice.synced'));
-            }
+    }
 
     public function test_only_the_event_edge_is_highlighted_when_the_trace_took_the_event(): void
     {

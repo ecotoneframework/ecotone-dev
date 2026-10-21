@@ -92,7 +92,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 ['messageName' => 'order.place', 'exceptionClass' => 'LogicException', 'count' => 1],
                 ['messageName' => 'order.cancel', 'exceptionClass' => 'RuntimeException', 'count' => 1],
             ],
-            $deadLetters['groups'],
+            array_map(fn (array $group): array => array_intersect_key($group, array_flip(['messageName', 'exceptionClass', 'count'])), $deadLetters['groups']),
         );
     }
 
@@ -109,9 +109,12 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
             [
                 [
                     'messageId' => 'm-2',
+                    'failureId' => $recent[0]['failureId'],
                     'messageName' => 'order.cancel',
                     'failedAt' => '2026-10-14T17:47:40+00:00',
                     'exceptionClass' => 'LogicException',
+                    'exceptionFile' => 'handler.php',
+                    'exceptionLine' => 1,
                     'exceptionMessage' => 'boom 2',
                     'stackTrace' => '#0 handler.php(1)',
                     'payload' => 'tea',
@@ -121,9 +124,12 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 ],
                 [
                     'messageId' => 'm-1',
+                    'failureId' => $recent[1]['failureId'],
                     'messageName' => 'order.place',
                     'failedAt' => '2026-10-14T17:46:40+00:00',
                     'exceptionClass' => 'RuntimeException',
+                    'exceptionFile' => 'handler.php',
+                    'exceptionLine' => 1,
                     'exceptionMessage' => 'boom 1',
                     'stackTrace' => '#0 handler.php(1)',
                     'payload' => 'coffee',
@@ -150,7 +156,8 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         self::assertCount(100, $deadLetters['recent']);
         self::assertSame('m-105', $deadLetters['recent'][0]['messageId']);
         self::assertSame('m-006', $deadLetters['recent'][99]['messageId']);
-        self::assertSame([['messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'count' => 105]], $deadLetters['groups']);
+        self::assertCount(1, $deadLetters['groups']);
+        self::assertSame(105, $deadLetters['groups'][0]['count']);
     }
 
     #[DataProvider('implementations')]
@@ -210,6 +217,8 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
 
         self::assertSame('', $entry['messageName']);
         self::assertSame('', $entry['exceptionClass']);
+        self::assertSame('f.php', $entry['exceptionFile']);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{12}$/', $entry['failureId']);
         self::assertNull($entry['channel']);
         self::assertNull($entry['contentType']);
     }
@@ -367,6 +376,221 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_group_describes_one_failure_with_its_newest_exception_message_and_its_first_and_last_seen(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'old boom', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 42));
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'new boom', self::FAILED_AT + 60, headers: $this->thrownAt('src/Place.php', 42));
+
+        $groups = $this->requestSnapshot()['deadLetters']['groups'];
+
+        self::assertCount(1, $groups);
+        self::assertSame(
+            [
+                'messageName' => 'order.place',
+                'exceptionClass' => 'RuntimeException',
+                'exceptionFile' => 'src/Place.php',
+                'exceptionLine' => 42,
+                'exceptionMessage' => 'new boom',
+                'count' => 2,
+                'firstFailedAt' => '2026-10-14T17:46:40+00:00',
+                'lastFailedAt' => '2026-10-14T17:47:40+00:00',
+            ],
+            array_diff_key($groups[0], ['failureId' => true]),
+        );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_groups_are_ordered_by_count_then_by_the_most_recent_failure(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'a', 'RuntimeException', 'boom', self::FAILED_AT + 10);
+        $this->deadLetter('m-2', 'b', 'RuntimeException', 'boom', self::FAILED_AT + 90);
+        $this->deadLetter('m-3', 'c', 'RuntimeException', 'boom', self::FAILED_AT + 50);
+        $this->deadLetter('m-4', 'd', 'RuntimeException', 'boom', self::FAILED_AT + 20);
+        $this->deadLetter('m-5', 'd', 'RuntimeException', 'boom', self::FAILED_AT + 21);
+
+        self::assertSame(['d', 'b', 'c', 'a'], array_column($this->requestSnapshot()['deadLetters']['groups'], 'messageName'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_failure_id_is_the_same_on_every_snapshot_of_the_same_failure(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 42));
+
+        $first = $this->requestSnapshot()['deadLetters'];
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'other text', self::FAILED_AT + 1, headers: $this->thrownAt('src/Place.php', 42));
+        $second = $this->requestSnapshot()['deadLetters'];
+
+        self::assertMatchesRegularExpression('/^[0-9a-f]{12}$/', $first['groups'][0]['failureId']);
+        self::assertSame($first['groups'][0]['failureId'], $second['groups'][0]['failureId']);
+        self::assertSame($first['recent'][0]['failureId'], $first['groups'][0]['failureId']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_same_exception_at_the_same_place_for_two_message_names_is_two_failures(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'placed', $this->thrownAt('src/Shared.php', 7));
+        $this->deadLetter('m-2', 'order.cancel', 'RuntimeException', 'boom', self::FAILED_AT, 'cancelled', $this->thrownAt('src/Shared.php', 7));
+
+        $groups = $this->requestSnapshot()['deadLetters']['groups'];
+
+        self::assertCount(2, $groups);
+        self::assertNotSame($groups[0]['failureId'], $groups[1]['failureId']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_one_failure_leaves_the_same_exception_of_another_message_name_untouched(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'placed', $this->thrownAt('src/Shared.php', 7));
+        $this->deadLetter('m-2', 'order.cancel', 'RuntimeException', 'boom', self::FAILED_AT, 'cancelled', $this->thrownAt('src/Shared.php', 7));
+
+        $snapshot = $this->replay(['filter' => ['failureId' => $this->failureOf('order.place')]]);
+
+        self::assertSame(['placed'], $this->handled->payloads);
+        self::assertSame(['m-2'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_the_same_message_and_exception_at_two_lines_is_two_failures(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 10));
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 20));
+
+        self::assertCount(2, $this->requestSnapshot()['deadLetters']['groups']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_different_exception_messages_from_the_same_place_are_one_failure(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'order 1 missing', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 10));
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'order 2 missing', self::FAILED_AT, headers: $this->thrownAt('src/Place.php', 10));
+
+        $groups = $this->requestSnapshot()['deadLetters']['groups'];
+
+        self::assertCount(1, $groups);
+        self::assertSame(2, $groups[0]['count']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_letter_with_an_empty_throw_location_is_still_grouped_by_message_and_exception(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        foreach (['m-1', 'm-2'] as $messageId) {
+            $this->orderService->getGateway(DeadLetterGateway::class)->store(
+                StaticMessageBuilder::withPayload('x')->setMultipleHeaders([
+                    MessageHeaders::MESSAGE_ID => $messageId,
+                    MessageHeaders::TIMESTAMP => self::FAILED_AT,
+                    DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => 'order.place',
+                    ErrorContext::EXCEPTION_CLASS => 'RuntimeException',
+                    ErrorContext::EXCEPTION_MESSAGE => 'boom',
+                    ErrorContext::EXCEPTION_STACKTRACE => '#0',
+                    ErrorContext::EXCEPTION_FILE => '',
+                    ErrorContext::EXCEPTION_LINE => 0,
+                    ErrorContext::EXCEPTION_CODE => 0,
+                ])->build()
+            );
+        }
+
+        $groups = $this->requestSnapshot()['deadLetters']['groups'];
+
+        self::assertCount(1, $groups);
+        self::assertSame(2, $groups[0]['count']);
+        self::assertSame('', $groups[0]['exceptionFile']);
+        self::assertSame(0, $groups[0]['exceptionLine']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_failure_replays_every_matching_dead_letter_beyond_the_recent_ones(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        for ($position = 1; $position <= 105; $position++) {
+            $this->deadLetter(sprintf('m-%03d', $position), 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + $position, 'placed', $this->thrownAt('src/Place.php', 10));
+        }
+        $this->deadLetter('m-other', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'other', $this->thrownAt('src/Place.php', 99));
+
+        $snapshot = $this->replay(['filter' => ['failureId' => $this->failureOf('order.place', 10)]]);
+
+        self::assertCount(105, $this->handled->payloads);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+        self::assertSame(105, $snapshot['deadLetterAction']['affected']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_an_unknown_failure_affects_nothing(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'placed');
+
+        $snapshot = $this->replay(['filter' => ['failureId' => 'ffffffffffff']]);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+        self::assertSame(0, $snapshot['deadLetterAction']['affected']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_failure_combines_with_a_time_range(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'early');
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT + 3600, 'late');
+
+        $this->replay(['filter' => ['failureId' => $this->failureOf('order.place'), 'failedFrom' => '2026-10-14T18:00:00+00:00']]);
+
+        self::assertSame(['late'], $this->handled->payloads);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_deleting_by_failure_removes_only_that_failure_without_running_it(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Shared.php', 7));
+        $this->deadLetter('m-2', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Shared.php', 7));
+        $this->deadLetter('m-3', 'order.cancel', 'RuntimeException', 'boom', self::FAILED_AT, headers: $this->thrownAt('src/Shared.php', 7));
+
+        $snapshot = $this->delete(['filter' => ['failureId' => $this->failureOf('order.place')]]);
+
+        self::assertSame([], $this->handled->payloads);
+        self::assertSame(['m-3'], array_column($snapshot['deadLetters']['recent'], 'messageId'));
+        self::assertSame(2, $snapshot['deadLetterAction']['affected']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_failure_to_an_asynchronous_target_channel_runs_the_handler_once_that_channel_is_consumed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee', [MessageHeaders::ROUTING_SLIP => 'order.audited.execute']);
+
+        $this->replay(['filter' => ['failureId' => $this->failureOf('order.place')], 'targetChannel' => 'order_async']);
+        self::assertSame([], $this->handled->audited);
+        $this->orderService->run('order_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['coffee'], $this->handled->audited);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_replaying_by_failure_to_an_unknown_target_channel_is_refused_and_keeps_the_dead_letters(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom', self::FAILED_AT, 'coffee');
+
+        try {
+            $this->replay(['filter' => ['failureId' => $this->failureOf('order.place')], 'targetChannel' => 'no_such_channel']);
+            self::fail('An unknown target channel was not refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel('no_such_channel'), $exception->getMessage());
+        }
+
+        self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
+    }
+
+    #[DataProvider('implementations')]
     public function test_replaying_to_an_asynchronous_target_channel_runs_the_original_handler_once_that_channel_is_consumed(string $implementation): void
     {
         $this->bootstrap($implementation);
@@ -487,7 +711,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
             $this->delete(['filter' => new stdClass()]);
             self::fail('An empty filter was not refused');
         } catch (InvalidArgumentException $exception) {
-            self::assertSame('The `filter` of a Pulse dead letter action is empty, and an empty filter would match every dead letter. Name at least one of messageName, exceptionClass, failedFrom, failedTo, or select the messages by id with `messageIds`.', $exception->getMessage());
+            self::assertSame('The `filter` of a Pulse dead letter action is empty, and an empty filter would match every dead letter. Name at least one of messageName, exceptionClass, failureId, failedFrom, failedTo, or select the messages by id with `messageIds`.', $exception->getMessage());
         }
 
         self::assertSame(1, $this->orderService->getGateway(DeadLetterGateway::class)->count());
@@ -499,7 +723,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The `filter` of a Pulse dead letter action has an unknown condition `all`. Use only messageName, exceptionClass, failedFrom, failedTo.');
+        $this->expectExceptionMessage('The `filter` of a Pulse dead letter action has an unknown condition `all`. Use only messageName, exceptionClass, failureId, failedFrom, failedTo.');
         $this->delete(['filter' => ['all' => true]]);
     }
 
@@ -663,6 +887,22 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                 ])
                 ->build()
         );
+    }
+
+    private function thrownAt(string $file, int $line): array
+    {
+        return [ErrorContext::EXCEPTION_FILE => $file, ErrorContext::EXCEPTION_LINE => $line];
+    }
+
+    private function failureOf(string $messageName, ?int $line = null): string
+    {
+        foreach ($this->requestSnapshot()['deadLetters']['groups'] as $group) {
+            if ($group['messageName'] === $messageName && ($line === null || $group['exceptionLine'] === $line)) {
+                return $group['failureId'];
+            }
+        }
+
+        self::fail("No failure for {$messageName}");
     }
 
     private function replay(array $payload): array

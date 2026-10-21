@@ -177,7 +177,8 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
         self::assertSame(1, $deadLetters['total']);
         self::assertSame($expectedName, $deadLetters['recent'][0]['messageName']);
         self::assertSame(RuntimeException::class, $deadLetters['recent'][0]['exceptionClass']);
-        self::assertSame([['messageName' => $expectedName, 'exceptionClass' => RuntimeException::class, 'count' => 1]], $deadLetters['groups']);
+        self::assertCount(1, $deadLetters['groups']);
+        self::assertSame([$expectedName, RuntimeException::class, 1], [$deadLetters['groups'][0]['messageName'], $deadLetters['groups'][0]['exceptionClass'], $deadLetters['groups'][0]['count']]);
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('failures')]

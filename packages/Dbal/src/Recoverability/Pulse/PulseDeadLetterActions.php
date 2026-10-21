@@ -43,11 +43,13 @@ final class PulseDeadLetterActions
         $selection = PulseDeadLetterSelection::forReplay($payload);
 
         $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
+        $affected = 0;
         foreach ($this->existing($selection) as $messageId) {
             $this->deadLetterHandler->replay($messageId, $messagingEntrypoint, $selection->targetChannel);
+            $affected++;
         }
 
-        return $snapshot->snapshotJson($sourceService);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService), $affected);
     }
 
     public function delete(string $payload, ?string $sourceService, PulseSnapshot $snapshot): string
@@ -55,11 +57,18 @@ final class PulseDeadLetterActions
         $snapshot->authorizeRequestFrom($sourceService);
         $selection = PulseDeadLetterSelection::forDelete($payload);
 
+        $affected = 0;
         foreach ($this->existing($selection) as $messageId) {
             $this->deadLetterHandler->delete($messageId);
+            $affected++;
         }
 
-        return $snapshot->snapshotJson($sourceService);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService), $affected);
+    }
+
+    private static function replyWithAffected(string $snapshotJson, int $affected): string
+    {
+        return json_encode([...json_decode($snapshotJson, true, flags: JSON_THROW_ON_ERROR), 'deadLetterAction' => ['affected' => $affected]], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     /**

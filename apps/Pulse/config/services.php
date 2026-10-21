@@ -28,7 +28,7 @@ return static function (ContainerConfigurator $container): void {
         '$transport' => $settings->transport,
         '$serviceChannels' => $settings->serviceChannels,
         '$replyTimeoutSeconds' => $settings->replyTimeoutSeconds,
-        '$renderWaitSeconds' => $settings->renderWaitSeconds,
+        '$awaitTimeoutSeconds' => $settings->awaitTimeoutSeconds,
         '$refreshIntervalSeconds' => $settings->refreshIntervalSeconds,
         '$internalDatabasePath' => $settings->internalDatabasePath,
     ]);

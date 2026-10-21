@@ -34,7 +34,7 @@ final class TracesController extends AbstractController
             return new RedirectResponse($this->generateUrl('trace_detail', ['traceId' => $traceId]));
         }
 
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
 
         return $this->render('traces/index.html.twig', [
             'services' => FlowTypeOverview::of($snapshots),
@@ -46,7 +46,7 @@ final class TracesController extends AbstractController
     #[Route('/traces/trace/{traceId}', name: 'trace_detail', methods: ['GET'], requirements: ['traceId' => '[^/]+'])]
     public function detail(string $traceId): Response
     {
-        $view = $this->traces->load($traceId, $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale()));
+        $view = $this->traces->load($traceId, $this->snapshots->viewAndRequestStale());
 
         return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'states' => $view->states, 'waiting' => $view->waiting]);
     }
@@ -54,7 +54,7 @@ final class TracesController extends AbstractController
     #[Route('/traces/{service}/{flowType}', name: 'trace_list', methods: ['GET'], requirements: ['service' => '[^/]+', 'flowType' => '.+'])]
     public function list(Request $request, string $service, string $flowType): Response
     {
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
         $snapshot = $this->snapshotOf($snapshots, $service);
         if ($snapshot === null) {
             throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES.', $service));

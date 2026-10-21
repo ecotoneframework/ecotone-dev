@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Trace;
 
 use App\Settings\PulseSettings;
+use App\Snapshot\ReplyAwaiter;
+use App\Snapshot\RequestResult;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -23,10 +26,11 @@ final readonly class TraceQueries
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
         private PulseSettings $settings,
         private LoggerInterface $logger,
+        private ReplyAwaiter $awaiter,
     ) {
     }
 
-    public function ask(string $service, TraceQuery $query): TraceAnswer
+    private function ask(string $service, TraceQuery $query): RequestResult
     {
         $now = $this->now();
         $queryId = bin2hex(random_bytes(8));
@@ -37,17 +41,22 @@ final readonly class TraceQueries
             return $claimed ? $record->requested($queryId, $now) : $record;
         });
 
-        if ($claimed) {
-            try {
-                $this->distributedBus->sendMessage($service, $query->routingKey, $query->json(), MediaType::APPLICATION_JSON, metadata: [self::QUERY_ID_HEADER => $queryId], replyRoutingKey: QueryResultReceiver::ROUTING_KEY);
-            } catch (Throwable $exception) {
-                $this->logger->error('Pulse could not send the trace query to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
-                $failure = sprintf('%s: the trace query could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
-                $this->store->update($service, $query->key(), fn (QueryRecord $record) => $record->requestFailed($failure));
-            }
+        if (! $claimed) {
+            return RequestResult::notNeeded();
         }
 
-        return $this->answerOf($service, $query);
+        $tracingId = ReplyAwaiter::newTracingId();
+        try {
+            $this->distributedBus->sendMessage($service, $query->routingKey, $query->json(), MediaType::APPLICATION_JSON, metadata: [self::QUERY_ID_HEADER => $queryId, MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: QueryResultReceiver::ROUTING_KEY);
+        } catch (Throwable $exception) {
+            $this->logger->error('Pulse could not send the trace query to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
+            $failure = sprintf('%s: the trace query could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
+            $this->store->update($service, $query->key(), fn (QueryRecord $record) => $record->requestFailed($failure));
+
+            return RequestResult::failed();
+        }
+
+        return RequestResult::sent($tracingId, QueryResultReceiver::class);
     }
 
     public function answerOf(string $service, TraceQuery $query): TraceAnswer
@@ -63,14 +72,9 @@ final readonly class TraceQueries
      */
     public function askAll(array $services, TraceQuery $query): array
     {
-        $answers = array_map(fn (string $service) => $this->ask($service, $query), $services);
-        $deadline = hrtime(true) + $this->settings->renderWaitSeconds * 1_000_000_000;
-        while (hrtime(true) < $deadline && self::anyWaiting($answers)) {
-            usleep(100_000);
-            $answers = array_map(fn (string $service) => $this->answerOf($service, $query), $services);
-        }
+        $this->awaiter->await(array_map(fn (string $service) => $this->ask($service, $query), $services));
 
-        return $answers;
+        return array_map(fn (string $service) => $this->answerOf($service, $query), $services);
     }
 
     /**

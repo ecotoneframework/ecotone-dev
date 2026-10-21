@@ -9,7 +9,7 @@ use App\DeadLetter\DeadLetterActionRequester;
 use App\DeadLetter\DeadLetterFilter;
 use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
-use App\Snapshot\RequestResult;
+use App\Snapshot\ReplyAwaiter;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,6 +23,7 @@ final class DeadLetterActionController extends AbstractController
     public function __construct(
         private readonly Snapshots $snapshots,
         private readonly DeadLetterActionRequester $requester,
+        private readonly ReplyAwaiter $awaiter,
     ) {
     }
 
@@ -47,11 +48,15 @@ final class DeadLetterActionController extends AbstractController
         }
 
         $failed = [];
+        $results = [];
         foreach ($actions as $service => $action) {
-            if ($this->requester->send($service, $action) === RequestResult::Failed) {
+            $result = $this->requester->send($service, $action);
+            $results[] = $result;
+            if ($result->failed) {
                 $failed[] = $service;
             }
         }
+        $this->awaiter->await($results);
 
         return $this->back($filter, $failed === []
             ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions))

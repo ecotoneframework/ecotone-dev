@@ -28,7 +28,7 @@ final class FlowGraphController extends AbstractController
     #[Route('/flow', name: 'flow_graph', methods: ['GET'])]
     public function flowGraph(Request $request): Response
     {
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
         $serviceFlows = ServiceFlows::of($snapshots);
         $traceId = trim((string) $request->query->get('trace', ''));
         $traceView = $traceId === '' ? null : $this->traces->load($traceId, $snapshots);

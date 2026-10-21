@@ -13,7 +13,7 @@ final class PulseEnvironment
         'PULSE_TRANSPORT_DSN',
         'PULSE_SERVICES',
         'PULSE_REPLY_TIMEOUT',
-        'PULSE_RENDER_WAIT',
+        'PULSE_AWAIT_TIMEOUT',
         'PULSE_REFRESH_INTERVAL',
         'PULSE_INTERNAL_DATABASE_PATH',
     ];

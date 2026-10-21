@@ -21,7 +21,7 @@ trait PulseEnvironmentTrait
             'PULSE_TRANSPORT_DSN' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16',
             'PULSE_SERVICES' => 'orders:orders_channel,billing:billing_channel',
             'PULSE_REPLY_TIMEOUT' => '10',
-            'PULSE_RENDER_WAIT' => '0',
+            'PULSE_AWAIT_TIMEOUT' => '0',
             'PULSE_INTERNAL_DATABASE_PATH' => sys_get_temp_dir() . '/pulse-internal-' . uniqid() . '.sqlite',
             ...$overrides,
         ];

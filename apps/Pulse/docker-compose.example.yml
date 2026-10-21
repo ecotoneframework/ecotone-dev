@@ -17,7 +17,6 @@ services:
       PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
       PULSE_SERVICES: orders:orders_channel,billing:billing_channel
       PULSE_REPLY_TIMEOUT: "10"
-      PULSE_RENDER_WAIT: "2"
       PULSE_REFRESH_INTERVAL: "20"
     ports:
       - "8080:8080"

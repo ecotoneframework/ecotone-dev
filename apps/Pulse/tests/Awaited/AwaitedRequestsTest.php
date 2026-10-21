@@ -1,0 +1,134 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Awaited;
+
+use App\Tests\Support\ConcurrentRespondersTrait;
+use App\Tests\Support\DeadLetterServicesTrait;
+use App\Tests\Support\TracedServicesTrait;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
+
+/**
+ * @internal
+ */
+final class AwaitedRequestsTest extends WebTestCase
+{
+    use TracedServicesTrait;
+    use DeadLetterServicesTrait {
+        TracedServicesTrait::pulseWebClient insteadof DeadLetterServicesTrait;
+    }
+    use ConcurrentRespondersTrait;
+
+    public function test_a_page_view_renders_the_fresh_snapshot_in_the_same_response_when_the_service_answers(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders']);
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
+    }
+
+    public function test_a_service_that_does_not_answer_returns_after_the_timeout_and_falls_back_to_waiting(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->awaitRepliesFor(2);
+        $client = $this->pulseClient();
+
+        $startedAt = microtime(true);
+        $crawler = $client->request('GET', '/');
+        $waited = microtime(true) - $startedAt;
+
+        self::assertGreaterThanOrEqual(2.0, $waited);
+        self::assertLessThan(8.0, $waited);
+        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
+        self::assertCount(1, $crawler->filter('meta[http-equiv="refresh"]'));
+    }
+
+    public function test_the_wait_is_one_budget_for_every_service_not_one_per_service(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $this->awaitRepliesFor(2);
+        $client = $this->pulseClient();
+
+        $startedAt = microtime(true);
+        $client->request('GET', '/');
+
+        self::assertLessThan(5.0, microtime(true) - $startedAt);
+    }
+
+    public function test_a_refresh_is_answered_by_a_service_that_tracks_its_own_flows(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders'], fn () => ['orders' => $this->tracedOrders()]);
+
+        $client->request('POST', '/refresh');
+        $crawler = $client->followRedirect();
+
+        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertCount(0, $crawler->filter('[data-service="orders"] [data-status="waiting"]'));
+    }
+
+    public function test_deleting_dead_letters_renders_the_snapshot_without_them_in_the_same_response(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders'], function (): array {
+            $orders = $this->serviceWithDeadLetters('orders');
+            $this->failOrder($orders, 'order.place', 1);
+            $this->failOrder($orders, 'order.place', 2);
+
+            return ['orders' => $orders];
+        });
+
+        $list = $client->request('GET', '/dead-letters');
+        self::assertCount(2, $list->filter('[data-dead-letter]'));
+        $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $list->filter('[data-dead-letter] input[name="selected[orders][]"]')->each(static fn (Crawler $box) => $box->attr('value'))]]);
+        $after = $client->followRedirect();
+
+        self::assertCount(0, $after->filter('[data-dead-letter]'));
+        self::assertCount(0, $after->filter('meta[http-equiv="refresh"]'));
+    }
+
+    public function test_the_trace_list_of_a_flow_type_is_rendered_in_the_same_response_when_the_service_answers(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders'], function (): array {
+            $orders = $this->tracedOrders();
+            $orders->sendCommandWithRouting('order.place', ['orderId' => 1]);
+            $orders->sendCommandWithRouting('order.place', ['orderId' => 2]);
+
+            return ['orders' => $orders];
+        });
+
+        $crawler = $client->request('GET', '/traces/orders/order.place');
+
+        self::assertCount(2, $crawler->filter('[data-trace]'));
+        self::assertCount(0, $crawler->filter('[data-waiting]'));
+    }
+
+    private function pulseClient(): KernelBrowser
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+
+        return $client;
+    }
+
+    private function statusOf(Crawler $crawler, string $service): string
+    {
+        return $crawler->filter(sprintf('[data-service="%s"] [data-status]', $service))->attr('data-status');
+    }
+}

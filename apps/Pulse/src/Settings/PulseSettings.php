@@ -20,7 +20,7 @@ final readonly class PulseSettings
         public Transport $transport,
         public array $serviceChannels,
         public int $replyTimeoutSeconds,
-        public int $renderWaitSeconds,
+        public int $awaitTimeoutSeconds,
         public int $refreshIntervalSeconds,
         public string $internalDatabasePath,
     ) {
@@ -53,7 +53,7 @@ final readonly class PulseSettings
         }
 
         $replyTimeout = self::seconds($read('PULSE_REPLY_TIMEOUT', '10'), 'PULSE_REPLY_TIMEOUT', 1);
-        $renderWait = self::seconds($read('PULSE_RENDER_WAIT', '2'), 'PULSE_RENDER_WAIT', 0);
+        $awaitTimeout = self::seconds($read('PULSE_AWAIT_TIMEOUT', '20'), 'PULSE_AWAIT_TIMEOUT', 0);
 
         $refreshInterval = self::seconds($read('PULSE_REFRESH_INTERVAL', '20'), 'PULSE_REFRESH_INTERVAL', 1);
         if ($refreshInterval >= Snapshots::FRESHNESS_SECONDS) {
@@ -68,7 +68,7 @@ final readonly class PulseSettings
         $transport = Transport::fromDsn($dsn);
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $internalDatabasePath);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
     }
 
     public function internalDatabaseDsn(): string

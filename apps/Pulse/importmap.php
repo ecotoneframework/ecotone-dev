@@ -13,6 +13,7 @@
  */
 return [
     'app' => ['path' => './assets/app.js', 'entrypoint' => true],
+    'graph' => ['path' => './assets/graph.js', 'entrypoint' => true],
     'mermaid' => ['version' => '12.2.0'],
     'dayjs' => ['version' => '1.11.23'],
     'khroma' => ['version' => '2.1.0'],

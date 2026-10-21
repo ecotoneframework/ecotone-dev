@@ -15,6 +15,10 @@ final readonly class CrossServiceTrace
 
     /**
      * @param list<array<string, mixed>> $rows
+     * @param list<string> $services
+     * @param array{channel: ?string, label: string}|null $longestQueueWait
+     * @param array<string, mixed>|null $firstFailure
+     * @param list<string> $pendingChannels
      */
     private function __construct(
         public array $rows,
@@ -22,6 +26,12 @@ final readonly class CrossServiceTrace
         public string $status,
         public string $durationLabel,
         public ?string $startedAt,
+        public int $totalMicro = 0,
+        public array $services = [],
+        public int $failedCount = 0,
+        public ?array $longestQueueWait = null,
+        public ?array $firstFailure = null,
+        public array $pendingChannels = [],
     ) {
     }
 
@@ -93,7 +103,56 @@ final readonly class CrossServiceTrace
             default => 'completed',
         };
 
-        return new self(array_slice($rows, 0, self::MAX_ROWS), count($rows), $status, self::milliseconds($flowEnd - $flowStart), self::time($flowStart));
+        $services = array_values(array_unique(array_column($rows, 'service')));
+        $rows = self::collapsible($rows, $services);
+        $failures = array_values(array_filter($rows, fn (array $row): bool => $row['failed']));
+        $waits = array_filter($rows, fn (array $row): bool => $row['waitMicro'] > 0);
+        usort($waits, fn (array $first, array $second): int => $second['waitMicro'] <=> $first['waitMicro']);
+        $pendingChannels = array_values(array_unique(array_filter(array_column(array_filter($rows, fn (array $row): bool => $row['pending']), 'channel'))));
+
+        return new self(
+            array_slice($rows, 0, self::MAX_ROWS),
+            count($rows),
+            $status,
+            self::milliseconds($flowEnd - $flowStart),
+            self::time($flowStart),
+            $flowEnd - $flowStart,
+            $services,
+            count($failures),
+            $waits === [] ? null : ['channel' => $waits[0]['channel'], 'label' => self::milliseconds($waits[0]['waitMicro'])],
+            $failures[0] ?? null,
+            $pendingChannels,
+        );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param list<string> $services
+     * @return list<array<string, mixed>>
+     */
+    private static function collapsible(array $rows, array $services): array
+    {
+        $runStart = null;
+        foreach ($rows as $index => $row) {
+            $rows[$index]['serviceIndex'] = array_search($row['service'], $services, true);
+            $continues = $row['boilerplate'] && $runStart !== null && $rows[$runStart]['service'] === $row['service'];
+            if ($row['boilerplate'] && ! $continues) {
+                $runStart = $index;
+                $rows[$index]['runSize'] = 0;
+            }
+            if (! $row['boilerplate']) {
+                $runStart = null;
+                continue;
+            }
+            $rows[$index]['run'] = $runStart;
+            $rows[$runStart]['runSize']++;
+        }
+        foreach ($rows as $index => $row) {
+            $rows[$index]['runSize'] ??= null;
+            $rows[$index]['run'] ??= null;
+        }
+
+        return $rows;
     }
 
     /**
@@ -164,6 +223,9 @@ final readonly class CrossServiceTrace
             'offsetLabel' => '+' . self::milliseconds($span['startMicro'] - $flowStart),
             'durationLabel' => self::milliseconds($span['endMicro'] - $span['startMicro']),
             'durationMicro' => $span['endMicro'] - $span['startMicro'],
+            'offsetMicro' => $span['startMicro'] - $flowStart,
+            'waitMicro' => max(0, $queueWait ?? 0),
+            'boilerplate' => in_array($span['kind'], ['producer', 'consumer'], true) && ! $failed && ! $pending && ($queueWait ?? 0) <= 0,
             'parentService' => $parent['service'] ?? null,
             'function' => is_scalar($attributes['code.function.name'] ?? null) ? (string) $attributes['code.function.name'] : null,
             'queueWaitLabel' => match (true) {

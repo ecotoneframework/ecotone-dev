@@ -168,4 +168,14 @@ final class DoctorTest extends ReleasingWebTestCase
 
         return [$status, $checks];
     }
+
+    public function test_the_banner_names_the_transport_the_services_and_the_health_paths(): void
+    {
+        $this->configurePulse(['PULSE_TRANSPORT_DSN' => self::BROKER_DSN, 'PULSE_SERVICES' => 'orders,billing#billing_queue', 'PULSE_CONNECTION_LEGACY_DSN' => 'redis://redis:6379', 'PULSE_CONNECTION_LEGACY_REPLY_CHANNEL' => 'pulse_legacy']);
+
+        $command = new CommandTester((new Application(self::bootKernel()))->find('pulse:banner'));
+        $command->execute([]);
+
+        self::assertSame("Pulse: transport default=amqp, legacy=redis\nPulse: services orders (orders), billing (billing_queue)\nPulse: UI on port 8080, liveness /healthz, readiness /readyz\n", $command->getDisplay());
+    }
 }

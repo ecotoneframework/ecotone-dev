@@ -59,6 +59,34 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertSame(['order.place', 'order.place'], $this->remainingNames($client));
     }
 
+    public function test_replaying_to_a_channel_the_service_does_not_have_is_refused_naming_its_channels(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $this->advanceTimeBy(1);
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => 'does_not_exist']);
+        $refused = $client->followRedirect();
+
+        $notice = $refused->filter('[data-notice-error]')->text();
+        self::assertStringContainsString('"does_not_exist"', $notice);
+        self::assertStringContainsString('order.audited', $notice);
+        self::assertStringContainsString('pulse_dead_letter_work', $notice);
+        self::assertStringNotContainsString('waiting', $refused->filter('[data-service-section="orders"]')->text());
+        self::assertCount(3, $refused->filter('[data-dead-letter]'));
+    }
+
+    public function test_the_sent_notice_says_a_refusing_service_shows_as_unreachable(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $sent = $client->followRedirect();
+
+        self::assertStringContainsString('unreachable after the reply timeout', $sent->filter('[data-notice]')->text());
+    }
+
     public function test_deleting_selected_dead_letters_removes_them_without_running_their_handlers(): void
     {
         $client = $this->pulseWithFailures();

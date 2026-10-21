@@ -105,7 +105,7 @@ final readonly class DeadLetterNotice
             self::SEND_FAILED => $services !== [] ? self::sendFailed($services) : null,
             self::NOT_CONFIGURED => in_array($service, $configuredServices, true) ? self::notConfigured($service) : null,
             self::INVALID_DATE => in_array($field, DeadLetterFilter::DATE_FIELDS, true) ? self::invalidDate($field) : null,
-            self::UNKNOWN_CHANNEL => in_array($service, $configuredServices, true) && preg_match('/^[\w.:\-]{1,200}$/', $channel) === 1 ? self::unknownChannel($service, $channel) : null,
+            self::UNKNOWN_CHANNEL => in_array($service, $configuredServices, true) ? self::unknownChannel($service, preg_match('/^[\w.:\-]{1,200}$/', $channel) === 1 ? $channel : '') : null,
             default => new self($code, []),
         };
     }

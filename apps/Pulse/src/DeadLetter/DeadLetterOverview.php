@@ -53,4 +53,25 @@ final class DeadLetterOverview
 
         return null;
     }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return array<string, list<string>>
+     */
+    public static function channelsByService(array $snapshots): array
+    {
+        $channels = [];
+        foreach ($snapshots as $snapshot) {
+            $names = [];
+            foreach ($snapshot->snapshot['flowGraph']['nodes'] ?? [] as $node) {
+                if (($node['kind'] ?? null) === 'channel' && is_string($node['label'] ?? null)) {
+                    $names[] = $node['label'];
+                }
+            }
+            sort($names);
+            $channels[$snapshot->service] = array_values(array_unique($names));
+        }
+
+        return $channels;
+    }
 }

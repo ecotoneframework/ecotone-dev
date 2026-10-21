@@ -8,6 +8,7 @@ use App\DeadLetter\DeadLetterAction;
 use App\DeadLetter\DeadLetterActionRequester;
 use App\DeadLetter\DeadLetterFilter;
 use App\DeadLetter\DeadLetterNotice;
+use App\DeadLetter\DeadLetterOverview;
 use App\Snapshot\RequestResult;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
@@ -41,6 +42,14 @@ final class DeadLetterActionController extends AbstractController
             : $this->actionsForSelection($request->request->all('selected'), $replay, $targetChannel);
         if ($actions instanceof DeadLetterNotice) {
             return $this->back($filter, $actions);
+        }
+        if ($targetChannel !== '') {
+            $channels = DeadLetterOverview::channelsByService($this->snapshots->all());
+            foreach (array_keys($actions) as $service) {
+                if (! in_array($targetChannel, $channels[$service] ?? [], true)) {
+                    return $this->back($filter, DeadLetterNotice::unknownChannel($service, $targetChannel));
+                }
+            }
         }
         if (! $replay && $byFilter && $request->request->get('confirm') !== '1') {
             return $this->render('dead_letters/confirm_delete.html.twig', ['filter' => $filter, 'services' => array_keys($actions)]);

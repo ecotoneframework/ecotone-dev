@@ -1,6 +1,6 @@
 {% set services = notice.services|join(', ') %}
 {% if notice.code == 'action_sent' %}
-    <p class="notice" data-notice>Action sent: {{ notice.parameters.action }} to {{ services }}. The service answers with a fresh snapshot.</p>
+    <p class="notice" data-notice>Action sent: {{ notice.parameters.action }} to {{ services }}. The service answers with a fresh snapshot. If the service refuses the action, it shows as unreachable after the reply timeout.</p>
 {% else %}
     <p class="drift" data-notice-error>
     {% if notice.code == 'send_failed' %}The action could not be sent to {{ services }}; the service shows the reason.
@@ -10,7 +10,7 @@
     {% elseif notice.code == 'not_configured' %}Service "{{ notice.parameters.service }}" has dead letter not configured in its latest snapshot, so Pulse sends it no dead letter actions. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in that service, then refresh.
     {% elseif notice.code == 'no_dead_letters_anywhere' %}No service has dead letter configured, so there is nothing to act on.
     {% elseif notice.code == 'invalid_date' %}"{{ notice.parameters.field == 'failedFrom' ? 'Failed from' : 'Failed to' }}" is not a valid UTC date and time. Enter it as 2026-10-20T12:00:00, or clear it.
-    {% elseif notice.code == 'unknown_channel' %}Service "{{ notice.parameters.service }}" has no channel "{{ notice.parameters.channel }}" in its latest snapshot, so the replay was not sent. Use a channel of that service, or leave the field empty to replay each message to the channel it was polled from.
+    {% elseif notice.code == 'unknown_channel' %}Service "{{ notice.parameters.service }}" has no channel{% if notice.parameters.channel %} "{{ notice.parameters.channel }}"{% endif %} in its latest snapshot, so the replay was not sent. Its channels are: {{ (channels[notice.parameters.service] ?? [])|join(', ') ?: 'none known' }}. Use one of them, or leave the field empty to replay each message to the channel it was polled from.
     {% endif %}
     </p>
 {% endif %}

@@ -30,6 +30,7 @@ final class DeadLetterController extends AbstractController
             'services' => DeadLetterOverview::of($snapshots, $filter),
             'serviceNames' => array_map(static fn ($snapshot) => $snapshot->service, $snapshots),
             'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->service, $snapshots)),
+            'channels' => DeadLetterOverview::channelsByService($snapshots),
             'waiting' => Snapshots::anyWaiting($snapshots),
         ]);
     }

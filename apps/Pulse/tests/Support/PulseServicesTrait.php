@@ -104,6 +104,13 @@ trait PulseServicesTrait
         $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup());
     }
 
+    private function setUpPulseDatabase(KernelInterface $kernel): void
+    {
+        $application = new Application($kernel);
+        $command = new CommandTester($application->find('ecotone:migration:database:setup'));
+        $command->execute(['--feature' => ['message_queue'], '--initialize' => true, '--missing' => true]);
+    }
+
     private function runPulseWorker(KernelInterface $kernel): void
     {
         $application = new Application($kernel);

@@ -15,6 +15,7 @@ final class PulseEnvironment
         'PULSE_REPLY_TIMEOUT',
         'PULSE_RENDER_WAIT',
         'PULSE_CACHE_DIR',
+        'PULSE_SETUP_DATABASE',
     ];
 
     /**

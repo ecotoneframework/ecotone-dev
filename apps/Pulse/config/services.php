@@ -37,6 +37,7 @@ return static function (ContainerConfigurator $container): void {
         '$renderWaitSeconds' => $settings->renderWaitSeconds,
         '$refreshIntervalSeconds' => $settings->refreshIntervalSeconds,
         '$cacheDir' => $settings->cacheDir,
+        '$internalDatabasePath' => $settings->internalDatabasePath,
     ]);
 
     $services->alias('pulse.clock', 'clock');
@@ -45,14 +46,16 @@ return static function (ContainerConfigurator $container): void {
     $services->set('pulse.lock_store', FlockStore::class)->args([$settings->cacheDir . '/locks']);
     $services->set('pulse.lock_factory', LockFactory::class)->args([service('pulse.lock_store')]);
 
+    $services->set(DbalConnectionFactory::class)->args([$settings->internalDatabaseDsn()]);
+
     $connectionFactory = match ($settings->transport) {
         Transport::Amqp => AmqpExtConnectionFactory::class,
         Transport::Redis => RedisConnectionFactory::class,
         Transport::Sqs => SqsConnectionFactory::class,
-        Transport::Dbal => DbalConnectionFactory::class,
+        Transport::Dbal => PulseSettings::TRANSPORT_CONNECTION_REFERENCE,
         Transport::Kafka => null,
     };
     if ($connectionFactory !== null) {
-        $services->set($connectionFactory)->args(['%env(PULSE_TRANSPORT_DSN)%']);
+        $services->set($connectionFactory, $settings->transport === Transport::Dbal ? DbalConnectionFactory::class : null)->args(['%env(PULSE_TRANSPORT_DSN)%']);
     }
 };

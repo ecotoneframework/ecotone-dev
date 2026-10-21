@@ -108,7 +108,7 @@ trait PulseServicesTrait
     {
         $application = new Application($kernel);
         $command = new CommandTester($application->find('ecotone:migration:database:setup'));
-        $command->execute(['--feature' => ['message_queue'], '--initialize' => true, '--missing' => true]);
+        $command->execute(['--initialize' => true]);
     }
 
     private function runPulseWorker(KernelInterface $kernel): void

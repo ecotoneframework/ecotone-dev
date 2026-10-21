@@ -10,11 +10,15 @@ use App\Settings\Transport;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 
 final class PulseMessagingConfiguration
@@ -40,6 +44,30 @@ final class PulseMessagingConfiguration
         return $serviceMap;
     }
 
+    #[ServiceContext]
+    public function flowTracking(): FlowTrackingConfiguration
+    {
+        return FlowTrackingConfiguration::createWithDefaults()
+            ->withRetention(Duration::minutes(60))
+            ->withTracingGateway(true);
+    }
+
+    #[ServiceContext]
+    public function dbal(): DbalConfiguration
+    {
+        $settings = $this->settings();
+
+        $connections = $settings->transport === Transport::Dbal
+            ? [DbalConnectionReference::DEFAULT, PulseSettings::TRANSPORT_CONNECTION_REFERENCE]
+            : [DbalConnectionReference::DEFAULT];
+
+        return DbalConfiguration::createWithDefaults()
+            ->withDefaultConnectionReferenceNames($connections)
+            ->withDeadLetter(false)
+            ->withDocumentStore(false)
+            ->withDeduplication(true, $settings->transport === Transport::Dbal ? PulseSettings::TRANSPORT_CONNECTION_REFERENCE : DbalConnectionReference::DEFAULT);
+    }
+
     /**
      * @return array<object>
      */
@@ -55,7 +83,7 @@ final class PulseMessagingConfiguration
                 Transport::Redis => RedisBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
                 Transport::Sqs => SqsBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
                 Transport::Kafka => KafkaMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-                Transport::Dbal => DbalBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+                Transport::Dbal => DbalBackedMessageChannelBuilder::create($name, PulseSettings::TRANSPORT_CONNECTION_REFERENCE)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
             },
             array_values(array_unique($channelNames))
         );

@@ -34,7 +34,7 @@ enum Transport: string
      */
     public function modulePackages(): array
     {
-        return [ModulePackageList::CORE_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, match ($this) {
+        return [ModulePackageList::CORE_PACKAGE, ModulePackageList::SYMFONY_PACKAGE, ModulePackageList::DBAL_PACKAGE, match ($this) {
             self::Amqp => ModulePackageList::AMQP_PACKAGE,
             self::Redis => ModulePackageList::REDIS_PACKAGE,
             self::Sqs => ModulePackageList::SQS_PACKAGE,

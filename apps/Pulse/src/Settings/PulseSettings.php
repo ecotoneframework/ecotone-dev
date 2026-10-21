@@ -8,6 +8,8 @@ use App\Snapshot\Snapshots;
 
 final readonly class PulseSettings
 {
+    public const TRANSPORT_CONNECTION_REFERENCE = 'pulse_transport';
+
     /**
      * @param array<string, string> $serviceChannels service name => channel the service consumes
      */
@@ -21,6 +23,7 @@ final readonly class PulseSettings
         public int $renderWaitSeconds,
         public int $refreshIntervalSeconds,
         public string $cacheDir,
+        public string $internalDatabasePath,
     ) {
     }
 
@@ -63,10 +66,25 @@ final readonly class PulseSettings
             $cacheDir = $projectDir . '/' . $cacheDir;
         }
 
+        $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
+        if (! str_starts_with($internalDatabasePath, '/')) {
+            $internalDatabasePath = $projectDir . '/' . $internalDatabasePath;
+        }
+
         $transport = Transport::fromDsn($dsn);
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $cacheDir);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $cacheDir, $internalDatabasePath);
+    }
+
+    public function internalDatabaseDsn(): string
+    {
+        return 'sqlite:///' . $this->internalDatabasePath;
+    }
+
+    public function transportConnectionReference(): string
+    {
+        return self::TRANSPORT_CONNECTION_REFERENCE;
     }
 
     /**

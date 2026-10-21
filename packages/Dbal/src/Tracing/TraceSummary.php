@@ -44,8 +44,13 @@ final class TraceSummary
     public static function of(Span $entry, string $status, array $traceSpans): self
     {
         $startedAt = $entry->startedAt->unixTime()->inMicroseconds();
+        $parentOf = [];
+        foreach ($traceSpans as $span) {
+            $parentOf[$span->spanId] = $span->parentSpanId;
+        }
         $candidates = array_filter($traceSpans, fn (Span $span): bool => isset($span->attributes[SpanAttribute::ENDPOINT_ID]) && $span->startedAt->unixTime()->inMicroseconds() >= $startedAt);
-        usort($candidates, fn (Span $first, Span $second): int => [$first->startedAt->unixTime()->inMicroseconds(), $first->spanId] <=> [$second->startedAt->unixTime()->inMicroseconds(), $second->spanId]);
+        $order = fn (Span $span): array => [self::depthOf($span->spanId, $parentOf), $span->startedAt->unixTime()->inMicroseconds(), $span->spanId];
+        usort($candidates, fn (Span $first, Span $second): int => $order($first) <=> $order($second));
 
         return new self(
             $entry->traceId,
@@ -54,5 +59,19 @@ final class TraceSummary
             $status,
             $candidates === [] ? $entry->name : (string) $candidates[0]->attributes[SpanAttribute::ENDPOINT_ID],
         );
+    }
+
+    /**
+     * @param array<string, string|null> $parentOf
+     */
+    private static function depthOf(string $spanId, array $parentOf): int
+    {
+        $depth = 0;
+        while (isset($parentOf[$spanId])) {
+            $spanId = $parentOf[$spanId];
+            $depth++;
+        }
+
+        return $depth;
     }
 }

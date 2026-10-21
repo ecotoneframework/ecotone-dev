@@ -22,7 +22,8 @@
             <section class="card status-{{ service.status.value }}" data-service="{{ service.service }}">
                 <h2>{{ service.service }}</h2>
                 <p class="status" data-status="{{ service.status.value }}">{{ service.status.name }}</p>
-                {% if service.requestFailure %}<p class="drift" data-request-error>Snapshot request failed: {{ service.requestFailure }}</p>{% endif %}
+                {% if service.requestFailure %}<p class="drift" data-request-error>{{ service.requestFailure }}</p>{% endif %}
+                {% if service.replyError %}<p class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</p>{% endif %}
                 <dl>
                     <dt>Last seen</dt>
                     <dd>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}</dd>

@@ -21,22 +21,42 @@ final readonly class Snapshots
     ) {
     }
 
-    public function requestStaleSnapshots(bool $force = false): void
+    /**
+     * @return list<ServiceSnapshot>
+     */
+    public function viewAndRequestStale(): array
     {
-        $now = $this->now();
+        $before = $this->all();
+        $failed = [];
         foreach (array_keys($this->settings->serviceChannels) as $service) {
-            if ($force || $this->shouldRequest($service, $now)) {
-                $this->requester->request($service);
+            if ($this->requester->request($service, force: false) === RequestResult::Failed) {
+                $failed[] = $service;
             }
+        }
+
+        return $failed === [] ? $before : $this->all();
+    }
+
+    public function refresh(): void
+    {
+        foreach (array_keys($this->settings->serviceChannels) as $service) {
+            $this->requester->request($service, force: true);
         }
     }
 
-    public function waitForReplies(): void
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return list<ServiceSnapshot>
+     */
+    public function waitForReplies(array $snapshots): array
     {
         $deadline = hrtime(true) + $this->settings->renderWaitSeconds * 1_000_000_000;
-        while (hrtime(true) < $deadline && $this->anyWaiting()) {
+        while (hrtime(true) < $deadline && self::anyWaiting($snapshots)) {
             usleep(100_000);
+            $snapshots = $this->all();
         }
+
+        return $snapshots;
     }
 
     /**
@@ -44,14 +64,29 @@ final readonly class Snapshots
      */
     public function all(): array
     {
-        $now = $this->now();
+        $now = DateTimeImmutable::createFromInterface($this->clock->now());
 
-        return array_map(fn (string $service) => $this->of($service, $now), array_keys($this->settings->serviceChannels));
+        return array_map(function (string $service) use ($now): ServiceSnapshot {
+            $record = $this->store->read($service);
+
+            return new ServiceSnapshot(
+                $service,
+                $record->statusAt($now, $this->settings->replyTimeoutSeconds),
+                $record->receivedAt,
+                $record->ageAt($now),
+                $record->snapshot,
+                $record->requestFailure,
+                $record->replyError,
+            );
+        }, array_keys($this->settings->serviceChannels));
     }
 
-    public function anyWaiting(): bool
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     */
+    public static function anyWaiting(array $snapshots): bool
     {
-        foreach ($this->all() as $snapshot) {
+        foreach ($snapshots as $snapshot) {
             if ($snapshot->status === ServiceStatus::Waiting) {
                 return true;
             }
@@ -70,46 +105,5 @@ final readonly class Snapshots
         usort($versions, 'version_compare');
 
         return $versions;
-    }
-
-    private function shouldRequest(string $service, DateTimeImmutable $now): bool
-    {
-        $stored = $this->store->snapshotOf($service);
-        if ($stored !== null && $this->secondsBetween($stored['receivedAt'], $now) < self::FRESHNESS_SECONDS) {
-            return false;
-        }
-
-        $requestedAt = $this->store->requestedAt($service);
-
-        return $requestedAt === null || $this->secondsBetween($requestedAt, $now) >= self::FRESHNESS_SECONDS;
-    }
-
-    private function of(string $service, DateTimeImmutable $now): ServiceSnapshot
-    {
-        $stored = $this->store->snapshotOf($service);
-        $requestedAt = $this->store->requestedAt($service);
-        $receivedAt = $stored['receivedAt'] ?? null;
-        $age = $receivedAt === null ? null : $this->secondsBetween($receivedAt, $now);
-
-        $failure = $requestedAt !== null && ($receivedAt === null || $requestedAt > $receivedAt) ? $this->store->requestFailure($service) : null;
-
-        $status = match (true) {
-            $age !== null && $age < self::FRESHNESS_SECONDS => ServiceStatus::Connected,
-            $failure !== null => ServiceStatus::Unreachable,
-            $requestedAt !== null && ($receivedAt === null || $requestedAt > $receivedAt) && $this->secondsBetween($requestedAt, $now) >= $this->settings->replyTimeoutSeconds => ServiceStatus::Unreachable,
-            default => ServiceStatus::Waiting,
-        };
-
-        return new ServiceSnapshot($service, $status, $receivedAt, $age, $stored['snapshot'] ?? [], $failure);
-    }
-
-    private function now(): DateTimeImmutable
-    {
-        return DateTimeImmutable::createFromInterface($this->clock->now());
-    }
-
-    private function secondsBetween(DateTimeImmutable $from, DateTimeImmutable $to): int
-    {
-        return $to->getTimestamp() - $from->getTimestamp();
     }
 }

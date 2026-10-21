@@ -74,6 +74,31 @@ trait PulseServicesTrait
         return $this->serviceApplication($service, [$handler::class], [$handler], false);
     }
 
+    /**
+     * @return array{FlowTestSupport, object}
+     */
+    private function countingService(string $service, string $snapshotJson): array
+    {
+        $handler = new class ($snapshotJson) {
+            public int $requests = 0;
+
+            public function __construct(private string $snapshot)
+            {
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.snapshot')]
+            public function snapshot(string $request): string
+            {
+                $this->requests++;
+
+                return $this->snapshot;
+            }
+        };
+
+        return [$this->serviceApplication($service, [$handler::class], [$handler], false), $handler];
+    }
+
     private function runService(FlowTestSupport $service, string $serviceName): void
     {
         $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup());

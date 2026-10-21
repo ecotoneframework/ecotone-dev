@@ -12,6 +12,11 @@ use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\FlockStore;
+
 return static function (ContainerConfigurator $container): void {
     $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), dirname(__DIR__));
 
@@ -33,6 +38,9 @@ return static function (ContainerConfigurator $container): void {
 
     $services->alias('pulse.clock', 'clock');
     $services->set('pulse.cache', FilesystemAdapter::class)->args(['pulse', 0, $settings->cacheDir]);
+
+    $services->set('pulse.lock_store', FlockStore::class)->args([$settings->cacheDir . '/locks']);
+    $services->set('pulse.lock_factory', LockFactory::class)->args([service('pulse.lock_store')]);
 
     $connectionFactory = match ($settings->transport) {
         Transport::Amqp => AmqpExtConnectionFactory::class,

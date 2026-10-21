@@ -19,21 +19,19 @@ final class ServicesController extends AbstractController
     #[Route('/', name: 'services', methods: ['GET'])]
     public function services(): Response
     {
-        $this->snapshots->requestStaleSnapshots();
-        $this->snapshots->waitForReplies();
-        $services = $this->snapshots->all();
+        $services = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
 
         return $this->render('services/index.html.twig', [
             'services' => $services,
             'versions' => Snapshots::ecotoneVersions($services),
-            'waiting' => $this->snapshots->anyWaiting(),
+            'waiting' => Snapshots::anyWaiting($services),
         ]);
     }
 
     #[Route('/refresh', name: 'services_refresh', methods: ['POST'])]
     public function refresh(): Response
     {
-        $this->snapshots->requestStaleSnapshots(force: true);
+        $this->snapshots->refresh();
 
         return new RedirectResponse($this->generateUrl('services'));
     }

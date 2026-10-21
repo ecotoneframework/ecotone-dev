@@ -149,6 +149,106 @@ final class ServicesPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
         self::assertCount(1, $crawler->filter('[data-service="orders"] [data-request-error]'));
+        $error = $crawler->filter('[data-service="orders"] [data-request-error]')->text();
+        self::assertStringContainsString('ConnectionException', $error);
+        self::assertStringNotContainsString('127.0.0.1', $error);
+        self::assertStringNotContainsString('Connection refused', $error);
+    }
+
+    public function test_refresh_shows_the_service_as_waiting_with_its_previous_snapshot_until_the_reply_arrives(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        $orders = $this->realService('orders');
+
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $this->advanceTimeBy(20);
+        $client->request('POST', '/refresh');
+        $waiting = $client->request('GET', '/');
+
+        self::assertSame('waiting', $this->statusOf($waiting, 'orders'));
+        self::assertSame('20s', $this->ageOf($waiting, 'orders'));
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_a_view_after_a_request_timed_out_requests_again_without_waiting_for_sixty_seconds(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders', '2.0.0'));
+
+        $client->request('GET', '/');
+        $this->advanceTimeBy(10);
+        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $this->runService($orders, 'orders');
+
+        self::assertSame(2, $handler->requests);
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_views_in_a_row_send_a_single_request(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders', '2.0.0'));
+
+        $client->request('GET', '/');
+        $client->request('GET', '/');
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+
+        self::assertSame(1, $handler->requests);
+    }
+
+    public function test_a_reply_from_a_service_that_is_not_configured_is_ignored(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('ghost', '2.0.0'));
+
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+
+        self::assertSame('waiting', $this->statusOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_a_reply_that_is_not_json_does_not_stop_the_worker(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseClient();
+        $orders = $this->serviceAnsweringWith('orders', 'not json at all');
+        $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.0.0'));
+
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runService($billing, 'billing');
+        $this->runPulseWorker($client->getKernel());
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->statusOf($crawler, 'billing'));
+    }
+
+    public function test_a_reply_that_is_not_a_supported_snapshot_is_shown_as_an_error_of_that_service(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        $orders = $this->serviceAnsweringWith('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
+
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('waiting', $this->statusOf($crawler, 'orders'));
+        self::assertStringContainsString('schema version 2', $crawler->filter('[data-service="orders"] [data-reply-error]')->text());
     }
 
     public function test_the_page_refreshes_itself_while_a_service_is_waiting(): void
@@ -183,7 +283,7 @@ final class ServicesPageTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseClient();
-        $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0', ['total' => 7]));
+        $orders = $this->serviceAnsweringWith('orders', $this->snapshotJson('orders', '2.0.0', ['total' => 7, 'groups' => [['messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'count' => 7]], 'recent' => []]));
         $billing = $this->serviceAnsweringWith('billing', $this->snapshotJson('billing', '2.0.0'));
 
         $client->request('GET', '/');

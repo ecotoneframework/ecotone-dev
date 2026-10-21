@@ -61,6 +61,14 @@ final readonly class PulseSettings
         return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $cacheDir);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function kafkaBootstrapServers(): array
+    {
+        return array_values(array_filter(array_map('trim', explode(',', (string) preg_replace('#^kafka://#i', '', $this->transportDsn)))));
+    }
+
     private static function name(string $value, string $variable): string
     {
         if (preg_match('/^[A-Za-z0-9_.-]+$/', $value) !== 1) {
@@ -106,6 +114,10 @@ final readonly class PulseSettings
             }
             if ($serviceChannel === $pulseChannel) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps service "%s" to channel "%s", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "%s" consumes, or change PULSE_CHANNEL.', $service, $serviceChannel, $service));
+            }
+            $sharing = array_search($serviceChannel, $serviceChannels, true);
+            if ($sharing !== false) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps services "%s" and "%s" to the same channel "%s", so their replies could not be told apart. Give each service the channel it consumes.', $sharing, $service, $serviceChannel));
             }
             $serviceChannels[$service] = $serviceChannel;
         }

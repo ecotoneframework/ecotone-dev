@@ -61,7 +61,7 @@ final class PulseMessagingConfiguration
         );
 
         if ($settings->transport === Transport::Kafka) {
-            $channels[] = KafkaBrokerConfiguration::createWithDefaults([preg_replace('#^kafka://#', '', $settings->transportDsn)]);
+            $channels[] = KafkaBrokerConfiguration::createWithDefaults($settings->kafkaBootstrapServers());
         }
 
         return $channels;

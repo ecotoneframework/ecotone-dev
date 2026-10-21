@@ -4,68 +4,43 @@ declare(strict_types=1);
 
 namespace App\Snapshot;
 
-use DateTimeImmutable;
+use Closure;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Lock\LockFactory;
 
 final readonly class SnapshotStore
 {
-    public function __construct(#[Autowire(service: 'pulse.cache')] private CacheItemPoolInterface $pool)
+    public function __construct(
+        #[Autowire(service: 'pulse.cache')] private CacheItemPoolInterface $pool,
+        #[Autowire(service: 'pulse.lock_factory')] private LockFactory $locks,
+    ) {
+    }
+
+    public function read(string $service): ServiceRecord
     {
+        $item = $this->pool->getItem('service.' . $service);
+
+        return $item->isHit() ? ServiceRecord::fromArray($item->get()) : ServiceRecord::empty();
     }
 
     /**
-     * @param array<string, mixed> $snapshot
+     * @param Closure(ServiceRecord): ServiceRecord $change
      */
-    public function storeSnapshot(string $service, array $snapshot, DateTimeImmutable $receivedAt): void
+    public function update(string $service, Closure $change): ServiceRecord
     {
-        $this->write('snapshot.' . $service, ['receivedAt' => $receivedAt->format(DATE_ATOM), 'snapshot' => $snapshot]);
-    }
+        $lock = $this->locks->createLock('pulse.service.' . $service);
+        $lock->acquire(true);
 
-    public function storeRequest(string $service, DateTimeImmutable $requestedAt, ?string $failure = null): void
-    {
-        $this->write('request.' . $service, ['requestedAt' => $requestedAt->format(DATE_ATOM), 'failure' => $failure]);
-    }
+        try {
+            $record = $change($this->read($service));
+            $item = $this->pool->getItem('service.' . $service);
+            $item->set($record->toArray());
+            $this->pool->save($item);
 
-    /**
-     * @return array{receivedAt: DateTimeImmutable, snapshot: array<string, mixed>}|null
-     */
-    public function snapshotOf(string $service): ?array
-    {
-        $stored = $this->read('snapshot.' . $service);
-
-        return $stored === null ? null : ['receivedAt' => new DateTimeImmutable($stored['receivedAt']), 'snapshot' => $stored['snapshot']];
-    }
-
-    public function requestedAt(string $service): ?DateTimeImmutable
-    {
-        $stored = $this->read('request.' . $service);
-
-        return $stored === null ? null : new DateTimeImmutable($stored['requestedAt']);
-    }
-
-    public function requestFailure(string $service): ?string
-    {
-        return $this->read('request.' . $service)['failure'] ?? null;
-    }
-
-    /**
-     * @param array<string, mixed> $value
-     */
-    private function write(string $key, array $value): void
-    {
-        $item = $this->pool->getItem($key);
-        $item->set($value);
-        $this->pool->save($item);
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function read(string $key): ?array
-    {
-        $item = $this->pool->getItem($key);
-
-        return $item->isHit() ? $item->get() : null;
+            return $record;
+        } finally {
+            $lock->release();
+        }
     }
 }

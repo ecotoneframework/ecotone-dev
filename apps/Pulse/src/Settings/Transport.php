@@ -17,13 +17,13 @@ enum Transport: string
     public static function fromDsn(string $dsn): self
     {
         foreach (self::schemes() as $scheme => $transport) {
-            if (str_starts_with($dsn, $scheme)) {
+            if (str_starts_with(strtolower($dsn), $scheme)) {
                 return $transport;
             }
         }
 
         throw new PulseConfigurationException(sprintf(
-            'PULSE_TRANSPORT_DSN "%s" does not start with a supported scheme, so Pulse cannot tell which broker to connect to. Use one of: %s.',
+            'PULSE_TRANSPORT_DSN "%s" does not start with a supported scheme (matched case-insensitively), so Pulse cannot tell which broker to connect to. Use one of: %s.',
             $dsn,
             implode(', ', array_map(static fn (string $scheme, self $transport) => sprintf('%s (%s)', $scheme, $transport->name), array_keys(self::schemes()), self::schemes()))
         ));

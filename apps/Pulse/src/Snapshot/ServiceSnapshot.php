@@ -18,6 +18,7 @@ final readonly class ServiceSnapshot
         public ?int $ageSeconds,
         public array $snapshot,
         public ?string $requestFailure,
+        public ?string $replyError,
     ) {
     }
 
@@ -39,13 +40,7 @@ final readonly class ServiceSnapshot
         if (! is_array($deadLetters)) {
             return null;
         }
-        if (isset($deadLetters['total']) && is_int($deadLetters['total'])) {
-            return $deadLetters['total'];
-        }
-        if (isset($deadLetters['messages']) && is_array($deadLetters['messages'])) {
-            return count($deadLetters['messages']);
-        }
 
-        return null;
+        return is_int($deadLetters['total'] ?? null) ? $deadLetters['total'] : null;
     }
 }

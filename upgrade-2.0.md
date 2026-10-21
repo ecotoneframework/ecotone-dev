@@ -3221,13 +3221,16 @@ handler with a message naming the expected service. The application needs an Ent
 `DistributedServiceMap` command mapping from the Pulse service to the channel the Pulse service consumes, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
 
+A message sent by name (`sendWithRouting`, `publishWithRouting`) now keeps that name on the asynchronous channel in the
+header `ecotone_modelling_bus_routing_key` (for an event, the published name, not the handler's pattern). Handlers can read it
+with `#[Header]`, it stays with the dead letter, and it is not passed on to messages the handler sends or publishes.
+
 **How to adapt:** nothing is required. To use it, register `PulseConfiguration` and the command mapping to the Pulse
 service.
 
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first, each with its message id, name (the distributed
-routing key, else the message class; a message sent by routing key and failed in an asynchronous handler carries
-neither, so its name is empty), `failedAt`, exception, stack trace and payload (both cut at 4096 bytes with a
+routing key, else the routing key the message was sent with, else the message class), `failedAt`, exception, stack trace and payload (both cut at 4096 bytes with a
 `... [truncated]` marker), content type and original channel. Pulse can act on them with the routing keys
 `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`) and `ecotone.pulse.dead_letter.delete`, sending
 `{"messageIds": [...]}` or `{"filter": {"messageName": ..., "exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`

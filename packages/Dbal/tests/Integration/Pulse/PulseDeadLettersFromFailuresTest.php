@@ -53,20 +53,11 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
 
     public static function failures(): iterable
     {
-        yield 'routing key command' => ['', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->sendCommandWithRouting('order.place', ['orderId' => 1])];
+        yield 'routing key command' => ['order.place', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->sendCommandWithRouting('order.place', ['orderId' => 1])];
         yield 'class command' => [PulsePlaceOrder::class, fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->sendCommand(new PulsePlaceOrder(2))];
         yield 'class event' => [PulseOrderWasPlaced::class, fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->publishEvent(new PulseOrderWasPlaced(3))];
-        yield 'named event' => ['', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->publishEventWithRouting('order.shipped', ['orderId' => 4])];
+        yield 'named event' => ['order.shipped', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->publishEventWithRouting('order.shipped', ['orderId' => 4])];
         yield 'distributed command' => ['order.synchronized', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $pulse->getDistributedBus()->sendMessage('order_service', 'order.synchronized', 'sync', MediaType::TEXT_PLAIN)];
-    }
-
-    public static function namedFailures(): iterable
-    {
-        foreach (self::failures() as $case => $failure) {
-            if ($failure[0] !== '') {
-                yield $case => $failure;
-            }
-        }
     }
 
     public function setUp(): void
@@ -167,7 +158,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('failures')]
-    public function test_a_message_that_failed_in_its_handler_is_named_by_its_class_or_distributed_routing_key(string $expectedName, callable $send): void
+    public function test_a_message_that_failed_in_its_handler_is_named_as_the_user_sent_it(string $expectedName, callable $send): void
     {
         $send($this->orderService, $this->pulseService);
         $this->consumeFailures();
@@ -180,7 +171,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
         self::assertSame([['messageName' => $expectedName, 'exceptionClass' => RuntimeException::class, 'count' => 1]], $deadLetters['groups']);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('namedFailures')]
+    #[\PHPUnit\Framework\Attributes\DataProvider('failures')]
     public function test_replaying_by_the_name_in_the_snapshot_runs_only_that_handler_again(string $expectedName, callable $send): void
     {
         foreach (self::failures() as [$name, $sendOther]) {

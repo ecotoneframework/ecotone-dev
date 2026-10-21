@@ -11,6 +11,7 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**
  * licence Enterprise
@@ -57,6 +58,10 @@ final class PulseDeadLetterEntry
         $headers = $this->message->getHeaders();
         if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)) {
             return (string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY);
+        }
+
+        if ($headers->containsKey(MessageBusChannel::ROUTING_KEY_HEADER)) {
+            return (string) $headers->get(MessageBusChannel::ROUTING_KEY_HEADER);
         }
 
         $typeId = $this->header(MessageHeaders::TYPE_ID) ?? '';

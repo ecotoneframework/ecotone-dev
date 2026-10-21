@@ -10,7 +10,6 @@
     {% elseif notice.code == 'not_configured' %}Service "{{ notice.parameters.service }}" has dead letter not configured in its latest snapshot, so Pulse sends it no dead letter actions. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in that service, then refresh.
     {% elseif notice.code == 'no_dead_letters_anywhere' %}No service has dead letter configured, so there is nothing to act on.
     {% elseif notice.code == 'invalid_date' %}"{{ notice.parameters.field == 'failedFrom' ? 'Failed from' : 'Failed to' }}" is not a valid UTC date and time. Enter it as 2026-10-20T12:00:00, or clear it.
-    {% elseif notice.code == 'unknown_channel' %}Service "{{ notice.parameters.service }}" has no channel{% if notice.parameters.channel %} "{{ notice.parameters.channel }}"{% endif %} in its latest snapshot, so the replay was not sent. Its channels are: {{ (channels[notice.parameters.service] ?? [])|join(', ') ?: 'none known' }}. Use one of them, or leave the field empty to replay each message to the channel it was polled from.
     {% endif %}
     </p>
 {% endif %}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Database;
 
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\InvalidFieldNameException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Throwable;
@@ -33,7 +34,7 @@ final class MissingColumnFailure
     public static function explained(Throwable $failure, SpansTableManager $tableManager): Throwable
     {
         for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
-            if ($cause instanceof InvalidFieldNameException) {
+            if ($cause instanceof InvalidFieldNameException || ($cause instanceof DriverException && str_contains($cause->getMessage(), 'no such column'))) {
                 return ConfigurationException::create($tableManager->getMissingColumnsInstructions());
             }
         }

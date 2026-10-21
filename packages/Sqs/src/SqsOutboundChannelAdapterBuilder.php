@@ -86,7 +86,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         return new Definition(SqsOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->queueName,
-            $this->autoDeclare,
+            $this->declaresOnSend(),
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(MessageBuilder::class),
@@ -94,6 +94,8 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             $this->batchPublishing,
             $this->nonBlockingConfirmation,
             $this->confirmationTimeoutInMilliseconds,
+            $this->requireExistingDestination,
+            $this->connectionFactoryReferenceName,
         ]);
     }
 }

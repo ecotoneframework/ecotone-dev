@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
+use Aws\Exception\AwsException;
 use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
@@ -24,10 +25,12 @@ use Interop\Queue\Exception\InvalidMessageException;
  */
 final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
+    private const MISSING_QUEUE_ERROR_CODES = ['AWS.SimpleQueueService.NonExistentQueue', 'QueueDoesNotExist'];
     private const MAX_ENTRIES_PER_BATCH_REQUEST = 10;
     private const BATCH_REQUEST_PAYLOAD_BUDGET_IN_BYTES = 204800;
 
     private SqsRequestDispatchPool $requestDispatchPool;
+    private bool $destinationVerified = false;
 
     public function __construct(
         CachedConnectionFactory $connectionFactory,
@@ -40,6 +43,8 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         private bool $batchPublishing = false,
         private bool $nonBlockingConfirmation = false,
         private int $confirmationTimeoutInMilliseconds = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
+        private bool $requireExistingDestination = false,
+        private string $connectionReferenceName = '',
     ) {
         $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
@@ -67,6 +72,8 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         if ($message->getPayload() instanceof BatchMessage && ! $this->batchPublishing) {
             throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires batch publishing to be enabled. Enable it with withHighThroughputPublishing(), available as part of Ecotone Enterprise.', $this->queueName));
         }
+
+        $this->verifyDestinationExists();
 
         /** @var SqsContext $context */
         $context = $this->createOutboundContext();
@@ -101,6 +108,34 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         if (! $deliveryResult->isSuccessful()) {
             throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
         }
+    }
+
+    private function verifyDestinationExists(): void
+    {
+        if (! $this->requireExistingDestination || $this->destinationVerified) {
+            return;
+        }
+
+        /** @var SqsContext $context */
+        $context = $this->connectionFactory->createContext();
+
+        try {
+            $context->getQueueUrl(new SqsDestination($this->queueName));
+        } catch (AwsException $exception) {
+            if (! in_array($exception->getAwsErrorCode(), self::MISSING_QUEUE_ERROR_CODES, true)) {
+                throw $exception;
+            }
+
+            throw ConfigurationException::create(sprintf(
+                "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself. To let this channel create the queue on send, remove withRequiredExistingDestination().",
+                $this->queueName,
+                $this->queueName,
+                $this->connectionReferenceName,
+                $this->queueName,
+            ));
+        }
+
+        $this->destinationVerified = true;
     }
 
     /**

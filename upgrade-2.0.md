@@ -3342,30 +3342,34 @@ topic was created by the broker when it allowed it. A destination whose name was
 sending side was created quietly and the messages went into a queue nobody consumes.
 
 **Now:** `AmqpBackedMessageChannelBuilder`, `SqsBackedMessageChannelBuilder` and `KafkaMessageChannelBuilder` have
-`withRequiredExistingDestination()`, for a service that only sends to a channel another service consumes. The channel never
-declares or creates the destination. Before its first send it checks that it exists (a passive queue declare on AMQP, a
-queue URL lookup on SQS, the topic list of the broker metadata on Kafka, so a broker that auto-creates topics does not hide
-a missing one), and a missing destination throws `Ecotone\Api\Messaging\DestinationDoesNotExistException`
-(a `ConfigurationException`) with the channel name, the actual destination after the overrides, the connection, and the ways
-out: run the consumer of the channel, create the destination yourself, fix the name, or remove the option. Nothing is sent and
-the destination is not created, so the next send checks again and succeeds once it exists; a destination found once is not
-checked again by that sender. The default of every builder is unchanged.
+`withRequiredExistingDestination()`, for a service that only sends to a channel another service consumes. It governs
+sending only: a consumer of the same channel still declares its own queue. The channel never declares or creates the
+destination, and checks that it exists before every send: a passive queue declare on AMQP (on its own short-lived context,
+because RabbitMQ closes the channel that asks about a missing queue), a queue URL lookup on SQS, and on Kafka a read of the
+topic list of the broker metadata (an unfiltered list, because asking the broker about one topic can make it create the
+topic, so the check would not be independent of `auto.create.topics.enable`; it is one metadata round trip per send, which
+is the price of detecting a topic deleted after the first send without keeping state in the channel). A missing
+destination throws `Ecotone\Api\Messaging\DestinationDoesNotExistException` with the channel name, the actual destination
+after the overrides, the connection, and the ways out: run the consumer of the channel, create the destination yourself,
+fix the name, or remove the option. It is a runtime failure, not a `ConfigurationException`, so the consumer's instant
+retries and error handling treat it like any failure of the handler; nothing is sent and the destination is not created,
+so a later send succeeds once it exists. A Kafka broker that cannot be reached for the check raises a
+`MessagingException` naming the channel instead of the raw `RdKafka\Exception`. The default of every builder is unchanged.
 
 ```php
 AmqpBackedMessageChannelBuilder::create('orders', queueName: 'orders_v2')->withRequiredExistingDestination();
 ```
 
-Redis and DBAL channels have no such option, on purpose: a Redis list does not exist while it is empty, and a DBAL queue is a
+Redis and DBAL channel builders have no such method, on purpose: a Redis list does not exist while it is empty, and a DBAL queue is a
 value in the shared `enqueue` table, so neither has a reliable "this destination exists" signal and Ecotone does not fake one.
 Name those channels explicitly and check them yourself.
 
 Pulse uses it for every channel it sends to on a service's broker (AMQP, SQS, Kafka) and for the reply channel a service
 derives for it. A service whose channel does not exist is shown as "Channel missing" with the destination, distinct from
-Unreachable, and is asked again on the next view. Pulse's own reply channel is still declared by Pulse, when it consumes it.
+Unreachable, and is asked again once the 60 seconds after which a snapshot stops counting as fresh have passed, or when Refresh is pressed. Pulse's own reply channel is still declared by Pulse, when it consumes it.
 
 **How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
-consuming its reply channel first; until then the reply fails with the exception above and the request is retried by the
-service's normal error handling.
+consuming its reply channel first; until then the reply fails with the exception above, goes through the service's instant retries and error handling like any failure of a handler, and the request is processed again once Pulse's queue exists.
 
 ## 15. Testing and developer-experience changes
 

@@ -20,6 +20,7 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -352,6 +353,138 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 0);
         $this->assertSame(['first-payload'], $handler->handledBySource);
         $this->assertSame(['first-payload'], $handler->handledByTarget);
+    }
+
+    public function test_replaying_to_an_asynchronous_channel_is_refused_and_keeps_the_dead_letter(): void
+    {
+        $handler = new class () {
+            public const QUEUE_CHANNEL = 'refusedTargetQueue';
+
+            /** @var string[] */
+            public array $handled = [];
+            private bool $hasEmitted = false;
+
+            #[\Ecotone\Api\Attribute\Scheduled('refusedSourceChannel', 'refusedEmittingAdapter')]
+            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
+            public function emit(): ?string
+            {
+                if ($this->hasEmitted) {
+                    return null;
+                }
+                $this->hasEmitted = true;
+
+                return 'payload';
+            }
+
+            #[\Ecotone\Api\Attribute\InternalHandler('refusedSourceChannel')]
+            public function failing(string $payload): void
+            {
+                throw new RuntimeException('simulated');
+            }
+
+            #[\Ecotone\Api\Attribute\Asynchronous(self::QUEUE_CHANNEL)]
+            #[\Ecotone\Api\Attribute\InternalHandler('refusedAsyncHandler', endpointId: 'refusedAsyncHandler.endpoint')]
+            public function handleAsynchronously(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $connectionFactory = $this->getConnectionFactory();
+
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [
+                $handler,
+                DbalConnectionFactory::class => $connectionFactory,
+                'managerRegistry' => $connectionFactory,
+            ],
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($handler::QUEUE_CHANNEL),
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+        );
+        $ecotone->run('refusedEmittingAdapter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $this->assertErrorMessageCount($ecotone, 1);
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
+
+        try {
+            $gateway->replay($gateway->list(10, 0)[0]->getMessageId(), $handler::QUEUE_CHANNEL);
+            self::fail('Replaying to an asynchronous channel should be refused');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('refusedTargetQueue', $exception->getMessage());
+            $this->assertStringContainsString('asynchronous', $exception->getMessage());
+            $this->assertStringContainsString('input channel of the handler', $exception->getMessage());
+            $this->assertStringContainsString('without a target channel', $exception->getMessage());
+        }
+
+        $this->assertErrorMessageCount($ecotone, 1);
+    }
+
+    public function test_dead_letter_message_is_replayed_to_the_input_channel_of_an_asynchronous_handler_and_runs_it_once_its_channel_is_consumed(): void
+    {
+        $handler = new class () {
+            public const QUEUE_CHANNEL = 'inputTargetQueue';
+
+            /** @var string[] */
+            public array $handled = [];
+            private bool $hasEmitted = false;
+
+            #[\Ecotone\Api\Attribute\Scheduled('inputSourceChannel', 'inputEmittingAdapter')]
+            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
+            public function emit(): ?string
+            {
+                if ($this->hasEmitted) {
+                    return null;
+                }
+                $this->hasEmitted = true;
+
+                return 'payload';
+            }
+
+            #[\Ecotone\Api\Attribute\InternalHandler('inputSourceChannel')]
+            public function failing(string $payload): void
+            {
+                throw new RuntimeException('simulated');
+            }
+
+            #[\Ecotone\Api\Attribute\Asynchronous(self::QUEUE_CHANNEL)]
+            #[\Ecotone\Api\Attribute\InternalHandler('inputAsyncHandler', endpointId: 'inputAsyncHandler.endpoint')]
+            public function handleAsynchronously(string $payload): void
+            {
+                $this->handled[] = $payload;
+            }
+        };
+        $connectionFactory = $this->getConnectionFactory();
+
+        $ecotone = $this->bootstrapFlowTesting(
+            classesToResolve: [$handler::class],
+            containerOrAvailableServices: [
+                $handler,
+                DbalConnectionFactory::class => $connectionFactory,
+                'managerRegistry' => $connectionFactory,
+            ],
+            extensionObjects: [
+                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($handler::QUEUE_CHANNEL),
+                \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE, ],
+            pathToRootCatalog: __DIR__ . '/../../',
+            environment: 'prod',
+        );
+        $ecotone->run('inputEmittingAdapter', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
+
+        $gateway->replay($gateway->list(10, 0)[0]->getMessageId(), 'inputAsyncHandler');
+        $this->assertSame([], $handler->handled);
+        $ecotone->run($handler::QUEUE_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['payload'], $handler->handled);
+        $this->assertErrorMessageCount($ecotone, 0);
     }
 
     public function test_all_dead_letter_messages_are_replayed_to_the_chosen_channel(): void

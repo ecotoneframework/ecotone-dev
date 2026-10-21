@@ -144,6 +144,11 @@ class ProjectingManager
         return $this->partitionProviderRegistry->getPartitionProviderFor($this->projectionName);
     }
 
+    public function rebuildsAsynchronously(): bool
+    {
+        return $this->rebuildAsyncChannelName !== null;
+    }
+
     public function getProjectionName(): string
     {
         return $this->projectionName;

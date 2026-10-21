@@ -152,7 +152,7 @@ final readonly class CrossServiceTrace
         $deadLetter = $messageId === null || ! ($unprocessed || $span['status'] === 'error') ? null : self::deadLetterOf($deadLettersByService, $span['service'], $messageId);
         $failed = ($unprocessed && $deadLetter !== null) || $span['status'] === 'error';
         $pending = $unprocessed && $deadLetter === null;
-        $queueWait = $span['kind'] === 'consumer' && $parent !== null && $parent['kind'] === 'producer' ? max(0, $span['startMicro'] - $parent['endMicro']) : null;
+        $queueWait = $span['kind'] === 'consumer' && $parent !== null && $parent['kind'] === 'producer' ? $span['startMicro'] - $parent['endMicro'] : null;
 
         return [
             'service' => $span['service'],
@@ -166,7 +166,12 @@ final readonly class CrossServiceTrace
             'durationMicro' => $span['endMicro'] - $span['startMicro'],
             'parentService' => $parent['service'] ?? null,
             'function' => is_scalar($attributes['code.function.name'] ?? null) ? (string) $attributes['code.function.name'] : null,
-            'queueWaitLabel' => $queueWait === null ? '' : self::milliseconds($queueWait),
+            'queueWaitLabel' => match (true) {
+                $queueWait === null => '',
+                $queueWait < 0 => 'clock skew between services (−' . self::milliseconds(-$queueWait) . ')',
+                default => self::milliseconds($queueWait),
+            },
+            'clockSkew' => $queueWait !== null && $queueWait < 0,
             'status' => $pending ? 'pending' : ($failed ? 'failed' : $span['status']),
             'depth' => $depth,
             'hop' => $parent !== null && $parent['service'] !== $span['service'],

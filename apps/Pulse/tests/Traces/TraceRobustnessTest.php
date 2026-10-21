@@ -68,6 +68,19 @@ final class TraceRobustnessTest extends WebTestCase
         self::assertStringContainsString('5000', $crawler->filter('[data-reply-truncated]')->text());
     }
 
+    public function test_a_receiver_that_started_before_its_sender_ended_is_reported_as_clock_skew_not_as_no_wait(): void
+    {
+        $send = ['spanId' => 'dddddddddddddd01', 'parentSpanId' => null, 'name' => 'send q', 'kind' => 'producer', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:01.000000+00:00', 'attributes' => ['ecotone.channel.name' => 'q'], 'events' => []];
+        $receive = ['spanId' => 'dddddddddddddd02', 'parentSpanId' => 'dddddddddddddd01', 'name' => 'receive q', 'kind' => 'consumer', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.500000+00:00', 'endedAt' => '2026-10-20T12:00:00.600000+00:00', 'attributes' => ['ecotone.channel.name' => 'q'], 'events' => []];
+        $client = $this->pulseWithFakeService([$send, $receive], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        $wait = $crawler->filter('[data-span]')->last()->filter('[data-column="queueWait"]');
+        self::assertSame('clock skew between services (−500 ms)', $wait->text());
+        self::assertCount(1, $crawler->filter('[data-clock-skew]'));
+    }
+
     public function test_traces_stored_in_the_database_are_listed_and_shown(): void
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping');

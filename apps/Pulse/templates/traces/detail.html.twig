@@ -47,7 +47,7 @@
                     <td data-column="kind">{{ row.kind }}</td>
                     <td data-column="startedAt">{{ row.startedAt }}</td>
                     <td data-column="offset">{{ row.offsetLabel }}</td>
-                    <td data-column="queueWait">{{ row.queueWaitLabel }}</td>
+                    <td data-column="queueWait"{% if row.clockSkew %} data-clock-skew class="drift"{% endif %}>{{ row.queueWaitLabel }}</td>
                     <td data-column="duration">{{ row.durationLabel }}</td>
                     <td data-column="status">{{ row.status }}</td>
                     <td data-column="error">{{ row.error }}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">dead letter</a>{% endif %}</td>

@@ -72,6 +72,32 @@ final class DeadLetterListTest extends ReleasingWebTestCase
         self::assertCount(0, $crawler->filter('[data-service-total="billing"]'));
     }
 
+    public function test_a_service_with_dead_letter_storage_and_no_failures_says_it_is_enabled_and_empty(): void
+    {
+        $this->configurePulseWithServices('quiet');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $this->serviceWithDeadLetters('quiet');
+
+        $crawler = $this->freshView($client, '/dead-letters');
+
+        self::assertCount(0, $crawler->filter('[data-not-configured]'));
+        self::assertStringContainsString('No dead letters, dead letter storage is enabled', $crawler->filter('[data-service-section="quiet"] [data-empty]')->text());
+    }
+
+    public function test_a_service_without_dead_letter_storage_says_how_to_enable_it(): void
+    {
+        $client = $this->pulseWithFailures();
+
+        $crawler = $this->freshView($client, '/dead-letters');
+
+        $notice = $crawler->filter('[data-service-section="billing"] [data-enable-dead-letter]')->text();
+        self::assertStringContainsString('withDeadLetter(true)', $notice);
+        self::assertStringContainsString('billing', $notice);
+        self::assertCount(0, $crawler->filter('[data-service-section="billing"] [data-empty]'));
+    }
+
     public function test_the_list_can_be_narrowed_to_one_service(): void
     {
         $client = $this->pulseWithFailures();

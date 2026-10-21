@@ -20,7 +20,7 @@ final class DeadLetterOverview
                 continue;
             }
             $deadLetters = $snapshot->snapshot['deadLetters'] ?? null;
-            $configured = is_array($deadLetters);
+            $configured = is_array($deadLetters) && ($snapshot->snapshot['deadLetter']['enabled'] ?? true) === true;
             $services[] = [
                 'service' => $snapshot->service,
                 'status' => $snapshot,

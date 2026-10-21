@@ -20,6 +20,8 @@ use Symfony\Component\Lock\Store\FlockStore;
 return static function (ContainerConfigurator $container): void {
     $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), dirname(__DIR__));
 
+    $container->parameters()->set('pulse.graph_default_node_limit', 150);
+
     $services = $container->services();
     $services->defaults()->autowire()->autoconfigure();
 

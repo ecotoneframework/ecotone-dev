@@ -17,25 +17,25 @@ final class StitchedFlowGraph
      */
     public static function toMermaid(array $flows, array $shownServices): string
     {
-        $shown = array_values(array_filter($flows, fn (ServiceFlow $flow) => in_array($flow->pulseName, $shownServices, true)));
+        $shown = array_values(array_filter($flows, fn (ServiceFlow $flow) => in_array($flow->name, $shownServices, true)));
         $ids = [];
         $lines = ['flowchart LR'];
         foreach ($shown as $serviceIndex => $flow) {
-            $lines[] = sprintf('    subgraph s%d ["%s"]', $serviceIndex, MermaidText::escape($flow->pulseName));
+            $lines[] = sprintf('    subgraph s%d ["%s"]', $serviceIndex, MermaidText::escape($flow->name));
             foreach ($flow->graph->nodes() as $nodeIndex => $node) {
-                $ids[$flow->pulseName][$node->id] = sprintf('s%dn%d', $serviceIndex, $nodeIndex);
-                $lines[] = '        ' . $ids[$flow->pulseName][$node->id] . self::shape($node);
+                $ids[$flow->name][$node->id] = sprintf('s%dn%d', $serviceIndex, $nodeIndex);
+                $lines[] = '        ' . $ids[$flow->name][$node->id] . self::shape($node);
             }
             $lines[] = '    end';
         }
         foreach ($shown as $flow) {
             foreach ($flow->graph->edges() as $edge) {
-                $lines[] = sprintf('    %s %s %s', $ids[$flow->pulseName][$edge->from], self::arrow($edge), $ids[$flow->pulseName][$edge->to]);
+                $lines[] = sprintf('    %s %s %s', $ids[$flow->name][$edge->from], self::arrow($edge), $ids[$flow->name][$edge->to]);
             }
         }
         foreach (DistributedLinks::between($flows) as $link) {
             if (isset($ids[$link->fromService][$link->fromNodeId], $ids[$link->toService][$link->toNodeId])) {
-                $lines[] = sprintf('    %s ==>|"distributed %s"| %s', $ids[$link->fromService][$link->fromNodeId], $link->kind, $ids[$link->toService][$link->toNodeId]);
+                $lines[] = sprintf('    %s %s|"%s"| %s', $ids[$link->fromService][$link->fromNodeId], $link->kind === 'reply' ? '-.->' : '==>', MermaidText::escape($link->label()), $ids[$link->toService][$link->toNodeId]);
             }
         }
 

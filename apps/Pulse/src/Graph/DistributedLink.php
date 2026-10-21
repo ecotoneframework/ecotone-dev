@@ -15,4 +15,9 @@ final readonly class DistributedLink
         public string $routingKey,
     ) {
     }
+
+    public function label(): string
+    {
+        return $this->kind === 'reply' ? 'reply' : 'distributed ' . $this->kind;
+    }
 }

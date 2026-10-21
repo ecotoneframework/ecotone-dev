@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Graph;
 
 use App\Snapshot\ServiceSnapshot;
+use App\Snapshot\ServiceStatus;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNode;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
@@ -13,22 +14,21 @@ use Throwable;
 
 final readonly class ServiceFlow
 {
-    private const MESSAGE_PREFIX = 'message:';
-
     /**
      * @param list<array<string, mixed>> $serviceMaps
      */
     public function __construct(
-        public string $pulseName,
         public string $name,
         public MessageFlowGraph $graph,
         public array $serviceMaps,
+        public ServiceStatus $status,
+        public ?int $ageSeconds,
     ) {
     }
 
     public static function fromSnapshot(ServiceSnapshot $snapshot): ?self
     {
-        if (! $snapshot->hasSnapshot() || ! is_array($snapshot->snapshot['flowGraph'] ?? null)) {
+        if (! is_array($snapshot->snapshot['flowGraph'] ?? null)) {
             return null;
         }
 
@@ -38,15 +38,21 @@ final readonly class ServiceFlow
             return null;
         }
 
-        $name = $snapshot->snapshot['serviceName'] ?? null;
         $serviceMaps = $snapshot->snapshot['topology']['serviceMaps'] ?? [];
 
-        return new self($snapshot->service, is_string($name) ? $name : $snapshot->service, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : []);
+        return new self($snapshot->service, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : [], $snapshot->status, $snapshot->ageSeconds);
+    }
+
+    public function isStale(): bool
+    {
+        return $this->status !== ServiceStatus::Connected;
     }
 
     public static function routingKeyOf(FlowNode $message): string
     {
-        return str_starts_with($message->id, self::MESSAGE_PREFIX) ? substr($message->id, strlen(self::MESSAGE_PREFIX)) : $message->label;
+        $routingKey = $message->attributes['routingKey'] ?? null;
+
+        return is_string($routingKey) ? $routingKey : $message->label;
     }
 
     /**
@@ -63,6 +69,47 @@ final readonly class ServiceFlow
         }
 
         return $sent;
+    }
+
+    /**
+     * @return list<array{handler: FlowNode, targetService: string, targetChannel: string}>
+     */
+    public function sentMessages(): array
+    {
+        $sent = [];
+        foreach ($this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO) as $edge) {
+            $service = $edge->attributes['targetService'] ?? null;
+            $channel = $edge->attributes['targetChannel'] ?? null;
+            if (($edge->attributes['via'] ?? null) === 'sendMessage' && is_string($service) && is_string($channel) && $this->graph->node($edge->to)->kind === FlowNodeKind::DISTRIBUTED_BUS) {
+                $sent[] = ['handler' => $this->graph->node($edge->from), 'targetService' => $service, 'targetChannel' => $channel];
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * @return list<array{handler: FlowNode, channel: string, replies: bool}>
+     */
+    public function distributedChannelHandlers(): array
+    {
+        $handlers = [];
+        foreach ($this->graph->edgesOfKind(FlowEdgeKind::DISTRIBUTES) as $distributes) {
+            $channel = $this->graph->node($distributes->to);
+            if ($channel->kind !== FlowNodeKind::CHANNEL) {
+                continue;
+            }
+            foreach ($this->graph->edgesOfKind(FlowEdgeKind::INPUT, from: $channel->id) as $input) {
+                $handler = $this->graph->node($input->to);
+                $replies = array_filter(
+                    $this->graph->edgesOfKind(FlowEdgeKind::SENDS_TO, from: $handler->id),
+                    fn ($edge) => ($edge->attributes['via'] ?? null) === 'replyRoutingKey'
+                );
+                $handlers[] = ['handler' => $handler, 'channel' => $channel->label, 'replies' => $replies !== []];
+            }
+        }
+
+        return $handlers;
     }
 
     /**
@@ -147,12 +194,12 @@ final readonly class ServiceFlow
         return $subscriptions;
     }
 
-    public function publishesEventTo(string $routingKey): bool
+    public function subscribesTo(string $routingKey, string $publishingService): bool
     {
         foreach ($this->eventSubscriptions() as $subscription) {
-            $included = $subscription['includePublishingServices'] === [] || in_array($this->name, $subscription['includePublishingServices'], true);
-            $excluded = in_array($this->name, $subscription['excludePublishingServices'], true);
-            if ($included && ! $excluded && $this->anyKeyMatches($subscription['subscriptionKeys'], $routingKey)) {
+            $included = $subscription['includePublishingServices'] === [] || in_array($publishingService, $subscription['includePublishingServices'], true);
+            $excluded = in_array($publishingService, $subscription['excludePublishingServices'], true);
+            if ($included && ! $excluded && self::anyKeyMatches($subscription['subscriptionKeys'], $routingKey)) {
                 return true;
             }
         }
@@ -163,7 +210,7 @@ final readonly class ServiceFlow
     /**
      * @param list<string> $patterns
      */
-    private function anyKeyMatches(array $patterns, string $routingKey): bool
+    private static function anyKeyMatches(array $patterns, string $routingKey): bool
     {
         foreach ($patterns as $pattern) {
             if (RoutingKeyPattern::matches($pattern, $routingKey)) {

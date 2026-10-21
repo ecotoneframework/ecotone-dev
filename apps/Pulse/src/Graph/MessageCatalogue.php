@@ -30,7 +30,7 @@ final class MessageCatalogue
                     ];
                 }
                 $entry = [
-                    'service' => $flow->pulseName,
+                    'service' => $flow->name,
                     'kind' => $message->kind->value,
                     'name' => $message->label,
                     'routingKey' => ServiceFlow::routingKeyOf($message),
@@ -47,7 +47,7 @@ final class MessageCatalogue
     }
 
     /**
-     * @param array{service: string, name: string, routingKey: string, handlers: list<array{label: string, endpointId: ?string, channel: ?string}>} $entry
+     * @param array{service: string, name: string, routingKey: string, handlers: list<array{label: string, endpointId: ?string, channel: ?string}>, emittedBy: list<string>} $entry
      */
     private static function matches(array $entry, string $query): bool
     {
@@ -55,7 +55,10 @@ final class MessageCatalogue
         if ($needle === '') {
             return true;
         }
-        $haystacks = [$entry['service'], $entry['name'], $entry['routingKey'], ...array_column($entry['handlers'], 'label')];
+        $haystacks = [$entry['service'], $entry['name'], $entry['routingKey'], ...$entry['emittedBy']];
+        foreach ($entry['handlers'] as $handler) {
+            array_push($haystacks, $handler['label'], (string) $handler['endpointId'], (string) $handler['channel']);
+        }
         foreach ($haystacks as $haystack) {
             if (str_contains(mb_strtolower($haystack), $needle)) {
                 return true;

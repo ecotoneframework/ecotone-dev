@@ -53,4 +53,49 @@ final class CataloguePageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-service="orders"][data-message="order.place"]'));
         self::assertCount(1, $crawler->filter('[data-service="billing"][data-message="invoice.create"]'));
     }
+
+    public function test_catalogue_search_matches_the_endpoint_id_of_a_handler(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
+
+        $crawler = $client->request('GET', '/catalogue?q=Create.Handler');
+
+        self::assertCount(1, $crawler->filter('[data-message]'));
+        self::assertCount(1, $crawler->filter('[data-service="billing"][data-message="invoice.create"]'));
+    }
+
+    public function test_catalogue_search_matches_the_name_of_an_emitting_handler(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
+
+        $crawler = $client->request('GET', '/catalogue?q=::place');
+
+        self::assertCount(1, $crawler->filter('[data-service="orders"][data-message="invoice.create"]'));
+    }
+
+    public function test_catalogue_search_matches_the_asynchronous_channel_of_a_handler(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->serviceHandlingAsynchronousCommand('orders')]);
+
+        $crawler = $client->request('GET', '/catalogue?q=SLOW_work');
+
+        self::assertCount(1, $crawler->filter('[data-service="orders"][data-message="work.do"]'));
+        self::assertStringContainsString('async on slow_work', $crawler->filter('[data-message="work.do"]')->text());
+    }
+
+    public function test_catalogue_explains_how_the_search_text_is_matched(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseWebClient();
+
+        $crawler = $client->request('GET', '/catalogue');
+
+        self::assertStringContainsString('contains the whole text, ignoring case', $crawler->filter('[data-search-help]')->text());
+    }
 }

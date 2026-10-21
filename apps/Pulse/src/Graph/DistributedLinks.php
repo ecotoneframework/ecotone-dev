@@ -16,27 +16,34 @@ final class DistributedLinks
         foreach ($flows as $sender) {
             foreach ($sender->sentCommands() as $sent) {
                 foreach ($flows as $receiver) {
-                    if ($receiver->name !== $sent['targetService']) {
-                        continue;
-                    }
                     foreach ($receiver->distributedReceivers() as $received) {
-                        if ($received['routingKey'] === $sent['routingKey']) {
-                            $links[] = new DistributedLink($sender->pulseName, $sent['node']->id, $receiver->pulseName, $received['node']->id, 'command', $sent['routingKey']);
+                        if ($receiver->name === $sent['targetService'] && $received['routingKey'] === $sent['routingKey']) {
+                            $links[] = new DistributedLink($sender->name, $sent['node']->id, $receiver->name, $received['node']->id, 'command', $sent['routingKey']);
+                        }
+                    }
+                }
+            }
+            foreach ($sender->sentMessages() as $sent) {
+                foreach ($flows as $receiver) {
+                    foreach ($receiver->distributedChannelHandlers() as $received) {
+                        if ($receiver->name !== $sent['targetService'] || $received['channel'] !== $sent['targetChannel']) {
+                            continue;
+                        }
+                        $links[] = new DistributedLink($sender->name, $sent['handler']->id, $receiver->name, $received['handler']->id, 'message', $sent['targetChannel']);
+                        if ($received['replies']) {
+                            $links[] = new DistributedLink($receiver->name, $received['handler']->id, $sender->name, $sent['handler']->id, 'reply', $sent['targetChannel']);
                         }
                     }
                 }
             }
             foreach ($sender->publishedEvents() as $published) {
-                if (! $sender->publishesEventTo($published['routingKey'])) {
-                    continue;
-                }
                 foreach ($flows as $receiver) {
-                    if ($receiver === $sender) {
+                    if ($receiver === $sender || ! $receiver->subscribesTo($published['routingKey'], $sender->name)) {
                         continue;
                     }
                     foreach ($receiver->distributedReceivers() as $received) {
-                        if ($received['routingKey'] === $published['routingKey']) {
-                            $links[] = new DistributedLink($sender->pulseName, $published['node']->id, $receiver->pulseName, $received['node']->id, 'event', $published['routingKey']);
+                        if (RoutingKeyPattern::matches($received['routingKey'], $published['routingKey'])) {
+                            $links[] = new DistributedLink($sender->name, $published['node']->id, $receiver->name, $received['node']->id, 'event', $published['routingKey']);
                         }
                     }
                 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Graph\MessageCatalogue;
-use App\Graph\ServiceFlow;
+use App\Graph\ServiceFlows;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,8 +23,8 @@ final class CatalogueController extends AbstractController
     {
         $query = $request->query->getString('q');
         $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
-        $flows = array_values(array_filter(array_map(ServiceFlow::fromSnapshot(...), $snapshots)));
+        $serviceFlows = ServiceFlows::of($snapshots);
 
-        return $this->render('graph/catalogue.html.twig', ['query' => $query, 'entries' => MessageCatalogue::search($flows, $query)]);
+        return $this->render('graph/catalogue.html.twig', ['query' => $query, 'notices' => $serviceFlows->notices, 'entries' => MessageCatalogue::search($serviceFlows->flows, $query)]);
     }
 }

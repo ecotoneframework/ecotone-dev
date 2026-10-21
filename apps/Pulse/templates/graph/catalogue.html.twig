@@ -4,10 +4,12 @@
 
 {% block body %}
     <h1>Message catalogue</h1>
+    {% include 'graph/_notices.html.twig' %}
     <form method="get">
         <input type="search" name="q" value="{{ query }}" placeholder="Class name, routing key, handler or service">
         <button type="submit">Search</button>
     </form>
+    <p class="muted" data-search-help>A message is listed when its service, class name, routing key, handler, endpoint id, asynchronous channel or emitting handler contains the whole text, ignoring case. The text is not split into words.</p>
     <table>
         <thead>
         <tr><th>Service</th><th>Kind</th><th>Message</th><th>Handled by</th><th>Emitted by</th></tr>

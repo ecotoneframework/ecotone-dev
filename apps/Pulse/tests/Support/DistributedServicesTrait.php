@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -66,7 +69,6 @@ trait DistributedServicesTrait
 
         return $this->distributedService('orders', $orders, DistributedServiceMap::initialize()
             ->withCommandMapping('shipping', $this->serviceChannels['orders'])
-            ->withCommandMapping('payments', $this->serviceChannels['payments'])
             ->withEventMapping($this->serviceChannels['orders'], ['refund.*']));
     }
 
@@ -80,6 +82,50 @@ trait DistributedServicesTrait
         }
 
         return $this->distributedService('orders', $orders, $serviceMap);
+    }
+
+    private function ordersSendingMessageToBilling(): FlowTestSupport
+    {
+        $orders = new class () {
+            public function __construct(private ?DistributedBus $distributedBus = null)
+            {
+            }
+
+            #[CommandHandler('order.ping', endpointId: 'order.ping.handler')]
+            public function place(array $payload): void
+            {
+                $this->distributedBus->sendMessage('billing', 'billing.ping', '{}', replyRoutingKey: 'billing.pong');
+            }
+        };
+
+        return $this->distributedService('orders', $orders, DistributedServiceMap::initialize()->withCommandMapping('billing', $this->serviceChannels['billing']));
+    }
+
+    private function billingAnsweringPing(): FlowTestSupport
+    {
+        $billing = new class () {
+            #[Distributed]
+            #[InternalHandler(inputChannelName: 'billing.ping', endpointId: 'billing.ping.handler')]
+            public function ping(string $payload): string
+            {
+                return 'pong';
+            }
+        };
+
+        return $this->distributedService('billing', $billing, DistributedServiceMap::initialize());
+    }
+
+    private function serviceHandlingAsynchronousCommand(string $service): FlowTestSupport
+    {
+        $handler = new class () {
+            #[Asynchronous('slow_work')]
+            #[CommandHandler('work.do', endpointId: 'work.do.handler')]
+            public function handle(array $payload): void
+            {
+            }
+        };
+
+        return $this->distributedService($service, $handler, DistributedServiceMap::initialize(), [SimpleMessageChannelBuilder::createQueueChannel('slow_work')]);
     }
 
     private function serviceHandlingCommandX(string $service): FlowTestSupport
@@ -127,7 +173,10 @@ trait DistributedServicesTrait
             ->withEventMapping($this->serviceChannels['orders'], ['invoice.*']));
     }
 
-    private function distributedService(string $service, object $handler, DistributedServiceMap $serviceMap): FlowTestSupport
+    /**
+     * @param array<object> $extensionObjects
+     */
+    private function distributedService(string $service, object $handler, DistributedServiceMap $serviceMap, array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
@@ -140,6 +189,7 @@ trait DistributedServicesTrait
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),
                 $serviceMap->withCommandMapping('ecotone_pulse', $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service),
+                ...$extensionObjects,
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],

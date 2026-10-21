@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Tests\Services;
 
 use App\Tests\Support\PulseServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class PeriodicRefreshTest extends WebTestCase
+final class PeriodicRefreshTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 

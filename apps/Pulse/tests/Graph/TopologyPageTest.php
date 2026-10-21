@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Support\ReleasingWebTestCase;
 
 /**
  * @internal
  */
-final class TopologyPageTest extends WebTestCase
+final class TopologyPageTest extends ReleasingWebTestCase
 {
     use DistributedServicesTrait;
 

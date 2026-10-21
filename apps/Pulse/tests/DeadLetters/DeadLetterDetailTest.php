@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\DeadLetters;
 
 use App\Tests\Support\DeadLetterServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class DeadLetterDetailTest extends WebTestCase
+final class DeadLetterDetailTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 

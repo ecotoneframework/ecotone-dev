@@ -68,7 +68,9 @@ final class InMemoryTraceStore implements TraceStore
         foreach ($entriesByFlowType as $flowType => $entries) {
             usort($entries, fn (array $first, array $second): int => [$second['startedAt'], $second['traceId']] <=> [$first['startedAt'], $first['traceId']]);
             $statistics[] = FlowTypeStatistics::overWindow((string) $flowType, count($entries), array_slice($entries, 0, $window));
+
         }
+        $statistics = array_values(array_filter($statistics));
         usort($statistics, fn (FlowTypeStatistics $first, FlowTypeStatistics $second): int => [$second->runs, $first->flowType] <=> [$first->runs, $second->flowType]);
 
         return array_slice($statistics, 0, $limit);

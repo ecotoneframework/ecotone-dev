@@ -411,6 +411,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         self::assertSame($this->spanIdNamed($publishing, 'send ticket_channel'), $this->entrySpanParent($receiving));
         self::assertContains('process class@anonymous::whenClosed', array_column($receiving, 'name'));
+        self::assertSame($this->spanIdNamed($receiving, 'send ticket_async'), array_column($receiving, 'parentSpanId', 'name')['receive ticket_async']);
         self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'ticket.closed'], 'ticket_service')['traces'], 'traceId'));
     }
 
@@ -442,6 +443,25 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         self::assertSame([['Create.Ticket', 2], ['create.ticket', 1]], array_map(fn (array $flowType): array => [$flowType['flowType'], $flowType['runs']], $flowTypes));
         self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'traceId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_distributed_command_forwarded_through_a_second_service_nests_hop_by_hop(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->bootstrapTicketService();
+        $this->bootstrapAuditService();
+        $this->sendWithTrace('open.ticket.forwarded', 'printer', self::FIRST_TRACE);
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->auditService->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $first = $this->traceOf(self::FIRST_TRACE)['spans'];
+        $second = $this->traceOf(self::FIRST_TRACE, 'ticket_service')['spans'];
+        $third = $this->traceOf(self::FIRST_TRACE, 'audit_service')['spans'];
+
+        self::assertSame($this->spanIdNamed($first, 'send ticket_channel'), $this->entrySpanParent($second));
+        self::assertSame($this->spanIdNamed($second, 'send audit_channel'), $this->entrySpanParent($third));
+        self::assertContains('process class@anonymous::record', array_column($third, 'name'));
     }
 
     #[DataProvider('implementations')]
@@ -738,6 +758,12 @@ final class PulseTracesTest extends DbalMessagingTestCase
                 $distributedBus->publishEvent('ticket.closed', $subject);
             }
 
+            #[CommandHandler('open.ticket.forwarded', endpointId: 'ticket.open_forwarded')]
+            public function openForwarded(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendCommand('ticket_service', 'ticket.forward', $subject);
+            }
+
             #[CommandHandler('open.ticket.later', endpointId: 'ticket.open_later')]
             public function openLater(string $subject, DistributedBus $distributedBus): void
             {
@@ -878,6 +904,13 @@ final class PulseTracesTest extends DbalMessagingTestCase
             }
 
             #[Distributed]
+            #[CommandHandler('ticket.forward', endpointId: 'ticket.forwarding')]
+            public function forward(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendCommand('audit_service', 'audit.record', $subject);
+            }
+
+            #[Distributed]
             #[Asynchronous('ticket_async')]
             #[CommandHandler('ticket.open.later', endpointId: 'ticket.opening_later')]
             public function openLater(string $subject): void
@@ -903,7 +936,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
             extensionObjects: [
                 ...$this->channels,
                 FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage(true),
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')->withCommandMapping(targetServiceName: 'audit_service', channelName: 'audit_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
             ],
@@ -916,6 +949,12 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private function bootstrapAuditService(): void
     {
         $audits = new class () {
+            #[Distributed]
+            #[CommandHandler('audit.record', endpointId: 'audit.recording')]
+            public function record(string $subject): void
+            {
+            }
+
             #[Distributed]
             #[EventHandler('ticket.opened', endpointId: 'audit.ticket_opened')]
             public function whenOpened(string $subject): void

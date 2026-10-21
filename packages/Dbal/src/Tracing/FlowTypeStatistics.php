@@ -41,8 +41,12 @@ final class FlowTypeStatistics
     /**
      * @param array<array{startedAt: int, durationInMicroseconds: int, status: string}> $newestFirst
      */
-    public static function overWindow(string $flowType, int $runs, array $newestFirst): self
+    public static function overWindow(string $flowType, int $runs, array $newestFirst): ?self
     {
+        if ($newestFirst === []) {
+            return null;
+        }
+
         $durations = array_column($newestFirst, 'durationInMicroseconds');
         sort($durations);
         $windowRuns = count($durations);

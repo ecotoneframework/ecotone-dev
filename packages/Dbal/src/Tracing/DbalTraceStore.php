@@ -75,7 +75,7 @@ final class DbalTraceStore implements TraceStore
                 "SELECT flow_type, COUNT(*) AS runs FROM {$table} WHERE flow_type IS NOT NULL GROUP BY flow_type ORDER BY runs DESC, flow_type ASC LIMIT {$limit}",
             );
 
-            return array_map(fn (array $group): FlowTypeStatistics => FlowTypeStatistics::overWindow(
+            return array_values(array_filter(array_map(fn (array $group): ?FlowTypeStatistics => FlowTypeStatistics::overWindow(
                 $group['flow_type'],
                 (int) $group['runs'],
                 array_map(fn (array $row): array => [
@@ -92,7 +92,7 @@ final class DbalTraceStore implements TraceStore
                     ->setMaxResults($window)
                     ->executeQuery()
                     ->fetchAllAssociative()),
-            ), $groups);
+            ), $groups)));
         });
     }
 

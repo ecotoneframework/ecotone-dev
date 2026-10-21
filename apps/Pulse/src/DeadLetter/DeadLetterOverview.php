@@ -66,6 +66,27 @@ final class DeadLetterOverview
 
     /**
      * @param list<ServiceSnapshot> $snapshots
+     * @return list<string>
+     */
+    public static function unnamedMessageIds(array $snapshots, string $service, string $exceptionClass): array
+    {
+        $ids = [];
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->service !== $service) {
+                continue;
+            }
+            foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
+                if (($entry['messageName'] ?? '') === '' && ($entry['exceptionClass'] ?? '') === $exceptionClass && is_string($entry['messageId'] ?? null)) {
+                    $ids[] = $entry['messageId'];
+                }
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
      * @return array<string, mixed>|null
      */
     public static function entry(array $snapshots, string $service, string $messageId): ?array

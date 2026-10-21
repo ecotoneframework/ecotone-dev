@@ -64,8 +64,8 @@
                             <b>{{ group.messageName ?: '(unnamed)' }}</b>
                             <span class="chip mono">{{ group.exceptionClass }}</span>
                             <span class="muted">{{ group.count }} failed</span>
-                            <a href="{{ path('dead_letters', filter.toQuery|merge({service: service.service, messageName: group.messageName, exceptionClass: group.exceptionClass})) }}">Only this group</a>
-                            <span data-group-replay><button type="submit" form="replay-{{ service.service }}-{{ loop.index }}" data-await>Replay all {{ group.count }}</button></span>
+                            {% if group.messageName != '' %}<a href="{{ path('dead_letters', filter.toQuery|merge({service: service.service, messageName: group.messageName, exceptionClass: group.exceptionClass})) }}">Only this group</a>{% endif %}
+                            <span data-group-replay><button type="submit" form="selection" name="group" value="{{ [service.service, group.messageName, group.exceptionClass]|json_encode }}" data-await>{% if group.messageName != '' %}Replay all {{ group.count }}{% else %}Replay these {{ unnamedCounts[service.service][group.exceptionClass] ?? 0 }}{% endif %}</button></span>
                         </div>
                         <details open><summary>{{ rows|length }} of {{ group.count }} listed</summary>
                         <table>
@@ -83,13 +83,6 @@
                         </table>
                         </details>
                     </section>
-                    <form id="replay-{{ service.service }}-{{ loop.index }}" method="post" action="{{ path('dead_letter_actions') }}">
-                        <input type="hidden" name="scope" value="filter">
-                        <input type="hidden" name="action" value="replay">
-                        <input type="hidden" name="service" value="{{ service.service }}">
-                        <input type="hidden" name="messageName" value="{{ group.messageName }}">
-                        <input type="hidden" name="exceptionClass" value="{{ group.exceptionClass }}">
-                    </form>
                     {% endif %}
                 {% else %}
                     <p class="muted">No dead letters.</p>

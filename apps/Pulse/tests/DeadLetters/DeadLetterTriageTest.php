@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\DeadLetters;
 
 use App\Tests\Support\DeadLetterServicesTrait;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Messaging\ErrorContext;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Test\StaticMessageBuilder;
+use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -176,6 +181,103 @@ final class DeadLetterTriageTest extends WebTestCase
         $detail = $client->click($list->filter('[data-dead-letter] a')->link());
 
         self::assertStringContainsString("{\n    \"orderId\": 2\n}", $detail->filter('[data-detail="payload"]')->html());
+    }
+
+    public function test_a_named_group_says_replay_all_with_its_stored_count_and_an_unnamed_group_says_replay_these(): void
+    {
+        $client = $this->pulseWithUnnamedFailures();
+
+        $list = $this->freshView($client, '/dead-letters');
+
+        self::assertSame('Replay all 2', trim($list->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
+        self::assertSame('Replay these 2', trim($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->text()));
+    }
+
+    public function test_replaying_an_unnamed_group_replays_those_messages_and_never_the_named_ones_of_the_same_exception(): void
+    {
+        $client = $this->pulseWithUnnamedFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $client->submit($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->form());
+        $this->deliver($client);
+
+        self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+    }
+
+    public function test_an_unnamed_group_offers_no_link_that_narrows_the_list_to_the_whole_exception(): void
+    {
+        $client = $this->pulseWithUnnamedFailures();
+
+        $list = $this->freshView($client, '/dead-letters');
+
+        self::assertCount(0, $list->filter('[data-group][data-message-name=""] a[href*="exceptionClass"]'));
+    }
+
+    public function test_replaying_a_group_honours_the_replay_channel_chosen_for_the_service(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $this->work->failing = false;
+
+        $form = $list->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->form();
+        $form['targetChannel']['orders']->select(self::OTHER_CHANNEL);
+        $client->submit($form);
+        $this->deliver($client);
+        $this->replayWorkOf($this->services['orders']);
+        self::assertSame([], $this->work->handled);
+        $this->replayOtherChannelOf($this->services['orders']);
+
+        self::assertSame(['order.place:1', 'order.place:3'], $this->work->handled);
+    }
+
+    public function test_the_count_of_a_group_is_what_the_action_replays_even_when_the_list_is_narrowed(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $messageId = $list->filter('[data-dead-letter][data-message-name="order.place"]')->attr('data-message-id');
+
+        $narrowed = $client->request('GET', '/dead-letters', ['search' => $messageId]);
+
+        self::assertSame('Replay all 2', trim($narrowed->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
+        self::assertStringContainsString('1 of 2 listed', $narrowed->filter('[data-group][data-message-name="order.place"]')->text());
+        $client->submit($narrowed->filter('[data-group-replay] button')->form());
+        $this->deliver($client);
+        self::assertSame(['order.cancel'], $this->remainingNames($client));
+    }
+
+    public function test_deleting_the_selection_from_the_bar_asks_for_confirmation_and_deletes_nothing_yet(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $form = $list->filter('[data-selection-bar] button[value="delete"]')->form();
+        $form['selected']['orders'][0]->tick();
+
+        $confirmation = $client->submit($form);
+        $this->deliver($client);
+
+        self::assertCount(1, $confirmation->filter('[data-confirm-delete]'));
+        self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+    }
+
+    private function pulseWithUnnamedFailures(): KernelBrowser
+    {
+        $client = $this->pulseWithFailures();
+        $deadLetters = $this->services['orders']->getGateway(DeadLetterGateway::class);
+        foreach (['unnamed-1', 'unnamed-2'] as $index => $id) {
+            $deadLetters->store(StaticMessageBuilder::withPayload('x')->setMultipleHeaders([
+                MessageHeaders::MESSAGE_ID => $id,
+                MessageHeaders::TIMESTAMP => 1_760_000_000 + $index,
+                MessageHeaders::POLLED_CHANNEL_NAME => self::WORK_CHANNEL,
+                ErrorContext::EXCEPTION_CLASS => RuntimeException::class,
+                ErrorContext::EXCEPTION_MESSAGE => 'boom',
+                ErrorContext::EXCEPTION_STACKTRACE => '#0',
+                ErrorContext::EXCEPTION_FILE => 'f.php',
+                ErrorContext::EXCEPTION_LINE => 1,
+                ErrorContext::EXCEPTION_CODE => 0,
+            ])->build());
+        }
+
+        return $client;
     }
 
     private function pulseWithFailures(): KernelBrowser

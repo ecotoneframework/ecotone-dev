@@ -30,16 +30,19 @@ final class DeadLetterActionController extends AbstractController
     #[Route('/dead-letters/actions', name: 'dead_letter_actions', methods: ['POST'])]
     public function act(Request $request): Response
     {
-        $replay = $request->request->get('action') === 'replay';
+        $group = (string) $request->request->get('group', '');
+        $replay = $group !== '' || $request->request->get('action') === 'replay';
         $filter = DeadLetterFilter::fromInput($request->request);
         $byFilter = $request->request->get('scope') === 'filter';
         if (($invalidDate = $filter->invalidDateField()) !== null) {
             return $this->back($filter, DeadLetterNotice::invalidDate($invalidDate));
         }
 
-        $actions = $byFilter
+        $actions = $group !== ''
+            ? $this->actionsForGroup($group, $request->request->all()['targetChannel'] ?? [])
+            : ($byFilter
             ? $this->actionsForFilter($filter, $replay, $replay ? trim((string) $request->request->get('targetChannel', '')) : '')
-            : $this->actionsForSelection($request->request->all('selected'), $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []);
+            : $this->actionsForSelection($request->request->all('selected'), $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []));
         if ($actions instanceof DeadLetterNotice) {
             return $this->back($filter, $actions);
         }
@@ -65,6 +68,33 @@ final class DeadLetterActionController extends AbstractController
         return $this->back($filter, $failed === []
             ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions))
             : DeadLetterNotice::sendFailed($failed));
+    }
+
+    /**
+     * @return array<string, DeadLetterAction>|DeadLetterNotice
+     */
+    private function actionsForGroup(string $group, mixed $targetChannels): array|DeadLetterNotice
+    {
+        $decoded = json_decode($group, true);
+        if (! is_array($decoded) || count($decoded) !== 3 || ! array_is_list($decoded) || array_filter($decoded, is_string(...)) !== $decoded) {
+            return DeadLetterNotice::nothingSelected();
+        }
+        [$service, $messageName, $exceptionClass] = $decoded;
+        $configured = $this->servicesWithDeadLetters($service);
+        if ($configured instanceof DeadLetterNotice) {
+            return $configured;
+        }
+        $targetChannel = is_array($targetChannels) && is_string($targetChannels[$service] ?? null) ? trim($targetChannels[$service]) : '';
+        if ($targetChannel !== '' && ! $this->registersChannel($service, $targetChannel)) {
+            return DeadLetterNotice::unknownChannel($service, $targetChannel);
+        }
+        if ($messageName !== '') {
+            return [$service => DeadLetterAction::replayMatching(['messageName' => $messageName, 'exceptionClass' => $exceptionClass], $targetChannel)];
+        }
+
+        $ids = DeadLetterOverview::unnamedMessageIds($this->snapshots->all(), $service, $exceptionClass);
+
+        return $ids === [] ? DeadLetterNotice::nothingSelected() : [$service => DeadLetterAction::replayIds($ids, $targetChannel)];
     }
 
     /**

@@ -32,6 +32,7 @@ final class DeadLetterController extends AbstractController
             'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->service, $snapshots)),
             'channels' => DeadLetterOverview::channelsByService($snapshots),
             'sharedStores' => DeadLetterOverview::servicesSharingAStore($snapshots),
+            'unnamedCounts' => self::unnamedCounts($snapshots),
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
         ]);
     }
@@ -61,5 +62,24 @@ final class DeadLetterController extends AbstractController
         $decoded = json_decode($payload);
 
         return $decoded === null ? null : json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param list<\App\Snapshot\ServiceSnapshot> $snapshots
+     * @return array<string, array<string, int>>
+     */
+    private static function unnamedCounts(array $snapshots): array
+    {
+        $counts = [];
+        foreach ($snapshots as $snapshot) {
+            foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
+                if (($group['messageName'] ?? '') === '') {
+                    $exceptionClass = (string) ($group['exceptionClass'] ?? '');
+                    $counts[$snapshot->service][$exceptionClass] = count(DeadLetterOverview::unnamedMessageIds($snapshots, $snapshot->service, $exceptionClass));
+                }
+            }
+        }
+
+        return $counts;
     }
 }

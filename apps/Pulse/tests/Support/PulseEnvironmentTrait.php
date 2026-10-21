@@ -26,7 +26,10 @@ trait PulseEnvironmentTrait
             ...$overrides,
         ];
 
-        foreach (PulseEnvironment::VARIABLES as $name) {
+        static $connectionVariables = [];
+        $connectionVariables = array_unique([...$connectionVariables, ...array_filter(array_keys($environment), static fn (string $name) => str_starts_with($name, 'PULSE_CONNECTION_'))]);
+
+        foreach ([...PulseEnvironment::VARIABLES, ...$connectionVariables] as $name) {
             $value = $environment[$name] ?? null;
             if ($value === null) {
                 unset($_SERVER[$name], $_ENV[$name]);

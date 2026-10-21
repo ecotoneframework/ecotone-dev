@@ -86,6 +86,23 @@ final class DeadLetterListTest extends ReleasingWebTestCase
         self::assertStringContainsString('No dead letters, dead letter storage is enabled', $crawler->filter('[data-service-section="quiet"] [data-empty]')->text());
     }
 
+    public function test_a_snapshot_without_the_dead_letter_field_is_read_by_its_dead_letters_section(): void
+    {
+        $this->configurePulseWithServices('legacy');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $snapshot = json_decode($this->invoicesSnapshot(), true);
+        $snapshot['serviceName'] = 'legacy';
+        $snapshot['deadLetters'] = ['total' => 0, 'groups' => [], 'recent' => []];
+        $this->services['legacy'] = $this->serviceAnsweringWith('legacy', json_encode($snapshot));
+
+        $crawler = $this->freshView($client, '/dead-letters');
+
+        self::assertCount(0, $crawler->filter('[data-not-configured]'));
+        self::assertCount(1, $crawler->filter('[data-service-section="legacy"] [data-empty]'));
+    }
+
     public function test_a_service_without_dead_letter_storage_says_how_to_enable_it(): void
     {
         $client = $this->pulseWithFailures();

@@ -160,6 +160,44 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame([], $this->orders->replayed);
     }
 
+    public function test_replaying_and_deleting_by_failure_id_acts_on_the_requested_tenant_only_when_two_tenants_hold_the_same_failure(): void
+    {
+        $this->bootstrap();
+        $this->failOrder('milk', 'tenant_a');
+        $this->failOrder('milk', 'tenant_b');
+        $failureId = $this->requestSnapshot('tenant_a')['deadLetters']['groups'][0]['failureId'];
+        self::assertSame($failureId, $this->requestSnapshot('tenant_b')['deadLetters']['groups'][0]['failureId']);
+
+        $this->orders->failing = false;
+        $afterReplay = $this->ask('ecotone.pulse.dead_letter.replay', json_encode(['filter' => ['failureId' => $failureId], 'targetChannel' => 'async']), 'tenant_a');
+        $this->consumeAsync(1);
+        $afterDelete = $this->ask('ecotone.pulse.dead_letter.delete', json_encode(['filter' => ['failureId' => $failureId]]), 'tenant_b');
+
+        self::assertSame([['milk', 'tenant_a']], $this->orders->replayed);
+        self::assertSame(1, $afterReplay['deadLetterAction']['affected']);
+        self::assertSame(0, $afterReplay['deadLetters']['total']);
+        self::assertSame(1, $afterDelete['deadLetterAction']['affected']);
+        self::assertSame(0, $afterDelete['deadLetters']['total']);
+    }
+
+    public function test_dbal_channels_on_the_tenant_connection_are_measured_per_tenant_and_left_unmeasured_without_a_tenant(): void
+    {
+        $this->bootstrap();
+        $this->orderService->sendCommandWithRouting('order.queue', 'milk', metadata: ['tenant' => 'tenant_a']);
+        $this->orderService->sendCommandWithRouting('order.queue', 'bread', metadata: ['tenant' => 'tenant_a']);
+
+        $withoutTenant = $this->channelsByName($this->requestSnapshot());
+        $ofTenantA = $this->channelsByName($this->requestSnapshot('tenant_a')); 
+        $ofTenantB = $this->channelsByName($this->requestSnapshot('tenant_b'));
+
+        self::assertNull($withoutTenant['tenant_queue']['ready']);
+        self::assertNull($withoutTenant['tenant_queue']['probeError']);
+        self::assertArrayHasKey('async', $withoutTenant);
+        self::assertSame(2, $ofTenantA['tenant_queue']['ready']);
+        self::assertSame(0, $ofTenantB['tenant_queue']['ready']);
+        self::assertSame(['tenant_queue'], array_keys($ofTenantA));
+    }
+
     public function test_listing_traces_lists_the_traces_of_the_tenant_that_was_asked(): void
     {
         $this->bootstrap();
@@ -226,6 +264,15 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $this->orderService->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
     }
 
+    /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, array<string, mixed>>
+     */
+    private function channelsByName(array $snapshot): array
+    {
+        return array_column($snapshot['channels'], null, 'name');
+    }
+
     private function consumeAsync(int $messages): void
     {
         $this->orderService->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: $messages, stopOnError: false));
@@ -264,6 +311,12 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
                 $this->replayed[] = [$order, $tenant];
             }
 
+            #[Asynchronous('tenant_queue')]
+            #[CommandHandler('order.queue', endpointId: 'order.queueing')]
+            public function queue(string $order): void
+            {
+            }
+
             #[CommandHandler('ticket.create', endpointId: 'ticket.creating')]
             public function create(string $subject): void
             {
@@ -288,6 +341,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             extensionObjects: [
                 ...$pulseChannels,
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
+                DbalBackedMessageChannelBuilder::create('tenant_queue'),
                 $withDefaultConnection
                     ? MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], 'tenant_a_connection')
                     : MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),

@@ -23,7 +23,7 @@ final class DeadLetterController extends AbstractController
     public function list(Request $request): Response
     {
         $filter = DeadLetterFilter::fromInput($request->query);
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
 
         return $this->render('dead_letters/list.html.twig', [
             'filter' => $filter,

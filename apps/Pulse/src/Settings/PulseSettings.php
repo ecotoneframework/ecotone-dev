@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Settings;
 
 use App\Snapshot\Snapshots;
+use PDO;
 
 final readonly class PulseSettings
 {
+    public const TRANSPORT_CONNECTION_REFERENCE = 'pulse_transport';
+    public const INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS = 5;
+
     /**
      * @param array<string, string> $serviceChannels service name => channel the service consumes
      */
@@ -18,9 +22,9 @@ final readonly class PulseSettings
         public Transport $transport,
         public array $serviceChannels,
         public int $replyTimeoutSeconds,
-        public int $renderWaitSeconds,
+        public int $awaitTimeoutSeconds,
         public int $refreshIntervalSeconds,
-        public string $cacheDir,
+        public string $internalDatabasePath,
     ) {
     }
 
@@ -51,22 +55,38 @@ final readonly class PulseSettings
         }
 
         $replyTimeout = self::seconds($read('PULSE_REPLY_TIMEOUT', '10'), 'PULSE_REPLY_TIMEOUT', 1);
-        $renderWait = self::seconds($read('PULSE_RENDER_WAIT', '2'), 'PULSE_RENDER_WAIT', 0);
+        $awaitTimeout = self::seconds($read('PULSE_AWAIT_TIMEOUT', '20'), 'PULSE_AWAIT_TIMEOUT', 0);
 
         $refreshInterval = self::seconds($read('PULSE_REFRESH_INTERVAL', '20'), 'PULSE_REFRESH_INTERVAL', 1);
         if ($refreshInterval >= Snapshots::FRESHNESS_SECONDS) {
             throw new PulseConfigurationException(sprintf('PULSE_REFRESH_INTERVAL "%d" is not shorter than the %d seconds after which a snapshot stops counting as fresh, so pages would open on stale snapshots and the worker would not be refreshing ahead of them. Set it to a whole number of seconds between 1 and %d, for example 20, which is the default.', $refreshInterval, Snapshots::FRESHNESS_SECONDS, Snapshots::FRESHNESS_SECONDS - 1));
         }
 
-        $cacheDir = $read('PULSE_CACHE_DIR', 'var/pulse-cache');
-        if (! str_starts_with($cacheDir, '/')) {
-            $cacheDir = $projectDir . '/' . $cacheDir;
+        $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
+        if (! str_starts_with($internalDatabasePath, '/')) {
+            $internalDatabasePath = $projectDir . '/' . $internalDatabasePath;
         }
 
         $transport = Transport::fromDsn($dsn);
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $cacheDir);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
+    }
+
+    /**
+     * @return array{dsn: string, connection: array{driverOptions: array<int, int>}}
+     */
+    public function internalDatabaseConfiguration(): array
+    {
+        return [
+            'dsn' => 'sqlite:///' . $this->internalDatabasePath,
+            'connection' => ['driverOptions' => [PDO::ATTR_TIMEOUT => self::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]],
+        ];
+    }
+
+    public function transportConnectionReference(): string
+    {
+        return self::TRANSPORT_CONNECTION_REFERENCE;
     }
 
     /**

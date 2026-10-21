@@ -21,7 +21,7 @@ final class TopologyController extends AbstractController
     #[Route('/topology', name: 'topology', methods: ['GET'])]
     public function topology(): Response
     {
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
         $serviceFlows = ServiceFlows::of($snapshots);
         $report = TopologyReport::of($serviceFlows, array_keys($this->settings->serviceChannels), $this->settings->serviceName);
 

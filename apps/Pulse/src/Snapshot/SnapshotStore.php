@@ -4,24 +4,20 @@ declare(strict_types=1);
 
 namespace App\Snapshot;
 
+use App\Storage\InternalDatabase;
+use App\Storage\InternalTables;
 use Closure;
-use Psr\Cache\CacheItemPoolInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Lock\LockFactory;
+use Doctrine\DBAL\Connection;
 
 final readonly class SnapshotStore
 {
-    public function __construct(
-        #[Autowire(service: 'pulse.cache')] private CacheItemPoolInterface $pool,
-        #[Autowire(service: 'pulse.lock_factory')] private LockFactory $locks,
-    ) {
+    public function __construct(private InternalDatabase $database)
+    {
     }
 
     public function read(string $service): ServiceRecord
     {
-        $item = $this->pool->getItem('service.' . $service);
-
-        return $item->isHit() ? ServiceRecord::fromArray($item->get()) : ServiceRecord::empty();
+        return $this->readFrom($this->database->connection(), $service);
     }
 
     /**
@@ -29,18 +25,21 @@ final readonly class SnapshotStore
      */
     public function update(string $service, Closure $change): ServiceRecord
     {
-        $lock = $this->locks->createLock('pulse.service.' . $service);
-        $lock->acquire(true);
-
-        try {
-            $record = $change($this->read($service));
-            $item = $this->pool->getItem('service.' . $service);
-            $item->set($record->toArray());
-            $this->pool->save($item);
+        return $this->database->inTransaction(function (Connection $connection) use ($service, $change): ServiceRecord {
+            $record = $change($this->readFrom($connection, $service));
+            $connection->executeStatement(
+                'INSERT INTO ' . InternalTables::SERVICE_RECORD . ' (service, record) VALUES (?, ?) ON CONFLICT(service) DO UPDATE SET record = excluded.record',
+                [$service, json_encode($record->toArray(), JSON_THROW_ON_ERROR)]
+            );
 
             return $record;
-        } finally {
-            $lock->release();
-        }
+        });
+    }
+
+    private function readFrom(Connection $connection, string $service): ServiceRecord
+    {
+        $stored = $connection->fetchOne('SELECT record FROM ' . InternalTables::SERVICE_RECORD . ' WHERE service = ?', [$service]);
+
+        return is_string($stored) ? ServiceRecord::fromArray(json_decode($stored, true, 512, JSON_THROW_ON_ERROR)) : ServiceRecord::empty();
     }
 }

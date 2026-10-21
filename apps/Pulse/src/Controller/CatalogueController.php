@@ -22,7 +22,7 @@ final class CatalogueController extends AbstractController
     public function catalogue(Request $request): Response
     {
         $query = $request->query->getString('q');
-        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $snapshots = $this->snapshots->viewAndRequestStale();
         $serviceFlows = ServiceFlows::of($snapshots);
 
         return $this->render('graph/catalogue.html.twig', ['query' => $query, 'notices' => $serviceFlows->notices, 'entries' => MessageCatalogue::search($serviceFlows->flows, $query)]);

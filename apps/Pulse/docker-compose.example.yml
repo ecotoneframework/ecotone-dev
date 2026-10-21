@@ -1,39 +1,29 @@
 # Run from the repository root:
 #   docker compose -f apps/Pulse/docker-compose.example.yml up --build
 # Replace ECOTONE_LICENCE_KEY with your Enterprise licence key before starting.
-
-x-pulse: &pulse
-  build:
-    context: ../..
-    dockerfile: apps/Pulse/Dockerfile
-  environment: &pulse-environment
-    APP_SECRET: change-me
-    ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:?set ECOTONE_LICENCE_KEY to your Ecotone Enterprise licence key}
-    PULSE_SERVICE_NAME: ecotone_pulse
-    PULSE_CHANNEL: ecotone_pulse
-    PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
-    PULSE_SERVICES: orders:orders_channel,billing:billing_channel
-    PULSE_REPLY_TIMEOUT: "10"
-    PULSE_RENDER_WAIT: "2"
-    PULSE_REFRESH_INTERVAL: "20"
-    PULSE_CACHE_DIR: /app/var/pulse-cache
-  volumes:
-    - pulse-cache:/app/var/pulse-cache
-  depends_on:
-    rabbitmq:
-      condition: service_healthy
+# Pulse keeps its own state in an SQLite database inside the container, without a volume:
+# it is created when the container starts and is gone when the container is replaced.
 
 services:
-  web:
-    <<: *pulse
-    command: ["web"]
+  pulse:
+    build:
+      context: ../..
+      dockerfile: apps/Pulse/Dockerfile
+    environment:
+      APP_SECRET: change-me
+      ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:?set ECOTONE_LICENCE_KEY to your Ecotone Enterprise licence key}
+      PULSE_SERVICE_NAME: ecotone_pulse
+      PULSE_CHANNEL: ecotone_pulse
+      PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
+      PULSE_SERVICES: orders:orders_channel,billing:billing_channel
+      PULSE_REPLY_TIMEOUT: "10"
+      PULSE_REFRESH_INTERVAL: "20"
     ports:
       - "8080:8080"
-
-  worker:
-    <<: *pulse
-    command: ["worker"]
     restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -42,6 +32,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-
-volumes:
-  pulse-cache:

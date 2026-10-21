@@ -90,6 +90,20 @@ jobs:
     name: Pulse Docker image
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      database:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: ecotone
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecotone"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
@@ -109,35 +123,58 @@ jobs:
       - name: Smoke test, a missing configuration is refused with the expected message
         run: |
           set +e
-          output="$(docker run --rm ecotone-pulse:ci web 2>&1)"
+          output="$(docker run --rm ecotone-pulse:ci 2>&1)"
           status=$?
           echo "$output"
           test "$status" -ne 0
           echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"
 
-      - name: Smoke test, the web role serves the Services page while the broker is unreachable
+      - name: Smoke test, a consumer that keeps exiting at once backs off and then stops the container
         run: |
           licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
-          docker run -d --name pulse-web -p 8080:8080 \
+          set +e
+          output="$(docker run --rm \
             -e APP_SECRET=ci \
             -e ECOTONE_LICENCE_KEY="$licence" \
-            -e PULSE_TRANSPORT_DSN=amqp://guest:guest@127.0.0.1:5672 \
+            -e PULSE_TRANSPORT_DSN=sqlite:////tmp/transport.db \
             -e PULSE_SERVICES=orders:orders_channel \
-            -e PULSE_RENDER_WAIT=0 \
-            ecotone-pulse:ci web
-          for attempt in $(seq 1 30); do
-            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ || true)"
+            -e PULSE_WORKER_TIME_LIMIT_MS=1 \
+            -e PULSE_RESTART_MAX_RAPID=3 \
+            ecotone-pulse:ci 2>&1)"
+          status=$?
+          echo "$output"
+          test "$status" -ne 0
+          echo "$output" | grep -q "Pulse is stopping"
+
+      - name: Smoke test, one container serves, consumes replies, refreshes and answers a Refresh with Connected
+        run: |
+          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
+          dsn=pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          docker run -d --name pulse --network host \
+            -e APP_SECRET=ci \
+            -e ECOTONE_LICENCE_KEY="$licence" \
+            -e PULSE_TRANSPORT_DSN="$dsn" \
+            -e PULSE_SERVICES=orders:orders_channel \
+            ecotone-pulse:ci
+          for attempt in $(seq 1 60); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/healthz || true)"
             test "$code" = "200" && break
             sleep 2
           done
-          docker logs pulse-web
+          docker logs pulse
           test "$code" = "200"
-
-      - name: Smoke test, the worker role refuses a missing configuration
-        run: |
-          set +e
-          output="$(docker run --rm ecotone-pulse:ci worker 2>&1)"
-          status=$?
-          echo "$output"
-          test "$status" -ne 0
-          echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"
+          docker exec pulse test -f /app/var/internal/pulse.sqlite
+          for process in frankenphp "ecotone:run" "pulse:refresh"; do
+            docker exec pulse sh -c "grep -l '$process' /proc/[0-9]*/cmdline" > /dev/null
+          done
+          docker run -d --name orders --network host \
+            -e ECOTONE_LICENCE_KEY="$licence" \
+            -e PULSE_TRANSPORT_DSN="$dsn" \
+            --entrypoint php ecotone-pulse:ci docker/smoke-service.php
+          sleep 5
+          page="$(curl -s -L -d '' http://127.0.0.1:8080/refresh)"
+          echo "$page" | grep -q 'data-status="connected"'
+          if docker logs pulse 2>&1 | grep -qi "critical"; then
+            docker logs pulse
+            exit 1
+          fi

@@ -32,6 +32,7 @@ final class TraceProgress
      * @param array<string, array<string, true>> $sentDeliveries
      * @param array<string, array<string, true>> $processedDeliveries
      * @param array<string, string> $causedBy
+     * @param array<string, true> $sentToOtherServices
      */
     public function __construct(
         public readonly string $traceId,
@@ -42,12 +43,13 @@ final class TraceProgress
         public readonly array $sentDeliveries,
         public readonly array $processedDeliveries,
         public readonly array $causedBy,
+        public readonly array $sentToOtherServices,
     ) {
     }
 
     public static function unknown(string $traceId): self
     {
-        return new self($traceId, false, false, [], [], [], [], []);
+        return new self($traceId, false, false, [], [], [], [], [], []);
     }
 
     public function isCompleted(): bool
@@ -87,10 +89,10 @@ final class TraceProgress
     {
         $pending = [];
         foreach ($this->sent as $destination => $sent) {
-            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processed[$destination] ?? []))];
+            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processed[$destination] ?? [], $this->sentToOtherServices))];
         }
         foreach ($this->sentDeliveries as $channel => $sent) {
-            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processedDeliveries[$channel] ?? []))];
+            $pending = [...$pending, ...array_keys(array_diff_key($sent, $this->processedDeliveries[$channel] ?? [], $this->sentToOtherServices))];
         }
 
         return array_map('strval', $pending);

@@ -16,6 +16,7 @@ final readonly class Snapshots
     public function __construct(
         private SnapshotStore $store,
         private SnapshotRequester $requester,
+        private ReplyAwaiter $awaiter,
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
         private PulseSettings $settings,
     ) {
@@ -26,18 +27,14 @@ final readonly class Snapshots
      */
     public function viewAndRequestStale(): array
     {
-        foreach (array_keys($this->settings->serviceChannels) as $service) {
-            $this->requester->request($service, force: false);
-        }
+        $this->awaiter->await(array_map(fn (string $service) => $this->requester->request($service, force: false), array_keys($this->settings->serviceChannels)));
 
         return $this->all();
     }
 
     public function refresh(): void
     {
-        foreach (array_keys($this->settings->serviceChannels) as $service) {
-            $this->requester->request($service, force: true);
-        }
+        $this->awaiter->await(array_map(fn (string $service) => $this->requester->request($service, force: true), array_keys($this->settings->serviceChannels)));
     }
 
     public function refreshIdleServices(): void
@@ -45,21 +42,6 @@ final readonly class Snapshots
         foreach (array_keys($this->settings->serviceChannels) as $service) {
             $this->requester->refresh($service);
         }
-    }
-
-    /**
-     * @param list<ServiceSnapshot> $snapshots
-     * @return list<ServiceSnapshot>
-     */
-    public function waitForReplies(array $snapshots): array
-    {
-        $deadline = hrtime(true) + $this->settings->renderWaitSeconds * 1_000_000_000;
-        while (hrtime(true) < $deadline && self::anyWaiting($snapshots)) {
-            usleep(100_000);
-            $snapshots = $this->all();
-        }
-
-        return $snapshots;
     }
 
     /**

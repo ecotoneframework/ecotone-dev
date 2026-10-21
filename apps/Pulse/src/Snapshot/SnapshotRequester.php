@@ -9,6 +9,7 @@ use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -50,19 +51,20 @@ final readonly class SnapshotRequester
             return $claimed ? $record->requested($now, $this->settings->replyTimeoutSeconds) : $record;
         });
         if (! $claimed) {
-            return RequestResult::NotNeeded;
+            return RequestResult::notNeeded();
         }
 
+        $tracingId = ReplyAwaiter::newTracingId();
         try {
-            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
         } catch (Throwable $exception) {
             $this->logger->error('Pulse could not send the snapshot request to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
             $failure = sprintf('%s: the snapshot request could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
             $this->store->update($service, fn (ServiceRecord $record) => $record->requestFailed($failure));
 
-            return RequestResult::Failed;
+            return RequestResult::failed();
         }
 
-        return RequestResult::Sent;
+        return RequestResult::sent($tracingId, SnapshotReceiver::class);
     }
 }

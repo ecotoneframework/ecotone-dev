@@ -19,7 +19,7 @@ final class ServicesController extends AbstractController
     #[Route('/', name: 'services', methods: ['GET'])]
     public function services(): Response
     {
-        $services = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $services = $this->snapshots->viewAndRequestStale();
 
         return $this->render('services/index.html.twig', [
             'services' => $services,

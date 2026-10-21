@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Closure;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -19,6 +19,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Redis\ConnectionTestCase;
 
@@ -98,7 +99,7 @@ final class PulseChannelDepthTest extends ConnectionTestCase
     private function bootstrap(): void
     {
         $this->orders = new class () {
-            public ?\Closure $whileHandling = null;
+            public ?Closure $whileHandling = null;
 
             #[Asynchronous('pulse_depth_orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]

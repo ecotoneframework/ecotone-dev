@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Redis\Pulse\RedisChannelDepthProbe;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
 use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 

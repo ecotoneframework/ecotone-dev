@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Closure;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -123,7 +124,7 @@ final class PulseChannelDepthTest extends AmqpMessagingTestCase
         $this->requestQueue = 'pulse_request_' . Uuid::v7()->toRfc4122();
         $this->ghostQueue = 'pulse_ghost_' . Uuid::v7()->toRfc4122();
         $this->orders = new class () {
-            public ?\Closure $whileHandling = null;
+            public ?Closure $whileHandling = null;
 
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]

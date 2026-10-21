@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
+use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
@@ -114,7 +115,7 @@ final class PulseChannelDepthTest extends DbalMessagingTestCase
     private function bootstrap(): void
     {
         $this->orders = new class () {
-            public ?\Closure $whileHandling = null;
+            public ?Closure $whileHandling = null;
 
             #[Asynchronous('orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]

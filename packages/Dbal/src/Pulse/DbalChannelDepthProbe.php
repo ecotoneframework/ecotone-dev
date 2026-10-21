@@ -13,6 +13,7 @@ use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelDepth;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelProbe;
 use Interop\Queue\ConnectionFactory;
+use LogicException;
 use Throwable;
 
 /**
@@ -47,7 +48,7 @@ final class DbalChannelDepthProbe implements PulseChannelProbe
     public function depthsOf(array $destinationByChannel, int $budgetInMilliseconds): array
     {
         $context = $this->connectionFactory->createContext();
-        $connection = $context instanceof DbalContext ? $context->getDbalConnection() : throw new \LogicException('Pulse measures DBAL channels only on a DBAL connection, but the connection reference resolved to ' . $context::class . '.');
+        $connection = $context instanceof DbalContext ? $context->getDbalConnection() : throw new LogicException('Pulse measures DBAL channels only on a DBAL connection, but the connection reference resolved to ' . $context::class . '.');
 
         $now = $this->clock->now()->getTimestamp();
         $insideTransaction = $connection->isTransactionActive();

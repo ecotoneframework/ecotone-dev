@@ -9,6 +9,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelDepth;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseChannelProbe;
 use RdKafka\KafkaConsumer;
 use RdKafka\TopicPartition;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -71,7 +72,7 @@ final class KafkaChannelDepthProbe implements PulseChannelProbe
             $topicMetadata = $candidate;
         }
         if ($topicMetadata === null || $topicMetadata->getErr() !== RD_KAFKA_RESP_ERR_NO_ERROR) {
-            throw new \RuntimeException("Kafka topic '{$topic}' does not exist yet. It is created when the first message is sent to the channel, or create it on the broker");
+            throw new RuntimeException("Kafka topic '{$topic}' does not exist yet. It is created when the first message is sent to the channel, or create it on the broker");
         }
 
         $lag = 0;

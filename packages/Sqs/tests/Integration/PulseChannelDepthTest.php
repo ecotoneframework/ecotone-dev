@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
-use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Closure;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
@@ -19,7 +19,9 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
+use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 
 /**
@@ -106,14 +108,14 @@ final class PulseChannelDepthTest extends ConnectionTestCase
         $context = $this->getConnectionFactory()->createContext();
         try {
             $context->deleteQueue($context->createQueue('pulse_depth_orders'));
-        } catch (\Exception) {
+        } catch (Exception) {
         }
     }
 
     private function bootstrap(): void
     {
         $this->orders = new class () {
-            public ?\Closure $whileHandling = null;
+            public ?Closure $whileHandling = null;
 
             #[Asynchronous('pulse_depth_orders')]
             #[CommandHandler('order.place', endpointId: 'order.place.endpoint')]

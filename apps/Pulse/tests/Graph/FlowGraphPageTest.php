@@ -130,6 +130,18 @@ final class FlowGraphPageTest extends WebTestCase
         self::assertTrue(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
+    public function test_event_subscription_keys_match_published_routing_keys_ignoring_case(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $orders = $this->ordersSendingInvoiceCommandToBilling(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['INVOICE.*']));
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices()]);
+
+        $crawler = $client->request('GET', '/flow');
+
+        self::assertTrue(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
+    }
+
     public function test_event_is_not_linked_when_the_subscriber_excludes_the_publishing_service(): void
     {
         $this->configurePulseWithServices('orders', 'billing');

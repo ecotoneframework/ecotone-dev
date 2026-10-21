@@ -7,13 +7,13 @@ namespace App\Tests\Storage;
 use App\Kernel;
 use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\PulseServicesTrait;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @internal
  */
-final class ConcurrentWritersTest extends WebTestCase
+final class ConcurrentWritersTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
     use ConcurrentRespondersTrait;

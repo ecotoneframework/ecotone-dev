@@ -6,14 +6,14 @@ namespace App\Tests\Awaited;
 
 use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\PulseServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class AwaitedRefreshTest extends WebTestCase
+final class AwaitedRefreshTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
     use ConcurrentRespondersTrait;

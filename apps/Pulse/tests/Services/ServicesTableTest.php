@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Services;
 
 use App\Tests\Support\DeadLetterServicesTrait;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Support\ReleasingWebTestCase;
 
 /**
  * @internal
  */
-final class ServicesTableTest extends WebTestCase
+final class ServicesTableTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 

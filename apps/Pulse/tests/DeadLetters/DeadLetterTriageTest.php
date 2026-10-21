@@ -12,13 +12,13 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Test\StaticMessageBuilder;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class DeadLetterTriageTest extends WebTestCase
+final class DeadLetterTriageTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 

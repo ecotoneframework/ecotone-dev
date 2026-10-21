@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Http;
 
 use App\Tests\Support\PulseServicesTrait;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\Support\ReleasingWebTestCase;
 
 /**
  * @internal
  */
-final class HealthTest extends WebTestCase
+final class HealthTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 

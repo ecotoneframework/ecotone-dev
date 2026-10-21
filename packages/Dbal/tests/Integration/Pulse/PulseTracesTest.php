@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Cache\QueryCacheProfile;
+use Interop\Queue\ConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -64,6 +69,17 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private const SECOND_TRACE = '1af7651916cd43dd8448eb211c80319c';
     private const THIRD_TRACE = '2af7651916cd43dd8448eb211c80319c';
     private const CALLER_SPAN = 'b7ad6b7169203331';
+
+    private const UPGRADE_INSTRUCTIONS = <<<'TEXT'
+The 'ecotone_tracing' table required by the 'tracing' feature has no 'flow_type' and 'flow_status' columns, which flow tracking writes and Ecotone Pulse reads since the 2.0 release. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.
+
+Add the columns with the statement for your database:
+  PostgreSQL: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+  MySQL and MariaDB: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
+  SQLite: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+
+Or, as tracked flows are only kept for the configured retention, drop the 'ecotone_tracing' table and create it again with $messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('tracing').
+TEXT;
 
     private array $channels;
     private object $pulse;
@@ -180,6 +196,38 @@ final class PulseTracesTest extends DbalMessagingTestCase
         self::assertSame(1, $flowType['failedRuns']);
         $statusByTrace = array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'status', 'traceId');
         self::assertSame(['error', 'ok'], [$statusByTrace[self::FIRST_TRACE], $statusByTrace[self::SECOND_TRACE]]);
+    }
+
+    public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_write_naming_how_to_upgrade_it(): void
+    {
+        $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
+        BetaSpansTableConnection::$tableLacksFlowColumns = true;
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::UPGRADE_INSTRUCTIONS);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+    }
+
+    public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_snapshot_naming_how_to_upgrade_it(): void
+    {
+        $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        BetaSpansTableConnection::$tableLacksFlowColumns = true;
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::UPGRADE_INSTRUCTIONS);
+        $this->requestSnapshot();
+    }
+
+    public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_trace_list_naming_how_to_upgrade_it(): void
+    {
+        $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        BetaSpansTableConnection::$tableLacksFlowColumns = true;
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(self::UPGRADE_INSTRUCTIONS);
+        $this->listTraces(['flowType' => 'create.ticket']);
     }
 
     #[DataProvider('implementations')]
@@ -421,7 +469,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->listTraces(['flowType' => 'create.ticket']);
     }
 
-    private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false): void
+    private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false, ?ConnectionFactory $connectionFactory = null): void
     {
         $this->orders = new class () {
             #[CommandHandler('create.ticket', endpointId: 'ticket.create')]
@@ -490,7 +538,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
         ];
         $this->orderService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->orders::class],
-            containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $connectionFactory ?? $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory')] : []),
@@ -580,6 +628,13 @@ final class PulseTracesTest extends DbalMessagingTestCase
         );
     }
 
+    private function connectionOfABetaSpansTable(): DbalConnectionFactory
+    {
+        BetaSpansTableConnection::$tableLacksFlowColumns = false;
+
+        return new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => BetaSpansTableConnection::class]]);
+    }
+
     private function requestSnapshot(): array
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
@@ -587,5 +642,25 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         return json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
+    }
+}
+
+final class BetaSpansTableConnection extends Connection
+{
+    public static bool $tableLacksFlowColumns = false;
+
+    public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
+    {
+        return parent::executeQuery(self::asTheBetaTableKnewIt($sql), $params, $types, $qcp);
+    }
+
+    public function executeStatement(string $sql, array $params = [], array $types = []): int|string
+    {
+        return parent::executeStatement(self::asTheBetaTableKnewIt($sql), $params, $types);
+    }
+
+    private static function asTheBetaTableKnewIt(string $sql): string
+    {
+        return self::$tableLacksFlowColumns && ! str_starts_with($sql, 'CREATE') ? str_replace('flow_type', 'flow_type_of_the_final_release', $sql) : $sql;
     }
 }

@@ -93,7 +93,7 @@ final class SpansTableManager implements DbalTableManager
             ? "drop the '{$table}' table and create it again with \$messagingSystem->getServiceFromContainer(\\Ecotone\\Api\\Dbal\\ExtensionObject\\DatabaseSetupManager::class)->initialize('" . self::FEATURE_NAME . "')"
             : "drop the '{$table}' table and run:\n  {$this->consoleInvocationPrefix} ecotone:migration:database:setup --initialize --feature=" . self::FEATURE_NAME;
 
-        return "The '{$table}' table required by the '" . self::FEATURE_NAME . "' feature has no 'flow_type' and 'flow_status' columns, which Ecotone Pulse and flow tracking read and write since 2.0.0. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.\n\n"
+        return "The '{$table}' table required by the '" . self::FEATURE_NAME . "' feature has no 'flow_type' and 'flow_status' columns, which flow tracking writes and Ecotone Pulse reads since the 2.0 release. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.\n\n"
             . "Add the columns with the statement for your database:\n"
             . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX {$index} ON {$table} (flow_type, started_at);\n"
             . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX {$index} (flow_type, started_at);\n"

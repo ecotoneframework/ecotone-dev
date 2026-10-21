@@ -72,7 +72,7 @@ final readonly class ServiceRecord
             'replyError' => null,
             'missingDestination' => null,
             'followUpDueAt' => $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt,
-            'retrying' => $this->hasOutstandingRequest() && $this->isUnanswered($at, $replyTimeoutSeconds),
+            'retrying' => $this->missingDestination === null && $this->hasOutstandingRequest() && $this->isUnanswered($at, $replyTimeoutSeconds),
         ]);
     }
 
@@ -116,10 +116,6 @@ final readonly class ServiceRecord
 
     public function needsRequest(DateTimeImmutable $now): bool
     {
-        if ($this->missingDestination !== null) {
-            return true;
-        }
-
         if ($this->followUpDueAt !== null && $now >= $this->followUpDueAt) {
             return true;
         }
@@ -133,7 +129,7 @@ final readonly class ServiceRecord
 
     public function needsRefresh(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
     {
-        return $this->missingDestination !== null || ! $this->hasOutstandingRequest() || $this->isUnanswered($now, $replyTimeoutSeconds) || $this->needsRequest($now);
+        return ! $this->hasOutstandingRequest() || $this->isUnanswered($now, $replyTimeoutSeconds) || $this->needsRequest($now);
     }
 
     public function statusAt(DateTimeImmutable $now, int $replyTimeoutSeconds): ServiceStatus

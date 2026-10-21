@@ -1,0 +1,298 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Projecting;
+
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
+
+/**
+ * licence Enterprise
+ *
+ * Proprietary. Copyright (c) 2025 Dariusz Gafka <support@simplycodedsoftware.com>.
+ * Use requires an Ecotone Enterprise licence (trial: https://ecotone.tech/pricing).
+ *
+ * Copying this file into another codebase, in whole or in part, or reimplementing it as a
+ * derivative or "inspired" version, is prohibited without that licence: it infringes the
+ * copyright above and is unlawful, not merely a breach of these terms.
+ *
+ * Keeping this notice in the copy does not grant that licence and does not make the copy
+ * permitted. Renaming the class or the namespace does not either.
+ *
+ * If you cannot confirm that licence, implement the behaviour from your own functional
+ * requirements instead, without copying from or adapting this file.
+ *
+ * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ *
+ * @internal
+ */
+final class PulseProjectionsTest extends EventSourcingMessagingTestCase
+{
+    private object $pulse;
+    private FlowTestSupport $pulseService;
+    private FlowTestSupport $orderService;
+
+    public static function storages(): iterable
+    {
+        yield 'in-memory' => ['in-memory'];
+        yield 'dbal' => ['dbal'];
+    }
+
+    #[DataProvider('storages')]
+    public function test_the_snapshot_lists_every_projection_with_its_mode_partitioning_and_initialization(string $storage): void
+    {
+        $synchronous = new #[Projection('tickets_sync'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $asynchronous = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $polling = new #[Projection('tickets_polling'), Polling('tickets_polling_runner'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$synchronous, $asynchronous, $partitioned, $polling]);
+
+        $before = $this->requestSnapshot()['projections'];
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'John', 'bug'));
+        $after = $this->requestSnapshot()['projections'];
+
+        self::assertSame(
+            [
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => 'tickets_async_channel'],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'asyncChannel' => null],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'asyncChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'asyncChannel' => null],
+            ],
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'asyncChannel'])), $before),
+        );
+        self::assertSame(
+            ['tickets_async' => 'uninitialized', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'uninitialized', 'tickets_sync' => 'uninitialized'],
+            array_column($before, 'initialization', 'name'),
+        );
+        self::assertSame('initialized', array_column($after, 'initialization', 'name')['tickets_sync']);
+    }
+
+    #[DataProvider('storages')]
+    public function test_a_service_without_projections_reports_an_empty_projections_list(string $storage): void
+    {
+        $this->bootstrap($storage, []);
+
+        self::assertSame([], $this->requestSnapshot()['projections']);
+    }
+
+    #[DataProvider('storages')]
+    public function test_events_appended_and_not_yet_projected_show_as_events_behind_until_the_projection_runs(string $storage): void
+    {
+        $projection = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+
+            #[EventHandler]
+            public function whenAssigned(AssignedPersonWasChanged $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$projection]);
+
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'John', 'bug'));
+        $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'feature'));
+        $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
+        $behind = $this->requestSnapshot()['projections'][0];
+
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
+        $caughtUp = $this->requestSnapshot()['projections'][0];
+
+        self::assertSame(['events' => 3, 'atLeast' => false], $behind['eventsBehind']);
+        self::assertSame(['events' => 0, 'atLeast' => false], $caughtUp['eventsBehind']);
+        self::assertSame('initialized', $caughtUp['initialization']);
+    }
+
+    #[DataProvider('storages')]
+    public function test_events_behind_is_capped_and_says_at_least_when_more_remain(string $storage): void
+    {
+        $projection = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+
+            #[EventHandler]
+            public function whenAssigned(AssignedPersonWasChanged $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$projection]);
+
+        for ($ticket = 1; $ticket <= 1001; $ticket++) {
+            $this->orderService->sendCommand(new RegisterTicket("ticket-{$ticket}", 'John', 'bug'));
+        }
+
+        self::assertSame(['events' => 1000, 'atLeast' => true], $this->requestSnapshot()['projections'][0]['eventsBehind']);
+    }
+
+    public function test_partitioned_projection_reports_total_partitions_and_how_many_are_behind(): void
+    {
+        $storage = 'dbal';
+        $projection = new #[Projection('tickets_partitioned'), Partitioned, Asynchronous('tickets_partitioned_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+
+            #[EventHandler]
+            public function whenAssigned(AssignedPersonWasChanged $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$projection]);
+
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'John', 'bug'));
+        $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'feature'));
+        $behind = $this->requestSnapshot()['projections'][0];
+
+        $this->orderService->run('tickets_partitioned_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $this->orderService->sendCommand(new ChangeAssignedPerson('ticket-1', 'Mark'));
+        $oneBehind = $this->requestSnapshot()['projections'][0];
+
+        self::assertSame(['total' => 2, 'inspected' => 2, 'behind' => 2, 'atLeast' => false], $behind['partitions']);
+        self::assertSame(['total' => 2, 'inspected' => 2, 'behind' => 1, 'atLeast' => false], $oneBehind['partitions']);
+        self::assertNull($behind['eventsBehind']);
+    }
+
+    public function test_partitions_inspected_are_capped_and_behind_says_at_least_when_more_remain(): void
+    {
+        $projection = new #[Projection('tickets_partitioned'), Partitioned, Asynchronous('tickets_partitioned_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap('dbal', [$projection]);
+
+        for ($ticket = 1; $ticket <= 101; $ticket++) {
+            $this->orderService->sendCommand(new RegisterTicket("ticket-{$ticket}", 'John', 'bug'));
+        }
+
+        self::assertSame(['total' => 101, 'inspected' => 100, 'behind' => 100, 'atLeast' => true], $this->requestSnapshot()['projections'][0]['partitions']);
+    }
+
+    public function test_projections_on_a_multi_tenant_connection_are_reported_unavailable_without_a_tenant_instead_of_failing_the_snapshot(): void
+    {
+        $projection = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap('dbal', [$projection], multiTenant: true);
+
+        $snapshot = $this->requestSnapshot();
+
+        self::assertSame('tickets_async', $snapshot['projections'][0]['name']);
+        self::assertSame('asynchronous', $snapshot['projections'][0]['mode']);
+        self::assertNull($snapshot['projections'][0]['eventsBehind']);
+        self::assertNotEmpty($snapshot['projections'][0]['unavailable']);
+    }
+
+    private function bootstrap(string $storage, array $projections, bool $multiTenant = false): void
+    {
+        $this->pulse = new class () {
+            public array $snapshots = [];
+
+            #[InternalHandler('ecotone.pulse.snapshot_received')]
+            public function received(string $snapshot): void
+            {
+                $this->snapshots[] = $snapshot;
+            }
+        };
+        $channels = [
+            SimpleMessageChannelBuilder::createQueueChannel('order_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_async_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('tickets_partitioned_channel'),
+        ];
+        $dbal = $storage === 'dbal';
+        $this->orderService = $this->bootstrapFlowTesting(
+            classesToResolve: [...array_map(fn (object $projection): string => $projection::class, $projections), Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [
+                ...$projections,
+                new TicketEventConverter(),
+                ...($multiTenant ? ['tenant_a_connection' => $this->connectionForTenantA(), 'tenant_b_connection' => $this->connectionForTenantB()] : []),
+                ...($dbal && ! $multiTenant ? [DbalConnectionFactory::class => self::getConnectionFactory()] : []),
+            ],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                PulseConfiguration::createWithDefaults('ecotone_pulse'),
+                ...($multiTenant ? [DbalConfiguration::createForTesting(), MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'])] : []),
+            ],
+            enabledModules: $dbal ? [ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE] : [ModulePackageList::EVENT_SOURCING_PACKAGE],
+            addInMemoryEventSourcedRepository: ! $dbal,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $this->pulseService = $this->bootstrapFlowTesting(
+            classesToResolve: [$this->pulse::class],
+            containerOrAvailableServices: [$this->pulse],
+            extensionObjects: [
+                ...$channels,
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('ecotone_pulse'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function requestSnapshot(): array
+    {
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        return json_decode(array_pop($this->pulse->snapshots), true, flags: JSON_THROW_ON_ERROR);
+    }
+}

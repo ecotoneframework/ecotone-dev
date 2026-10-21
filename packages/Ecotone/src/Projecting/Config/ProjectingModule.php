@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\WithoutMessageCollector;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectionFlush;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -32,6 +33,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Projecting\EnterpriseProjectionNameHeader;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\OpenCoreProjectionNameHeader;
@@ -44,6 +46,7 @@ use Ecotone\Projecting\ProjectionOperations;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\ProjectionStateStorageRegistry;
 use Ecotone\Projecting\ProjectionTriggerEndpoint;
+use Ecotone\Projecting\Pulse\PulseProjections;
 use Ecotone\Projecting\SinglePartitionProvider;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceRegistry;
@@ -95,6 +98,7 @@ final class ProjectingModule implements AnnotationModule
         );
 
         $projectionRegistryMap = [];
+        $projectionDescriptions = [];
         foreach ($projectionBuilders as $projectionBuilder) {
             $projectionName = $projectionBuilder->projectionName();
             $reference = self::getProjectorExecutorReference($projectionName);
@@ -121,6 +125,15 @@ final class ProjectingModule implements AnnotationModule
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
+            $projectionDescriptions[$projectionName] = [
+                'mode' => match (true) {
+                    $projectionBuilder instanceof EcotoneProjectionExecutorBuilder && $projectionBuilder->isPolling() => 'polling',
+                    $projectionBuilder->asyncChannelName() !== null => 'asynchronous',
+                    default => 'synchronous',
+                },
+                'partitioned' => $projectionBuilder->isPartitioned(),
+                'asyncChannel' => $projectionBuilder->asyncChannelName(),
+            ];
 
             $handlerBuilder = MessageProcessorActivatorBuilder::create()
                 ->chainInterceptedProcessor(
@@ -209,6 +222,17 @@ final class ProjectingModule implements AnnotationModule
             new Definition(InMemoryProjectionRegistry::class, [$projectionRegistryMap])
         );
 
+        $messagingConfiguration->registerServiceDefinition(
+            PulseProjections::class,
+            new Definition(PulseProjections::class, [
+                $projectionDescriptions,
+                new Reference(ProjectionStateStorageRegistry::class),
+                new Reference(StreamSourceRegistry::class),
+                new Reference(PartitionProviderRegistry::class),
+                new Reference(StreamFilterRegistry::class),
+            ])
+        );
+
         // Register PartitionBatchExecutorHandler and its message handler
         $messagingConfiguration->registerServiceDefinition(
             PartitionBatchExecutorHandler::class,
@@ -249,7 +273,12 @@ final class ProjectingModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
     {
-        return [new ProjectingModuleRoutingExtension(self::inputChannelForProjectingManager(...))];
+        $extensions = [new ProjectingModuleRoutingExtension(self::inputChannelForProjectingManager(...))];
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'projections', serviceReference: PulseProjections::class);
+        }
+
+        return $extensions;
     }
 
     public function getModulePackageName(): string

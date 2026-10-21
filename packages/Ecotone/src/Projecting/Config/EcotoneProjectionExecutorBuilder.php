@@ -127,6 +127,18 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         return $this->asyncAttribute;
     }
 
+    private bool $polling = false;
+
+    public function markPolling(): void
+    {
+        $this->polling = true;
+    }
+
+    public function isPolling(): bool
+    {
+        return $this->polling;
+    }
+
     public function automaticInitialization(): bool
     {
         return $this->automaticInitialization;

@@ -129,6 +129,7 @@ final class ProjectingAttributeModule implements AnnotationModule
             }
 
             if ($isPolling) {
+                $projectionBuilder->markPolling();
                 $pollingProjections[$projectionAttribute->name] = $pollingAttribute->endpointId;
             }
 

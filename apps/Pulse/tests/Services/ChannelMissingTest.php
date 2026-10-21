@@ -39,6 +39,18 @@ final class ChannelMissingTest extends ReleasingWebTestCase
         self::assertStringContainsString(sprintf("'%s' does not exist", $this->serviceChannels['orders']), $crawler->filter('[data-service="orders"] [data-request-error]')->text());
     }
 
+    public function test_the_home_tile_of_a_service_whose_channel_is_missing_is_critical_and_names_the_channel(): void
+    {
+        $client = $this->pulseOnAmqp();
+
+        $crawler = $client->request('GET', '/');
+
+        $problem = $crawler->filter('[data-tile="orders"] [data-problem="channel-missing"]');
+        self::assertSame('critical', $problem->attr('data-problem-severity'));
+        self::assertSame(sprintf('Request channel "%s" does not exist on the broker', $this->serviceChannels['orders']), trim($problem->filter('a')->text()));
+        self::assertSame('/services/orders', $problem->filter('a')->attr('href'));
+    }
+
     public function test_the_service_becomes_connected_once_it_has_created_its_channel(): void
     {
         $client = $this->pulseOnAmqp();

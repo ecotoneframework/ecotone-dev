@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dead letter · Ecotone Pulse{% endblock %}
+
+{% macro text(name, text) %}
+    {% set value = text ?? '' %}
+    {% set marker = "\n... [truncated]" %}
+    <pre data-detail="{{ name }}">{% if value ends with marker %}{{ value|slice(0, value|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ value }}{% endif %}</pre>
+{% endmacro %}
+
+{% block body %}
+    <h1>Dead letter</h1>
+    <p><a href="{{ path('dead_letters', {service: service}) }}">← Dead letters of {{ service }}</a></p>
+    <dl>
+        <dt>Service</dt><dd data-detail="service">{{ service }}</dd>
+        <dt>Message id</dt><dd data-detail="messageId">{{ entry.messageId }}</dd>
+        <dt>Message name</dt><dd data-detail="messageName">{{ entry.messageName }}</dd>
+        <dt>Failed at</dt><dd data-detail="failedAt">{{ entry.failedAt|date('Y-m-d H:i:s T', 'UTC') }}</dd>
+        <dt>Exception</dt><dd data-detail="exception">{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</dd>
+        <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'unknown' }}</dd>
+        <dt>Channel</dt><dd data-detail="channel">{{ entry.channel ?? 'unknown' }}</dd>
+    </dl>
+    <h2>Stack trace</h2>
+    {{ _self.text('stackTrace', entry.stackTrace) }}
+    <h2>Payload</h2>
+    {{ _self.text('payload', entry.payload) }}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirm delete · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>Delete dead letters</h1>
+    <form method="post" action="{{ path('dead_letter_actions') }}" data-confirm-delete>
+        <p>This deletes every stored dead letter of {{ services|join(', ') }} matching the filter below, including those beyond the latest 100 shown in the list. It cannot be undone.</p>
+        <ul>
+            {% for name, value in filter.toQuery %}{% if name != 'service' %}<li>{{ name }}: {{ value }}</li>{% endif %}{% endfor %}
+        </ul>
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="scope" value="filter">
+        <input type="hidden" name="confirm" value="1">
+        {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+        <button type="submit">Delete all matching</button>
+        <a href="{{ path('dead_letters', filter.toQuery) }}">Cancel</a>
+    </form>
+{% endblock %}

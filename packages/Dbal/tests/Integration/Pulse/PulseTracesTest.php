@@ -308,6 +308,37 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_trace_reply_holds_at_most_a_thousand_spans_parents_first_and_says_it_was_cut(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('fan.out', '600', self::FIRST_TRACE);
+
+        $trace = $this->traceOf(self::FIRST_TRACE);
+
+        self::assertSame(1202, $trace['totalSpans']);
+        self::assertTrue($trace['truncated']);
+        self::assertCount(1000, $trace['spans']);
+        self::assertSame('send command', $trace['spans'][0]['name']);
+        $seen = [];
+        foreach ($trace['spans'] as $span) {
+            self::assertTrue($span['parentSpanId'] === self::CALLER_SPAN || isset($seen[$span['parentSpanId']]));
+            $seen[$span['spanId']] = true;
+        }
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_trace_reply_within_the_limit_is_not_flagged_as_cut(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('refund.ticket', 'ticket-1', self::FIRST_TRACE);
+
+        $trace = $this->traceOf(self::FIRST_TRACE);
+
+        self::assertSame(4, $trace['totalSpans']);
+        self::assertFalse($trace['truncated']);
+    }
+
+    #[DataProvider('implementations')]
     public function test_the_snapshot_has_no_tracing_section_without_flow_tracking(string $implementation): void
     {
         $this->bootstrap($implementation, flowTracking: false);
@@ -586,6 +617,19 @@ final class PulseTracesTest extends DbalMessagingTestCase
             #[Distributed]
             #[CommandHandler('ecotone.pulse.contributed', endpointId: 'pulse.contributed')]
             public function contributed(string $payload): void
+            {
+            }
+
+            #[CommandHandler('fan.out', endpointId: 'ticket.fan_out')]
+            public function fanOut(string $times, CommandBus $commandBus): void
+            {
+                for ($step = 0; $step < (int) $times; $step++) {
+                    $commandBus->sendWithRouting('fan.step', (string) $step);
+                }
+            }
+
+            #[CommandHandler('fan.step', endpointId: 'ticket.fan_step')]
+            public function fanStep(string $step): void
             {
             }
 

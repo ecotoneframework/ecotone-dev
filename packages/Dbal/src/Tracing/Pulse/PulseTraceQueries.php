@@ -39,6 +39,7 @@ final class PulseTraceQueries
     public const TRACE_ROUTING_KEY = 'ecotone.pulse.traces.trace';
     public const QUERY_ID_HEADER = 'ecotone_pulse_query_id';
     public const MAX_PER_PAGE = 25;
+    public const MAX_SPANS = 1000;
     private const LIST_EXAMPLE = '{"flowType": "create.ticket", "page": 1, "perPage": 25}';
     private const TRUNCATION_LIMIT_IN_BYTES = 4096;
     private const TRUNCATION_MARKER = "\n... [truncated]";
@@ -93,10 +94,14 @@ final class PulseTraceQueries
             throw InvalidArgumentException::create('A Pulse trace query needs a `traceId`, but the payload had none. Send {"traceId": "0af7651916cd43dd8448eb211c80319c"}, taking the trace id from a trace list or from the trace id an application logged.');
         }
 
+        $spans = self::inTreeOrder($this->traceStore->stepsOf($traceId));
+
         return json_encode([
             'queryId' => $queryId,
             'traceId' => $traceId,
-            'spans' => array_map($this->spanToArray(...), self::inTreeOrder($this->traceStore->stepsOf($traceId))),
+            'totalSpans' => count($spans),
+            'truncated' => count($spans) > self::MAX_SPANS,
+            'spans' => array_map($this->spanToArray(...), array_slice($spans, 0, self::MAX_SPANS)),
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 

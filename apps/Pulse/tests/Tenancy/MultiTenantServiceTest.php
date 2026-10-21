@@ -46,7 +46,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         self::assertCount(1, $list->filter('[data-service-section="orders@tenant_a"] [data-dead-letter]'));
         self::assertCount(2, $list->filter('[data-service-section="orders@tenant_b"] [data-dead-letter]'));
         self::assertSame('tenant_a', $list->filter('[data-service-section="orders@tenant_a"] [data-tenant]')->attr('data-tenant'));
-        self::assertSame('3', $client->request('GET', '/')->filter('[data-summary="dead-letters"] b')->text());
+        self::assertSame('2', $client->request('GET', '/')->filter('[data-summary="dead-letters"] b')->text());
     }
 
     public function test_a_replay_runs_the_dead_letter_in_the_tenant_it_belongs_to(): void

@@ -3316,6 +3316,8 @@ refused, because the connection of an unmapped tenant falls back to the default 
 multi-tenant connection reference, naming the ways out: a dedicated non-tenant `DbalConnection` reference for the Pulse
 channels, or a broker transport; MultiTenantConfigurations that name different tenant headers are refused as well.
 
+The `projections` section is tenant-scoped as well: a request without the tenant header leaves it out, and a request with the header reports the projections from the event store of that tenant. DBAL channels on the multi-tenant connection are listed in the tenant-less `channels` without a depth (all fields `null`, no `probeError`) and measured in the `channels` of each tenant's reply; channels of other transports are measured in the tenant-less reply only. The dead letter replay and delete by `failureId` act on the requested tenant only.
+
 **How to adapt:** nothing is required for a single-tenant service. A multi-tenant service that sends Pulse over a DBAL channel on its multi-tenant connection moves the Pulse channels to a connection that is not multi-tenant, for example `DbalBackedMessageChannelBuilder::create('orders', 'pulse_connection')`. Pulse can narrow the tenants it asks for with `PULSE_SERVICES=orders{tenants=tenant_a,tenant_b}`.
 
 A trace crosses services under one trace id. The first span a service stores for a message it received from another

@@ -6,17 +6,17 @@ namespace App\Tests\Awaited;
 
 use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\DeadLetterServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class AwaitedRequestsTest extends WebTestCase
+final class AwaitedRequestsTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
     use DeadLetterServicesTrait {
@@ -94,7 +94,8 @@ final class AwaitedRequestsTest extends WebTestCase
 
         $list = $client->request('GET', '/dead-letters');
         self::assertCount(2, $list->filter('[data-dead-letter]'));
-        $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $list->filter('[data-dead-letter] input[name="selected[orders][]"]')->each(static fn (Crawler $box) => $box->attr('value'))]]);
+        $confirmation = $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $list->filter('[data-dead-letter] input[name="selected[orders][]"]')->each(static fn (Crawler $box) => $box->attr('value'))]]);
+        $client->submit($confirmation->filter('[data-confirm-delete] button')->form());
         $after = $client->followRedirect();
 
         self::assertCount(0, $after->filter('[data-dead-letter]'));

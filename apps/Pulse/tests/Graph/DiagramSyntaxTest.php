@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Tests\Graph;
 
 use App\Tests\Support\MermaidDiagram;
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * @internal
  */
-final class DiagramSyntaxTest extends WebTestCase
+final class DiagramSyntaxTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
 

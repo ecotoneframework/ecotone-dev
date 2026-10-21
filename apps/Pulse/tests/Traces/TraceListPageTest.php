@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Traces;
 
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class TraceListPageTest extends WebTestCase
+final class TraceListPageTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
 

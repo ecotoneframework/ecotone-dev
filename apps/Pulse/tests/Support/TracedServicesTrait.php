@@ -9,9 +9,9 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
-use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
@@ -213,8 +213,8 @@ trait TracedServicesTrait
         $asyncChannels = self::ASYNC_CHANNELS;
         $channelConnection = $this->databasePerService ? 'pulse_shared' : DbalConnectionReference::DEFAULT;
         $connections = $this->databasePerService
-            ? [DbalConnectionFactory::class => new DbalConnectionFactory($this->serviceDsn($service)), 'pulse_shared' => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])]
-            : [DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])];
+            ? [DbalConnectionFactory::class => OpenedConnections::factory($this->serviceDsn($service)), 'pulse_shared' => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])]
+            : [DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])];
         $application = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, ...$connections],

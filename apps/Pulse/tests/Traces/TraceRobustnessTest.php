@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Traces;
 
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
@@ -12,13 +13,12 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class TraceRobustnessTest extends WebTestCase
+final class TraceRobustnessTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
 

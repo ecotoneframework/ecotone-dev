@@ -3251,6 +3251,53 @@ inclusive at whole-second precision, and `failedFrom` later than `failedTo` is r
 letter removed while a filtered action runs is skipped. A service without a dead letter refuses the action with how to
 enable it.
 
+With flow tracking (`FlowTrackingConfiguration`), the snapshot gains a `tracing` section, absent without flow tracking:
+`storage` (`dbal` or `in_memory`), `retention` in seconds and `flowTypes`, up to 100, most runs first. A flow type has
+`runs`, `failedRuns`, `p50Ms`, `p95Ms`, `maxMs` (the duration of the span the flow entered this service with) and
+`lastStartedAt`. A flow type is the destination the flow entered this service through, such as the routing key
+`create.ticket` of a command sent to its bus; a flow that entered from another service is named after the routing key
+it was unpacked into, and one without a destination after the first channel it sent to. A flow is a failure when any
+step this service kept for it failed: a failed unit of work stores nothing, so what fails the whole message is not
+counted here, and is found among the dead letters instead. Percentiles are the nearest rank, read with one indexed
+query per flow type and percentile, so the section costs a bounded number of queries per snapshot.
+
+Pulse reads the traces on demand, with `DistributedBus::sendMessage($service, $routingKey, $payload,
+MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey:
+'ecotone.pulse.query_result_received')`. The query id must be sent, and is returned in the payload and, as a user
+header, with the reply. `ecotone.pulse.traces.list` takes `{"flowType": "create.ticket", "page": 1, "perPage": 25}`
+(`page` from 1, `perPage` from 1 to 25) and replies `queryId`, `flowType`, `page`, `perPage`, `total` and `traces`,
+newest first, each with `traceId`, `startedAt`, `durationMs`, `status` (`ok` or `error`) and `rootEndpoint`; a flow
+type nobody ran is an empty list. `ecotone.pulse.traces.trace` takes `{"traceId": "..."}` and replies `queryId`,
+`traceId` and the `spans` this service kept, each parent before its children, with `spanId`, `parentSpanId`, `name`,
+`kind`, `status`, `statusDescription`, `startedAt`, `endedAt`, `attributes` and `events`; text is cut at 4096 bytes.
+Both are served to the Pulse service only, and Pulse requests are never recorded as flows themselves.
+
+A spans table created by an earlier 2.0 beta lacks the `flow_type` and `flow_status` columns the section and the
+queries need. The first write or read that meets it fails with a `ConfigurationException` naming the statements below.
+
+**How to adapt:** add the columns and the index for your database, replacing `ecotone_tracing` with your table name.
+Flows stored by the beta have no flow type, so they are not listed and are removed when their retention passes.
+
+PostgreSQL and SQLite:
+
+```sql
+ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL;
+ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL;
+CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+```
+
+MySQL and MariaDB:
+
+```sql
+ALTER TABLE ecotone_tracing
+    ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL,
+    ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL,
+    ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
+```
+
+Or drop the table, as tracked flows are only kept for the retention, and create it again:
+`DROP TABLE ecotone_tracing;` followed by `ecotone:migration:database:setup --initialize --feature=tracing`.
+
 ## 15. Testing and developer-experience changes
 
 These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them

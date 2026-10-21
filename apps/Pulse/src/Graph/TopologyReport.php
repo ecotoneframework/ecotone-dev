@@ -8,11 +8,12 @@ final readonly class TopologyReport
 {
     /**
      * @param list<array{from: string, to: string, channel: string, stale: bool}> $commandRoutes
-     * @param list<array{service: string, channel: string, keys: list<string>, stale: bool}> $eventSubscriptions
+     * @param list<array{service: string, channel: string, keys: list<string>, stale: bool, include: list<string>, exclude: list<string>}> $eventSubscriptions
+     * @param array<string, string> $serviceByChannel
      * @param list<Mismatch> $mismatches
      * @param list<string> $incompleteBecause
      */
-    private function __construct(public array $commandRoutes, public array $eventSubscriptions, public array $mismatches, public array $incompleteBecause)
+    private function __construct(public array $commandRoutes, public array $eventSubscriptions, public array $mismatches, public array $incompleteBecause, private array $serviceByChannel)
     {
     }
 
@@ -29,7 +30,7 @@ final readonly class TopologyReport
         $publishedKeys = [];
         foreach ($flows as $flow) {
             foreach ($flow->publishedEvents() as $event) {
-                $publishedKeys[] = $event['routingKey'];
+                $publishedKeys[] = ['service' => $flow->name, 'routingKey' => $event['routingKey']];
             }
         }
 
@@ -52,12 +53,13 @@ final readonly class TopologyReport
                 }
             }
             foreach ($flow->eventSubscriptions() as $subscription) {
-                $subscriptions[] = ['service' => $flow->name, 'channel' => $subscription['channel'], 'keys' => $subscription['subscriptionKeys'], 'stale' => $flow->isStale()];
+                $subscriptions[] = ['service' => $flow->name, 'channel' => $subscription['channel'], 'keys' => $subscription['subscriptionKeys'], 'stale' => $flow->isStale(), 'include' => $subscription['includePublishingServices'], 'exclude' => $subscription['excludePublishingServices']];
                 if ($serviceFlows->isIncomplete()) {
                     continue;
                 }
                 foreach ($subscription['subscriptionKeys'] as $key) {
-                    if (array_filter($publishedKeys, fn (string $published) => RoutingKeyPattern::matches($key, $published)) === []) {
+                    $accepted = ['channel' => $subscription['channel'], 'subscriptionKeys' => [$key], 'excludePublishingServices' => $subscription['excludePublishingServices'], 'includePublishingServices' => $subscription['includePublishingServices']];
+                    if (array_filter($publishedKeys, fn (array $published) => ServiceFlow::subscriptionAccepts($accepted, $published['service'], $published['routingKey'])) === []) {
                         $mismatches[] = new Mismatch('unpublished-subscription', "{$flow->name} subscribes to {$key}, but no service publishes an event matching it. Publish it with DistributedBus::publishEvent(), or remove {$key} from withEventMapping().");
                     }
                 }
@@ -75,7 +77,12 @@ final readonly class TopologyReport
             }
         }
 
-        return new self($routes, $subscriptions, $mismatches, $serviceFlows->notAnswering);
+        return new self($routes, $subscriptions, $mismatches, $serviceFlows->notAnswering, $serviceFlows->serviceByChannel);
+    }
+
+    public function hasConnections(): bool
+    {
+        return count(explode("\n", trim($this->toMermaid()))) > 1;
     }
 
     public function isIncomplete(): bool
@@ -99,6 +106,21 @@ final readonly class TopologyReport
                 }
             }
             $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape($route['channel']), $ids[$route['to']]);
+        }
+
+        foreach ($this->eventSubscriptions as $subscription) {
+            $subscriber = $this->serviceByChannel[$subscription['channel']] ?? null;
+            $publisherPermitted = ($subscription['include'] === [] || in_array($subscription['service'], $subscription['include'], true)) && ! in_array($subscription['service'], $subscription['exclude'], true);
+            if ($subscriber === null || $subscriber === $subscription['service'] || ! $publisherPermitted) {
+                continue;
+            }
+            foreach ([$subscription['service'], $subscriber] as $service) {
+                if (! isset($ids[$service])) {
+                    $ids[$service] = 't' . count($ids);
+                    $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service));
+                }
+            }
+            $lines[] = sprintf('    %s -.->|"%s"| %s', $ids[$subscription['service']], MermaidText::escape('events ' . implode(', ', $subscription['keys'])), $ids[$subscriber]);
         }
 
         return implode("\n", array_values(array_unique($lines))) . "\n";

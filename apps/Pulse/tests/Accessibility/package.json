@@ -1,0 +1,9 @@
+{
+  "name": "pulse-accessibility-check",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "axe-core": "4.10.2",
+    "playwright-core": "1.52.0"
+  }
+}

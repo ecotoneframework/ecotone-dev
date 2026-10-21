@@ -42,8 +42,12 @@ final class DeadLetterActionController extends AbstractController
         if ($actions instanceof DeadLetterNotice) {
             return $this->back($filter, $actions);
         }
-        if (! $replay && $byFilter && $request->request->get('confirm') !== '1') {
-            return $this->render('dead_letters/confirm_delete.html.twig', ['filter' => $filter, 'services' => array_keys($actions)]);
+        if (! $replay && $request->request->get('confirm') !== '1') {
+            return $this->render('dead_letters/confirm_delete.html.twig', [
+                'filter' => $filter,
+                'services' => array_keys($actions),
+                'selection' => $byFilter ? [] : $this->selectedIds($request->request->all('selected')),
+            ]);
         }
 
         $failed = [];
@@ -96,13 +100,7 @@ final class DeadLetterActionController extends AbstractController
             return DeadLetterNotice::targetPerService();
         }
 
-        $idsByService = [];
-        foreach ($selected as $service => $messageIds) {
-            $messageIds = array_values(array_filter(is_array($messageIds) ? $messageIds : [], static fn (mixed $messageId) => is_string($messageId) && $messageId !== ''));
-            if ($messageIds !== []) {
-                $idsByService[(string) $service] = $messageIds;
-            }
-        }
+        $idsByService = $this->selectedIds($selected);
         if ($idsByService === []) {
             return DeadLetterNotice::nothingSelected();
         }
@@ -121,6 +119,23 @@ final class DeadLetterActionController extends AbstractController
         }
 
         return $actions;
+    }
+
+    /**
+     * @param array<mixed> $selected
+     * @return array<string, list<string>>
+     */
+    private function selectedIds(array $selected): array
+    {
+        $idsByService = [];
+        foreach ($selected as $service => $messageIds) {
+            $messageIds = array_values(array_filter(is_array($messageIds) ? $messageIds : [], static fn (mixed $messageId) => is_string($messageId) && $messageId !== ''));
+            if ($messageIds !== []) {
+                $idsByService[(string) $service] = $messageIds;
+            }
+        }
+
+        return $idsByService;
     }
 
     /**

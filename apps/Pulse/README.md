@@ -170,3 +170,15 @@ pages Pulse renders. Inside the repository's `app` container the `DATABASE_DSN` 
 
 The Mermaid library for the diagram views is installed with `bin/console importmap:install` (the Docker build does it), so
 the running application never reaches out to a CDN.
+
+### Diagram and accessibility checks
+
+Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or newer works), not in the PHP container.
+
+* `tests/Mermaid` parses with the real Mermaid parser every diagram the test suite renders (`/flow`, `/flow?trace=…`, `/topology`).
+  The PHP tests write the diagrams to `var/mermaid`; then `cd tests/Mermaid && npm ci && node parse.mjs ../../var/mermaid`.
+  CI runs it after `composer tests:ci`. A diagram whose `subgraph` is not closed passes every text assertion and still renders as
+  "Syntax error in text", which is why it is parsed rather than matched.
+* `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind), in light
+  and dark, at 1440px and 390px, and fails on a serious or critical violation or a horizontal page scroll:
+  `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary).

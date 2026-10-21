@@ -7,8 +7,8 @@
 {% block body %}
     <h1>Topology</h1>
     {% include 'graph/_notices.html.twig' %}
-    {% if report.commandRoutes is empty %}
-        <p class="muted">No service maps commands to another service yet.</p>
+    {% if not report.hasConnections %}
+        <p class="muted">No service maps commands or events to another service yet.</p>
     {% else %}
         <pre class="mermaid" data-topology>{{ diagram }}</pre>
     {% endif %}

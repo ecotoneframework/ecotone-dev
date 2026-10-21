@@ -32,6 +32,7 @@ final class DeadLetterDetailTest extends WebTestCase
         self::assertStringContainsString('orderId', $detail->filter('[data-detail="payload"]')->text());
         self::assertStringContainsString('application/', $detail->filter('[data-detail="contentType"]')->text());
         self::assertSame('pulse_dead_letter_work', $detail->filter('[data-detail="channel"]')->text());
+        self::assertCount(1, $detail->filter('main'));
     }
 
     public function test_an_unknown_dead_letter_is_not_found(): void

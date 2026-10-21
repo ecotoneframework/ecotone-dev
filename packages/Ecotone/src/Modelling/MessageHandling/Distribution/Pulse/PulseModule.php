@@ -29,7 +29,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -65,11 +64,14 @@ final class PulseModule implements AnnotationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $routing = new BusRoutingMapBuilder();
         $channels = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
             if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
-                $channels = [...$channels, ...$routing->getRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry)];
+                /** @var CommandHandler $annotation */
+                $annotation = $registration->getAnnotationForMethod();
+                if ($annotation->getInputChannelName() !== '') {
+                    $channels[] = $annotation->getInputChannelName();
+                }
             }
         }
         foreach ($annotationRegistrationService->findAnnotatedMethods(InternalHandler::class) as $registration) {

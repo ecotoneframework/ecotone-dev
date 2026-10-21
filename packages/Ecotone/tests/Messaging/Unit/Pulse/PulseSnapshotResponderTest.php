@@ -99,6 +99,11 @@ final class PulseSnapshotResponderTest extends TestCase
             {
             }
 
+            #[CommandHandler]
+            public function placeByClass(PulseClassRoutedOrder $order): void
+            {
+            }
+
             #[InternalHandler('order.audit')]
             public function audit(string $orderId): void
             {
@@ -339,4 +344,8 @@ interface SourcelessPulseRequest
 {
     #[MessageGateway('ecotone.pulse.snapshot')]
     public function ask(#[Payload] string $payload): string;
+}
+
+final class PulseClassRoutedOrder
+{
 }

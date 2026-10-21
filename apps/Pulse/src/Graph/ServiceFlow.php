@@ -19,6 +19,7 @@ final readonly class ServiceFlow
      */
     public function __construct(
         public string $name,
+        public string $channel,
         public MessageFlowGraph $graph,
         public array $serviceMaps,
         public ServiceStatus $status,
@@ -40,7 +41,7 @@ final readonly class ServiceFlow
 
         $serviceMaps = $snapshot->snapshot['topology']['serviceMaps'] ?? [];
 
-        return new self($snapshot->service, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : [], $snapshot->status, $snapshot->ageSeconds);
+        return new self($snapshot->service, $snapshot->channel, $graph, is_array($serviceMaps) ? array_values($serviceMaps) : [], $snapshot->status, $snapshot->ageSeconds);
     }
 
     public function isStale(): bool
@@ -194,12 +195,12 @@ final readonly class ServiceFlow
         return $subscriptions;
     }
 
-    public function subscribesTo(string $routingKey, string $publishingService): bool
+    public function publishesToChannel(string $routingKey, string $channel): bool
     {
         foreach ($this->eventSubscriptions() as $subscription) {
-            $included = $subscription['includePublishingServices'] === [] || in_array($publishingService, $subscription['includePublishingServices'], true);
-            $excluded = in_array($publishingService, $subscription['excludePublishingServices'], true);
-            if ($included && ! $excluded && self::anyKeyMatches($subscription['subscriptionKeys'], $routingKey)) {
+            $included = $subscription['includePublishingServices'] === [] || in_array($this->name, $subscription['includePublishingServices'], true);
+            $excluded = in_array($this->name, $subscription['excludePublishingServices'], true);
+            if ($subscription['channel'] === $channel && $included && ! $excluded && self::anyKeyMatches($subscription['subscriptionKeys'], $routingKey)) {
                 return true;
             }
         }

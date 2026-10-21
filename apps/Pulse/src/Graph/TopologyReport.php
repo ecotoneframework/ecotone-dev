@@ -9,10 +9,11 @@ final readonly class TopologyReport
     /**
      * @param list<array{from: string, to: string, channel: string, stale: bool}> $commandRoutes
      * @param list<array{service: string, channel: string, keys: list<string>, stale: bool}> $eventSubscriptions
+     * @param array<string, string> $serviceByChannel
      * @param list<Mismatch> $mismatches
      * @param list<string> $incompleteBecause
      */
-    private function __construct(public array $commandRoutes, public array $eventSubscriptions, public array $mismatches, public array $incompleteBecause)
+    private function __construct(public array $commandRoutes, public array $eventSubscriptions, public array $mismatches, public array $incompleteBecause, private array $serviceByChannel)
     {
     }
 
@@ -75,7 +76,7 @@ final readonly class TopologyReport
             }
         }
 
-        return new self($routes, $subscriptions, $mismatches, $serviceFlows->notAnswering);
+        return new self($routes, $subscriptions, $mismatches, $serviceFlows->notAnswering, array_column(array_map(fn (ServiceFlow $flow) => ['channel' => $flow->channel, 'name' => $flow->name], $flows), 'name', 'channel'));
     }
 
     public function isIncomplete(): bool
@@ -99,6 +100,20 @@ final readonly class TopologyReport
                 }
             }
             $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape($route['channel']), $ids[$route['to']]);
+        }
+
+        foreach ($this->eventSubscriptions as $subscription) {
+            $subscriber = $this->serviceByChannel[$subscription['channel']] ?? null;
+            if ($subscriber === null || $subscriber === $subscription['service']) {
+                continue;
+            }
+            foreach ([$subscription['service'], $subscriber] as $service) {
+                if (! isset($ids[$service])) {
+                    $ids[$service] = 't' . count($ids);
+                    $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service));
+                }
+            }
+            $lines[] = sprintf('    %s -.->|"%s"| %s', $ids[$subscription['service']], MermaidText::escape('events ' . implode(', ', $subscription['keys'])), $ids[$subscriber]);
         }
 
         return implode("\n", array_values(array_unique($lines))) . "\n";

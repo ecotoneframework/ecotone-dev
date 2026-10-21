@@ -74,6 +74,7 @@ final readonly class Snapshots
 
             return new ServiceSnapshot(
                 $service,
+                $this->settings->serviceChannels[$service],
                 $record->statusAt($now, $this->settings->replyTimeoutSeconds),
                 $record->receivedAt,
                 $record->ageAt($now),

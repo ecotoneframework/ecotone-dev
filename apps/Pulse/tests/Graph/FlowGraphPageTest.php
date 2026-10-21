@@ -142,34 +142,34 @@ final class FlowGraphPageTest extends WebTestCase
         self::assertTrue(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
-    public function test_event_is_not_linked_when_the_subscriber_excludes_the_publishing_service(): void
+    public function test_event_is_not_linked_when_the_event_mapping_excludes_the_publishing_service(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseWebClient();
-        $orders = $this->ordersSendingInvoiceCommandToBilling(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], excludePublishingServices: ['billing']));
-        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices()]);
+        $orders = $this->ordersSendingInvoiceCommandToBilling();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], excludePublishingServices: ['billing']))]);
 
         $crawler = $client->request('GET', '/flow');
 
         self::assertFalse(MermaidDiagram::fromPage($crawler)->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
-    public function test_event_is_linked_only_when_the_subscriber_includes_the_publishing_service(): void
+    public function test_event_is_linked_only_when_the_event_mapping_includes_the_publishing_service(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseWebClient();
-        $orders = $this->ordersSendingInvoiceCommandToBilling(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['shipping']));
-        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices()]);
+        $orders = $this->ordersSendingInvoiceCommandToBilling();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['shipping']))]);
 
         self::assertFalse(MermaidDiagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
-    public function test_event_is_linked_when_the_subscriber_includes_the_publishing_service(): void
+    public function test_event_is_linked_when_the_event_mapping_includes_the_publishing_service(): void
     {
         $this->configurePulseWithServices('orders', 'billing');
         $client = $this->pulseWebClient();
-        $orders = $this->ordersSendingInvoiceCommandToBilling(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['billing']));
-        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices()]);
+        $orders = $this->ordersSendingInvoiceCommandToBilling();
+        $this->pulseHavingHeardFrom($client, ['orders' => $orders, 'billing' => $this->billingCreatingInvoices(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['orders'], ['invoice.*'], includePublishingServices: ['billing']))]);
 
         self::assertTrue(MermaidDiagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }

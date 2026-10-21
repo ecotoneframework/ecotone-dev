@@ -38,7 +38,7 @@ final class DistributedLinks
             }
             foreach ($sender->publishedEvents() as $published) {
                 foreach ($flows as $receiver) {
-                    if ($receiver === $sender || ! $receiver->subscribesTo($published['routingKey'], $sender->name)) {
+                    if ($receiver === $sender || ! $sender->publishesToChannel($published['routingKey'], $receiver->channel)) {
                         continue;
                     }
                     foreach ($receiver->distributedReceivers() as $received) {

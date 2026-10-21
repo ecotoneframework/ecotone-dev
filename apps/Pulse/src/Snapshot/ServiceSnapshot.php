@@ -13,6 +13,7 @@ final readonly class ServiceSnapshot
      */
     public function __construct(
         public string $service,
+        public string $channel,
         public ServiceStatus $status,
         public ?DateTimeImmutable $lastSeenAt,
         public ?int $ageSeconds,

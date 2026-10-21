@@ -1,35 +1,122 @@
-# Run from the repository root:
-#   docker compose -f apps/Pulse/docker-compose.example.yml up --build
-# Replace ECOTONE_LICENCE_KEY with your Enterprise licence key before starting.
+# Run from the repository root, with your Ecotone Enterprise licence key (trial: https://ecotone.tech/pricing):
+#
+#   ECOTONE_LICENCE_KEY=... docker compose -f apps/Pulse/docker-compose.example.yml --profile demo up --build
+#       Pulse on http://localhost:8080 with two demo services that already hold dead letters and traces.
+#
+#   ECOTONE_LICENCE_KEY=... docker compose -f apps/Pulse/docker-compose.example.yml --profile amqp up --build
+#       Pulse and RabbitMQ only, for your own services (PULSE_SERVICES=orders,billing).
+#
 # Pulse keeps its own state in an SQLite database inside the container, without a volume:
 # it is created when the container starts and is gone when the container is replaced.
 
+x-pulse: &pulse
+  build:
+    context: ../..
+    dockerfile: apps/Pulse/Dockerfile
+  image: ecotone-pulse:compose
+  environment: &pulse-environment
+    ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:?set ECOTONE_LICENCE_KEY to your Ecotone Enterprise licence key}
+
+x-pulse-healthcheck: &pulse-healthcheck
+  test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/healthz') === 'ok' ? 0 : 1);"]
+  interval: 5s
+  timeout: 5s
+  start_period: 20s
+  retries: 3
+
 services:
   pulse:
-    build:
-      context: ../..
-      dockerfile: apps/Pulse/Dockerfile
+    <<: *pulse
+    profiles: ["amqp"]
     environment:
-      ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:?set ECOTONE_LICENCE_KEY to your Ecotone Enterprise licence key}
+      <<: *pulse-environment
       PULSE_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672
       PULSE_SERVICES: orders,billing
     ports:
       - "8080:8080"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/healthz') === 'ok' ? 0 : 1);"]
-      interval: 5s
-      timeout: 5s
-      start_period: 20s
-      retries: 3
+    healthcheck: *pulse-healthcheck
     depends_on:
       rabbitmq:
         condition: service_healthy
 
   rabbitmq:
+    profiles: ["amqp"]
     image: rabbitmq:4-management
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20
+
+  demo-database:
+    profiles: ["demo"]
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ecotone
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: pulse_demo
+    volumes:
+      - ./docker/demo/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecotone -d pulse_demo_billing"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  demo-setup:
+    <<: *pulse
+    profiles: ["demo"]
+    command: ["php", "demo/setup.php"]
+    environment: &demo-environment
+      <<: *pulse-environment
+      PULSE_TRANSPORT_DSN: pgsql://ecotone:secret@demo-database:5432/pulse_demo
+    depends_on:
+      demo-database:
+        condition: service_healthy
+    restart: "no"
+
+  demo-orders:
+    <<: *pulse
+    profiles: ["demo"]
+    command: ["php", "demo/service.php", "orders"]
+    environment: *demo-environment
+    depends_on:
+      demo-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  demo-billing:
+    <<: *pulse
+    profiles: ["demo"]
+    command: ["php", "demo/service.php", "billing"]
+    environment: *demo-environment
+    depends_on:
+      demo-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  demo-seed:
+    <<: *pulse
+    profiles: ["demo"]
+    command: ["php", "demo/seed.php", "24"]
+    environment: *demo-environment
+    depends_on:
+      demo-setup:
+        condition: service_completed_successfully
+    restart: "no"
+
+  pulse-demo:
+    <<: *pulse
+    profiles: ["demo"]
+    environment:
+      <<: *demo-environment
+      PULSE_SERVICES: orders,billing
+      PULSE_REFRESH_INTERVAL: 10
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck: *pulse-healthcheck
+    depends_on:
+      demo-setup:
+        condition: service_completed_successfully

@@ -3155,7 +3155,10 @@ it sent to a channel was consumed from that channel, so an asynchronous command,
 pending until its consumer processed that exact message. A destination counts messages by id, so a redelivery
 satisfies its own delivery only, and a message keeps the delivery it started as through dynamic channels, the
 high-throughput outbox and a dead-letter replay. A flow handed more work after completing, as when a request sends
-two commands under one `tracingId`, is pending again until that work is done. `isCompletedFor()` and
+two commands under one `tracingId`, is pending again until that work is done. A message sent to another service through the
+`DistributedBus` is handed off: this service's store never sees it consumed, so awaiting a destination does not wait for it, and
+`isCompletedFor($tracingId, $destination)` is true once the reply to a distributed request was processed, whether the service
+that answered tracks its flows or not, and however the reply was consumed. `isCompletedFor()` and
 `isCompletedWithin()` refuse a `#[Polling]` projection by name, because a polled run is not part of the flow that appended its
 events.
 

@@ -180,7 +180,7 @@ trait DistributedServicesTrait
     {
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 ...array_map(
                     fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel)->withReceiveTimeout(1),

@@ -88,7 +88,7 @@ trait DeadLetterServicesTrait
 
         $application = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$work::class],
-            containerOrAvailableServices: [$work, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            containerOrAvailableServices: [$work, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),

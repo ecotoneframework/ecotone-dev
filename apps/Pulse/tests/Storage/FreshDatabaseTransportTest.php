@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Tests\Storage;
 
 use App\Tests\Support\ConcurrentRespondersTrait;
+use App\Tests\Support\OpenedConnections;
 use App\Tests\Support\PulseServicesTrait;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
+use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * @internal
  */
-final class FreshDatabaseTransportTest extends WebTestCase
+final class FreshDatabaseTransportTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
     use ConcurrentRespondersTrait;
@@ -44,10 +44,10 @@ final class FreshDatabaseTransportTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        parent::tearDown();
         if ($this->freshDatabase !== '') {
             $this->administration()->executeStatement(sprintf('DROP DATABASE IF EXISTS %s WITH (FORCE)', $this->freshDatabase));
         }
+        parent::tearDown();
     }
 
     /**
@@ -80,6 +80,6 @@ final class FreshDatabaseTransportTest extends WebTestCase
 
     private function administration(): \Doctrine\DBAL\Connection
     {
-        return (new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16'))->createContext()->getDbalConnection();
+        return OpenedConnections::factory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16')->createContext()->getDbalConnection();
     }
 }

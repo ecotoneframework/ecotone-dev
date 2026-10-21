@@ -6,16 +6,16 @@ namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\MermaidDiagram;
+use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * @internal
  */
-final class FannedOutEventsTest extends WebTestCase
+final class FannedOutEventsTest extends ReleasingWebTestCase
 {
     use DistributedServicesTrait;
 

@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Tests\Traces;
 
 use App\Tests\Support\HighlightedDiagram;
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * @internal
  */
-final class TraceOnFlowGraphTest extends WebTestCase
+final class TraceOnFlowGraphTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
 

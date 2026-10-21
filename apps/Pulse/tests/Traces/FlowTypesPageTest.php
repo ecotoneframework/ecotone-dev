@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Traces;
 
+use App\Tests\Support\ReleasingWebTestCase;
 use App\Tests\Support\TracedServicesTrait;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * @internal
  */
-final class FlowTypesPageTest extends WebTestCase
+final class FlowTypesPageTest extends ReleasingWebTestCase
 {
     use TracedServicesTrait;
 

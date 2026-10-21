@@ -6,13 +6,13 @@ namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
 use App\Tests\Support\MermaidDiagram;
+use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * @internal
  */
-final class FlowGraphPageTest extends WebTestCase
+final class FlowGraphPageTest extends ReleasingWebTestCase
 {
     use DistributedServicesTrait;
 

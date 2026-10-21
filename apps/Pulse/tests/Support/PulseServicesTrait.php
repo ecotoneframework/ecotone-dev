@@ -136,7 +136,7 @@ trait PulseServicesTrait
 
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classes,
-            containerOrAvailableServices: [...$handlers, DbalConnectionFactory::class => new DbalConnectionFactory($dsn)],
+            containerOrAvailableServices: [...$handlers, DbalConnectionFactory::class => OpenedConnections::factory($dsn)],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),

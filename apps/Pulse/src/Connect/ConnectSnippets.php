@@ -102,18 +102,18 @@ final readonly class ConnectSnippets
         $uses = implode("\n", array_map(static fn (string $class) => 'use ' . $class . ';', $imports));
 
         return <<<PHP
-<?php
+            <?php
 
-{$uses}
+            {$uses}
 
-\$ecotone = EcotoneLite::bootstrap(
-    classesToResolve: [PulseSetup::class],
-    containerOrAvailableServices: [
-        {$services},
-    ],
-    licenceKey: getenv('ECOTONE_LICENCE_KEY'),
-);
-PHP;
+            \$ecotone = EcotoneLite::bootstrap(
+                classesToResolve: [PulseSetup::class],
+                containerOrAvailableServices: [
+                    {$services},
+                ],
+                licenceKey: getenv('ECOTONE_LICENCE_KEY'),
+            );
+            PHP;
     }
 
     private function requestChannel(string $service): string

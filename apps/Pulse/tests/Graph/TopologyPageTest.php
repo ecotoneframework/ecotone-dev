@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Graph;
 
 use App\Tests\Support\DistributedServicesTrait;
-use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**

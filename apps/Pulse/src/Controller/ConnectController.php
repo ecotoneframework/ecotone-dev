@@ -23,7 +23,12 @@ final class ConnectController extends AbstractController
         $service = trim($request->query->getString('service'));
         $service = $service === '' ? ConnectSnippets::PLACEHOLDER_SERVICE : $service;
 
+        if (! ConnectSnippets::isValidName($service)) {
+            return $this->render('connect/index.html.twig', ['service' => ConnectSnippets::PLACEHOLDER_SERVICE, 'invalid' => $service, 'known' => array_keys($this->settings->routes), 'snippets' => [], 'servicesEntry' => ''], new Response(status: Response::HTTP_BAD_REQUEST));
+        }
+
         return $this->render('connect/index.html.twig', [
+            'invalid' => null,
             'service' => $service,
             'known' => array_keys($this->settings->routes),
             'snippets' => $this->snippets->for($service),

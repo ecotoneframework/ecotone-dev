@@ -9,5 +9,9 @@
         <datalist id="known-services">{% for name in known %}<option value="{{ name }}">{% endfor %}</datalist>
         <button type="submit" class="pri">Generate</button>
     </form>
-    {% include 'connect/_snippets.html.twig' %}
+    {% if invalid is not null %}
+        <p class="notice" data-invalid-service>"{{ invalid }}" cannot be a service name in generated code. Use only the characters [A-Za-z0-9_.-], the characters a name in PULSE_SERVICES can have without quoting.</p>
+    {% else %}
+        {% include 'connect/_snippets.html.twig' %}
+    {% endif %}
 {% endblock %}

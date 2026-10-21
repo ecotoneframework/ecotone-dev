@@ -83,6 +83,7 @@ dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
 .copy{font-size:.78rem;padding:.1rem .5rem;margin-left:.4rem}
 .actions{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.actions form{margin:0}
 .crumbs{color:var(--muted);margin:0 0 .5rem}
+.crumbs ol{list-style:none;display:flex;flex-wrap:wrap;gap:.4rem;padding:0;margin:0}.crumbs li+li::before{content:"/";margin-right:.4rem}
 
 @media (max-width:40rem){main{padding:.75rem}.hide-narrow{display:none}.bar{flex-wrap:wrap}}
 tbody th{font-size:inherit;text-transform:none;letter-spacing:0;color:var(--fg);padding:.6rem .8rem;border-bottom:1px solid var(--line);vertical-align:middle}

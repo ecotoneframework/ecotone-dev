@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\Settings\PulseSettings;
 use App\Snapshot\Snapshots;
+use DateTimeImmutable;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -30,15 +31,20 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
 
     protected function configure(): void
     {
-        $this->addOption('once', null, InputOption::VALUE_NONE, 'Run a single refresh tick and exit');
+        $this->addOption('ticks', null, InputOption::VALUE_REQUIRED, 'Stop after this many refresh ticks, 0 runs until stopped', '0');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $ticks = (int) $input->getOption('ticks');
+        $done = 0;
+        $nextTickAt = DateTimeImmutable::createFromInterface($this->clock->now());
         do {
             $this->snapshots->refreshIdleServices();
+            $done++;
             $output->writeln('Pulse requested snapshots from the services that were not waiting for one.', OutputInterface::VERBOSITY_VERBOSE);
-        } while (! $input->getOption('once') && $this->waitForNextTick());
+            $nextTickAt = $nextTickAt->modify(sprintf('+%d seconds', $this->settings->refreshIntervalSeconds));
+        } while (($ticks === 0 || $done < $ticks) && $this->waitUntil($nextTickAt));
 
         return Command::SUCCESS;
     }
@@ -55,9 +61,9 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
         return false;
     }
 
-    private function waitForNextTick(): bool
+    private function waitUntil(DateTimeImmutable $tickAt): bool
     {
-        for ($second = 0; $second < $this->settings->refreshIntervalSeconds && ! $this->stopped; $second++) {
+        while (! $this->stopped && DateTimeImmutable::createFromInterface($this->clock->now()) < $tickAt) {
             $this->clock->sleep(1);
         }
 

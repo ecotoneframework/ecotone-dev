@@ -110,11 +110,37 @@ final class PeriodicRefreshTest extends WebTestCase
         self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
     }
 
-    private function refreshTick(KernelBrowser $client): void
+    public function test_ticks_request_stale_services_and_skip_outstanding_ones(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->configurePulse(['PULSE_REPLY_TIMEOUT' => '30', 'PULSE_CHANNEL' => $this->pulseChannel, 'PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders']]);
+        $client = $this->pulseClient();
+        [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders'));
+
+        $this->refreshTick($client, ticks: 3);
+        $this->runService($orders, 'orders');
+
+        self::assertSame(2, $handler->requests);
+    }
+
+    public function test_a_broker_send_failure_does_not_stop_the_ticks(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'pgsql://ecotone:secret@127.0.0.1:1/ecotone', 'PULSE_SERVICES' => 'orders:orders_channel']);
+        $client = static::createClient();
+        $client->disableReboot();
+
+        $this->refreshTick($client, ticks: 3);
+
+        $crawler = $client->request('GET', '/');
+        self::assertCount(1, $crawler->filter('[data-service="orders"] [data-request-error]'));
+    }
+
+    private function refreshTick(KernelBrowser $client, int $ticks = 1): void
     {
         $application = new Application($client->getKernel());
         $command = new CommandTester($application->find('pulse:refresh'));
-        $command->execute(['--once' => true]);
+        $command->execute(['--ticks' => $ticks]);
         $command->assertCommandIsSuccessful();
     }
 

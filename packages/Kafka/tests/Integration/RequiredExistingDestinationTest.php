@@ -36,6 +36,7 @@ use Test\Ecotone\Kafka\ConnectionTestCase;
  * requirements instead, without copying from or adapting this file.
  *
  * Changes belong here, as a pull request to github.com/ecotoneframework/ecotone-dev
+ * @internal
  */
 
 #[RunTestsInSeparateProcesses]

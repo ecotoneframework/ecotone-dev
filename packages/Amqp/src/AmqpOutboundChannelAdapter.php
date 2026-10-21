@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPQueueException;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Api\Messaging\BatchMessage;
 use Ecotone\Api\Messaging\DestinationDoesNotExistException;
@@ -18,7 +19,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use AMQPQueueException;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Enqueue\AmqpTools\DelayStrategy;
@@ -353,6 +353,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         }
 
         $queueName = (string) $this->routingKey;
+        /** @var InteropAmqpContext $context */
         $context = $this->connectionFactory->getInnerConnectionFactory()->createContext();
         $queue = new AmqpQueue($queueName);
         $queue->addFlag(AmqpQueue::FLAG_PASSIVE);

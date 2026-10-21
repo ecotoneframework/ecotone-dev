@@ -388,6 +388,43 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 1);
     }
 
+    public function test_a_dead_letter_whose_time_to_live_has_expired_is_handled_after_a_targeted_replay(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder(metadata: [MessageHeaders::TIME_TO_LIVE => 5000], dbalChannels: true);
+        $handler->fail = false;
+        $ecotone->advanceTimeBy(\Ecotone\Api\Scheduling\Duration::seconds(60));
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
+    public function test_a_dead_letter_whose_delivery_was_delayed_is_not_delayed_again_after_a_targeted_replay(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder(metadata: [MessageHeaders::DELIVERY_DELAY => 3000], dbalChannels: true, advanceSecondsBeforeFailing: 3);
+        $handler->fail = false;
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
+    public function test_a_dead_letter_that_fails_again_after_a_targeted_replay_is_replayed_back_to_the_channel_it_was_replayed_to(): void
+    {
+        [$ecotone, $handler] = $this->failedAsynchronousOrder();
+
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone), $handler::OTHER_QUEUE);
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+        $this->assertErrorMessageCount($ecotone, 1);
+        $handler->fail = false;
+        $this->deadLetters($ecotone)->replay($this->firstDeadLetterId($ecotone));
+        $ecotone->run($handler::OTHER_QUEUE, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertSame(['order-1'], $handler->placed);
+    }
+
     private function deadLetters(FlowTestSupport $ecotone): DeadLetterGateway
     {
         return $ecotone->getGateway(DeadLetterGateway::class);
@@ -402,7 +439,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
      * @param object[] $additionalServices
      * @return array{FlowTestSupport, object}
      */
-    private function failedAsynchronousOrder(array $additionalServices = []): array
+    private function failedAsynchronousOrder(array $additionalServices = [], array $metadata = [], bool $dbalChannels = false, ?int $advanceSecondsBeforeFailing = null): array
     {
         $handler = new class () {
             public const QUEUE = 'ordersQueue';
@@ -440,9 +477,10 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 'managerRegistry' => $connectionFactory,
             ],
             extensionObjects: [
-                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($handler::QUEUE),
-                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($handler::OTHER_QUEUE),
-                \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('idleQueue'),
+                ...array_map(
+                    fn (string $channel) => $dbalChannels ? \Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder::create($channel) : \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel($channel),
+                    [$handler::QUEUE, $handler::OTHER_QUEUE, 'idleQueue']
+                ),
                 \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
             ],
@@ -451,7 +489,12 @@ final class DeadLetterTest extends DbalMessagingTestCase
             environment: 'prod',
             licenceKey: $additionalServices === [] ? null : \Ecotone\Test\LicenceTesting::VALID_LICENCE,
         );
-        $ecotone->sendCommandWithRouting('order.place', 'order-1');
+        $ecotone->sendCommandWithRouting('order.place', 'order-1', metadata: $metadata);
+        if ($advanceSecondsBeforeFailing !== null) {
+            $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+            $this->assertErrorMessageCount($ecotone, 0);
+            $ecotone->advanceTimeBy(\Ecotone\Api\Scheduling\Duration::seconds($advanceSecondsBeforeFailing));
+        }
         $ecotone->run($handler::QUEUE, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $this->assertErrorMessageCount($ecotone, 1);
 

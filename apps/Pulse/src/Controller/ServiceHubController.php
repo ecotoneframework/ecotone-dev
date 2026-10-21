@@ -8,6 +8,7 @@ use App\Connect\ConnectSnippets;
 use App\Doctor\Doctor;
 use App\Doctor\DoctorCheck;
 use App\Settings\PulseSettings;
+use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use App\Trace\FlowTypeOverview;
@@ -43,6 +44,7 @@ final class ServiceHubController extends AbstractController
             'diagnosis' => $failing ? $this->checksOf($service) : ['checks' => [], 'skipped' => false],
             'snippets' => $failing ? $this->snippets->for($service) : [],
             'servicesEntry' => $this->snippets->pulseServicesEntry($service),
+            'channels' => ChannelDepth::of($snapshot, $this->settings->queueThresholds),
             'tracing' => $flowTypes['tracing'],
             'flowTypes' => $flowTypes['flowTypes'],
             'deadLetterEnabled' => $snapshot->snapshot['deadLetter']['enabled'] ?? null,

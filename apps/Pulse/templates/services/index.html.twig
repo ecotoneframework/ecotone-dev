@@ -36,7 +36,7 @@
             <thead>
             <tr>
                 <th scope="col">Service</th><th scope="col">Status</th><th scope="col">Ecotone</th><th scope="col" class="hide-narrow">PHP</th><th scope="col" class="hide-narrow">Framework</th>
-                <th scope="col" class="hide-narrow">Licence expires</th><th scope="col" class="num">Dead letters</th><th scope="col">Last seen</th><th scope="col"><span class="visually-hidden">Actions</span></th>
+                <th scope="col" class="hide-narrow">Licence expires</th><th scope="col" class="num">Dead letters</th><th scope="col" class="num">Channels over threshold</th><th scope="col">Last seen</th><th scope="col"><span class="visually-hidden">Actions</span></th>
             </tr>
             </thead>
             <tbody>
@@ -55,8 +55,9 @@
                         <td class="hide-narrow">{{ service.snapshot.overview.framework|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.licence.expiresAt|default('never') }}</td>
                         <td class="num">{% if service.deadLetterTotal is not null %}<span data-dead-letters>{% if service.deadLetterTotal > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.deadLetterTotal }}</a>{% else %}{{ service.deadLetterTotal }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+                        <td class="num"><span data-channels-over>{% if channelsOver[service.service] > 0 %}<a href="{{ path('service_hub', {service: service.service}) }}#channels">{{ channelsOver[service.service] }}</a>{% else %}{{ channelsOver[service.service] }}{% endif %}</span></td>
                     {% else %}
-                        <td class="muted" colspan="5">no snapshot yet</td>
+                        <td class="muted" colspan="6">no snapshot yet</td>
                     {% endif %}
                     <td>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted" data-age>{{ service.ageSeconds }}s</span>{% endif %}</td>
                     <td>{% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ path('service_hub', {service: service.service}) }}#diagnose" data-diagnose>Diagnose</a>{% endif %}</td>

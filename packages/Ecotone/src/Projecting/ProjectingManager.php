@@ -216,19 +216,24 @@ class ProjectingManager
 
     private function preparePartitionBatches(int $partitionBatchSize, ?string $asyncChannelName, bool $shouldReset): void
     {
-        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
-
-        foreach ($streamFilters as $streamFilter) {
+        $partitionsPerStreamFilter = [];
+        foreach ($this->streamFilterRegistry->provide($this->projectionName) as $streamFilter) {
             $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
-
-            if ($totalPartitions === 0) {
-                continue;
+            if ($totalPartitions > 0) {
+                $partitionsPerStreamFilter[] = [$streamFilter, $totalPartitions];
             }
+        }
 
-            $numberOfBatches = (int) ceil($totalPartitions / $partitionBatchSize);
+        $totalPartitions = array_sum(array_column($partitionsPerStreamFilter, 1));
+        $totalBatches = array_sum(array_map(fn (array $counted): int => (int) ceil($counted[1] / $partitionBatchSize), $partitionsPerStreamFilter));
+        $batchNumber = 0;
+
+        foreach ($partitionsPerStreamFilter as [$streamFilter, $partitionsOfFilter]) {
+            $numberOfBatches = (int) ceil($partitionsOfFilter / $partitionBatchSize);
 
             for ($batch = 0; $batch < $numberOfBatches; $batch++) {
                 $offset = $batch * $partitionBatchSize;
+                $batchNumber++;
 
                 $headers = [
                     'partitionBatch.limit' => $partitionBatchSize,
@@ -237,6 +242,9 @@ class ProjectingManager
                     'partitionBatch.aggregateType' => $streamFilter->aggregateType,
                     'partitionBatch.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
                     'partitionBatch.shouldReset' => $shouldReset,
+                    ProjectingHeaders::REBUILD_BATCH_NUMBER => $batchNumber,
+                    ProjectingHeaders::REBUILD_BATCH_COUNT => $totalBatches,
+                    ProjectingHeaders::REBUILD_PARTITION_COUNT => $totalPartitions,
                 ];
 
                 $this->sendPartitionBatchMessage($headers, $asyncChannelName);

@@ -10,6 +10,11 @@
     <h1>Traces</h1>
     <p class="muted">Flow types are named by how a flow entered its service, so the same business flow has a different flow type in each service. Statistics cover the latest runs of each flow type; errors recorded are failures inside a unit of work that still completed. A failed asynchronous step is found among the dead letters.</p>
 
+    <form method="get" action="{{ path('traces') }}" data-trace-search>
+        <label>Find a trace by id <input type="text" name="traceId" required></label>
+        <button type="submit">Search</button>
+    </form>
+
     {% for service in services %}
         <section class="card" data-service-section="{{ service.service }}">
             <h2>{{ service.service }}</h2>

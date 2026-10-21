@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Snapshot\ServiceSnapshot;
+use App\Snapshot\ServiceStatus;
 use App\Snapshot\Snapshots;
+use App\Trace\CrossServiceTrace;
 use App\Trace\FlowTypeOverview;
 use App\Trace\TraceAnswerState;
 use App\Trace\TraceQueries;
 use App\Trace\TraceQuery;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,13 +25,67 @@ final class TracesController extends AbstractController
     }
 
     #[Route('/traces', name: 'traces', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $traceId = trim((string) $request->query->get('traceId', ''));
+        if ($traceId !== '' && ! str_contains($traceId, '/')) {
+            return new RedirectResponse($this->generateUrl('trace_detail', ['traceId' => $traceId]));
+        }
+
         $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
 
         return $this->render('traces/index.html.twig', [
             'services' => FlowTypeOverview::of($snapshots),
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
+        ]);
+    }
+
+    #[Route('/traces/trace/{traceId}', name: 'trace_detail', methods: ['GET'], requirements: ['traceId' => '[^/]+'])]
+    public function detail(string $traceId): Response
+    {
+        $snapshots = $this->snapshots->waitForReplies($this->snapshots->viewAndRequestStale());
+        $query = TraceQuery::trace($traceId);
+        $asked = [];
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->status === ServiceStatus::Connected && is_array($snapshot->snapshot['tracing'] ?? null)) {
+                $asked[] = $snapshot->service;
+            }
+        }
+        $answers = [];
+        foreach ($this->queries->askAll($asked, $query) as $answer) {
+            $answers[$answer->service] = $answer;
+        }
+
+        $states = [];
+        $spans = [];
+        $deadLetters = [];
+        foreach ($snapshots as $snapshot) {
+            $answer = $answers[$snapshot->service] ?? null;
+            $states[] = [
+                'service' => $snapshot->service,
+                'state' => match (true) {
+                    $answer !== null => $answer->state->value,
+                    $snapshot->status !== ServiceStatus::Connected => 'not_connected',
+                    default => 'tracing_disabled',
+                },
+                'status' => $snapshot->status->name,
+                'failure' => $answer?->failure,
+                'truncated' => (bool) ($answer?->result['truncated'] ?? false),
+                'totalSpans' => (int) ($answer?->result['totalSpans'] ?? 0),
+            ];
+            $spans[$snapshot->service] = $answer?->result['spans'] ?? [];
+            foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
+                if (is_string($entry['messageId'] ?? null)) {
+                    $deadLetters[$snapshot->service][$entry['messageId']] = $entry;
+                }
+            }
+        }
+
+        return $this->render('traces/detail.html.twig', [
+            'traceId' => $traceId,
+            'trace' => CrossServiceTrace::merge($spans, $deadLetters),
+            'states' => $states,
+            'waiting' => TraceQueries::anyWaiting(array_values($answers)),
         ]);
     }
 

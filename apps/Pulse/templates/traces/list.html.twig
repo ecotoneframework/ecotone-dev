@@ -28,7 +28,7 @@
                 <tbody>
                 {% for trace in traces %}
                     <tr data-trace data-trace-id="{{ trace.traceId }}">
-                        <td data-column="traceId"><a href="{{ path('traces') ~ '/trace/' ~ trace.traceId }}">{{ trace.traceId }}</a></td>
+                        <td data-column="traceId"><a href="{{ path('trace_detail', {traceId: trace.traceId}) }}">{{ trace.traceId }}</a></td>
                         <td data-column="startedAt">{{ trace.startedAt|date('Y-m-d H:i:s.v', 'UTC') }}</td>
                         <td data-column="duration">{{ trace.durationMs }} ms</td>
                         <td data-column="status">{{ trace.status }}</td>

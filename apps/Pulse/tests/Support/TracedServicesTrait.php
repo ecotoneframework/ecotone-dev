@@ -30,7 +30,7 @@ trait TracedServicesTrait
 {
     use PulseServicesTrait;
 
-    private const TRACE_ID = '0af7651916cd43dd8448eb211c80319c';
+    private const ASYNC_CHANNELS = ['orders_async', 'billing_async'];
 
     /**
      * @var array<string, FlowTestSupport>
@@ -140,7 +140,17 @@ trait TracedServicesTrait
 
     private function tracedService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing = true): FlowTestSupport
     {
-        $asyncChannels = ['orders_async', 'billing_async'];
+        $leftOver = $this->bootstrapService($service, $handler, $serviceMap, false);
+        foreach (self::ASYNC_CHANNELS as $channel) {
+            $leftOver->run($channel, ExecutionPollingMetadata::createWithTestingSetup(1000, 300, false));
+        }
+
+        return $this->tracedServices[$service] = $this->bootstrapService($service, $handler, $serviceMap, $tracing);
+    }
+
+    private function bootstrapService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing): FlowTestSupport
+    {
+        $asyncChannels = self::ASYNC_CHANNELS;
         $application = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
@@ -159,7 +169,7 @@ trait TracedServicesTrait
         );
         $application->getGateway(DeadLetterGateway::class)->deleteAll();
 
-        return $this->tracedServices[$service] = $application;
+        return $application;
     }
 
     private function consume(string $service, string $channel): void

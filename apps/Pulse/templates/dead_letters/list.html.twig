@@ -55,7 +55,7 @@
                             <td><input type="checkbox" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}"></td>
                             <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a></td>
                             <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
-                            <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}</td>
+                            <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% endif %}</td>
                         </tr>
                     {% endfor %}
                     </tbody>

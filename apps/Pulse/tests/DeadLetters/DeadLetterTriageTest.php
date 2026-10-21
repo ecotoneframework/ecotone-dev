@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\DeadLetters;
 
 use App\Tests\Support\DeadLetterServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Messaging\ErrorContext;
@@ -12,7 +13,6 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Test\StaticMessageBuilder;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**

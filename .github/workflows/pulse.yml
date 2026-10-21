@@ -75,6 +75,12 @@ jobs:
           COMPOSER_PROCESS_TIMEOUT: 0
         run: composer tests:ci
 
+      - name: Parse every page's diagram with Mermaid
+        working-directory: apps/Pulse/tests/Mermaid
+        run: |
+          npm ci --no-audit --no-fund
+          node parse.mjs ../../var/mermaid
+
   docker:
     name: Pulse Docker image
     runs-on: ubuntu-latest

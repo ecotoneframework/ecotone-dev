@@ -42,7 +42,6 @@ final class StitchedFlowGraph
             }
         }
 
-        $lines = array_values(array_unique($lines));
         array_push($lines, ...array_keys($edges));
 
         return implode("\n", [...$lines, ...self::highlightLines($shown, $ids, array_values($edges), $highlight)]) . "\n";

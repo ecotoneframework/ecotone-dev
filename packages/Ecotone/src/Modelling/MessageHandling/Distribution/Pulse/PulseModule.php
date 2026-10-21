@@ -180,7 +180,7 @@ final class PulseModule implements AnnotationModule
             return [];
         }
 
-        return [$requestBuilder->forChannelOnSameConnection($replyChannel), $impliedServiceMap];
+        return [$requestBuilder->forSendOnlyChannelOnSameConnection($replyChannel), $impliedServiceMap];
     }
 
     public function getModulePackageName(): string

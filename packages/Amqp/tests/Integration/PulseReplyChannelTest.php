@@ -13,6 +13,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -75,7 +76,70 @@ final class PulseReplyChannelTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+    }
+
+    public function test_a_service_replying_while_the_reply_queue_of_pulse_does_not_exist_fails_and_replies_once_pulse_has_declared_it(): void
+    {
+        $requestQueue = Uuid::v7()->toRfc4122();
+        $replyChannel = 'pulse_' . Uuid::v7()->toRfc4122();
+        $pulse = new class () {
+            public array $snapshots = [];
+
+            #[InternalHandler('ecotone.pulse.snapshot_received')]
+            public function received(string $snapshot): void
+            {
+                $this->snapshots[] = $snapshot;
+            }
+        };
+        $orderService = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: $this->getConnectionFactoryReferences(),
+            extensionObjects: [
+                AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                PulseConfiguration::createWithDefaults($replyChannel)->withReplyChannel($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $requester = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: $this->getConnectionFactoryReferences(),
+            extensionObjects: [
+                AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $requester->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+
+        try {
+            $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
+            self::fail('The reply should fail while the reply queue of Pulse does not exist');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString(sprintf("queue '%s' does not exist", $replyChannel), $exception->getMessage());
+        }
+
+        $pulseService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$pulse::class],
+            containerOrAvailableServices: [...$this->getConnectionFactoryReferences(), $pulse],
+            extensionObjects: [
+                AmqpBackedMessageChannelBuilder::create('order_service', queueName: $requestQueue),
+                AmqpBackedMessageChannelBuilder::create($replyChannel),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: $replyChannel, channelName: $replyChannel)->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::AMQP_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
         $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
 

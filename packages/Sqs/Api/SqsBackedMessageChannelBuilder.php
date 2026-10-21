@@ -50,9 +50,9 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder 
         return $this->getSqsOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
-    public function forChannelOnSameConnection(string $channelName): self
+    public function forSendOnlyChannelOnSameConnection(string $channelName): self
     {
-        return self::create($channelName, $this->connectionReferenceName);
+        return self::create($channelName, $this->connectionReferenceName)->withRequiredExistingDestination();
     }
 
     private function getSqsOutboundChannelAdapter(): SqsOutboundChannelAdapterBuilder

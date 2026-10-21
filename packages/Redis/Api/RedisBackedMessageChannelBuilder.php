@@ -50,7 +50,7 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
         return $this->getRedisOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
-    public function forChannelOnSameConnection(string $channelName): self
+    public function forSendOnlyChannelOnSameConnection(string $channelName): self
     {
         return self::create($channelName, $this->connectionReferenceName);
     }

@@ -64,20 +64,29 @@ const zoomable = (graph, svg) => {
     graph.setAttribute('role', 'group');
     graph.setAttribute('aria-label', 'Flow graph, arrow keys pan, plus and minus zoom');
     graph.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey && document.activeElement !== graph) { return; }
         event.preventDefault();
         const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse());
         zoom(event.deltaY < 0 ? 0.85 : 1.15, point.x, point.y);
     }, {passive: false});
     let drag = null;
-    graph.addEventListener('pointerdown', (event) => { drag = {x: event.clientX, y: event.clientY, moved: false}; });
+    let dragged = false;
+    graph.addEventListener('pointerdown', (event) => { drag = {x: event.clientX, y: event.clientY, moved: false}; dragged = false; });
     graph.addEventListener('pointermove', (event) => {
         if (!drag) { return; }
         const scale = view.width / svg.getBoundingClientRect().width;
         if (Math.abs(event.clientX - drag.x) + Math.abs(event.clientY - drag.y) > 3) { drag.moved = true; graph.setPointerCapture(event.pointerId); }
         if (drag.moved) { view.x -= (event.clientX - drag.x) * scale; view.y -= (event.clientY - drag.y) * scale; drag.x = event.clientX; drag.y = event.clientY; apply(); }
     });
-    graph.addEventListener('pointerup', () => { drag = null; });
-    graph.addEventListener('click', (event) => { if (drag?.moved) { event.preventDefault(); } }, true);
+    graph.addEventListener('pointerup', () => { dragged = drag?.moved === true; drag = null; });
+    graph.addEventListener('pointercancel', () => { drag = null; dragged = false; });
+    graph.addEventListener('click', (event) => {
+        if (dragged) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        dragged = false;
+    }, true);
     graph.addEventListener('keydown', (event) => {
         const keys = {ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, -0.1], ArrowDown: [0, 0.1]};
         if (keys[event.key]) { event.preventDefault(); pan(...keys[event.key]); }

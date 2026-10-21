@@ -9,6 +9,7 @@ use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -57,6 +58,12 @@ final readonly class SnapshotRequester
         $tracingId = ReplyAwaiter::newTracingId();
         try {
             $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+        } catch (DestinationDoesNotExistException $exception) {
+            $this->logger->warning('Pulse did not send the snapshot request to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage()]);
+            $failure = sprintf("Channel missing: '%s' does not exist on connection '%s', so nothing was sent. The service creates it when it starts consuming; Pulse asks again on the next view.", $exception->destination, $exception->connection);
+            $this->store->update($service, fn (ServiceRecord $record) => $record->channelMissing($exception->destination, $failure));
+
+            return RequestResult::failed();
         } catch (Throwable $exception) {
             $this->logger->error('Pulse could not send the snapshot request to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
             $failure = sprintf('%s: the snapshot request could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));

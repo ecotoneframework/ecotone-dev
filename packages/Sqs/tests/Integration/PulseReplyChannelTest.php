@@ -11,6 +11,7 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
@@ -75,7 +76,70 @@ final class PulseReplyChannelTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+    }
+
+    public function test_a_service_replying_while_the_reply_queue_of_pulse_does_not_exist_fails_and_replies_once_pulse_has_declared_it(): void
+    {
+        $replyChannel = 'pulse_' . Uuid::v7()->toRfc4122();
+        $pulse = new class () {
+            public array $snapshots = [];
+
+            #[InternalHandler('ecotone.pulse.snapshot_received')]
+            public function received(string $snapshot): void
+            {
+                $this->snapshots[] = $snapshot;
+            }
+        };
+        $services = ['pulse_connection' => $this->getConnectionFactory()];
+        $orderService = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: $services,
+            extensionObjects: [
+                SqsBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                PulseConfiguration::createWithDefaults($replyChannel)->withReplyChannel($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $requester = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: $services,
+            extensionObjects: [
+                SqsBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $requester->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+
+        try {
+            $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
+            self::fail('The reply should fail while the reply queue of Pulse does not exist');
+        } catch (DestinationDoesNotExistException $exception) {
+            self::assertStringContainsString(sprintf("queue '%s' does not exist", $replyChannel), $exception->getMessage());
+        }
+
+        $pulseService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$pulse::class],
+            containerOrAvailableServices: [...$services, $pulse],
+            extensionObjects: [
+                SqsBackedMessageChannelBuilder::create('order_service', 'pulse_connection'),
+                SqsBackedMessageChannelBuilder::create($replyChannel, 'pulse_connection'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: $replyChannel, channelName: $replyChannel)->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName($replyChannel),
+            ],
+            enabledModules: [ModulePackageList::SQS_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
         $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
         $pulseService->run($replyChannel, ExecutionPollingMetadata::createWithTestingSetup());
 

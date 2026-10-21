@@ -78,13 +78,7 @@ final class PulseMessagingConfiguration
         $channelNames = [...array_values($settings->serviceChannels), $settings->channel];
 
         $channels = array_map(
-            static fn (string $name) => match ($settings->transport) {
-                Transport::Amqp => AmqpBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-                Transport::Redis => RedisBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-                Transport::Sqs => SqsBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-                Transport::Kafka => KafkaMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-                Transport::Dbal => DbalBackedMessageChannelBuilder::create($name, PulseSettings::TRANSPORT_CONNECTION_REFERENCE)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
-            },
+            static fn (string $name) => $name === $settings->channel ? self::ownChannel($settings, $name) : self::serviceChannel($settings, $name),
             array_values(array_unique($channelNames))
         );
 
@@ -93,6 +87,27 @@ final class PulseMessagingConfiguration
         }
 
         return $channels;
+    }
+
+    private static function ownChannel(PulseSettings $settings, string $name): object
+    {
+        return match ($settings->transport) {
+            Transport::Amqp => AmqpBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+            Transport::Redis => RedisBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+            Transport::Sqs => SqsBackedMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+            Transport::Kafka => KafkaMessageChannelBuilder::create($name)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+            Transport::Dbal => DbalBackedMessageChannelBuilder::create($name, PulseSettings::TRANSPORT_CONNECTION_REFERENCE)->withReceiveTimeout(self::RECEIVE_TIMEOUT_MILLISECONDS),
+        };
+    }
+
+    private static function serviceChannel(PulseSettings $settings, string $name): object
+    {
+        return match ($settings->transport) {
+            Transport::Amqp => AmqpBackedMessageChannelBuilder::create($name)->withRequiredExistingDestination(),
+            Transport::Sqs => SqsBackedMessageChannelBuilder::create($name)->withRequiredExistingDestination(),
+            Transport::Kafka => KafkaMessageChannelBuilder::create($name)->withRequiredExistingDestination(),
+            Transport::Redis, Transport::Dbal => self::ownChannel($settings, $name),
+        };
     }
 
     private function settings(): PulseSettings

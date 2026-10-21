@@ -48,14 +48,21 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
         );
     }
 
-    public function forChannelOnSameConnection(string $channelName): self
+    public function forSendOnlyChannelOnSameConnection(string $channelName): self
     {
-        return self::create($channelName, $this->amqpConnectionReferenceName);
+        return self::create($channelName, $this->amqpConnectionReferenceName)->withRequiredExistingDestination();
     }
 
     private function getAmqpOutboundChannelAdapter(): AmqpOutboundChannelAdapterBuilder
     {
         return $this->outboundChannelAdapter;
+    }
+
+    public function withRequiredExistingDestination(): static
+    {
+        $this->outboundChannelAdapter->withRequiredExistingDestination();
+
+        return $this;
     }
 
     public function withPublisherConfirms(bool $enabled): static

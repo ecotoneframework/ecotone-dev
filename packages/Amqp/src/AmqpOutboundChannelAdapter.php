@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPQueueException;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
@@ -22,10 +24,13 @@ use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpContext as InteropAmqpContext;
 use Interop\Amqp\AmqpMessage;
+use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
+use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use RuntimeException;
+use Throwable;
 
 /**
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
@@ -36,6 +41,8 @@ use RuntimeException;
  */
 class AmqpOutboundChannelAdapter implements MessageHandler
 {
+    private const NOT_FOUND_REPLY_CODE = 404;
+
     /**
      * @var bool
      */
@@ -61,6 +68,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private bool                       $nonBlockingConfirmation = false,
         private int                        $confirmationTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
         private string                     $channelName = '',
+        private bool                       $requireExistingDestination = false,
+        private string                     $connectionReferenceName = '',
     ) {
     }
 
@@ -84,6 +93,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         if ($messagesToPublish === []) {
             return;
         }
+
+        $this->verifyDestinationExists();
 
         $context = $this->connectionFactory->createContext();
         $confirmations = $this->getPublisherConfirmations();
@@ -335,6 +346,48 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             fn (FailedDelivery $failedDelivery): string => $failedDelivery->getFailureReason(),
             $deliveryResult->getFailedDeliveries(),
         ))));
+    }
+
+    private function verifyDestinationExists(): void
+    {
+        if (! $this->requireExistingDestination) {
+            return;
+        }
+
+        $queueName = (string) $this->routingKey;
+        /** @var InteropAmqpContext $context */
+        $context = $this->connectionFactory->getInnerConnectionFactory()->createContext();
+        $queue = new AmqpQueue($queueName);
+        $queue->addFlag(AmqpQueue::FLAG_PASSIVE);
+
+        try {
+            $context->declareQueue($queue);
+        } catch (Throwable $exception) {
+            if (! self::isQueueNotFound($exception)) {
+                throw $exception;
+            }
+
+            throw DestinationDoesNotExistException::forChannel(
+                $this->channelName,
+                'queue',
+                $queueName,
+                sprintf("AMQP connection '%s'", $this->connectionReferenceName),
+                sprintf("AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)", $this->channelName),
+            );
+        } finally {
+            $context->close();
+        }
+    }
+
+    private static function isQueueNotFound(Throwable $exception): bool
+    {
+        for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+            if (($cause instanceof AMQPQueueException || $cause instanceof AMQPProtocolChannelException) && $cause->getCode() === self::NOT_FOUND_REPLY_CODE) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function __toString(): string

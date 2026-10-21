@@ -21,6 +21,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -224,6 +225,27 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertNotSame($initial, $afterRun);
     }
 
+    #[DataProvider('storages')]
+    public function test_a_streaming_projection_is_reported_with_the_reason_its_position_cannot_be_read(string $storage): void
+    {
+        $projection = new #[Projection('tickets_streaming'), Streaming('tickets_stream')] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$projection], extensionObjects: [SimpleMessageChannelBuilder::createStreamingChannel('tickets_stream', conversionMediaType: MediaType::createApplicationXPHP())]);
+
+        $streaming = $this->requestSnapshot()['projections'][0];
+
+        self::assertSame('tickets_streaming', $streaming['name']);
+        self::assertSame('streaming', $streaming['mode']);
+        self::assertFalse($streaming['partitioned']);
+        self::assertSame('tickets_stream', $streaming['asyncChannel']);
+        self::assertNull($streaming['eventsBehind']);
+        self::assertSame('A streaming projection keeps no position of its own: it consumes the channel tickets_stream, so how far it is behind is the depth of that channel, which the channels section reports.', $streaming['unavailable']);
+    }
+
     public function test_partitions_inspected_are_capped_and_behind_says_at_least_when_more_remain(): void
     {
         $projection = new #[Projection('tickets_partitioned'), Partitioned, Asynchronous('tickets_partitioned_channel'), FromAggregateStream(Ticket::class)] class () {
@@ -259,7 +281,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertNotEmpty($snapshot['projections'][0]['unavailable']);
     }
 
-    private function bootstrap(string $storage, array $projections, bool $multiTenant = false): void
+    private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = []): void
     {
         $this->pulse = new class () {
             public array $snapshots = [];
@@ -287,6 +309,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             ],
             extensionObjects: [
                 ...$channels,
+                ...$extensionObjects,
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),

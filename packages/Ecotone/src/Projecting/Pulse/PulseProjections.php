@@ -65,6 +65,10 @@ final class PulseProjections implements PulseSnapshotSection
         $description = $this->descriptions[$name];
         $projection = ['name' => $name, ...$description, 'initialization' => null, 'positionDigest' => null, 'eventsBehind' => null, 'partitions' => null, 'unavailable' => null];
 
+        if ($description['mode'] === 'streaming') {
+            return [...$projection, 'unavailable' => "A streaming projection keeps no position of its own: it consumes the channel {$description['asyncChannel']}, so how far it is behind is the depth of that channel, which the channels section reports."];
+        }
+
         try {
             return $description['partitioned'] ? $this->withPartitions($projection) : $this->withEventsBehind($projection);
         } catch (Throwable $exception) {

@@ -216,6 +216,10 @@ final class ProjectingModule implements AnnotationModule
             }
         }
 
+        foreach (ExtensionObjectResolver::resolve(StreamingProjectionDescription::class, $extensionObjects) as $streaming) {
+            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'asyncChannel' => $streaming->channelName];
+        }
+
         // Register ProjectionRegistry
         $messagingConfiguration->registerServiceDefinition(
             ProjectionRegistry::class,

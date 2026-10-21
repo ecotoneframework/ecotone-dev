@@ -21,8 +21,9 @@
     {% if failing %}
         <section class="card" id="diagnose" data-diagnose-section>
             <h2>Diagnose</h2>
+            {% if diagnosis.skipped %}<p class="muted" data-checks-skipped>The broker checks did not fit the time budget and were skipped. Run <code>bin/console pulse:doctor</code> in the container for the full result, or raise <code>PULSE_DOCTOR_BUDGET_SECONDS</code> (default 8).</p>{% endif %}
             <ul data-checks>
-                {% for check in checks %}
+                {% for check in diagnosis.checks %}
                     <li data-check="{{ check.name }}" data-check-status="{{ check.status }}"><b>{{ check.status|upper }}</b> {{ check.name }}: {{ check.message }}{% if check.fix %}<br><span class="muted">{{ check.fix }}</span>{% endif %}</li>
                 {% endfor %}
             </ul>

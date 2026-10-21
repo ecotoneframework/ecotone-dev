@@ -45,9 +45,27 @@ final readonly class Doctor
     }
 
     /**
+     * @return array{checks: list<DoctorCheck>, skipped: bool}
+     */
+    public function diagnoseService(string $service): array
+    {
+        $route = $this->settings->routes[$service];
+        $connection = $this->settings->connections[$route->connection];
+        $deadline = microtime(true) + $this->settings->doctorBudgetSeconds;
+        if ($this->settings->doctorBudgetSeconds === 0) {
+            return ['checks' => [], 'skipped' => true];
+        }
+
+        $checks = $this->connectionChecks($connection, $service, $deadline);
+        $skipped = microtime(true) > $deadline;
+
+        return ['checks' => [...$checks, DoctorCheck::ok('licence', 'accepted, Pulse started with an Ecotone Enterprise licence')], 'skipped' => $skipped];
+    }
+
+    /**
      * @return list<DoctorCheck>
      */
-    private function connectionChecks(Connection $connection): array
+    private function connectionChecks(Connection $connection, ?string $onlyService = null, ?float $deadline = null): array
     {
         $variable = $connection->environmentVariable;
         $checks = [];
@@ -64,6 +82,10 @@ final readonly class Doctor
             $checks[] = DoctorCheck::ok('transport ' . $connection->name, sprintf('reachable at %s:%d in %d ms', $host, $port, $milliseconds));
         }
 
+        if ($deadline !== null && microtime(true) > $deadline) {
+            return $checks;
+        }
+
         $problem = $this->probe->loginProblem($connection);
         if ($problem !== null) {
             $checks[] = DoctorCheck::fail('login ' . $connection->name, $problem, $connection->transport === Transport::Dbal ? sprintf('Check the user, password and database name in %s.', $variable) : sprintf('Check the user and password in %s.', $variable));
@@ -73,7 +95,10 @@ final readonly class Doctor
         $checks[] = DoctorCheck::ok('login ' . $connection->name, 'accepted');
 
         foreach ($this->settings->routes as $route) {
-            if ($route->connection === $connection->name) {
+            if ($deadline !== null && microtime(true) > $deadline) {
+                break;
+            }
+            if ($route->connection === $connection->name && ($onlyService === null || $route->service === $onlyService)) {
                 $checks[] = $this->serviceCheck($connection, $route);
             }
         }

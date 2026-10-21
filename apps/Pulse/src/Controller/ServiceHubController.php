@@ -14,6 +14,7 @@ use App\Trace\FlowTypeOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 final class ServiceHubController extends AbstractController
 {
@@ -39,7 +40,7 @@ final class ServiceHubController extends AbstractController
         return $this->render('services/hub.html.twig', [
             'service' => $snapshot,
             'failing' => $failing,
-            'checks' => $failing ? $this->checksOf($service) : [],
+            'diagnosis' => $failing ? $this->checksOf($service) : ['checks' => [], 'skipped' => false],
             'snippets' => $failing ? $this->snippets->for($service) : [],
             'servicesEntry' => $this->snippets->pulseServicesEntry($service),
             'tracing' => $flowTypes['tracing'],
@@ -64,12 +65,14 @@ final class ServiceHubController extends AbstractController
     }
 
     /**
-     * @return list<DoctorCheck>
+     * @return array{checks: list<DoctorCheck>, skipped: bool}
      */
     private function checksOf(string $service): array
     {
-        $connection = $this->settings->connectionOf($service)->name;
-
-        return array_values(array_filter($this->doctor->diagnose(), static fn (DoctorCheck $check) => in_array($check->name, ['transport ' . $connection, 'login ' . $connection, 'service ' . $service, 'licence'], true)));
+        try {
+            return $this->doctor->diagnoseService($service);
+        } catch (Throwable) {
+            return ['checks' => [], 'skipped' => true];
+        }
     }
 }

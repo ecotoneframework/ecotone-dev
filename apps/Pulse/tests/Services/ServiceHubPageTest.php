@@ -93,6 +93,41 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         self::assertStringContainsString('orders:' . $this->serviceChannels['orders'], $crawler->filter('[data-pulse-services]')->text());
     }
 
+    public function test_the_hub_of_an_unreachable_service_skips_the_probes_that_do_not_fit_the_time_budget_and_still_renders(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->configurePulse(['PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders'], 'PULSE_CHANNEL' => $this->pulseChannel, 'PULSE_DOCTOR_BUDGET_SECONDS' => '0']);
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $client->request('GET', '/');
+        $this->advanceTimeBy(10);
+
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-checks-skipped]'));
+        self::assertStringContainsString('PULSE_DOCTOR_BUDGET_SECONDS', $crawler->filter('[data-checks-skipped]')->text());
+        self::assertCount(0, $crawler->filter('[data-check]'));
+        self::assertCount(1, $crawler->filter('[data-diagnose-list]'));
+        self::assertStringContainsString("withServiceName('orders')", $crawler->filter('[data-snippet="lite"] [data-php]')->text());
+    }
+
+    public function test_the_hub_of_an_unreachable_service_checks_only_the_connection_of_that_service(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $client->request('GET', '/');
+        $this->advanceTimeBy(10);
+
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertCount(0, $crawler->filter('[data-check="internal database"]'));
+        self::assertCount(0, $crawler->filter('[data-check="settings"]'));
+    }
+
     private function pulseWithServices(): KernelBrowser
     {
         $this->configurePulseWithServices('orders', 'billing');

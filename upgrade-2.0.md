@@ -3304,6 +3304,20 @@ before its children, with `spanId`, `parentSpanId`, `name`, `kind`, `status`, `s
 `endedAt`, `attributes` and `events`; text is cut at 4096 bytes. Both queries are served to the Pulse service only,
 and every request under the `ecotone.pulse.` routing prefix is kept out of flow tracking.
 
+A service with a `MultiTenantConfiguration` is monitored per tenant, and Pulse needs no tenant configuration for it. A
+snapshot request without the tenant header returns the tenant-independent sections (`overview`, `flowGraph`,
+`topology`, `channels`, `deadLetter`, `tracing.storage`) plus `tenancy: {header, tenants}`, the tenant header name and
+the tenants of the mapping; `deadLetters` and `tracing.flowTypes` are left out instead of failing. A request with the
+tenant header (`metadata: ['tenant' => 'tenant_a']`) returns `schemaVersion`, `serviceName`, `takenAt`, `tenant` and
+the sections of that tenant only, and the dead letter replay and delete actions and the trace queries with the header
+act on the database of that tenant and echo `tenant` in their reply. A tenant the service does not advertise is
+refused, because the connection of an unmapped tenant falls back to the default one. A snapshot of a single-tenant service has no
+`tenancy` key and is unchanged. Bootstrap is refused when the Pulse request or reply channel is a DBAL channel on the
+multi-tenant connection reference, naming the ways out: a dedicated non-tenant `DbalConnection` reference for the Pulse
+channels, or a broker transport; MultiTenantConfigurations that name different tenant headers are refused as well.
+
+**How to adapt:** nothing is required for a single-tenant service. A multi-tenant service that sends Pulse over a DBAL channel on its multi-tenant connection moves the Pulse channels to a connection that is not multi-tenant, for example `DbalBackedMessageChannelBuilder::create('orders', 'pulse_connection')`. Pulse can narrow the tenants it asks for with `PULSE_SERVICES=orders{tenants=tenant_a,tenant_b}`.
+
 A trace crosses services under one trace id. The first span a service stores for a message it received from another
 service, `receive <channel>`, has as `parentSpanId` the `spanId` of the `send <channel>` span of the sending service,
 for a distributed command and for a distributed event alike, one per subscribing service; a handler that consumes

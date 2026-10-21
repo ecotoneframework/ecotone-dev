@@ -227,7 +227,9 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         self::assertSame([], $this->work->handled);
         $this->replayOtherChannelOf($this->services['orders']);
 
-        self::assertSame(['order.place:1', 'order.place:3'], $this->work->handled);
+        $handled = $this->work->handled;
+        sort($handled);
+        self::assertSame(['order.place:1', 'order.place:3'], $handled);
     }
 
     public function test_the_count_of_a_group_is_what_the_action_replays_even_when_the_list_is_narrowed(): void

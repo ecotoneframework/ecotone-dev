@@ -3,6 +3,14 @@ import './styles/app.css';
 const ready = (fn) => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
 
 ready(() => {
+    document.documentElement.classList.add('js');
+    document.querySelectorAll('[data-toggle-run]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const open = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.querySelectorAll('tr[data-run="' + button.dataset.toggleRun + '"]').forEach((row) => row.classList.toggle('open', open));
+        });
+    });
     document.querySelectorAll('[data-copy]').forEach((button) => {
         button.hidden = false;
         button.addEventListener('click', async () => {

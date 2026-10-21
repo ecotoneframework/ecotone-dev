@@ -18,6 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class FlowGraphController extends AbstractController
 {
+    private const OVERVIEW_ABOVE_SERVICES = 6;
+
     public function __construct(
         private readonly Snapshots $snapshots,
         private readonly TraceLoader $traces,
@@ -39,20 +41,33 @@ final class FlowGraphController extends AbstractController
         $totalNodes = array_sum(array_map(fn (ServiceFlow $flow) => count($flow->graph->nodes()), $flows));
         $crossed = $highlight === null ? [] : array_values(array_intersect($available, $highlight->services));
         $narrowedByTrace = $requested === [] && $crossed !== [];
-        $narrowedByDefault = ! $narrowedByTrace && $requested === [] && $totalNodes > $this->defaultNodeLimit && count($available) > 1;
+        $view = (string) $request->query->get('view', '');
+        $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
+        $overview = $requested === [] && $view !== 'detail' && match (true) {
+            $view === 'overview' => true,
+            $narrowedByTrace => $crossedNodes > $this->defaultNodeLimit,
+            default => count($available) > self::OVERVIEW_ABOVE_SERVICES || ($totalNodes > $this->defaultNodeLimit && count($available) > 1),
+        };
         $shown = match (true) {
-            $narrowedByTrace => $crossed,
-            $narrowedByDefault => [$available[0]],
+            $narrowedByTrace && ! $overview => $crossed,
             $requested === [] => $available,
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
 
+        $nodes = $overview ? StitchedFlowGraph::overviewDetails($flows) : StitchedFlowGraph::nodeDetails($flows, $shown);
+        $nodes = array_map(fn (array $node): array => [...$node, 'href' => $overview
+            ? $this->generateUrl('flow_graph', ['services' => [$node['service']]])
+            : $this->generateUrl('dead_letters', ['service' => $node['service']])], $nodes);
+
         return $this->render('graph/flow.html.twig', [
+            'overview' => $overview,
+            'nodes' => $nodes,
+            'overviewUrl' => $this->generateUrl('flow_graph', array_filter(['view' => 'overview', 'trace' => $traceId])),
+            'detailUrl' => $this->generateUrl('flow_graph', array_filter(['view' => 'detail', 'trace' => $traceId])),
             'services' => $available,
             'shown' => $shown,
             'notices' => $serviceFlows->notices,
-            'narrowedMessage' => $narrowedByDefault ? sprintf('All services together have %d nodes, more than the %d that stay readable, so only %s is shown. Tick more services and press Show to add them.', $totalNodes, $this->defaultNodeLimit, $available[0]) : null,
-            'diagram' => StitchedFlowGraph::toMermaid($flows, $shown, $highlight),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),

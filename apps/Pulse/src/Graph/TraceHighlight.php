@@ -116,6 +116,16 @@ final readonly class TraceHighlight
         return $this->nodeStates[$service][$nodeId] ?? null;
     }
 
+    public function stateOfService(string $service): ?string
+    {
+        $state = null;
+        foreach ($this->nodeStates[$service] ?? [] as $nodeState) {
+            $state = self::stronger($state, $nodeState);
+        }
+
+        return $state;
+    }
+
     public function durationLabelOf(string $service, string $nodeId): ?string
     {
         $microseconds = $this->durationsInMicroseconds[$service][$nodeId] ?? null;

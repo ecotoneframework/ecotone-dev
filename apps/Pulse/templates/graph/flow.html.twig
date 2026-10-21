@@ -32,10 +32,32 @@
         {% endfor %}
         <button type="submit">Show</button>
     </form>
-    {% if narrowedMessage %}<p class="notice" data-notice="narrowed">{{ narrowedMessage }}</p>{% endif %}
     {% if services is empty %}
         <p class="muted">No service has answered yet.</p>
     {% else %}
-        <pre class="mermaid" data-flow-graph>{{ diagram }}</pre>
+        <p class="muted graph-view">
+            {% if overview %}<span data-flow-overview>Service overview: one node per service, arrows are distributed commands, events and messages.</span> Click a service to see its flow, or <a href="{{ detailUrl }}">show every service in detail</a>.
+            {% elseif services|length > 1 %}<a href="{{ overviewUrl }}">Show the service overview</a>{% endif %}
+        </p>
+        <pre class="mermaid" data-flow-graph data-graph-nodes="{{ nodes|json_encode }}">{{ diagram }}</pre>
+        <details class="card legend" data-graph-legend open>
+            <summary>Legend</summary>
+            <ul class="legend-items">
+                <li data-legend="passed"><span class="pill ok sq">passed</span> the trace went through</li>
+                <li data-legend="pending"><span class="pill wait sq">pending</span> sent, not processed yet</li>
+                <li data-legend="failed"><span class="pill bad sq">failed</span> the step failed</li>
+                <li data-legend="asynchronous"><b>⟹</b> asynchronous or distributed</li>
+                <li data-legend="inferred"><b>⇢</b> inferred from source code</li>
+                <li data-legend="crossed"><b class="ok">━</b> arrow the trace crossed</li>
+            </ul>
+            <table class="service-links">
+                <thead><tr><th>Service</th><th>Dead letters</th><th>Traces</th></tr></thead>
+                <tbody>
+                {% for service in services %}
+                    <tr data-service-link="{{ service }}"><th scope="row">{{ service }}</th><td><a data-dead-letters href="{{ path('dead_letters', {service: service}) }}">dead letters</a></td><td><a data-traces href="{{ path('traces') }}#service-{{ service }}">traces</a></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
     {% endif %}
 {% endblock %}

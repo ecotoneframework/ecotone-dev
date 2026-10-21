@@ -94,7 +94,7 @@ final class AwaitedRequestsTest extends WebTestCase
 
         $list = $client->request('GET', '/dead-letters');
         self::assertCount(2, $list->filter('[data-dead-letter]'));
-        $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $list->filter('[data-dead-letter] input[name="selected[orders][]"]')->each(static fn (Crawler $box) => $box->attr('value'))]]);
+        $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $list->filter('[data-dead-letter] input[name="selected[orders][]"]')->each(static fn (Crawler $box) => $box->attr('value'))]]);
         $after = $client->followRedirect();
 
         self::assertCount(0, $after->filter('[data-dead-letter]'));

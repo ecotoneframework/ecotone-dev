@@ -5,24 +5,51 @@
 {% macro text(name, text) %}
     {% set value = text ?? '' %}
     {% set marker = "\n... [truncated]" %}
-    <pre data-detail="{{ name }}">{% if value ends with marker %}{{ value|slice(0, value|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ value }}{% endif %}</pre>
+    <pre data-detail="{{ name }}" id="detail-{{ name }}">{% if value ends with marker %}{{ value|slice(0, value|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ value }}{% endif %}</pre>
 {% endmacro %}
 
 {% block body %}
+    <p class="crumbs"><a href="{{ path('dead_letters') }}">Dead letters</a> / <a href="{{ path('dead_letters', {service: service}) }}">{{ service }}</a> / <span class="mono">{{ entry.messageId }}</span></p>
     <h1>Dead letter</h1>
-    <p><a href="{{ path('dead_letters', {service: service}) }}">← Dead letters of {{ service }}</a></p>
+
+    <div class="actions">
+        <form method="post" action="{{ path('dead_letter_actions') }}" data-detail-actions>
+            <input type="hidden" name="scope" value="ids">
+            <input type="hidden" name="service" value="{{ service }}">
+            <input type="hidden" name="selected[{{ service }}][]" value="{{ entry.messageId }}">
+            <button type="submit" name="action" value="replay" class="pri" data-await>Replay</button>
+            <button type="submit" name="action" value="delete" class="danger">Delete</button>
+        </form>
+        {% if entry.traceId is defined and entry.traceId %}
+            <a class="btn" data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>
+            <a class="btn" data-view-graph href="{{ path('flow_graph', {trace: entry.traceId}) }}">View on flow graph</a>
+        {% endif %}
+        <a class="btn" data-similar href="{{ path('dead_letters', {service: service, messageName: entry.messageName, exceptionClass: entry.exceptionClass}) }}">{{ similar }} similar</a>
+    </div>
+
+    <div class="card">
     <dl>
         <dt>Service</dt><dd data-detail="service">{{ service }}</dd>
-        <dt>Message id</dt><dd data-detail="messageId">{{ entry.messageId }}</dd>
+        <dt>Message id</dt><dd><span class="mono" data-detail="messageId" id="detail-messageId">{{ entry.messageId }}</span> <button type="button" class="copy" data-copy="#detail-messageId" hidden>Copy</button></dd>
         <dt>Message name</dt><dd data-detail="messageName">{{ entry.messageName }}</dd>
         <dt>Failed at</dt><dd data-detail="failedAt">{{ entry.failedAt|date('Y-m-d H:i:s T', 'UTC') }}</dd>
         <dt>Exception</dt><dd data-detail="exception">{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</dd>
         <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'unknown' }}</dd>
         <dt>Channel</dt><dd data-detail="channel">{{ entry.channel ?? 'unknown' }}</dd>
-        {% if entry.traceId is defined and entry.traceId %}<dt>Trace</dt><dd><a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a></dd>{% endif %}
     </dl>
-    <h2>Stack trace</h2>
-    {{ _self.text('stackTrace', entry.stackTrace) }}
+    </div>
+
+    <details open data-stack-trace>
+        <summary><h2 style="display:inline">Stack trace</h2></summary>
+        <button type="button" class="copy" data-copy="#detail-stackTrace" hidden>Copy stack trace</button>
+        <div class="stack" tabindex="0" role="region" aria-label="Stack trace">{{ _self.text('stackTrace', entry.stackTrace) }}</div>
+    </details>
+
     <h2>Payload</h2>
-    {{ _self.text('payload', entry.payload) }}
+    <button type="button" class="copy" data-copy="#detail-payload" hidden>Copy payload</button>
+    {% if payloadJson %}
+        <pre data-detail="payload" id="detail-payload">{{ payloadJson }}</pre>
+    {% else %}
+        {{ _self.text('payload', entry.payload) }}
+    {% endif %}
 {% endblock %}

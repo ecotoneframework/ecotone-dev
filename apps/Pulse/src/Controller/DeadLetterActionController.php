@@ -72,6 +72,9 @@ final class DeadLetterActionController extends AbstractController
      */
     private function actionsForFilter(DeadLetterFilter $filter, bool $replay, string $targetChannel): array|DeadLetterNotice
     {
+        if ($filter->hasSearch()) {
+            return DeadLetterNotice::searchNotStored();
+        }
         if (! $filter->hasStoredConditions()) {
             return DeadLetterNotice::noFilterCondition();
         }

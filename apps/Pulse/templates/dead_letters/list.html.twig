@@ -9,85 +9,121 @@
 {% block body %}
     <h1>Dead letters</h1>
 
-    <form method="get" action="{{ path('dead_letters') }}" class="filters" data-filter-form>
-        <label>Service
-            <select name="service">
+    {% if notice %}{% include 'dead_letters/_notice.html.twig' %}{% endif %}
+
+    <form method="get" action="{{ path('dead_letters') }}" class="filters card" data-filter-form>
+        <label for="f-service">Service
+            <select id="f-service" name="service">
                 <option value="">All services</option>
                 {% for name in serviceNames %}<option value="{{ name }}"{% if filter.service == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
             </select>
         </label>
-        <label>Message name <input type="text" name="messageName" value="{{ filter.messageName }}"></label>
-        <label>Exception class <input type="text" name="exceptionClass" value="{{ filter.exceptionClass }}"></label>
-        <label>Failed from (UTC) <input type="datetime-local" step="1" name="failedFrom" value="{{ filter.failedFrom }}"></label>
-        <label>Failed to (UTC) <input type="datetime-local" step="1" name="failedTo" value="{{ filter.failedTo }}"></label>
-        <button type="submit">Filter</button>
+        <label for="f-message-name">Message name <input id="f-message-name" type="text" name="messageName" value="{{ filter.messageName }}"></label>
+        <label for="f-exception">Exception class <input id="f-exception" type="text" name="exceptionClass" value="{{ filter.exceptionClass }}"></label>
+        <label for="f-from">Failed from (UTC) <input id="f-from" type="datetime-local" step="1" name="failedFrom" value="{{ filter.failedFrom }}"></label>
+        <label for="f-to">Failed to (UTC) <input id="f-to" type="datetime-local" step="1" name="failedTo" value="{{ filter.failedTo }}"></label>
+        <label for="f-search">Search message id or payload <input id="f-search" type="search" name="search" value="{{ filter.search }}"></label>
+        <button type="submit" class="pri">Filter</button>
+        {% if filter.toQuery %}<a class="btn" href="{{ path('dead_letters') }}">Clear</a>{% endif %}
     </form>
 
     <p class="muted" data-list-note>The list shows the latest 100 dead letters of each service and is filtered on that snapshot. Actions on a filter apply to all stored dead letters of the service.</p>
 
-    {% if notice %}{% include 'dead_letters/_notice.html.twig' %}{% endif %}
-
     {% for group in sharedStores %}
-        <p class="drift" data-shared-store>{{ group|join(', ') }} share one dead letter store: they report the same dead letters, so act through one of them. A filter action across services is sent only to {{ group|first }}.</p>
+        <p class="notice" data-shared-store>{{ group|join(', ') }} share one dead letter store: they report the same dead letters, so act through one of them. A filter action across services is sent only to {{ group|first }}.</p>
     {% endfor %}
 
-    <form method="post" action="{{ path('dead_letter_actions') }}" data-selection-form>
-    <input type="hidden" name="scope" value="ids">
+    <form id="selection" method="post" action="{{ path('dead_letter_actions') }}" data-selection-form>
+        <input type="hidden" name="scope" value="ids">
+    </form>
+
+    {% set narrowed = filter.toQuery|length > (filter.service ? 1 : 0) %}
     {% for service in services %}
-        <section class="card" data-service-section="{{ service.service }}">
-            <h2>{{ service.service }}</h2>
-            {% if not service.configured %}
-                <p class="muted" data-not-configured="{{ service.service }}">{% if service.status.hasSnapshot %}dead letter not configured{% else %}no snapshot yet ({{ service.status.status.name|lower }}){% endif %}</p>
-            {% else %}
-                <p>Total: <strong data-service-total="{{ service.service }}">{{ service.total }}</strong> <span class="muted">({{ service.status.status.name|lower }})</span></p>
-                <ul class="groups">
-                    {% for group in service.groups %}
-                        <li data-group data-service="{{ service.service }}" data-message-name="{{ group.messageName }}">
-                            <a href="{{ path('dead_letters', filter.toQuery|merge({service: service.service, messageName: group.messageName, exceptionClass: group.exceptionClass})) }}">{{ group.messageName ?: '(unnamed)' }} · {{ group.exceptionClass }} · {{ group.count }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-                <table>
-                    <thead><tr><th><span class="visually-hidden">Select</span></th><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
-                    <tbody>
-                    {% for entry in service.entries %}
-                        <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
-                            <td><input type="checkbox" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}" aria-label="Select {{ entry.messageName ?: '(unnamed)' }} {{ entry.messageId }}"></td>
-                            <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a></td>
-                            <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
-                            <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% endif %}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <label>Replay to channel
-                    <select name="targetChannel[{{ service.service }}]">
-                        <option value="">original channel</option>
-                        {% for name in channels[service.service] ?? [] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
-                    </select>
-                </label>
+        <section class="card flush" data-service-section="{{ service.service }}">
+            <div class="service-head">
+                <h2>{{ service.service }}</h2>
+                {% if not service.configured %}
+                    <span class="muted" data-not-configured="{{ service.service }}">{% if service.status.hasSnapshot %}dead letter not configured{% else %}no snapshot yet ({{ service.status.status.name|lower }}){% endif %}</span>
+                {% else %}
+                    <span>Total: <strong data-service-total="{{ service.service }}">{{ service.total }}</strong> <span class="muted">({{ service.status.status.name|lower }})</span></span>
+                    <label class="field" for="target-{{ service.service }}">Replay to channel
+                        <select id="target-{{ service.service }}" form="selection" name="targetChannel[{{ service.service }}]">
+                            <option value="">original channel</option>
+                            {% for name in channels[service.service] ?? [] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                        </select>
+                    </label>
+                {% endif %}
+            </div>
+            {% if service.configured %}
+                <div style="padding:.75rem">
+                {% for group in service.groups %}
+                    {% set rows = service.entries|filter(entry => entry.messageName == group.messageName and entry.exceptionClass == group.exceptionClass) %}
+                    {% if rows or not narrowed %}
+                    <section class="group card flush" data-group data-service="{{ service.service }}" data-message-name="{{ group.messageName }}">
+                        <div class="group-head">
+                            <b>{{ group.messageName ?: '(unnamed)' }}</b>
+                            <span class="chip mono">{{ group.exceptionClass }}</span>
+                            <span class="muted">{{ group.count }} failed</span>
+                            <a href="{{ path('dead_letters', filter.toQuery|merge({service: service.service, messageName: group.messageName, exceptionClass: group.exceptionClass})) }}">Only this group</a>
+                            <span data-group-replay><button type="submit" form="replay-{{ service.service }}-{{ loop.index }}" data-await>Replay all {{ group.count }}</button></span>
+                        </div>
+                        <details open><summary>{{ rows|length }} of {{ group.count }} listed</summary>
+                        <table>
+                            <thead><tr><th scope="col"><span class="visually-hidden">Select</span></th><th scope="col">Message</th><th scope="col">Exception</th><th scope="col">Failed at</th></tr></thead>
+                            <tbody>
+                            {% for entry in rows %}
+                                <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
+                                    <td><input type="checkbox" form="selection" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}" aria-label="Select {{ entry.messageName ?: '(unnamed)' }} {{ entry.messageId }}"></td>
+                                    <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a><br><span class="muted mono">{{ entry.messageId }}</span></td>
+                                    <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
+                                    <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </details>
+                    </section>
+                    <form id="replay-{{ service.service }}-{{ loop.index }}" method="post" action="{{ path('dead_letter_actions') }}">
+                        <input type="hidden" name="scope" value="filter">
+                        <input type="hidden" name="action" value="replay">
+                        <input type="hidden" name="service" value="{{ service.service }}">
+                        <input type="hidden" name="messageName" value="{{ group.messageName }}">
+                        <input type="hidden" name="exceptionClass" value="{{ group.exceptionClass }}">
+                    </form>
+                    {% endif %}
+                {% else %}
+                    <p class="muted">No dead letters.</p>
+                {% endfor %}
+                </div>
             {% endif %}
         </section>
     {% endfor %}
-    <p>
-        <button type="submit" name="action" value="replay">Replay selected</button>
-        <button type="submit" name="action" value="delete">Delete selected</button>
-    </p>
-    </form>
 
-    <form method="post" action="{{ path('dead_letter_actions') }}" data-filter-action-form>
-        <h2>Everything matching the filter</h2>
-        <input type="hidden" name="scope" value="filter">
-        {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-        {% if filter.service and channels[filter.service] is defined %}
-            <label>Replay to channel
-                <select name="targetChannel">
-                    <option value="">original channel</option>
-                    {% for name in channels[filter.service] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
-                </select>
-            </label>
+    <div class="bar" data-selection-bar>
+        <span class="count"><span data-selected-count>0</span> selected</span>
+        <button type="submit" form="selection" name="action" value="replay" data-await>Replay selected</button>
+        <button type="submit" form="selection" name="action" value="delete" class="danger">Delete selected</button>
+    </div>
+
+    <details class="card">
+        <summary>Everything matching the filter</summary>
+        {% if filter.hasSearch %}
+            <p class="muted">A search narrows only this list. Clear it to act on every stored dead letter matching the filter, or tick the dead letters found and use the selection bar.</p>
+        {% else %}
+        <form method="post" action="{{ path('dead_letter_actions') }}" data-filter-action-form class="actions">
+            <input type="hidden" name="scope" value="filter">
+            {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+            {% if filter.service and channels[filter.service] is defined %}
+                <label class="field" for="filter-target">Replay to channel
+                    <select id="filter-target" name="targetChannel">
+                        <option value="">original channel</option>
+                        {% for name in channels[filter.service] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                    </select>
+                </label>
+            {% endif %}
+            <button type="submit" name="action" value="replay" data-await>Replay matching</button>
+            <button type="submit" name="action" value="delete" class="danger">Delete matching</button>
+        </form>
         {% endif %}
-        <button type="submit" name="action" value="replay">Replay matching</button>
-        <button type="submit" name="action" value="delete">Delete matching</button>
-    </form>
+    </details>
 {% endblock %}

@@ -44,6 +44,22 @@ final class DeadLetterController extends AbstractController
             throw $this->createNotFoundException(sprintf('Dead letter "%s" of service "%s" is not in the latest 100 of its snapshot. It may have been replayed or deleted, or it is older than the snapshot lists; go back to the dead letters list.', $messageId, $service));
         }
 
-        return $this->render('dead_letters/detail.html.twig', ['service' => $service, 'entry' => $entry]);
+        return $this->render('dead_letters/detail.html.twig', [
+            'service' => $service,
+            'entry' => $entry,
+            'similar' => DeadLetterOverview::similar($this->snapshots->all(), $service, $entry),
+            'payloadJson' => self::prettyJson($entry['payload'] ?? null),
+        ]);
+    }
+
+    private static function prettyJson(mixed $payload): ?string
+    {
+        if (! is_string($payload) || ! str_starts_with(ltrim($payload), '{') && ! str_starts_with(ltrim($payload), '[')) {
+            return null;
+        }
+
+        $decoded = json_decode($payload);
+
+        return $decoded === null ? null : json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 }

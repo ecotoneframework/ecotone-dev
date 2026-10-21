@@ -36,6 +36,36 @@ final class DeadLetterOverview
 
     /**
      * @param list<ServiceSnapshot> $snapshots
+     */
+    public static function total(array $snapshots): int
+    {
+        $names = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->service, $snapshots));
+
+        return array_sum(array_map(static fn (ServiceSnapshot $snapshot) => in_array($snapshot->service, $names, true) ? (int) $snapshot->deadLetterTotal() : 0, $snapshots));
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @param array<string, mixed> $entry
+     */
+    public static function similar(array $snapshots, string $service, array $entry): int
+    {
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->service !== $service) {
+                continue;
+            }
+            foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
+                if (($group['messageName'] ?? null) === ($entry['messageName'] ?? null) && ($group['exceptionClass'] ?? null) === ($entry['exceptionClass'] ?? null)) {
+                    return max(0, (int) ($group['count'] ?? 0) - 1);
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
      * @return array<string, mixed>|null
      */
     public static function entry(array $snapshots, string $service, string $messageId): ?array

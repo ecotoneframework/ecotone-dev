@@ -40,7 +40,7 @@ final class PulseSnapshot
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param list<array{name: string, kind: string, probeGroup: string|null}> $channels
+     * @param list<array{name: string, kind: string, probeGroup: string|null, destination: string|null}> $channels
      * @param array<string, PulseChannelProbe> $probes
      * @param array<string, PulseSnapshotSection> $sections
      */
@@ -107,13 +107,13 @@ final class PulseSnapshot
         $namesByGroup = [];
         foreach ($this->channels as $channel) {
             if ($channel['probeGroup'] !== null) {
-                $namesByGroup[$channel['probeGroup']][] = $channel['name'];
+                $namesByGroup[$channel['probeGroup']][$channel['name']] = $channel['destination'];
             }
         }
 
         $depths = [];
-        foreach ($namesByGroup as $group => $names) {
-            $depths = [...$depths, ...$this->probe($this->probes[$group], $names)];
+        foreach ($namesByGroup as $group => $destinationByChannel) {
+            $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
         }
 
         return array_map(
@@ -127,21 +127,21 @@ final class PulseSnapshot
     }
 
     /**
-     * @param string[] $names
+     * @param array<string, string> $destinationByChannel
      * @return array<string, PulseChannelDepth>
      */
-    private function probe(PulseChannelProbe $probe, array $names): array
+    private function probe(PulseChannelProbe $probe, array $destinationByChannel): array
     {
         $startedAt = hrtime(true);
         try {
-            $depths = $probe->depthsOf($names, self::PROBE_BUDGET_IN_MILLISECONDS);
+            $depths = $probe->depthsOf($destinationByChannel, self::PROBE_BUDGET_IN_MILLISECONDS);
         } catch (Throwable $exception) {
-            return array_fill_keys($names, PulseChannelDepth::failed($exception->getMessage()));
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed($exception->getMessage()));
         }
 
         $tookInMilliseconds = intdiv(hrtime(true) - $startedAt, 1_000_000);
         if ($tookInMilliseconds > self::PROBE_BUDGET_IN_MILLISECONDS) {
-            return array_fill_keys($names, PulseChannelDepth::failed('Measuring the channel depth took ' . $tookInMilliseconds . ' ms, over the ' . self::PROBE_BUDGET_IN_MILLISECONDS . ' ms budget, so the result was dropped.'));
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed('Measuring the channel depth took ' . $tookInMilliseconds . ' ms, over the ' . self::PROBE_BUDGET_IN_MILLISECONDS . ' ms budget, so the result was dropped.'));
         }
 
         return $depths;

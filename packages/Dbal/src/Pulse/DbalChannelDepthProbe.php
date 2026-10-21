@@ -44,7 +44,7 @@ final class DbalChannelDepthProbe implements PulseChannelProbe
     ) {
     }
 
-    public function depthsOf(array $channelNames, int $budgetInMilliseconds): array
+    public function depthsOf(array $destinationByChannel, int $budgetInMilliseconds): array
     {
         $context = $this->connectionFactory->createContext();
         $connection = $context instanceof DbalContext ? $context->getDbalConnection() : throw new \LogicException('Pulse measures DBAL channels only on a DBAL connection, but the connection reference resolved to ' . $context::class . '.');
@@ -62,7 +62,7 @@ final class DbalChannelDepthProbe implements PulseChannelProbe
                     SUM(CASE WHEN delivery_id IS NULL AND delayed_until > :nowForDelayed THEN 1 ELSE 0 END) AS delayed_count,
                     SUM(CASE WHEN delivery_id IS NOT NULL THEN 1 ELSE 0 END) AS in_flight_count
                  FROM {$context->getTableName()} WHERE queue IN (:queues) GROUP BY queue",
-                ['nowForReady' => $now, 'nowForDelayed' => $now, 'queues' => $channelNames],
+                ['nowForReady' => $now, 'nowForDelayed' => $now, 'queues' => array_values($destinationByChannel)],
                 ['nowForReady' => DbalType::BIGINT, 'nowForDelayed' => DbalType::BIGINT, 'queues' => ArrayParameterType::STRING],
             )->fetchAllAssociative();
             if ($insideTransaction) {
@@ -75,9 +75,14 @@ final class DbalChannelDepthProbe implements PulseChannelProbe
             throw MissingTableFailure::explained($failure, $this->tableManager);
         }
 
-        $depths = array_fill_keys($channelNames, PulseChannelDepth::measured(0, 0, 0));
+        $depthByQueue = [];
         foreach ($rows as $row) {
-            $depths[$row['queue']] = PulseChannelDepth::measured((int) $row['ready_count'], (int) $row['delayed_count'], (int) $row['in_flight_count']);
+            $depthByQueue[$row['queue']] = PulseChannelDepth::measured((int) $row['ready_count'], (int) $row['delayed_count'], (int) $row['in_flight_count']);
+        }
+
+        $depths = [];
+        foreach ($destinationByChannel as $channel => $queue) {
+            $depths[$channel] = $depthByQueue[$queue] ?? PulseChannelDepth::measured(0, 0, 0);
         }
 
         return $depths;

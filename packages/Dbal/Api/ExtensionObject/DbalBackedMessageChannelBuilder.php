@@ -64,6 +64,11 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
         return 'dbal:' . $this->connectionReferenceName;
     }
 
+    public function depthProbeDestination(): string
+    {
+        return $this->getMessageChannelName();
+    }
+
     public function depthProbeDefinition(): Definition
     {
         return new Definition(DbalChannelDepthProbe::class, [

@@ -16,5 +16,7 @@ interface DepthProbedMessageChannelBuilder extends MessageChannelBuilder
 {
     public function depthProbeGroup(): string;
 
+    public function depthProbeDestination(): string;
+
     public function depthProbeDefinition(): Definition;
 }

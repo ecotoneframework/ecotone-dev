@@ -131,7 +131,7 @@ final class PulseModule implements AnnotationModule
 
     /**
      * @param DistributedServiceMap[] $serviceMaps
-     * @return array{channels: list<array{name: string, kind: string, probeGroup: string|null}>, probes: array<string, Definition>}
+     * @return array{channels: list<array{name: string, kind: string, probeGroup: string|null, destination: string|null}>, probes: array<string, Definition>}
      */
     private function channelsOf(array $serviceMaps, array $extensionObjects): array
     {
@@ -155,7 +155,7 @@ final class PulseModule implements AnnotationModule
                 if ($probeGroup !== null && ! isset($probes[$probeGroup])) {
                     $probes[$probeGroup] = $channelBuilder->depthProbeDefinition();
                 }
-                $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue', 'probeGroup' => $probeGroup];
+                $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue', 'probeGroup' => $probeGroup, 'destination' => $probeGroup === null ? null : $channelBuilder->depthProbeDestination()];
             }
         }
         ksort($channels);

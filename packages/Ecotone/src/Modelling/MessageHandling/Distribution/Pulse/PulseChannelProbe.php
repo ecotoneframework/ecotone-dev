@@ -27,8 +27,8 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 interface PulseChannelProbe
 {
     /**
-     * @param string[] $channelNames
+     * @param array<string, string> $destinationByChannel
      * @return array<string, PulseChannelDepth>
      */
-    public function depthsOf(array $channelNames, int $budgetInMilliseconds): array;
+    public function depthsOf(array $destinationByChannel, int $budgetInMilliseconds): array;
 }

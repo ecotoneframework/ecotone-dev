@@ -1,0 +1,15 @@
+.git
+.github
+docs
+quickstart-examples
+Monorepo
+upgrade
+**/vendor
+**/var
+**/node_modules
+**/tests
+**/.phpunit.cache
+**/.env.local
+**/.env.*.local
+apps/Pulse/assets/vendor
+apps/Pulse/composer.lock

@@ -120,7 +120,7 @@ jobs:
 
       - name: Smoke test, a consumer that keeps exiting at once backs off and then stops the container
         run: |
-          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\\Test\\LicenceTesting::VALID_LICENCE;')"
+          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
           set +e
           output="$(docker run --rm \
             -e APP_SECRET=ci \

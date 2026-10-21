@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Trace;
 
 use DateTimeImmutable;
+use Exception;
 
 final readonly class CrossServiceTrace
 {
@@ -62,6 +63,7 @@ final readonly class CrossServiceTrace
         if ($spans === []) {
             return new self([], 0, 'empty', '0 ms', null);
         }
+        $spans = self::withTimesOfInvalidSpansAtTheStart($spans);
 
         $indexOf = [];
         foreach ($spans as $index => $span) {
@@ -161,9 +163,9 @@ final readonly class CrossServiceTrace
      */
     private static function normalised(string $service, array $span): array
     {
-        $started = new DateTimeImmutable((string) ($span['startedAt'] ?? 'now'));
-        $ended = new DateTimeImmutable((string) ($span['endedAt'] ?? $span['startedAt'] ?? 'now'));
-        $startMicro = self::microseconds($started);
+        $started = self::parsedTime($span['startedAt'] ?? null);
+        $ended = self::parsedTime($span['endedAt'] ?? null);
+        $startMicro = $started === null ? null : self::microseconds($started);
 
         return [
             ...$span,
@@ -176,8 +178,39 @@ final readonly class CrossServiceTrace
             'attributes' => is_array($span['attributes'] ?? null) ? $span['attributes'] : [],
             'events' => is_array($span['events'] ?? null) ? $span['events'] : [],
             'startMicro' => $startMicro,
-            'endMicro' => max($startMicro, self::microseconds($ended)),
+            'endMicro' => $startMicro === null ? null : max($startMicro, $ended === null ? $startMicro : self::microseconds($ended)),
+            'timeInvalid' => $started === null || $ended === null,
         ];
+    }
+
+    private static function parsedTime(mixed $time): ?DateTimeImmutable
+    {
+        if (! is_string($time) || $time === '') {
+            return null;
+        }
+        try {
+            return new DateTimeImmutable($time);
+        } catch (Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $spans
+     * @return list<array<string, mixed>>
+     */
+    private static function withTimesOfInvalidSpansAtTheStart(array $spans): array
+    {
+        $starts = array_filter(array_column($spans, 'startMicro'), fn (?int $start): bool => $start !== null);
+        $fallback = $starts === [] ? 0 : min($starts);
+        foreach ($spans as $index => $span) {
+            if ($span['startMicro'] === null) {
+                $spans[$index]['startMicro'] = $fallback;
+                $spans[$index]['endMicro'] = $fallback;
+            }
+        }
+
+        return $spans;
     }
 
     /**
@@ -223,6 +256,7 @@ final readonly class CrossServiceTrace
             'offsetLabel' => '+' . self::milliseconds($span['startMicro'] - $flowStart),
             'durationLabel' => self::milliseconds($span['endMicro'] - $span['startMicro']),
             'durationMicro' => $span['endMicro'] - $span['startMicro'],
+            'timeInvalid' => $span['timeInvalid'],
             'offsetMicro' => $span['startMicro'] - $flowStart,
             'waitMicro' => max(0, $queueWait ?? 0),
             'boilerplate' => in_array($span['kind'], ['producer', 'consumer'], true) && ! $failed && ! $pending && ($queueWait ?? 0) <= 0,

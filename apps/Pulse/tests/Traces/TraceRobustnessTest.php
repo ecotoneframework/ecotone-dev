@@ -81,6 +81,36 @@ final class TraceRobustnessTest extends ReleasingWebTestCase
         self::assertCount(1, $crawler->filter('[data-clock-skew]'));
     }
 
+    public function test_a_span_with_a_malformed_time_is_shown_with_a_notice_and_does_not_break_the_page(): void
+    {
+        $root = ['spanId' => 'eeeeeeeeeeeeee01', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $malformed = [...$root, 'spanId' => 'eeeeeeeeeeeeee02', 'parentSpanId' => 'eeeeeeeeeeeeee01', 'name' => 'garbled', 'startedAt' => 'garbage'];
+        $client = $this->pulseWithFakeService([$root, $malformed], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $crawler->filter('[data-span]')->count());
+        $row = $crawler->filter('[data-span]')->reduce(fn (Crawler $span) => str_contains($span->text(), 'garbled'));
+        self::assertStringContainsString('time is missing or invalid', $row->filter('[data-time-invalid]')->text());
+        self::assertCount(0, $row->filter('[data-bar]'));
+        self::assertCount(0, $crawler->filter('[data-span]')->first()->filter('[data-time-invalid]'));
+        self::assertSame('100 ms', $crawler->filter('[data-summary="total"] b')->text());
+    }
+
+    public function test_a_span_without_a_start_time_is_shown_with_a_notice_and_does_not_skew_the_trace(): void
+    {
+        $root = ['spanId' => 'ffffffffffffff01', 'parentSpanId' => null, 'name' => 'root', 'kind' => 'server', 'status' => 'ok', 'statusDescription' => null, 'startedAt' => '2026-10-20T12:00:00.000000+00:00', 'endedAt' => '2026-10-20T12:00:00.100000+00:00', 'attributes' => [], 'events' => []];
+        $timeless = ['spanId' => 'ffffffffffffff02', 'parentSpanId' => 'ffffffffffffff01', 'name' => 'timeless', 'kind' => 'internal', 'status' => 'ok', 'statusDescription' => null, 'attributes' => [], 'events' => []];
+        $client = $this->pulseWithFakeService([$root, $timeless], truncated: false);
+
+        $crawler = $this->traceView($client);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-time-invalid]'));
+        self::assertSame('100 ms', $crawler->filter('[data-summary="total"] b')->text());
+    }
+
     public function test_traces_stored_in_the_database_are_listed_and_shown(): void
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping');

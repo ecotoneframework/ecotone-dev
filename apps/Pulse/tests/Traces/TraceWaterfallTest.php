@@ -132,6 +132,27 @@ final class TraceWaterfallTest extends ReleasingWebTestCase
         self::assertCount(0, $completed->filter('[data-pending-explainer]'));
     }
 
+    public function test_the_pending_explainer_stays_when_another_step_of_the_trace_failed(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $client = $this->pulseWebClient();
+        $orders = $this->tracedOrders();
+        $this->tracedBilling();
+        $this->tracedShipping();
+        $both = '99999999999999999999999999999999';
+        $orders->sendCommandWithRouting('order.explode', ['orderId' => 2], metadata: $this->inTrace($both));
+        $this->consume('orders', 'orders_async');
+        $orders->sendCommandWithRouting('order.place', ['orderId' => 2], metadata: $this->inTrace($both));
+        $this->pulseHavingHeardFrom($client, $this->tracedServices);
+
+        $crawler = $this->traceView($client, $both);
+
+        self::assertCount(1, $crawler->filter('[data-trace-status="failed"]'));
+        self::assertCount(1, $crawler->filter('[data-failure-banner]'));
+        self::assertCount(1, $crawler->filter('[data-pending-explainer]'));
+        self::assertStringContainsString('ecotone:run orders_async', $crawler->filter('[data-pending-explainer]')->text());
+    }
+
     private function percentOf(Crawler $bar, string $property): float
     {
         self::assertSame(1, preg_match('/' . $property . ':\s*([\d.]+)%/', (string) $bar->attr('style'), $match));

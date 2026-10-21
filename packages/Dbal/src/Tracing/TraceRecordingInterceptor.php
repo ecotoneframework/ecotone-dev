@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
+use Ecotone\Dbal\Pulse\Tracking\PulseRebuildActions;
 use Closure;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
@@ -60,7 +61,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
     public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $headers = $message->getHeaders();
-        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX)) {
+        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX) && $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) !== PulseRebuildActions::ROUTING_KEY) {
             $this->recorder->excludeScopeFromTracking();
         }
 

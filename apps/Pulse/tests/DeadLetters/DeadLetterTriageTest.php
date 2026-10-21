@@ -249,6 +249,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
+        $before = $this->remainingNames($client);
         $form = $list->filter('[data-selection-bar] button[value="delete"]')->form();
         $form['selected']['orders'][0]->tick();
 
@@ -256,7 +257,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $this->deliver($client);
 
         self::assertCount(1, $confirmation->filter('[data-confirm-delete]'));
-        self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+        self::assertSame($before, $this->remainingNames($client));
     }
 
     private function pulseWithUnnamedFailures(): KernelBrowser

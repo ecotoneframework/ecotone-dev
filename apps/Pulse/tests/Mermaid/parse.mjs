@@ -2,6 +2,14 @@ import {readdirSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {JSDOM} from 'jsdom';
 
+const pulse = join(import.meta.dirname, '..', '..');
+const pinned = /'mermaid' => \['version' => '([^']+)'\]/.exec(readFileSync(join(pulse, 'importmap.php'), 'utf8'))?.[1];
+const installed = JSON.parse(readFileSync(join(import.meta.dirname, 'node_modules', 'mermaid', 'package.json'), 'utf8')).version;
+if (pinned !== installed) {
+    console.error(`The pages load mermaid ${pinned} (importmap.php) but this check installed ${installed}. Set the mermaid version in tests/Mermaid/package.json to ${pinned} and run npm install.`);
+    process.exit(2);
+}
+
 const dom = new JSDOM('<!doctype html><html><body></body></html>');
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;

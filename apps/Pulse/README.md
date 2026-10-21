@@ -173,7 +173,7 @@ the running application never reaches out to a CDN.
 
 ### Diagram and accessibility checks
 
-Two checks need a browser engine, so they run on the host (Node 20+), not in the PHP container.
+Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or newer works), not in the PHP container.
 
 * `tests/Mermaid` parses with the real Mermaid parser every diagram the test suite renders (`/flow`, `/flow?trace=…`, `/topology`).
   The PHP tests write the diagrams to `var/mermaid`; then `cd tests/Mermaid && npm ci && node parse.mjs ../../var/mermaid`.

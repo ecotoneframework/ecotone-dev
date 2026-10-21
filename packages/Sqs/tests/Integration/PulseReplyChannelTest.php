@@ -11,9 +11,9 @@ use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\EcotoneLite;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
@@ -122,7 +122,7 @@ final class PulseReplyChannelTest extends ConnectionTestCase
         try {
             $orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
             self::fail('The reply should fail while the reply queue of Pulse does not exist');
-        } catch (ConfigurationException $exception) {
+        } catch (DestinationDoesNotExistException $exception) {
             self::assertStringContainsString(sprintf("queue '%s' does not exist", $replyChannel), $exception->getMessage());
         }
 

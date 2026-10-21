@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\DeadLetter\DeadLetterFilter;
 use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,13 +24,13 @@ final class DeadLetterController extends AbstractController
     public function list(Request $request): Response
     {
         $filter = DeadLetterFilter::fromInput($request->query);
-        $snapshots = $this->snapshots->viewAndRequestStale();
+        $snapshots = $this->snapshots->viewScopesAndRequestStale();
 
         return $this->render('dead_letters/list.html.twig', [
             'filter' => $filter,
             'services' => DeadLetterOverview::of($snapshots, $filter),
-            'serviceNames' => array_map(static fn ($snapshot) => $snapshot->service, $snapshots),
-            'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->service, $snapshots)),
+            'serviceNames' => array_map(static fn ($snapshot) => $snapshot->scope(), $snapshots),
+            'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->scope(), $snapshots)),
             'channels' => DeadLetterOverview::channelsByService($snapshots),
             'sharedStores' => DeadLetterOverview::servicesSharingAStore($snapshots),
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
@@ -39,16 +40,17 @@ final class DeadLetterController extends AbstractController
     #[Route('/dead-letters/{service}/{messageId}', name: 'dead_letter', methods: ['GET'], requirements: ['service' => '[^/]+', 'messageId' => '[^/]+'])]
     public function detail(string $service, string $messageId): Response
     {
-        $entry = DeadLetterOverview::entry($this->snapshots->all(), $service, $messageId);
+        $entry = DeadLetterOverview::entry($this->snapshots->scopes(), $service, $messageId);
         if ($entry === null) {
             throw $this->createNotFoundException(sprintf('Dead letter "%s" of service "%s" is not in the latest 100 of its snapshot. It may have been replayed or deleted, or it is older than the snapshot lists; go back to the dead letters list.', $messageId, $service));
         }
 
         return $this->render('dead_letters/detail.html.twig', [
             'service' => $service,
+            'scope' => ServiceScope::fromKey($service),
             'entry' => $entry,
-            'similar' => DeadLetterOverview::similar($this->snapshots->all(), $service, $entry),
-            'failure' => DeadLetterOverview::failure($this->snapshots->all(), $service, (string) ($entry['failureId'] ?? '')),
+            'similar' => DeadLetterOverview::similar($this->snapshots->scopes(), $service, $entry),
+            'failure' => DeadLetterOverview::failure($this->snapshots->scopes(), $service, (string) ($entry['failureId'] ?? '')),
             'payloadJson' => self::prettyJson($entry['payload'] ?? null),
         ]);
     }

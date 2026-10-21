@@ -33,8 +33,8 @@ final readonly class QueryResultReceiver
             return;
         }
 
-        [$service, $queryKey] = $asked;
-        $this->store->update($service, $queryKey, function (QueryRecord $record) use ($queryId, $decoded): QueryRecord {
+        [$scope, $queryKey] = $asked;
+        $this->store->update($scope, $queryKey, function (QueryRecord $record) use ($queryId, $decoded): QueryRecord {
             return $record->queryId === $queryId ? $record->received($decoded, DateTimeImmutable::createFromInterface($this->clock->now())) : $record;
         });
     }

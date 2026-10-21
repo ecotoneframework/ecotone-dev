@@ -48,12 +48,16 @@ final class PulseRebuildActions
     ) {
     }
 
-    public function rebuild(string $payload, ?string $sourceService, ?string $tracingId, PulseSnapshot $snapshot): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function rebuild(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $snapshot->tenantOfScopedRequest($headers);
         $request = $this->requestOf($payload);
         $projection = $this->knownProjectionOf($request);
-        $tracingId = $this->tracingIdOf($tracingId);
+        $tracingId = $this->tracingIdOf(isset($headers[MessageHeaders::TRACING_ID]) ? (string) $headers[MessageHeaders::TRACING_ID] : null);
         $mode = $this->projections->get($projection)->rebuildsAsynchronously() ? 'asynchronous' : 'synchronous';
 
         $this->trackings->withinTransaction(function () use ($projection, $tracingId): void {
@@ -69,7 +73,7 @@ final class PulseRebuildActions
         });
 
         return json_encode([
-            ...json_decode($snapshot->snapshotJson($sourceService), true, flags: JSON_THROW_ON_ERROR),
+            ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),
             'rebuildAction' => ['tracingId' => $tracingId, 'projection' => $projection, 'mode' => $mode],
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }

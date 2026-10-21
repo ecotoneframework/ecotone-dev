@@ -264,22 +264,39 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertSame(['total' => 101, 'inspected' => 100, 'behind' => 100, 'atLeast' => true], $this->requestSnapshot()['projections'][0]['partitions']);
     }
 
-    public function test_projections_on_a_multi_tenant_connection_are_reported_unavailable_without_a_tenant_instead_of_failing_the_snapshot(): void
+    public function test_projections_of_a_multi_tenant_service_are_left_out_of_the_snapshot_without_a_tenant(): void
     {
-        $projection = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()], multiTenant: true);
+
+        $snapshot = $this->requestSnapshot();
+
+        self::assertSame(['header' => 'tenant', 'tenants' => ['tenant_a', 'tenant_b']], $snapshot['tenancy']);
+        self::assertArrayNotHasKey('projections', $snapshot);
+    }
+
+    public function test_projections_of_a_multi_tenant_service_are_reported_from_the_event_store_of_the_tenant_asked(): void
+    {
+        $this->bootstrap('dbal', [$this->asynchronousProjection()], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_a']);
+
+        $ofTenantA = $this->requestSnapshot('tenant_a');
+        $ofTenantB = $this->requestSnapshot('tenant_b');
+
+        self::assertSame('tenant_a', $ofTenantA['tenant']);
+        self::assertSame('tickets_async', $ofTenantA['projections'][0]['name']);
+        self::assertNull($ofTenantA['projections'][0]['unavailable']);
+        self::assertSame(['events' => 1, 'atLeast' => false], $ofTenantA['projections'][0]['eventsBehind']);
+        self::assertSame(['events' => 0, 'atLeast' => false], $ofTenantB['projections'][0]['eventsBehind']);
+    }
+
+    private function asynchronousProjection(): object
+    {
+        return new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
             }
         };
-        $this->bootstrap('dbal', [$projection], multiTenant: true);
-
-        $snapshot = $this->requestSnapshot();
-
-        self::assertSame('tickets_async', $snapshot['projections'][0]['name']);
-        self::assertSame('asynchronous', $snapshot['projections'][0]['mode']);
-        self::assertNull($snapshot['projections'][0]['eventsBehind']);
-        self::assertNotEmpty($snapshot['projections'][0]['unavailable']);
     }
 
     private function bootstrap(string $storage, array $projections, bool $multiTenant = false, array $extensionObjects = []): void
@@ -333,9 +350,9 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         );
     }
 
-    private function requestSnapshot(): array
+    private function requestSnapshot(?string $tenant = null): array
     {
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, metadata: $tenant === null ? [] : ['tenant' => $tenant], replyRoutingKey: 'ecotone.pulse.snapshot_received');
         $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
 

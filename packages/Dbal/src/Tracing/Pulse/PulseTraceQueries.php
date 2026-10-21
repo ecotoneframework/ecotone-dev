@@ -48,9 +48,13 @@ final class PulseTraceQueries
     {
     }
 
-    public function list(string $payload, ?string $sourceService, ?string $queryId, PulseSnapshot $snapshot): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function list(string $payload, ?string $sourceService, array $headers, ?string $queryId, PulseSnapshot $snapshot): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $tenant = $snapshot->tenantOfScopedRequest($headers);
         $queryId = $this->queryIdOf($queryId);
         $query = $this->objectOf($payload, 'A Pulse trace list query payload must be a JSON object such as ' . self::LIST_EXAMPLE);
         $flowType = $query->flowType ?? null;
@@ -70,6 +74,7 @@ final class PulseTraceQueries
 
         return json_encode([
             'queryId' => $queryId,
+            ...($tenant === null ? [] : ['tenant' => $tenant]),
             'flowType' => $flowType,
             'page' => $page,
             'perPage' => $perPage,
@@ -84,9 +89,13 @@ final class PulseTraceQueries
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
-    public function trace(string $payload, ?string $sourceService, ?string $queryId, PulseSnapshot $snapshot): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function trace(string $payload, ?string $sourceService, array $headers, ?string $queryId, PulseSnapshot $snapshot): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $tenant = $snapshot->tenantOfScopedRequest($headers);
         $queryId = $this->queryIdOf($queryId);
         $query = $this->objectOf($payload, 'A Pulse trace query payload must be a JSON object such as {"traceId": "0af7651916cd43dd8448eb211c80319c"}');
         $traceId = $query->traceId ?? null;
@@ -98,6 +107,7 @@ final class PulseTraceQueries
 
         return json_encode([
             'queryId' => $queryId,
+            ...($tenant === null ? [] : ['tenant' => $tenant]),
             'traceId' => $traceId,
             'totalSpans' => count($spans),
             'truncated' => count($spans) > self::MAX_SPANS,

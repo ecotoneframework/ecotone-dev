@@ -57,9 +57,13 @@ final class PulseTrackings
     ) {
     }
 
-    public function list(string $payload, ?string $sourceService, ?string $queryId, PulseSnapshot $snapshot): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function list(string $payload, ?string $sourceService, array $headers, ?string $queryId, PulseSnapshot $snapshot): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $snapshot->tenantOfScopedRequest($headers);
         $queryId = $this->queryIdOf($queryId);
         $query = $this->queryOf($payload);
         $limit = $this->limitOf($query);

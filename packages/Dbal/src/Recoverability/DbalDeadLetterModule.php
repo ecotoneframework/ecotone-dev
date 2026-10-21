@@ -36,6 +36,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -146,9 +147,9 @@ final class DbalDeadLetterModule implements AnnotationModule
             array_values(array_unique($connectionReferences)),
         );
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class);
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class, tenantScoped: false);
             if ($dbalConfiguration->deadLetterEnabled) {
-                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class);
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class, tenantScoped: true);
             }
         }
 
@@ -176,12 +177,12 @@ final class DbalDeadLetterModule implements AnnotationModule
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'replay'))
                 ->withInputChannelName(self::PULSE_REPLAY_CHANNEL)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, $snapshot, ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class)])
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot, ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class)])
         );
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseDeadLetterActions::class, $interfaceToCallRegistry->getFor(PulseDeadLetterActions::class, 'delete'))
                 ->withInputChannelName(self::PULSE_DELETE_CHANNEL)
-                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, $snapshot])
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
     }
 

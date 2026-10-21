@@ -21,13 +21,16 @@
             <p class="notice toast" role="status" data-notice>Rebuild of {{ notice.projection }} requested. The service records it in its own database, so the progress below survives a restart of Pulse; it refreshes every few seconds while a rebuild runs.</p>
         {% endif %}
     {% endif %}
-    {% if not service.hasSnapshot %}
+    {% for section in sections %}
+    <section data-projections-section="{{ section.snapshot.scope }}">
+    {% if section.snapshot.tenant %}<h2>Tenant <span class="chip" data-tenant="{{ section.snapshot.tenant }}">{{ section.snapshot.tenant }}</span></h2>{% endif %}
+    {% if not section.snapshot.hasSnapshot %}
         <p class="muted" data-no-snapshot>No snapshot of {{ service.service }} yet.</p>
-    {% elseif projections is empty %}
+    {% elseif section.projections is empty %}
         <p class="muted" data-no-projections>{{ service.service }} reports no projections. A class annotated with <code>#[Projection('name')]</code> is reported here with its position, how far it is behind and whether it is stalled.</p>
     {% else %}
         <p class="muted">A projection is stalled when it is behind and its position has not moved across Pulse's snapshots for {{ stalledAfter }} seconds (<code>PULSE_PROJECTION_STALLED_AFTER</code>). It is failed when dead letters are stored for its asynchronous channel.</p>
-        <div class="card flush" tabindex="0" role="region" aria-label="Projections of {{ service.service }}">
+        <div class="card flush" tabindex="0" role="region" aria-label="Projections of {{ service.service }}{% if section.snapshot.tenant %} for tenant {{ section.snapshot.tenant }}{% endif %}">
             <table>
                 <thead>
                 <tr>
@@ -36,7 +39,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                {% for projection in projections %}
+                {% for projection in section.projections %}
                     {% set tone = {up_to_date: 'ok', catching_up: 'wait', rebuilding: 'wait', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
                     <tr data-projection="{{ projection.name }}">
                         <th scope="row">{{ projection.name }}{% if projection.unavailable %}<br><span class="drift" data-unavailable>{{ projection.unavailable }}</span>{% endif %}</th>
@@ -84,7 +87,7 @@
                                     {% endif %}
                                 </p>
                                 <form method="post" action="{{ path('service_projection_rebuild', {service: service.service, projection: projection.name}) }}">
-                                    <input type="hidden" name="confirm" value="1">
+                                    <input type="hidden" name="confirm" value="1">{% if section.snapshot.tenant %}<input type="hidden" name="tenant" value="{{ section.snapshot.tenant }}">{% endif %}
                                     <button type="submit" data-rebuild-submit>Rebuild {{ projection.name }}</button>
                                 </form>
                             </details>
@@ -95,16 +98,16 @@
             </table>
         </div>
         <h2>Recent rebuilds</h2>
-        {% if rebuilds.notAnswering %}
+        {% if section.rebuilds.notAnswering %}
             <p class="drift" data-rebuilds-unavailable>{{ service.service }} did not answer the question for its tracked rebuilds, so none are shown. Pulse asks again on the next visit.</p>
-        {% elseif rebuilds.rebuilds is empty %}
+        {% elseif section.rebuilds.rebuilds is empty %}
             <p class="muted" data-no-rebuilds>No rebuild was started from Pulse in the last {{ trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
         {% else %}
             <div class="card flush" tabindex="0" role="region" aria-label="Recent rebuilds of {{ service.service }}" data-recent-rebuilds>
                 <table>
                     <thead><tr><th scope="col">Projection</th><th scope="col">Started</th><th scope="col">State</th><th scope="col">Progress</th><th scope="col">Trace</th></tr></thead>
                     <tbody>
-                    {% for rebuild in rebuilds.rebuilds %}
+                    {% for rebuild in section.rebuilds.rebuilds %}
                         <tr data-rebuild="{{ rebuild.tracingId }}">
                             <th scope="row">{{ rebuild.projection }}</th>
                             <td>{{ rebuild.startedAt }}</td>
@@ -116,7 +119,9 @@
                     </tbody>
                 </table>
             </div>
-            {% if rebuilds.truncated %}<p class="muted" data-rebuilds-truncated>Only the newest {{ rebuilds.cap }} rebuilds are listed.</p>{% endif %}
+            {% if section.rebuilds.truncated %}<p class="muted" data-rebuilds-truncated>Only the newest {{ section.rebuilds.cap }} rebuilds are listed.</p>{% endif %}
         {% endif %}
     {% endif %}
+    </section>
+    {% endfor %}
 {% endblock %}

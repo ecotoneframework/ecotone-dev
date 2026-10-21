@@ -7,6 +7,8 @@ namespace App\Trace;
 use App\Settings\PulseSettings;
 use App\Snapshot\ReplyAwaiter;
 use App\Snapshot\RequestResult;
+use App\Snapshot\ServiceScope;
+use App\Snapshot\TenantMetadata;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
@@ -23,6 +25,7 @@ final readonly class TraceQueries
     public function __construct(
         private DistributedBus $distributedBus,
         private QueryStore $store,
+        private TenantMetadata $tenantMetadata,
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
         private PulseSettings $settings,
         private LoggerInterface $logger,
@@ -30,12 +33,13 @@ final readonly class TraceQueries
     ) {
     }
 
-    public function ask(string $service, TraceQuery $query): RequestResult
+    public function ask(ServiceScope $scope, TraceQuery $query): RequestResult
     {
+        $service = $scope->service;
         $now = $this->now();
         $queryId = bin2hex(random_bytes(8));
         $claimed = false;
-        $this->store->update($service, $query->key(), function (QueryRecord $record) use ($now, $queryId, $query, &$claimed): QueryRecord {
+        $this->store->update($scope, $query->key(), function (QueryRecord $record) use ($now, $queryId, $query, &$claimed): QueryRecord {
             $claimed = $record->needsRequest($now, $query->freshnessSeconds);
 
             return $claimed ? $record->requested($queryId, $now) : $record;
@@ -47,11 +51,11 @@ final readonly class TraceQueries
 
         $tracingId = ReplyAwaiter::newTracingId();
         try {
-            $this->distributedBus->sendMessage($service, $query->routingKey, $query->json(), MediaType::APPLICATION_JSON, metadata: [self::QUERY_ID_HEADER => $queryId, MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: QueryResultReceiver::ROUTING_KEY);
+            $this->distributedBus->sendMessage($service, $query->routingKey, $query->json(), MediaType::APPLICATION_JSON, metadata: [self::QUERY_ID_HEADER => $queryId, MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: QueryResultReceiver::ROUTING_KEY);
         } catch (Throwable $exception) {
             $this->logger->error('Pulse could not send the trace query to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
             $failure = sprintf('%s: the trace query could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
-            $this->store->update($service, $query->key(), fn (QueryRecord $record) => $record->requestFailed($failure));
+            $this->store->update($scope, $query->key(), fn (QueryRecord $record) => $record->requestFailed($failure));
 
             return RequestResult::failed();
         }
@@ -59,22 +63,22 @@ final readonly class TraceQueries
         return RequestResult::sent($tracingId, QueryResultReceiver::class);
     }
 
-    public function answerOf(string $service, TraceQuery $query): TraceAnswer
+    public function answerOf(ServiceScope $scope, TraceQuery $query): TraceAnswer
     {
-        $record = $this->store->read($service, $query->key());
+        $record = $this->store->read($scope, $query->key());
 
-        return new TraceAnswer($service, $record->stateAt($this->now(), $this->settings->replyTimeoutSeconds), $record->result, $record->failure);
+        return new TraceAnswer($scope->key(), $record->stateAt($this->now(), $this->settings->replyTimeoutSeconds), $record->result, $record->failure);
     }
 
     /**
-     * @param list<string> $services
+     * @param list<ServiceScope> $scopes
      * @return list<TraceAnswer>
      */
-    public function askAll(array $services, TraceQuery $query): array
+    public function askAll(array $scopes, TraceQuery $query): array
     {
-        $this->awaiter->await(array_map(fn (string $service) => $this->ask($service, $query), $services));
+        $this->awaiter->await(array_map(fn (ServiceScope $scope) => $this->ask($scope, $query), $scopes));
 
-        return array_map(fn (string $service) => $this->answerOf($service, $query), $services);
+        return array_map(fn (ServiceScope $scope) => $this->answerOf($scope, $query), $scopes);
     }
 
     /**

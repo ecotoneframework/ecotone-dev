@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Projection;
 
 use App\Settings\PulseSettings;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\ServiceStatus;
 use App\Trace\TraceAnswerState;
@@ -31,7 +32,7 @@ final readonly class RebuildTrackings
 
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
         $query = TraceQuery::projectionRebuilds($now->modify('-' . $this->settings->trackingDays . ' days'), $this->settings->trackingDays);
-        [$answer] = $this->queries->askAll([$service->service], $query);
+        [$answer] = $this->queries->askAll([ServiceScope::fromKey($service->scope())], $query);
         $tracked = is_array($answer->result['trackings'] ?? null) ? $answer->result['trackings'] : [];
         $rebuilds = array_values(array_filter(array_map(static fn (mixed $tracking): ?Rebuild => is_array($tracking) ? Rebuild::fromTracking($tracking) : null, $tracked)));
 

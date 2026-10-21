@@ -22,6 +22,6 @@ final class NavigationExtension extends AbstractExtension
 
     public function deadLetterFailures(): int
     {
-        return DeadLetterOverview::failures($this->snapshots->all());
+        return DeadLetterOverview::failures($this->snapshots->scopes());
     }
 }

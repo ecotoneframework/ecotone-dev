@@ -8,6 +8,7 @@ use App\Projection\ProjectionOverview;
 use App\Projection\RebuildNotice;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
+use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,26 +24,26 @@ final class ProjectionsController extends AbstractController
     #[Route('/services/{service}/projections', name: 'service_projections', methods: ['GET'], requirements: ['service' => '[^/]+'])]
     public function projections(string $service, Request $request): Response
     {
-        foreach ($this->snapshots->viewAndRequestStale() as $snapshot) {
-            if ($snapshot->service !== $service) {
-                continue;
-            }
-
-            $rebuilds = $this->trackings->of($snapshot);
-            $statuses = ProjectionOverview::of($snapshot, $this->settings->projectionStalledAfterSeconds, $rebuilds);
-
-            return $this->render('services/projections.html.twig', [
-                'service' => $snapshot,
-                'projections' => $statuses,
-                'counts' => ProjectionOverview::counts($statuses),
-                'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
-                'rebuilds' => $rebuilds,
-                'trackingDays' => $this->settings->trackingDays,
-                'notice' => RebuildNotice::fromQuery($request->query->get('rebuild'), $request->query->get('projection')),
-                'waiting' => Snapshots::needsAutoRefresh([$snapshot]) || $rebuilds->waiting || $rebuilds->anyRunning(),
-            ]);
+        $this->snapshots->viewScopesAndRequestStale();
+        $rows = array_values(array_filter($this->snapshots->scopes(), static fn (ServiceSnapshot $row): bool => $row->scope() === $service || $row->service === $service));
+        if ($rows === []) {
+            throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES, for example PULSE_SERVICES=%s.', $service, implode(',', [...array_keys($this->settings->routes), $service])));
         }
 
-        throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES, for example PULSE_SERVICES=%s.', $service, implode(',', [...array_keys($this->settings->routes), $service])));
+        $sections = [];
+        foreach ($rows as $row) {
+            $rebuilds = $this->trackings->of($row);
+            $statuses = ProjectionOverview::of($row, $this->settings->projectionStalledAfterSeconds, $rebuilds);
+            $sections[] = ['snapshot' => $row, 'projections' => $statuses, 'counts' => ProjectionOverview::counts($statuses), 'rebuilds' => $rebuilds];
+        }
+
+        return $this->render('services/projections.html.twig', [
+            'service' => $rows[0],
+            'sections' => $sections,
+            'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
+            'trackingDays' => $this->settings->trackingDays,
+            'notice' => RebuildNotice::fromQuery($request->query->get('rebuild'), $request->query->get('projection')),
+            'waiting' => Snapshots::needsAutoRefresh($rows) || array_filter($sections, static fn (array $section): bool => $section['rebuilds']->waiting || $section['rebuilds']->anyRunning()) !== [],
+        ]);
     }
 }

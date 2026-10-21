@@ -36,13 +36,15 @@ final class PulseSnapshot
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param list<array{name: string, kind: string, probeGroup: string|null, destination: string|null}> $channels
+     * @param list<array{name: string, kind: string, probeGroup: string|null, destination: string|null, tenantScoped: bool}> $channels
      * @param array<string, PulseChannelProbe> $probes
-     * @param array<string, PulseSnapshotSection> $sections
+     * @param array<string, PulseSnapshotSection> $tenantIndependentSections
+     * @param array<string, PulseSnapshotSection> $tenantScopedSections
+     * @param array{header: string, tenants: list<string>}|array{} $tenancy
      */
     public function __construct(
         private string $serviceName,
@@ -51,17 +53,71 @@ final class PulseSnapshot
         private array $serviceMaps,
         private array $channels,
         private array $probes,
-        private array $sections,
+        private array $tenantIndependentSections,
+        private array $tenantScopedSections,
+        private array $tenancy,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
     ) {
     }
 
-    public function snapshotJson(?string $sourceService): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function snapshotJson(?string $sourceService, array $headers): string
     {
         $this->authorizeRequestFrom($sourceService);
 
-        return json_encode($this->snapshot(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $tenant = $this->isMultiTenant() && isset($headers[$this->tenancy['header']]) ? $this->advertisedTenant($headers[$this->tenancy['header']]) : null;
+
+        return json_encode($tenant === null ? $this->snapshot() : $this->tenantSnapshot($tenant), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function tenantOfScopedRequest(array $headers): ?string
+    {
+        if (! $this->isMultiTenant() || ! isset($headers[$this->tenancy['header']])) {
+            return null;
+        }
+
+        return $this->advertisedTenant($headers[$this->tenancy['header']]);
+    }
+
+    private function isMultiTenant(): bool
+    {
+        return $this->tenancy !== [];
+    }
+
+    private function advertisedTenant(mixed $tenant): string
+    {
+        if (! is_string($tenant) || ! in_array($tenant, $this->tenancy['tenants'], true)) {
+            $named = is_scalar($tenant) ? (string) $tenant : get_debug_type($tenant);
+            throw InvalidArgumentException::create("Service {$this->serviceName} was asked by Pulse for tenant `{$named}`, but it advertises only " . implode(', ', $this->tenancy['tenants']) . ", so the answer would come from the default connection and be shown as that tenant. Ask for one of the advertised tenants, or add `{$named}` to the tenant mapping of MultiTenantConfiguration.");
+        }
+
+        return $tenant;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function tenantSnapshot(string $tenant): array
+    {
+        $snapshot = [
+            'schemaVersion' => self::SCHEMA_VERSION,
+            'serviceName' => $this->serviceName,
+            'takenAt' => $this->clock->now()->format(DateTimeInterface::ATOM),
+            'tenant' => $tenant,
+            'channels' => $this->channelsWithDepth(forTenant: true),
+        ];
+
+        foreach ($this->tenantScopedSections as $sectionName => $section) {
+            $snapshot[$sectionName] = $section->snapshot();
+        }
+
+        return $snapshot;
     }
 
     /**
@@ -89,11 +145,20 @@ final class PulseSnapshot
             ],
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
-            'channels' => $this->channelsWithDepth(),
+            'channels' => $this->channelsWithDepth(forTenant: false),
         ];
 
-        foreach ($this->sections as $sectionName => $section) {
+        if ($this->isMultiTenant()) {
+            $snapshot['tenancy'] = $this->tenancy;
+        }
+
+        foreach ($this->tenantIndependentSections as $sectionName => $section) {
             $snapshot[$sectionName] = $section->snapshot();
+        }
+        if (! $this->isMultiTenant()) {
+            foreach ($this->tenantScopedSections as $sectionName => $section) {
+                $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+            }
         }
 
         return $snapshot;
@@ -102,11 +167,12 @@ final class PulseSnapshot
     /**
      * @return list<array<string, mixed>>
      */
-    private function channelsWithDepth(): array
+    private function channelsWithDepth(bool $forTenant): array
     {
+        $measuredHere = fn (array $channel): bool => ! $this->isMultiTenant() || $channel['tenantScoped'] === $forTenant;
         $namesByGroup = [];
         foreach ($this->channels as $channel) {
-            if ($channel['probeGroup'] !== null) {
+            if ($channel['probeGroup'] !== null && $measuredHere($channel)) {
                 $namesByGroup[$channel['probeGroup']][$channel['name']] = $channel['destination'];
             }
         }
@@ -116,14 +182,16 @@ final class PulseSnapshot
             $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
         }
 
-        return array_map(
+        $listed = $forTenant ? array_filter($this->channels, static fn (array $channel): bool => $channel['tenantScoped']) : $this->channels;
+
+        return array_values(array_map(
             fn (array $channel): array => [
                 'name' => $channel['name'],
                 'kind' => $channel['kind'],
                 ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
             ],
-            $this->channels
-        );
+            $listed
+        ));
     }
 
     /**

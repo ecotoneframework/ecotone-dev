@@ -10,7 +10,7 @@ final class FlowTypeOverview
 {
     /**
      * @param list<ServiceSnapshot> $snapshots
-     * @return list<array{service: string, status: ServiceSnapshot, tracing: bool, statsWindow: int, flowTypes: list<array<string, mixed>>}>
+     * @return list<array{service: string, name: string, tenant: ?string, status: ServiceSnapshot, tracing: bool, statsWindow: int, flowTypes: list<array<string, mixed>>}>
      */
     public static function of(array $snapshots): array
     {
@@ -21,7 +21,9 @@ final class FlowTypeOverview
             $flowTypes = $enabled ? array_values(array_filter($tracing['flowTypes'] ?? [], is_array(...))) : [];
             usort($flowTypes, fn (array $first, array $second): int => strcmp((string) ($first['flowType'] ?? ''), (string) ($second['flowType'] ?? '')));
             $services[] = [
-                'service' => $snapshot->service,
+                'service' => $snapshot->scope(),
+                'name' => $snapshot->service,
+                'tenant' => $snapshot->tenant,
                 'status' => $snapshot,
                 'tracing' => $enabled,
                 'statsWindow' => $enabled && is_int($tracing['statsWindow'] ?? null) ? $tracing['statsWindow'] : 0,

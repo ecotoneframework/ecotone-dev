@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Projection\RebuildNotice;
 use App\Projection\RebuildRequester;
 use App\Snapshot\ReplyAwaiter;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -25,9 +26,11 @@ final class ProjectionRebuildController extends AbstractController
     #[Route('/services/{service}/projections/{projection}/rebuild', name: 'service_projection_rebuild', methods: ['POST'], requirements: ['service' => '[^/]+', 'projection' => '[^/]+'])]
     public function rebuild(string $service, string $projection, Request $request): RedirectResponse
     {
+        $tenant = $request->request->get('tenant');
+        $scope = is_string($tenant) && $tenant !== '' ? ServiceScope::ofTenant($service, $tenant) : ServiceScope::ofService($service);
         $known = false;
-        foreach ($this->snapshots->all() as $snapshot) {
-            if ($snapshot->service !== $service) {
+        foreach ($this->snapshots->scopes() as $snapshot) {
+            if ($snapshot->scope() !== $scope->key()) {
                 continue;
             }
             foreach ($snapshot->snapshot['projections'] ?? [] as $reported) {
@@ -41,7 +44,7 @@ final class ProjectionRebuildController extends AbstractController
             return $this->back($service, RebuildNotice::of(RebuildNotice::NOT_CONFIRMED, $projection));
         }
 
-        $result = $this->requester->send($service, $projection);
+        $result = $this->requester->send($scope, $projection);
         $this->awaiter->await([$result]);
 
         return $this->back($service, RebuildNotice::of($result->failed ? RebuildNotice::SEND_FAILED : RebuildNotice::REQUESTED, $projection));

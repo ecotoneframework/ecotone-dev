@@ -17,6 +17,7 @@ final readonly class ChannelDepth
         public ?int $consumers,
         public ?string $probeError,
         public string $level,
+        public bool $perTenant,
     ) {
     }
 
@@ -45,6 +46,7 @@ final readonly class ChannelDepth
                 self::count($channel, 'consumers'),
                 is_string($channel['probeError'] ?? null) ? $channel['probeError'] : null,
                 $thresholds->levelOf($snapshot->service, $channel['name'], $ready),
+                ($channel['perTenant'] ?? false) === true,
             );
         }
 

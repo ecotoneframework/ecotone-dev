@@ -6,9 +6,10 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
-use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
@@ -16,7 +17,6 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
@@ -29,6 +29,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -53,9 +54,35 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class PulseModule implements AnnotationModule
 {
+    private const FRAMEWORK_NAMESPACE = 'Ecotone\\';
+
+    /**
+     * @param string[] $handlerInputChannels
+     */
+    private function __construct(private array $handlerInputChannels)
+    {
+    }
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $routing = new BusRoutingMapBuilder();
+        $channels = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
+            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
+                $channels = [...$channels, ...$routing->getRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry)];
+            }
+        }
+        foreach ($annotationRegistrationService->findAnnotatedMethods(InternalHandler::class) as $registration) {
+            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
+                /** @var InternalHandler $annotation */
+                $annotation = $registration->getAnnotationForMethod();
+                $channels[] = $annotation->getInputChannelName();
+            }
+        }
+        $channels = array_values(array_unique($channels));
+        sort($channels);
+
+        return new self($channels);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -94,7 +121,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
-                self::consumedChannelsOf($extensionObjects),
+                $this->handlerInputChannels,
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -137,27 +164,6 @@ final class PulseModule implements AnnotationModule
         }
 
         return $references;
-    }
-
-    /**
-     * @param object[] $extensionObjects
-     * @return string[]
-     */
-    private static function consumedChannelsOf(array $extensionObjects): array
-    {
-        $consumed = [];
-        foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensionObjects) as $asynchronousModule) {
-            $consumed = array_merge($consumed, $asynchronousModule->consumedChannelNames($extensionObjects));
-        }
-
-        $channels = [];
-        foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channel) {
-            if ($channel->isPollable() && in_array($channel->getMessageChannelName(), $consumed, true)) {
-                $channels[] = $channel->getMessageChannelName();
-            }
-        }
-
-        return $channels;
     }
 
     /**

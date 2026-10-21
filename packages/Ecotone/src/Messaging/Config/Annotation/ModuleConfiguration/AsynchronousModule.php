@@ -184,23 +184,6 @@ final class AsynchronousModule implements AnnotationModule
         );
     }
 
-    /**
-     * @param object[] $extensionObjects
-     * @return string[]
-     */
-    public function consumedChannelNames(array $extensionObjects): array
-    {
-        $channelNames = [];
-        foreach ($this->resolveChannels($extensionObjects) as $asyncChannels) {
-            $channelNames = array_merge($channelNames, $asyncChannels);
-        }
-        foreach ($this->streamSourcesAsyncEndpoints as $asyncChannels) {
-            $channelNames = array_merge($channelNames, is_array($asyncChannels) ? $asyncChannels : [$asyncChannels]);
-        }
-
-        return array_values(array_unique($channelNames));
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

@@ -5,7 +5,11 @@
 {% block body %}
     <h1>Delete dead letters</h1>
     <form method="post" action="{{ path('dead_letter_actions') }}" data-confirm-delete>
-        {% if selection %}
+        {% if deleteFailure %}
+            <p>This deletes every stored dead letter of this failure in {{ services|join(', ') }}{% if failure %}: <strong data-failure-label>{{ failure.exceptionClass }} at {{ failure.exceptionFile ? (failure.exceptionFile|split('/')|last) ~ ':' ~ failure.exceptionLine : 'an unknown location' }} for {{ failure.messageName ?: '(unnamed)' }}</strong>, {{ failure.count }} {{ failure.count == 1 ? 'dead letter' : 'dead letters' }}{% endif %}, including those beyond the latest 100 shown in the list. Dead letters of the same exception under another message name stay. It cannot be undone.</p>
+            <input type="hidden" name="deleteFailure" value="{{ deleteFailure }}">
+            <button type="submit">Delete all of this failure</button>
+        {% elseif selection %}
             {% set count = 0 %}
             {% for ids in selection %}{% set count = count + ids|length %}{% endfor %}
             <p>This deletes the {{ count }} dead {{ count == 1 ? 'letter' : 'letters' }} you selected in {{ services|join(', ') }}. It cannot be undone.</p>

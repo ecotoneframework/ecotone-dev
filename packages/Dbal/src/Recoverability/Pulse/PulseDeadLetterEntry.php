@@ -76,22 +76,45 @@ final class PulseDeadLetterEntry
         return $this->header(ErrorContext::EXCEPTION_CLASS) ?? '';
     }
 
+    public function exceptionFile(): string
+    {
+        return $this->header(ErrorContext::EXCEPTION_FILE) ?? '';
+    }
+
+    public function exceptionLine(): int
+    {
+        return (int) $this->header(ErrorContext::EXCEPTION_LINE);
+    }
+
+    public function exceptionMessage(): string
+    {
+        return $this->header(ErrorContext::EXCEPTION_MESSAGE) ?? '';
+    }
+
+    public function failureId(): string
+    {
+        return substr(sha1(implode("\0", [$this->messageName(), $this->exceptionClass(), $this->exceptionFile(), $this->exceptionLine()])), 0, 12);
+    }
+
     public function failedAt(): DateTimeImmutable
     {
         return (new DateTimeImmutable('@' . (int) $this->message->getHeaders()->get(MessageHeaders::TIMESTAMP)))->setTimezone(new DateTimeZone('UTC'));
     }
 
     /**
-     * @return array{messageId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null}
+     * @return array{messageId: string, failureId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null}
      */
     public function toArray(): array
     {
         return [
             'messageId' => $this->messageId(),
+            'failureId' => $this->failureId(),
             'messageName' => $this->messageName(),
             'failedAt' => $this->failedAt()->format(DateTimeInterface::ATOM),
             'exceptionClass' => $this->exceptionClass(),
-            'exceptionMessage' => $this->header(ErrorContext::EXCEPTION_MESSAGE) ?? '',
+            'exceptionFile' => $this->exceptionFile(),
+            'exceptionLine' => $this->exceptionLine(),
+            'exceptionMessage' => $this->exceptionMessage(),
             'stackTrace' => self::truncated($this->header(ErrorContext::EXCEPTION_STACKTRACE) ?? ''),
             'payload' => self::truncated($this->payloadAsText()),
             'contentType' => $this->header(MessageHeaders::CONTENT_TYPE),

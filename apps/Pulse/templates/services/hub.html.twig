@@ -81,7 +81,7 @@
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
             {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
-                <p><b data-total>{{ service.deadLetterTotal }}</b> stored{% if service.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: service.service}) }}">Open the dead letters of {{ service.service }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
+                <p><b data-total>{{ service.failureCount ?? 0 }}</b> {{ service.failureCount == 1 ? 'failure' : 'failures' }} <span class="muted" data-hub-dead-letter-total>({{ service.deadLetterTotal }} stored)</span>{% if service.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: service.service}) }}">Open the dead letters of {{ service.service }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
             {% else %}
                 <p class="muted">Dead letters are not configured for {{ service.service }}. Enable them with <code>DbalConfiguration::createWithDefaults()-&gt;withDeadLetter(true)</code> in a <code>#[ServiceContext]</code> of {{ service.service }}.</p>
             {% endif %}

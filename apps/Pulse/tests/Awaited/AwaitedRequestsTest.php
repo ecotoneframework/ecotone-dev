@@ -102,6 +102,30 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         self::assertCount(0, $after->filter('meta[http-equiv="refresh"]'));
     }
 
+    public function test_deleting_a_failure_says_how_many_dead_letters_were_deleted_once_the_service_answers(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders'], function (): array {
+            $orders = $this->serviceWithDeadLetters('orders');
+            $this->failOrder($orders, 'order.place', 1);
+            $this->failOrder($orders, 'order.place', 2);
+            $this->failOrder($orders, 'order.cancel', 3);
+
+            return ['orders' => $orders];
+        });
+
+        $list = $client->request('GET', '/dead-letters');
+        $confirmation = $client->submit($list->filter('[data-group][data-message-name="order.place"] [data-group-delete]')->form());
+        $client->submit($confirmation->filter('[data-confirm-delete] button')->form());
+        $notice = $client->followRedirect();
+
+        self::assertSame('2', $notice->filter('[data-notice] [data-affected]')->text());
+        self::assertStringContainsString('deleted 2 dead letters', preg_replace('/\s+/', ' ', $notice->filter('[data-notice]')->text()));
+        self::assertStringContainsString('RuntimeException', $notice->filter('[data-notice]')->text());
+    }
+
     public function test_the_trace_list_of_a_flow_type_is_rendered_in_the_same_response_when_the_service_answers(): void
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping');

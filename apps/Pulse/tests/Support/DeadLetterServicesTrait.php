@@ -65,10 +65,29 @@ trait DeadLetterServicesTrait
                 $this->handle('order.cancel', $order, new LogicException('cancel failed for order ' . $order['orderId']));
             }
 
+            #[Asynchronous('pulse_dead_letter_work')]
+            #[CommandHandler('order.ship', endpointId: 'pulse.order.ship.endpoint')]
+            public function ship(array $order): void
+            {
+                $this->handle('order.ship', $order, $this->stockFailure($order));
+            }
+
+            #[Asynchronous('pulse_dead_letter_work')]
+            #[CommandHandler('order.reserve', endpointId: 'pulse.order.reserve.endpoint')]
+            public function reserve(array $order): void
+            {
+                $this->handle('order.reserve', $order, $this->stockFailure($order));
+            }
+
             #[CommandHandler('order.audit', endpointId: 'pulse.order.audit.endpoint')]
             public function audit(array $order): void
             {
                 $this->handled[] = 'order.audit:' . $order['orderId'];
+            }
+
+            private function stockFailure(array $order): Throwable
+            {
+                return new RuntimeException('no stock for order ' . $order['orderId']);
             }
 
             private function handle(string $name, array $order, Throwable $failure): void

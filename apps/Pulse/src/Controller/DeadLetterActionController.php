@@ -11,6 +11,7 @@ use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
 use App\Snapshot\ReplyAwaiter;
 use App\Snapshot\ServiceSnapshot;
+use App\Snapshot\ServiceStatus;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -30,16 +31,18 @@ final class DeadLetterActionController extends AbstractController
     #[Route('/dead-letters/actions', name: 'dead_letter_actions', methods: ['POST'])]
     public function act(Request $request): Response
     {
-        $group = (string) $request->request->get('group', '');
-        $replay = $group !== '' || $request->request->get('action') === 'replay';
+        $failure = (string) $request->request->get('failure', '');
+        $deleteFailure = (string) $request->request->get('deleteFailure', '');
+        $byFailure = $failure !== '' || $deleteFailure !== '';
+        $replay = $byFailure ? $failure !== '' : $request->request->get('action') === 'replay';
         $filter = DeadLetterFilter::fromInput($request->request);
         $byFilter = $request->request->get('scope') === 'filter';
         if (($invalidDate = $filter->invalidDateField()) !== null) {
             return $this->back($filter, DeadLetterNotice::invalidDate($invalidDate));
         }
 
-        $actions = $group !== ''
-            ? $this->actionsForGroup($group, $request->request->all()['targetChannel'] ?? [])
+        $actions = $byFailure
+            ? $this->actionsForFailure($replay ? $failure : $deleteFailure, $replay, $request->request->all()['targetChannel'] ?? [])
             : ($byFilter
             ? $this->actionsForFilter($filter, $replay, $replay ? trim((string) $request->request->get('targetChannel', '')) : '')
             : $this->actionsForSelection($request->request->all('selected'), $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []));
@@ -50,10 +53,13 @@ final class DeadLetterActionController extends AbstractController
             return $this->render('dead_letters/confirm_delete.html.twig', [
                 'filter' => $filter,
                 'services' => array_keys($actions),
-                'selection' => $byFilter ? [] : $this->selectedIds($request->request->all('selected')),
+                'selection' => $byFilter || $byFailure ? [] : $this->selectedIds($request->request->all('selected')),
+                'deleteFailure' => $byFailure ? $deleteFailure : '',
+                'failure' => $byFailure ? $this->failureOf($deleteFailure) : null,
             ]);
         }
 
+        $failureLabel = $byFailure ? DeadLetterOverview::failureLabel($this->failureOf($failure !== '' ? $failure : $deleteFailure)) : '';
         $failed = [];
         $results = [];
         foreach ($actions as $service => $action) {
@@ -66,35 +72,59 @@ final class DeadLetterActionController extends AbstractController
         $this->awaiter->await($results);
 
         return $this->back($filter, $failed === []
-            ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions))
+            ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions), $this->affectedBy(array_keys($actions)), $failureLabel)
             : DeadLetterNotice::sendFailed($failed));
     }
 
     /**
      * @return array<string, DeadLetterAction>|DeadLetterNotice
      */
-    private function actionsForGroup(string $group, mixed $targetChannels): array|DeadLetterNotice
+    private function actionsForFailure(string $failure, bool $replay, mixed $targetChannels): array|DeadLetterNotice
     {
-        $decoded = json_decode($group, true);
-        if (! is_array($decoded) || count($decoded) !== 3 || ! array_is_list($decoded) || array_filter($decoded, is_string(...)) !== $decoded) {
+        $decoded = json_decode($failure, true);
+        if (! is_array($decoded) || count($decoded) !== 2 || ! array_is_list($decoded) || array_filter($decoded, is_string(...)) !== $decoded || preg_match('/^[0-9a-f]{12}$/', $decoded[1]) !== 1) {
             return DeadLetterNotice::nothingSelected();
         }
-        [$service, $messageName, $exceptionClass] = $decoded;
+        [$service, $failureId] = $decoded;
         $configured = $this->servicesWithDeadLetters($service);
         if ($configured instanceof DeadLetterNotice) {
             return $configured;
         }
-        $targetChannel = is_array($targetChannels) && is_string($targetChannels[$service] ?? null) ? trim($targetChannels[$service]) : '';
+        $targetChannel = $replay && is_array($targetChannels) && is_string($targetChannels[$service] ?? null) ? trim($targetChannels[$service]) : '';
         if ($targetChannel !== '' && ! $this->registersChannel($service, $targetChannel)) {
             return DeadLetterNotice::unknownChannel($service, $targetChannel);
         }
-        if ($messageName !== '') {
-            return [$service => DeadLetterAction::replayMatching(['messageName' => $messageName, 'exceptionClass' => $exceptionClass], $targetChannel)];
+
+        return [$service => $replay ? DeadLetterAction::replayMatching(['failureId' => $failureId], $targetChannel) : DeadLetterAction::deleteMatching(['failureId' => $failureId])];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function failureOf(string $failure): ?array
+    {
+        $decoded = json_decode($failure, true);
+
+        return is_array($decoded) && count($decoded) === 2 && is_string($decoded[0] ?? null) && is_string($decoded[1] ?? null) ? DeadLetterOverview::failure($this->snapshots->all(), $decoded[0], $decoded[1]) : null;
+    }
+
+    /**
+     * @param list<string> $services
+     */
+    private function affectedBy(array $services): ?int
+    {
+        $affected = 0;
+        foreach ($this->snapshots->all() as $snapshot) {
+            if (! in_array($snapshot->service, $services, true)) {
+                continue;
+            }
+            if ($snapshot->status !== ServiceStatus::Connected || ! is_int($snapshot->snapshot['deadLetterAction']['affected'] ?? null)) {
+                return null;
+            }
+            $affected += $snapshot->snapshot['deadLetterAction']['affected'];
         }
 
-        $ids = DeadLetterOverview::unnamedMessageIds($this->snapshots->all(), $service, $exceptionClass);
-
-        return $ids === [] ? DeadLetterNotice::nothingSelected() : [$service => DeadLetterAction::replayIds($ids, $targetChannel)];
+        return $affected;
     }
 
     /**

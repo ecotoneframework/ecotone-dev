@@ -33,12 +33,12 @@ use stdClass;
  */
 final class PulseDeadLetterSelection
 {
-    private const FILTER_CONDITIONS = ['messageName', 'exceptionClass', 'failedFrom', 'failedTo'];
+    private const FILTER_CONDITIONS = ['messageName', 'exceptionClass', 'failureId', 'failedFrom', 'failedTo'];
     private const SELECTORS_EXAMPLE = 'Send {"messageIds": ["id-1"]} to act on those messages, or {"filter": {"messageName": "order.place"}} to act on every dead letter matching it.';
 
     /**
      * @param string[]|null $messageIds
-     * @param array{messageName?: string, exceptionClass?: string, failedFrom?: DateTimeImmutable, failedTo?: DateTimeImmutable} $filter
+     * @param array{messageName?: string, exceptionClass?: string, failureId?: string, failedFrom?: DateTimeImmutable, failedTo?: DateTimeImmutable} $filter
      */
     private function __construct(
         private ?array $messageIds,
@@ -85,6 +85,7 @@ final class PulseDeadLetterSelection
     {
         return ($this->filter['messageName'] ?? $entry->messageName()) === $entry->messageName()
             && ($this->filter['exceptionClass'] ?? $entry->exceptionClass()) === $entry->exceptionClass()
+            && ($this->filter['failureId'] ?? $entry->failureId()) === $entry->failureId()
             && (! isset($this->filter['failedFrom']) || $entry->failedAt() >= $this->filter['failedFrom'])
             && (! isset($this->filter['failedTo']) || $entry->failedAt() <= $this->filter['failedTo']);
     }
@@ -141,7 +142,7 @@ final class PulseDeadLetterSelection
     }
 
     /**
-     * @return array{messageName?: string, exceptionClass?: string, failedFrom?: DateTimeImmutable, failedTo?: DateTimeImmutable}
+     * @return array{messageName?: string, exceptionClass?: string, failureId?: string, failedFrom?: DateTimeImmutable, failedTo?: DateTimeImmutable}
      */
     private static function filterFrom(mixed $filter): array
     {

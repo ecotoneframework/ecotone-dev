@@ -36,7 +36,7 @@ final class ServicesController extends AbstractController
             'summary' => [
                 'connected' => count(array_filter($services, static fn (ServiceSnapshot $service) => $service->status === ServiceStatus::Connected)),
                 'unreachable' => count(array_filter($services, static fn (ServiceSnapshot $service) => in_array($service->status->value, ['unreachable', 'channel_missing'], true))),
-                'deadLetters' => DeadLetterOverview::total($services),
+                'deadLetters' => DeadLetterOverview::failures($services),
                 'drift' => count(array_filter($services, static fn (ServiceSnapshot $service) => $newest !== null && $service->ecotoneVersion() !== null && $service->ecotoneVersion() !== $newest)),
             ],
             'channelsOver' => array_combine(

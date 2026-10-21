@@ -6,8 +6,6 @@ namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableExistsException;
-use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Messaging\Config\Container\Definition;

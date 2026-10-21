@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Tracing;
 
-use Ecotone\Dbal\Pulse\Tracking\PulseRebuildActions;
 use Closure;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
@@ -13,6 +12,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
+use Ecotone\Dbal\Pulse\Tracking\PulseRebuildActions;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Tracing\Tracer;

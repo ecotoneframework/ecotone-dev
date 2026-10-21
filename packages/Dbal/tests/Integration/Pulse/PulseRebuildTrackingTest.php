@@ -22,12 +22,13 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRebuild;
-use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -162,6 +163,16 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         self::assertSame(100, $listing['cap']);
     }
 
+    public function test_a_rebuild_without_the_tracking_table_is_refused_with_the_command_that_creates_it(): void
+    {
+        $this->bootstrap('dbal', tablesSetUp: false);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("table required by the 'pulse_tracking' feature does not exist");
+
+        $this->rebuild('sync_orders', self::FIRST_TRACE);
+    }
+
     private function rebuild(string $projection, string $tracingId): array
     {
         $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.projections.rebuild', json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId], replyRoutingKey: 'ecotone.pulse.snapshot_received');
@@ -181,7 +192,7 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
         return json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(string $implementation): void
+    private function bootstrap(string $implementation, bool $tablesSetUp = true): void
     {
         $inMemory = $implementation === 'in-memory';
         $asyncOrders = new #[Projection('async_orders'), FromStream('orders_stream'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
@@ -252,11 +263,11 @@ final class PulseRebuildTrackingTest extends DbalMessagingTestCase
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
-                DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory: $inMemory),
+                DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory: $inMemory)->withDeduplication($tablesSetUp),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC')))->withDatabaseTablesSetUpOnBootstrap($tablesSetUp),
         );
         $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1']), Event::createWithType('order.placed', ['orderId' => '2'])]);
         $this->pulseService = $this->bootstrapFlowTesting(

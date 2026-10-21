@@ -8,6 +8,7 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\Header;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -189,6 +190,13 @@ final class ProjectionStatusPageTest extends ReleasingWebTestCase
         $this->orders = new class () {
             public array $projections = [];
             public array $deadLetterChannels = [];
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.trackings.list', endpointId: 'orders.trackings')]
+            public function trackings(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
+            {
+                return json_encode(['queryId' => $queryId, 'cap' => 100, 'truncated' => false, 'trackings' => []], JSON_THROW_ON_ERROR);
+            }
 
             #[Distributed]
             #[CommandHandler('ecotone.pulse.snapshot')]

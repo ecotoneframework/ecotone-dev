@@ -27,6 +27,7 @@ final readonly class PulseSettings
         public int $refreshIntervalSeconds,
         public int $doctorBudgetSeconds,
         public int $projectionStalledAfterSeconds,
+        public int $trackingDays,
         public string $internalDatabasePath,
         public QueueThresholds $queueThresholds,
     ) {
@@ -73,6 +74,7 @@ final readonly class PulseSettings
 
         $doctorBudget = self::seconds($read('PULSE_DOCTOR_BUDGET_SECONDS', '8'), 'PULSE_DOCTOR_BUDGET_SECONDS', 0);
         $projectionStalledAfter = self::seconds($read('PULSE_PROJECTION_STALLED_AFTER', '300'), 'PULSE_PROJECTION_STALLED_AFTER', 1);
+        $trackingDays = self::trackingDays($read('PULSE_TRACKING_DAYS', '7'));
 
         $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
         if (! str_starts_with($internalDatabasePath, '/')) {
@@ -83,7 +85,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
+        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
     }
 
     public function transportConnectionReference(): string
@@ -178,6 +180,15 @@ final readonly class PulseSettings
         }
 
         return $value;
+    }
+
+    private static function trackingDays(string $value): int
+    {
+        if (preg_match('/^\d+$/', $value) !== 1 || (int) $value < 1 || (int) $value > 365) {
+            throw new PulseConfigurationException(sprintf('PULSE_TRACKING_DAYS "%s" is not a number of days, so Pulse cannot tell how far back to look for tracked rebuilds. Set it to a whole number of days from 1 to 365, for example 7, which is the default.', $value));
+        }
+
+        return (int) $value;
     }
 
     private static function seconds(string $value, string $variable, int $minimum): int

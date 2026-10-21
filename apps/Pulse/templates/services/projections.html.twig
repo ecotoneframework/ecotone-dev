@@ -9,6 +9,18 @@
 {% block body %}
     {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: 'Projections'}]} %}
     <h1>Projections of {{ service.service }}</h1>
+    {% if notice %}
+        {% if notice.error %}
+            <p class="notice toast drift" role="alert" data-notice-error>
+            {% if notice.code == 'not_confirmed' %}The rebuild of "{{ notice.projection }}" was not confirmed, so nothing was sent. Open "Rebuild" on the projection and confirm it.
+            {% elseif notice.code == 'unknown_projection' %}{{ service.service }} does not report a projection "{{ notice.projection }}" in its latest snapshot, so nothing was rebuilt. Pick one of the listed projections, or refresh if it was added recently.
+            {% else %}The rebuild of "{{ notice.projection }}" could not be sent to {{ service.service }}; the service shows the reason.
+            {% endif %}
+            </p>
+        {% else %}
+            <p class="notice toast" role="status" data-notice>Rebuild of {{ notice.projection }} requested. The service records it in its own database, so the progress below survives a restart of Pulse; it refreshes every few seconds while a rebuild runs.</p>
+        {% endif %}
+    {% endif %}
     {% if not service.hasSnapshot %}
         <p class="muted" data-no-snapshot>No snapshot of {{ service.service }} yet.</p>
     {% elseif projections is empty %}
@@ -20,12 +32,12 @@
                 <thead>
                 <tr>
                     <th scope="col">Projection</th><th scope="col">Status</th><th scope="col" class="num">Behind</th><th scope="col">Mode</th>
-                    <th scope="col" class="hide-narrow">Partitioned</th><th scope="col" class="hide-narrow">Initialization</th><th scope="col">Last change seen</th>
+                    <th scope="col" class="hide-narrow">Partitioned</th><th scope="col" class="hide-narrow">Initialization</th><th scope="col">Last change seen</th><th scope="col">Rebuild</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for projection in projections %}
-                    {% set tone = {up_to_date: 'ok', catching_up: 'wait', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
+                    {% set tone = {up_to_date: 'ok', catching_up: 'wait', rebuilding: 'wait', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
                     <tr data-projection="{{ projection.name }}">
                         <th scope="row">{{ projection.name }}{% if projection.unavailable %}<br><span class="drift" data-unavailable>{{ projection.unavailable }}</span>{% endif %}</th>
                         <td><span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-projection-status="{{ projection.state.value }}">{{ projection.state.label }}</span></td>
@@ -34,10 +46,77 @@
                         <td class="hide-narrow" data-partitioned>{{ projection.partitioned ? 'yes' : 'no' }}</td>
                         <td class="hide-narrow" data-initialization>{{ projection.initialization ?? '–' }}</td>
                         <td data-last-change>{{ projection.changedAgo ?? '–' }}</td>
+                        <td>
+                            {% set rebuild = projection.latestRebuild %}
+                            {% if rebuild %}
+                                <div data-rebuild-state="{{ rebuild.state }}">
+                                    {% if rebuild.state == 'running' %}
+                                        {% if projection.partitioned and rebuild.batchCount %}
+                                            <progress max="100" value="{{ rebuild.percent }}" aria-label="Rebuild of {{ projection.name }}"></progress>
+                                            <span data-rebuild-percent>{{ rebuild.percent }}%</span>
+                                            <span class="muted" data-rebuild-batches>{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches</span>
+                                        {% else %}
+                                            <span class="pill wait">Running</span>
+                                            <span class="muted" data-rebuild-elapsed>running for {{ rebuild.elapsed ?? '0s' }}</span>
+                                        {% endif %}
+                                    {% elseif rebuild.state == 'done' %}
+                                        <span class="pill ok">Rebuilt</span>
+                                        <span class="muted" data-rebuild-duration>in {{ rebuild.duration ?? '–' }}</span>
+                                    {% else %}
+                                        <span class="pill bad sq">Rebuild failed</span>
+                                    {% endif %}
+                                    <a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace</a>
+                                </div>
+                            {% endif %}
+                            <details data-rebuild-confirm="{{ projection.name }}">
+                                <summary>Rebuild</summary>
+                                <p data-rebuild-explanation>
+                                    Rebuilding resets {{ projection.name }} and replays its whole event stream.
+                                    {% if projection.partitioned %}
+                                        It runs in batches of partitions, so Pulse shows a percentage: batches done out of the batch count.
+                                    {% else %}
+                                        It runs in one transaction, so Pulse shows it as running with the time elapsed, then done or failed; there is no percentage because uncommitted writes are invisible.
+                                    {% endif %}
+                                    {% if projection.rebuildAsyncChannel %}
+                                        The batches are handled by the consumer of the channel "{{ projection.rebuildAsyncChannel }}", so make sure it is running.
+                                    {% else %}
+                                        There is no asynchronous rebuild channel, so it runs inside the request to {{ service.service }}: the reply may arrive late, and the rebuild keeps showing as running until it ends.
+                                    {% endif %}
+                                </p>
+                                <form method="post" action="{{ path('service_projection_rebuild', {service: service.service, projection: projection.name}) }}">
+                                    <input type="hidden" name="confirm" value="1">
+                                    <button type="submit" data-rebuild-submit>Rebuild {{ projection.name }}</button>
+                                </form>
+                            </details>
+                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
+        <h2>Recent rebuilds</h2>
+        {% if rebuilds.notAnswering %}
+            <p class="drift" data-rebuilds-unavailable>{{ service.service }} did not answer the question for its tracked rebuilds, so none are shown. Pulse asks again on the next visit.</p>
+        {% elseif rebuilds.rebuilds is empty %}
+            <p class="muted" data-no-rebuilds>No rebuild was started from Pulse in the last {{ trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
+        {% else %}
+            <div class="card flush" tabindex="0" role="region" aria-label="Recent rebuilds of {{ service.service }}" data-recent-rebuilds>
+                <table>
+                    <thead><tr><th scope="col">Projection</th><th scope="col">Started</th><th scope="col">State</th><th scope="col">Progress</th><th scope="col">Trace</th></tr></thead>
+                    <tbody>
+                    {% for rebuild in rebuilds.rebuilds %}
+                        <tr data-rebuild="{{ rebuild.tracingId }}">
+                            <th scope="row">{{ rebuild.projection }}</th>
+                            <td>{{ rebuild.startedAt }}</td>
+                            <td>{{ rebuild.state }}</td>
+                            <td>{% if rebuild.batchCount and rebuild.batchCount > 1 %}{{ rebuild.batchesDone }} of {{ rebuild.batchCount }} batches{% elseif rebuild.state == 'running' %}running for {{ rebuild.elapsed ?? '0s' }}{% elseif rebuild.state == 'done' %}{{ rebuild.duration ?? '–' }}{% else %}–{% endif %}</td>
+                            <td><a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace</a></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if rebuilds.truncated %}<p class="muted" data-rebuilds-truncated>Only the newest {{ rebuilds.cap }} rebuilds are listed.</p>{% endif %}
+        {% endif %}
     {% endif %}
 {% endblock %}

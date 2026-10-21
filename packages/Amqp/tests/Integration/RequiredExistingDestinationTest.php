@@ -13,6 +13,7 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -31,7 +32,7 @@ final class RequiredExistingDestinationTest extends AmqpMessagingTestCase
         $queue = 'renamed_' . Uuid::v7()->toRfc4122();
         $ecotone = $this->bootstrap($this->recorder(), $channel, $queue, true);
 
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(DestinationDoesNotExistException::class);
         $this->expectExceptionMessage(sprintf(
             "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or declare the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
             $channel,

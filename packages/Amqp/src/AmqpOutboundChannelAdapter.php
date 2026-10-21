@@ -6,6 +6,7 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
@@ -363,14 +364,14 @@ class AmqpOutboundChannelAdapter implements MessageHandler
                 throw $exception;
             }
 
-            throw ConfigurationException::create(sprintf(
+            throw DestinationDoesNotExistException::forChannel(sprintf(
                 "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or declare the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
                 $this->channelName,
                 $queueName,
                 $this->connectionReferenceName,
                 $this->channelName,
                 $this->channelName,
-            ));
+            ), $this->channelName, $queueName, $this->connectionReferenceName);
         } finally {
             $context->close();
         }

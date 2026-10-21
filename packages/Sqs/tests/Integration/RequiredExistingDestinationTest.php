@@ -14,6 +14,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Api\Sqs\SqsConnectionReference;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
@@ -40,7 +41,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
     {
         $ecotone = $this->bootstrap(true);
 
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(DestinationDoesNotExistException::class);
         $this->expectExceptionMessage(sprintf(
             "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself. To let this channel create the queue on send, remove withRequiredExistingDestination().",
             self::CHANNEL,

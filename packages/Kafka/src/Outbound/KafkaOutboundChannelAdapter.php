@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Outbound;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
@@ -104,14 +105,15 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         }
 
         if (! in_array($topicName, $existingTopicNames, true)) {
-            throw ConfigurationException::create(sprintf(
+            $brokerConfigurationReference = $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference;
+            throw DestinationDoesNotExistException::forChannel(sprintf(
                 "Channel '%s' requires its destination to exist, but topic '%s' does not exist on Kafka broker configuration '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the topic yourself, or fix the topic name (KafkaMessageChannelBuilder::create('%s', topicName: ...)). To let this channel create the topic on send, remove withRequiredExistingDestination().",
                 $this->referenceName,
                 $topicName,
-                $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference,
+                $brokerConfigurationReference,
                 $this->referenceName,
                 $this->referenceName,
-            ));
+            ), $this->referenceName, $topicName, $brokerConfigurationReference);
         }
 
         $this->destinationVerified = true;

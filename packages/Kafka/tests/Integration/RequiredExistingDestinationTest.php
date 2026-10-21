@@ -12,6 +12,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -45,7 +46,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
         $topic = 'renamed_' . Uuid::v7()->toRfc4122();
         $ecotone = $this->bootstrap($topic, true);
 
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(DestinationDoesNotExistException::class);
         $this->expectExceptionMessage(sprintf(
             "Channel 'required_orders' requires its destination to exist, but topic '%s' does not exist on Kafka broker configuration '%s', so nothing was sent. Run the consumer of this channel (ecotone:run required_orders) or create the topic yourself, or fix the topic name (KafkaMessageChannelBuilder::create('required_orders', topicName: ...)). To let this channel create the topic on send, remove withRequiredExistingDestination().",
             $topic,

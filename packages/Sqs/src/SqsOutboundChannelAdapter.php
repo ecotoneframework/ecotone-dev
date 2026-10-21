@@ -6,6 +6,7 @@ namespace Ecotone\Sqs;
 
 use Aws\Exception\AwsException;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -126,13 +127,13 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
                 throw $exception;
             }
 
-            throw ConfigurationException::create(sprintf(
+            throw DestinationDoesNotExistException::forChannel(sprintf(
                 "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself. To let this channel create the queue on send, remove withRequiredExistingDestination().",
                 $this->queueName,
                 $this->queueName,
                 $this->connectionReferenceName,
                 $this->queueName,
-            ));
+            ), $this->queueName, $this->queueName, $this->connectionReferenceName);
         }
 
         $this->destinationVerified = true;

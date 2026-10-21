@@ -21,6 +21,7 @@ final readonly class ServiceRecord
         public ?string $replyError,
         public ?DateTimeImmutable $followUpDueAt = null,
         public bool $retrying = false,
+        public ?string $missingDestination = null,
     ) {
     }
 
@@ -42,6 +43,7 @@ final readonly class ServiceRecord
             $stored['replyError'] ?? null,
             isset($stored['followUpDueAt']) ? new DateTimeImmutable($stored['followUpDueAt']) : null,
             $stored['retrying'] ?? false,
+            $stored['missingDestination'] ?? null,
         );
     }
 
@@ -58,6 +60,7 @@ final readonly class ServiceRecord
             'replyError' => $this->replyError,
             'followUpDueAt' => $this->followUpDueAt?->format(self::TIME_FORMAT),
             'retrying' => $this->retrying,
+            'missingDestination' => $this->missingDestination,
         ];
     }
 
@@ -67,9 +70,15 @@ final readonly class ServiceRecord
             'requestedAt' => $at,
             'requestFailure' => null,
             'replyError' => null,
+            'missingDestination' => null,
             'followUpDueAt' => $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt,
             'retrying' => $this->hasOutstandingRequest() && $this->isUnanswered($at, $replyTimeoutSeconds),
         ]);
+    }
+
+    public function channelMissing(string $destination, string $failure): self
+    {
+        return $this->with(['missingDestination' => $destination, 'requestFailure' => $failure]);
     }
 
     public function withFollowUpDueAt(DateTimeImmutable $at): self
@@ -92,7 +101,7 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false]);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null]);
     }
 
     public function replyRejected(string $reason): self
@@ -107,6 +116,10 @@ final readonly class ServiceRecord
 
     public function needsRequest(DateTimeImmutable $now): bool
     {
+        if ($this->missingDestination !== null) {
+            return true;
+        }
+
         if ($this->followUpDueAt !== null && $now >= $this->followUpDueAt) {
             return true;
         }
@@ -120,11 +133,15 @@ final readonly class ServiceRecord
 
     public function needsRefresh(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
     {
-        return ! $this->hasOutstandingRequest() || $this->isUnanswered($now, $replyTimeoutSeconds) || $this->needsRequest($now);
+        return $this->missingDestination !== null || ! $this->hasOutstandingRequest() || $this->isUnanswered($now, $replyTimeoutSeconds) || $this->needsRequest($now);
     }
 
     public function statusAt(DateTimeImmutable $now, int $replyTimeoutSeconds): ServiceStatus
     {
+        if ($this->missingDestination !== null && $this->hasOutstandingRequest()) {
+            return ServiceStatus::ChannelMissing;
+        }
+
         if ($this->hasOutstandingRequest()) {
             return $this->isUnanswered($now, $replyTimeoutSeconds)
                 ? ServiceStatus::Unreachable

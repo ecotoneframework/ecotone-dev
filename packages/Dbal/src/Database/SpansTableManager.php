@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Tracing\FlowEntries;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -83,6 +84,23 @@ final class SpansTableManager implements DbalTableManager
         return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
+    public function getMissingColumnsInstructions(): string
+    {
+        $table = $this->tableName;
+        $index = $this->flowTypeIndexName();
+        $length = FlowEntries::FLOW_TYPE_MAX_LENGTH;
+        $drop = $this->consoleInvocationPrefix === null
+            ? "drop the '{$table}' table and create it again with \$messagingSystem->getServiceFromContainer(\\Ecotone\\Api\\Dbal\\ExtensionObject\\DatabaseSetupManager::class)->initialize('" . self::FEATURE_NAME . "')"
+            : "drop the '{$table}' table and run:\n  {$this->consoleInvocationPrefix} ecotone:migration:database:setup --initialize --feature=" . self::FEATURE_NAME;
+
+        return "The '{$table}' table required by the '" . self::FEATURE_NAME . "' feature has no 'flow_type' and 'flow_status' columns, which Ecotone Pulse and flow tracking read and write since 2.0.0. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.\n\n"
+            . "Add the columns with the statement for your database:\n"
+            . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX {$index} ON {$table} (flow_type, started_at);\n"
+            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX {$index} (flow_type, started_at);\n"
+            . "  SQLite: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX {$index} ON {$table} (flow_type, started_at);\n\n"
+            . "Or, as tracked flows are only kept for the configured retention, {$drop}.";
+    }
+
     public function dropTable(Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
@@ -103,6 +121,11 @@ final class SpansTableManager implements DbalTableManager
         return new Definition(self::class, [$this->tableName, $this->isUsed, $this->consoleInvocationPrefix, $this->connectionReferenceName]);
     }
 
+    private function flowTypeIndexName(): string
+    {
+        return $this->tableName . '_flow_type_started_at_idx';
+    }
+
     private function buildTableSchema(): Table
     {
         $table = new Table($this->tableName);
@@ -117,8 +140,11 @@ final class SpansTableManager implements DbalTableManager
         $table->addColumn('events', Types::TEXT);
         $table->addColumn('started_at', Types::BIGINT);
         $table->addColumn('ended_at', Types::BIGINT);
+        $table->addColumn('flow_type', Types::STRING, ['length' => FlowEntries::FLOW_TYPE_MAX_LENGTH, 'notnull' => false]);
+        $table->addColumn('flow_status', Types::STRING, ['length' => 16, 'notnull' => false]);
         $table->setPrimaryKey(['trace_id', 'span_id']);
         $table->addIndex(['started_at']);
+        $table->addIndex(['flow_type', 'started_at'], $this->flowTypeIndexName());
 
         return $table;
     }

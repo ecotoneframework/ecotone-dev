@@ -32,8 +32,10 @@ use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionFlush;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
+use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -55,6 +57,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Tracing\Config\SpanRecorderReference;
@@ -180,6 +183,12 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         } else {
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.']));
         }
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
+            $messagingConfiguration->registerServiceDefinition(
+                PulseTracing::class,
+                new Definition(PulseTracing::class, [new Reference(TraceStore::class), $flowTracking->inMemory, intdiv($flowTracking->retention->inMilliseconds(), 1000)])
+            );
+        }
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,
             new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $flowTracking->retention->inMilliseconds(), $flowTracking->removalBatchSize])
@@ -197,6 +206,9 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         ];
         if (self::flowTrackingOf($serviceExtensions) !== null) {
             $extensions[] = new SpanRecorderReference(StoringSpanRecorder::class);
+            if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'tracing', serviceReference: PulseTracing::class);
+            }
         }
 
         return $extensions;

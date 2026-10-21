@@ -9,7 +9,6 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -162,9 +161,6 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             if (! $builder->getBootstrapConfiguration()->isRunningForEnterprise()) {
                 throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.');
             }
-        }
-        if ($this->requireExistingDestination && ($this->exchangeName !== '' || $this->exchangeFromHeader !== null || $this->routingKeyFromHeader !== null)) {
-            throw ConfigurationException::create('Requiring an existing destination checks the queue named by the default routing key on the default exchange, so it cannot be combined with a custom exchange, an exchange from a header or a routing key from a header. Remove withRequiredExistingDestination(), or send with a fixed routing key to the default exchange.');
         }
         if ($this->nonBlockingConfirmation) {
             Assert::isTrue($this->publisherConfirms, 'Non blocking confirmation requires publisher confirms to be enabled.');

@@ -162,3 +162,7 @@ input[type=search]{width:100%;max-width:32rem}
 .span-panel table{width:100%}.span-panel tr{display:block;border-bottom:1px solid var(--line);padding:.2rem 0}
 .span-panel th,.span-panel td{display:block;padding:0;border:0;text-transform:none;letter-spacing:0;font-size:.8rem}
 .span-panel th{color:var(--muted)}
+progress{width:8rem;height:.6rem;vertical-align:middle;accent-color:var(--brand)}
+td details summary{cursor:pointer;color:var(--brand)}
+td details[open]{min-width:16rem;white-space:normal}
+td details form{margin-top:.5rem}

@@ -21,6 +21,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
@@ -80,7 +81,7 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             {
             }
         };
-        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, FromAggregateStream(Ticket::class)] class () {
+        $partitioned = new #[Projection('tickets_partitioned'), Partitioned, ProjectionRebuild(asyncChannelName: 'tickets_rebuild_channel'), FromAggregateStream(Ticket::class)] class () {
             #[EventHandler]
             public function when(TicketWasRegistered $event): void
             {
@@ -100,12 +101,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [
-                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => 'tickets_async_channel'],
-                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'asyncChannel' => null],
-                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'asyncChannel' => null],
-                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'asyncChannel' => null],
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel'],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null],
             ],
-            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'asyncChannel'])), $before),
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'asyncChannel', 'rebuildAsyncChannel'])), $before),
         );
         self::assertSame(
             ['tickets_async' => 'uninitialized', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'uninitialized', 'tickets_sync' => 'uninitialized'],

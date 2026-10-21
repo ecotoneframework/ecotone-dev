@@ -9,6 +9,7 @@ enum ProjectionState: string
     case UpToDate = 'up_to_date';
     case CatchingUp = 'catching_up';
     case Stalled = 'stalled';
+    case Rebuilding = 'rebuilding';
     case Failed = 'failed';
     case Unknown = 'unknown';
 
@@ -18,6 +19,7 @@ enum ProjectionState: string
             self::UpToDate => 'Up to date',
             self::CatchingUp => 'Catching up',
             self::Stalled => 'Stalled',
+            self::Rebuilding => 'Rebuilding',
             self::Failed => 'Failed',
             self::Unknown => 'Unknown',
         };

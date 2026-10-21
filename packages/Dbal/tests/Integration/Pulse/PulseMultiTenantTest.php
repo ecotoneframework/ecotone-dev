@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
@@ -15,6 +16,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
+use Ecotone\Api\EventSourcing\Event;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -24,6 +26,8 @@ use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -60,6 +64,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
     private const CALLER_SPAN = 'b7ad6b7169203331';
 
     private object $pulse;
+    private object $projection;
     private object $orders;
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
@@ -227,6 +232,34 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame('tenant_b', $inTenantB['tenant']);
     }
 
+    public function test_a_rebuild_of_one_tenant_records_its_tracking_and_replays_in_that_tenant_only(): void
+    {
+        $this->bootstrap();
+
+        $reply = $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), 'tenant_a', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
+
+        self::assertSame('tenant_orders', $reply['rebuildAction']['projection']);
+        $inTenantA = $this->ask('ecotone.pulse.trackings.list', json_encode(['since' => '2026-10-01T00:00:00+00:00']), 'tenant_a');
+        $inTenantB = $this->ask('ecotone.pulse.trackings.list', json_encode(['since' => '2026-10-01T00:00:00+00:00']), 'tenant_b');
+        self::assertSame([self::TRACE_OF_TENANT_A], array_column($inTenantA['trackings'], 'tracingId'));
+        self::assertSame(['tenant_a'], array_column($inTenantA['trackings'], 'tenant'));
+        self::assertSame([], $inTenantB['trackings']);
+        self::assertSame(['1'], $this->projection->replayedFor);
+    }
+
+    public function test_a_rebuild_request_without_a_tenant_is_refused_and_records_nothing(): void
+    {
+        $this->bootstrap();
+
+        try {
+            $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
+            self::fail('A rebuild request without a tenant must be refused');
+        } catch (InvalidArgumentException $exception) {
+            self::assertStringContainsString('Lack of context about tenant', $exception->getMessage());
+        }
+        self::assertSame([], $this->projection->replayedFor);
+    }
+
     public function test_a_tenant_the_service_does_not_advertise_is_refused_instead_of_answered_from_the_default_connection(): void
     {
         $this->bootstrap(withDefaultConnection: true);
@@ -305,10 +338,10 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return $this->ask('ecotone.pulse.snapshot', '{}', $tenant);
     }
 
-    private function ask(string $routingKey, string $payload, ?string $tenant = null): array
+    private function ask(string $routingKey, string $payload, ?string $tenant = null, array $metadata = []): array
     {
         $queryId = 'query-' . (count($this->pulse->replies) + 1);
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, $payload, MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.reply_received');
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, $payload, MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId, ...($tenant === null ? [] : ['tenant' => $tenant]), ...$metadata], replyRoutingKey: 'ecotone.pulse.reply_received');
         $this->orderService->run('order_service', ExecutionPollingMetadata::createWithTestingSetup());
         $this->pulseService->run('ecotone_pulse', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertArrayHasKey($queryId, $this->pulse->replies);
@@ -350,6 +383,15 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             {
             }
         };
+        $this->projection = new #[Projection('tenant_orders'), FromStream('orders_stream')] class () {
+            public array $replayedFor = [];
+
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+                $this->replayedFor[] = $event['orderId'];
+            }
+        };
         $this->pulse = new class () {
             public array $replies = [];
 
@@ -364,8 +406,8 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             : [DbalBackedMessageChannelBuilder::create('order_service', $pulseChannelsConnection), DbalBackedMessageChannelBuilder::create('ecotone_pulse', $pulseChannelsConnection)];
         $connections = ['tenant_a_connection' => $this->connectionForTenantA(), 'tenant_b_connection' => $this->connectionForTenantB(), 'pulse_connection' => $this->connectionForTenantA()];
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$this->orders::class],
-            containerOrAvailableServices: [$this->orders, ...$connections],
+            classesToResolve: [$this->orders::class, $this->projection::class],
+            containerOrAvailableServices: [$this->orders, $this->projection, ...$connections],
             extensionObjects: [
                 ...$pulseChannels,
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -383,6 +425,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC')))->withDatabaseTablesSetUpOnBootstrap(false),
         );
+        $this->orderService->withEventStream('orders_stream', [Event::createWithType('order.placed', ['orderId' => '1'])]);
         $this->orderService->runConsoleCommand('ecotone:migration:database:delete', ['force' => true]);
         $this->orderService->runConsoleCommand('ecotone:migration:database:setup', ['initialize' => true]);
         $this->pulseService = $this->bootstrapFlowTesting(

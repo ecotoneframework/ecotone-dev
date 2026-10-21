@@ -79,13 +79,13 @@ final readonly class QueryRecord
         return $this->requestedAt !== null && ($this->receivedAt === null || $this->requestedAt > $this->receivedAt);
     }
 
-    public function needsRequest(DateTimeImmutable $now): bool
+    public function needsRequest(DateTimeImmutable $now, int $freshnessSeconds = self::FRESHNESS_SECONDS): bool
     {
         if ($this->hasOutstandingRequest()) {
-            return self::secondsBetween($this->requestedAt, $now) >= self::FRESHNESS_SECONDS;
+            return self::secondsBetween($this->requestedAt, $now) >= $freshnessSeconds;
         }
 
-        return $this->receivedAt === null || self::secondsBetween($this->receivedAt, $now) >= self::FRESHNESS_SECONDS;
+        return $this->receivedAt === null || self::secondsBetween($this->receivedAt, $now) >= $freshnessSeconds;
     }
 
     public function stateAt(DateTimeImmutable $now, int $replyTimeoutSeconds): TraceAnswerState

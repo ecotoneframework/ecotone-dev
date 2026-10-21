@@ -16,7 +16,9 @@ use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
@@ -35,7 +37,14 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\Dbal\Database\PulseTrackingTableManager;
 use Ecotone\Dbal\Database\SpansTableManager;
+use Ecotone\Dbal\Pulse\Tracking\DbalTrackingStore;
+use Ecotone\Dbal\Pulse\Tracking\InMemoryTrackingStore;
+use Ecotone\Dbal\Pulse\Tracking\PulseRebuildActions;
+use Ecotone\Dbal\Pulse\Tracking\PulseTrackings;
+use Ecotone\Dbal\Pulse\Tracking\TrackingStore;
+use Ecotone\Dbal\Recoverability\InMemoryDeadLetterStore;
 use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
@@ -51,6 +60,7 @@ use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -65,11 +75,15 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
+use Ecotone\Projecting\ProjectionOperations;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
 
@@ -135,6 +149,13 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         );
         $pulseConfigured = ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== [];
         $serviceName = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName;
+        $messagingConfiguration->registerServiceDefinition(
+            PulseTrackingTableManager::class,
+            new Definition(PulseTrackingTableManager::class, [PulseTrackingTableManager::DEFAULT_TABLE, $pulseConfigured && ($flowTracking === null || ! $flowTracking->inMemory), $consoleInvocationPrefix, $connectionReference])
+        );
+        if ($pulseConfigured) {
+            $this->registerPulseRebuildTracking($messagingConfiguration, $interfaceToCallRegistry, $extensionObjects, $flowTracking, $serviceName, $connectionReference);
+        }
         if ($flowTracking === null) {
             if ($pulseConfigured) {
                 $this->registerPulseTraceQueries($messagingConfiguration, $interfaceToCallRegistry, PulseTracesNotConfigured::class, new Definition(PulseTracesNotConfigured::class, [$serviceName]), 'refuse', 'refuse');
@@ -222,6 +243,50 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(self::REMOVE_EXPIRED_TRACES_CHANNEL, 'ecotone:tracing:remove-expired-traces', [], 'Removes tracked flows older than the configured retention'));
     }
 
+    /**
+     * @param object[] $extensionObjects
+     */
+    private function registerPulseRebuildTracking(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, array $extensionObjects, ?FlowTrackingConfiguration $flowTracking, string $serviceName, string $connectionReference): void
+    {
+        $storesOnDatabase = $flowTracking === null || ! $flowTracking->inMemory;
+        $messagingConfiguration->registerServiceDefinition(
+            TrackingStore::class,
+            $storesOnDatabase
+                ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class)])
+                : new Definition(InMemoryTrackingStore::class)
+        );
+        $untracedSpans = PulseTrackings::class . '.untraced_spans';
+        $messagingConfiguration->registerServiceDefinition($untracedSpans, new Definition(InMemoryTraceStore::class));
+        $deadLettersReference = PulseTrackings::class . '.dead_letters';
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $messagingConfiguration->registerServiceDefinition(
+            $deadLettersReference,
+            $dbalConfiguration->deadLetterEnabled
+                ? new Reference(DbalDeadLetterBuilder::storeReferenceFor(DeadLetterGateway::class))
+                : new Definition(InMemoryDeadLetterStore::class, [DefaultHeaderMapper::createAllHeadersMapping(), Reference::to(ConversionService::REFERENCE_NAME), Reference::to(MessageBuilder::class)])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            PulseTrackings::class,
+            new Definition(PulseTrackings::class, [new Reference(TrackingStore::class), new Reference($flowTracking === null ? $untracedSpans : TraceStore::class), new Reference($deadLettersReference), new Reference(EcotoneClockInterface::class), $serviceName])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            PulseRebuildActions::class,
+            new Definition(PulseRebuildActions::class, [new Reference(TrackingStore::class), new Reference(ProjectionRegistry::class), new Reference(ProjectionOperations::class), new Reference(EcotoneClockInterface::class)])
+        );
+        $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
+        $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseRebuildActions::class, $interfaceToCallRegistry->getFor(PulseRebuildActions::class, 'rebuild'))
+                ->withInputChannelName(PulseRebuildActions::ROUTING_KEY)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+        );
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseTrackings::class, $interfaceToCallRegistry->getFor(PulseTrackings::class, 'list'))
+                ->withInputChannelName(PulseTrackings::ROUTING_KEY)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), HeaderBuilder::createOptional('queryId', PulseTrackings::QUERY_ID_HEADER), $snapshot])
+        );
+    }
+
     private function registerPulseTraceQueries(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, string $serviceClass, Definition $service, string $listMethod, string $traceMethod): void
     {
         $messagingConfiguration->registerServiceDefinition($serviceClass, $service);
@@ -243,6 +308,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $connectionReference = self::connectionReferenceOf($serviceExtensions);
         $extensions = [
             new DbalTableManagerReference(SpansTableManager::class, $connectionReference),
+            new DbalTableManagerReference(PulseTrackingTableManager::class, $connectionReference),
         ];
         if (self::flowTrackingOf($serviceExtensions) !== null) {
             $extensions[] = new SpanRecorderReference(StoringSpanRecorder::class);

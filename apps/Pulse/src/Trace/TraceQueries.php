@@ -33,14 +33,14 @@ final readonly class TraceQueries
     ) {
     }
 
-    private function ask(ServiceScope $scope, TraceQuery $query): RequestResult
+    public function ask(ServiceScope $scope, TraceQuery $query): RequestResult
     {
         $service = $scope->service;
         $now = $this->now();
         $queryId = bin2hex(random_bytes(8));
         $claimed = false;
-        $this->store->update($scope, $query->key(), function (QueryRecord $record) use ($now, $queryId, &$claimed): QueryRecord {
-            $claimed = $record->needsRequest($now);
+        $this->store->update($scope, $query->key(), function (QueryRecord $record) use ($now, $queryId, $query, &$claimed): QueryRecord {
+            $claimed = $record->needsRequest($now, $query->freshnessSeconds);
 
             return $claimed ? $record->requested($queryId, $now) : $record;
         });

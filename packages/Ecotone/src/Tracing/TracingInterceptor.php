@@ -112,6 +112,16 @@ final class TracingInterceptor
         ]);
     }
 
+    public function traceProjectionBatch(MethodInvocation $methodInvocation, Message $message): mixed
+    {
+        $projectionName = (string) $message->getPayload();
+
+        return $this->trace('process partition batch ' . $projectionName, $methodInvocation, $message, SpanKind::Internal, [
+            SpanAttribute::MESSAGING_OPERATION_TYPE => SpanAttribute::OPERATION_PROCESS,
+            SpanAttribute::PROJECTION_NAME => $projectionName,
+        ]);
+    }
+
     public function traceProjectionOperation(MethodInvocation $methodInvocation, Message $message, ProjectionOperationEndpoint $endpoint): mixed
     {
         return $this->traceEntry($endpoint->operation . ' ' . $endpoint->projectionName, $methodInvocation, $message, SpanKind::Server, [

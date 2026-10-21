@@ -12,7 +12,7 @@ final class ProjectionOverview
     /**
      * @return list<ProjectionStatus>
      */
-    public static function of(ServiceSnapshot $service, int $stalledAfterSeconds): array
+    public static function of(ServiceSnapshot $service, int $stalledAfterSeconds, ?RebuildReport $rebuilds = null): array
     {
         $projections = $service->snapshot['projections'] ?? null;
         if (! is_array($projections)) {
@@ -22,7 +22,7 @@ final class ProjectionOverview
         $deadLetterChannels = self::deadLetterChannels($service);
 
         return array_values(array_map(
-            fn (array $projection): ProjectionStatus => self::statusOf($projection, $service, $stalledAfterSeconds, $deadLetterChannels),
+            fn (array $projection): ProjectionStatus => self::statusOf($projection, $service, $stalledAfterSeconds, $deadLetterChannels, $rebuilds ?? RebuildReport::none()),
             array_filter($projections, static fn (mixed $projection): bool => is_array($projection) && is_string($projection['name'] ?? null)),
         ));
     }
@@ -45,7 +45,7 @@ final class ProjectionOverview
      * @param array<string, mixed> $projection
      * @param list<string> $deadLetterChannels
      */
-    private static function statusOf(array $projection, ServiceSnapshot $service, int $stalledAfterSeconds, array $deadLetterChannels): ProjectionStatus
+    private static function statusOf(array $projection, ServiceSnapshot $service, int $stalledAfterSeconds, array $deadLetterChannels, RebuildReport $rebuilds): ProjectionStatus
     {
         $name = $projection['name'];
         $asyncChannel = is_string($projection['asyncChannel'] ?? null) ? $projection['asyncChannel'] : null;
@@ -55,6 +55,7 @@ final class ProjectionOverview
         [$gap, $behind] = self::gapOf($projection);
 
         $state = match (true) {
+            $rebuilds->isRunning($name) => ProjectionState::Rebuilding,
             $unavailable !== null => ProjectionState::Unknown,
             $asyncChannel !== null && in_array($asyncChannel, $deadLetterChannels, true) => ProjectionState::Failed,
             $behind && $unmovedSeconds >= $stalledAfterSeconds => ProjectionState::Stalled,
@@ -72,6 +73,8 @@ final class ProjectionOverview
             $state,
             $since !== null && $service->lastSeenAt !== null ? $unmovedSeconds : null,
             $unavailable,
+            is_string($projection['rebuildAsyncChannel'] ?? null) ? $projection['rebuildAsyncChannel'] : null,
+            $rebuilds->latestOf($name),
         );
     }
 

@@ -34,6 +34,9 @@ creates the Ecotone tables, existing tables are skipped), it is **not a volume**
 a restart of the same container keeps it, replacing the container (a redeploy) starts it empty, and the next page view
 asks the services again. Do not mount a volume on `/app/var/internal`.
 
+The database runs in WAL mode and waits up to 5 seconds for a lock held by another of the three processes; Pulse's own writes are
+Doctrine transactions that take the write lock first, so they wait instead of failing with "database is locked".
+
 The internal database is the default DBAL connection of Pulse. When `PULSE_TRANSPORT_DSN` is a database (`pgsql://`,
 `mysql://`, `sqlite://`), the Distributed Bus channels use a separate connection, so the queue and deduplication tables
 are created on that database and never in the internal one. Flow tracking in Pulse keeps its spans for 1 hour.
@@ -44,8 +47,9 @@ Every request a browser triggers is sent with a fresh tracing id and the request
 back, with `TracingGateway::isCompletedWithin($tracingId, Duration::seconds(20), destination: <Pulse's reply handler>)`:
 the Refresh button, a dead letter replay or delete, a trace list or trace detail (query), and a page view that finds a
 snapshot older than 60 seconds. The page renders the **fresh** result in the same response, with no Waiting state and no
-auto-refresh. Several services share one 20 second budget (they are asked at the same time, the wait ends as soon as every
-reply was processed). A reply that has not arrived within 20 seconds renders as before: the service is Waiting, the page
+auto-refresh. Several services share one 20 second budget: they are asked at the same time, each request has its own tracing id, and the
+wait ends when every reply was processed, so a fast service never makes the page stop waiting for a slow one (a framework call that
+names a destination counts it reached on the first processed reply, which is why Pulse never shares a tracing id between requests). A reply that has not arrived within 20 seconds renders as before: the service is Waiting, the page
 refreshes itself until the reply is in, and after `PULSE_REPLY_TIMEOUT` it is Unreachable. The reply continues Pulse's
 trace whether or not the service tracks its own flows.
 
@@ -57,8 +61,8 @@ trace whether or not the service tracks its own flows.
 * The **replay target** of a dead letter is a `<select>` of the asynchronous channels the service reports in its snapshot's `channels`: each one is `{name, kind}`, kind `async` for a channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to. The message goes through that channel with its routing slip, so once the channel is consumed the original handler runs; empty means the channel it was polled from. A filter replay offers the select only when a single service is chosen; a channel the service does not report is refused.
 * Every `PULSE_REFRESH_INTERVAL` seconds (default 20) `pulse:refresh` requests a snapshot from every service, so pages normally open on a snapshot younger than the 60 second freshness limit without a page view triggering a request. A tick skips a service whose request is outstanding and has not yet passed `PULSE_REPLY_TIMEOUT`; it goes through the same transactional bookkeeping as page views, so the refresh and the web never double-request. A service whose request timed out is requested again by the first tick after the timeout and stays Unreachable (shown as "Unreachable — retrying", with its last seen time and last snapshot) until a reply arrives, so a dead service does not flip between Waiting and Unreachable.
   The refresh is a plain console loop rather than an Ecotone `#[Scheduled]` endpoint, because `ecotone:run` consumes one endpoint per process; its tick (`pulse:refresh --ticks=1`) runs in tests on the pinned clock. Ticks are scheduled on a deadline, so the cadence is `PULSE_REFRESH_INTERVAL` seconds, not the interval plus the tick's own run time.
-* The container entrypoint is a **bash** script (`#!/bin/bash`; the image is Debian based and ships bash) that supervises the three processes with `wait -n`. The reply consumer stops at `PULSE_WORKER_TIME_LIMIT_MS` (default one hour) or `PULSE_WORKER_MEMORY_LIMIT` megabytes (default 256); the supervisor starts it again in the same container, and so it does the refresh loop, so the internal database is not lost at a limit. The container exits only when the web server stops or the consumer or the refresh exits with an error (non-zero), with that exit code, so run it with `restart: unless-stopped` or `always`. SIGTERM (`docker stop`) stops all three and exits 0.
-* `GET /healthz` answers `ok` without asking any service; the image `HEALTHCHECK` calls it.
+* The container entrypoint is a **bash** script (`#!/bin/bash`; the image is Debian based and ships bash) that supervises the three processes with `wait -n`. The reply consumer stops at `PULSE_WORKER_TIME_LIMIT_MS` (default one hour) or `PULSE_WORKER_MEMORY_LIMIT` megabytes (default 256); the supervisor starts it again in the same container, and so it does the refresh loop, so the internal database is not lost at a limit. A process that exits cleanly within `PULSE_RESTART_MIN_UPTIME_SECONDS` (default 10) of starting is restarted after 1, 2, 4 ... up to 30 seconds, and after `PULSE_RESTART_MAX_RAPID` (default 5) such exits in a row the container stops with a log line naming the process. The container also exits when the web server stops or the consumer or the refresh exits with an error (non-zero), with that exit code, so run it with `restart: unless-stopped` or `always`. SIGTERM (`docker stop`) stops all three and exits 0.
+* `GET /healthz` answers `ok` without asking any service; the image `HEALTHCHECK` calls it. It says the web server is up; a consumer or refresh that dies takes the container down through the supervisor, so the health check does not need to watch them.
 
 Service status:
 

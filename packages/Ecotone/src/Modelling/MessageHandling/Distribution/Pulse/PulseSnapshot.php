@@ -6,10 +6,8 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Composer\InstalledVersions;
 use DateTimeInterface;
-use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
-use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 
@@ -61,11 +59,6 @@ final class PulseSnapshot
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
     ) {
-    }
-
-    public static function isSnapshotRequest(Message $message): bool
-    {
-        return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) === self::ROUTING_KEY;
     }
 
     /**

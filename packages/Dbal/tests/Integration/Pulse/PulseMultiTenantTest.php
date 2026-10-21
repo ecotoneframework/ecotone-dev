@@ -29,6 +29,7 @@ use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
@@ -187,7 +188,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $this->orderService->sendCommandWithRouting('order.queue', 'bread', metadata: ['tenant' => 'tenant_a']);
 
         $withoutTenant = $this->channelsByName($this->requestSnapshot());
-        $ofTenantA = $this->channelsByName($this->requestSnapshot('tenant_a')); 
+        $ofTenantA = $this->channelsByName($this->requestSnapshot('tenant_a'));
         $ofTenantB = $this->channelsByName($this->requestSnapshot('tenant_b'));
 
         self::assertNull($withoutTenant['tenant_queue']['ready']);
@@ -258,6 +259,27 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         $this->bootstrap(additionalMultiTenantConfiguration: MultiTenantConfiguration::create('customer', ['customer_a' => 'tenant_a_connection'], 'reporting_connection'));
     }
 
+    public static function interceptorPaths(): iterable
+    {
+        yield 'transaction' => [DbalConfiguration::createWithDefaults()->withDeadLetter(true)->withDeduplication(false)->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)];
+        yield 'deduplication' => [DbalConfiguration::createWithDefaults()->withDeadLetter(true)->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnCommandBus(false)];
+        yield 'object manager' => [DbalConfiguration::createWithDefaults()->withDeadLetter(true)->withDeduplication(false)->withTransactionOnCommandBus(false)->withTransactionOnAsynchronousEndpoints(false)->withClearAndFlushObjectManagerOnAsynchronousEndpoints(true)->withClearAndFlushObjectManagerOnCommandBus(false)];
+    }
+
+    #[DataProvider('interceptorPaths')]
+    public function test_a_snapshot_without_a_tenant_is_answered_on_every_interceptor_path_while_an_application_message_without_a_tenant_still_fails(DbalConfiguration $dbalConfiguration): void
+    {
+        $this->bootstrap(dbalConfiguration: $dbalConfiguration, flowTracking: false);
+
+        $answered = $this->requestSnapshot();
+
+        self::assertSame('tenant', $answered['tenancy']['header']);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.');
+        $this->orderService->sendCommandWithRouting('order.untenanted', 'milk');
+        $this->orderService->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: true));
+    }
+
     private function failOrder(string $order, string $tenant): void
     {
         $this->orderService->sendCommandWithRouting('order.place', $order, metadata: ['tenant' => $tenant]);
@@ -294,7 +316,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return json_decode($this->pulse->replies[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?MultiTenantConfiguration $additionalMultiTenantConfiguration = null): void
+    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?MultiTenantConfiguration $additionalMultiTenantConfiguration = null, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true): void
     {
         $this->orders = new class () {
             public array $replayed = [];
@@ -314,6 +336,12 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             #[Asynchronous('tenant_queue')]
             #[CommandHandler('order.queue', endpointId: 'order.queueing')]
             public function queue(string $order): void
+            {
+            }
+
+            #[Asynchronous('async')]
+            #[CommandHandler('order.untenanted', endpointId: 'order.untenanting')]
+            public function untenanted(string $order): void
             {
             }
 
@@ -346,8 +374,8 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
                     ? MultiTenantConfiguration::createWithDefaultConnection('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'], 'tenant_a_connection')
                     : MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),
                 ...($additionalMultiTenantConfiguration === null ? [] : [$additionalMultiTenantConfiguration]),
-                DbalConfiguration::createWithDefaults()->withDeadLetter(true),
-                FlowTrackingConfiguration::createWithDefaults(),
+                $dbalConfiguration ?? DbalConfiguration::createWithDefaults()->withDeadLetter(true),
+                ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()] : []),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
             ],

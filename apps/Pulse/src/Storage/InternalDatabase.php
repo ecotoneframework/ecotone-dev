@@ -7,7 +7,6 @@ namespace App\Storage;
 use Closure;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
-use Throwable;
 
 final readonly class InternalDatabase
 {
@@ -27,21 +26,15 @@ final readonly class InternalDatabase
      */
     public function inTransaction(Closure $work): mixed
     {
-        $connection = $this->connection();
-        if ($connection->isTransactionActive()) {
+        return $this->connection()->transactional(function (Connection $connection) use ($work): mixed {
+            $this->takeWriteLock($connection);
+
             return $work($connection);
-        }
+        });
+    }
 
-        $connection->executeStatement('BEGIN IMMEDIATE');
-        try {
-            $result = $work($connection);
-            $connection->executeStatement('COMMIT');
-
-            return $result;
-        } catch (Throwable $exception) {
-            $connection->executeStatement('ROLLBACK');
-
-            throw $exception;
-        }
+    private function takeWriteLock(Connection $connection): void
+    {
+        $connection->executeStatement('UPDATE ' . InternalTables::SERVICE_RECORD . ' SET service = service WHERE 1 = 0');
     }
 }

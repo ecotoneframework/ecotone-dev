@@ -40,6 +40,18 @@ final class InternalStorageTest extends KernelTestCase
         self::assertArrayNotHasKey('message_queue', $features);
     }
 
+    public function test_the_internal_database_waits_five_seconds_for_a_lock_and_keeps_a_write_ahead_log(): void
+    {
+        $this->configurePulse(['PULSE_INTERNAL_DATABASE_PATH' => sys_get_temp_dir() . '/pulse-internal-' . uniqid() . '.sqlite']);
+        $kernel = self::bootKernel();
+
+        $setup = new CommandTester((new Application($kernel))->find('pulse:setup'));
+        $setup->execute([]);
+
+        self::assertStringContainsString('journal_mode=wal', $setup->getDisplay());
+        self::assertStringContainsString('busy_timeout=5000', $setup->getDisplay());
+    }
+
     /**
      * @return array<string, string>
      */

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Settings;
 
 use App\Snapshot\Snapshots;
+use PDO;
 
 final readonly class PulseSettings
 {
     public const TRANSPORT_CONNECTION_REFERENCE = 'pulse_transport';
+    public const INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS = 5;
 
     /**
      * @param array<string, string> $serviceChannels service name => channel the service consumes
@@ -71,9 +73,15 @@ final readonly class PulseSettings
         return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
     }
 
-    public function internalDatabaseDsn(): string
+    /**
+     * @return array{dsn: string, connection: array{driverOptions: array<int, int>}}
+     */
+    public function internalDatabaseConfiguration(): array
     {
-        return 'sqlite:///' . $this->internalDatabasePath;
+        return [
+            'dsn' => 'sqlite:///' . $this->internalDatabasePath,
+            'connection' => ['driverOptions' => [PDO::ATTR_TIMEOUT => self::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]],
+        ];
     }
 
     public function transportConnectionReference(): string

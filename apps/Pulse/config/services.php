@@ -34,7 +34,7 @@ return static function (ContainerConfigurator $container): void {
     ]);
 
     $services->alias('pulse.clock', 'clock');
-    $services->set(DbalConnectionFactory::class)->args([$settings->internalDatabaseDsn()]);
+    $services->set(DbalConnectionFactory::class)->args([$settings->internalDatabaseConfiguration()]);
 
     $connectionFactory = match ($settings->transport) {
         Transport::Amqp => AmqpExtConnectionFactory::class,

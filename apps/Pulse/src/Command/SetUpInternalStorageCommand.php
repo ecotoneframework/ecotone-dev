@@ -32,11 +32,12 @@ final class SetUpInternalStorageCommand extends Command
         }
 
         $connection = $this->database->connection();
-        $connection->executeQuery('PRAGMA journal_mode=WAL')->fetchAllAssociative();
+        $journalMode = $connection->fetchOne('PRAGMA journal_mode=WAL');
         foreach (InternalTables::createStatements() as $statement) {
             $connection->executeStatement($statement);
         }
-        $output->writeln(sprintf('Pulse internal database ready at %s', $this->settings->internalDatabasePath));
+        $busyTimeout = $connection->fetchOne('PRAGMA busy_timeout');
+        $output->writeln(sprintf('Pulse internal database ready at %s (journal_mode=%s, busy_timeout=%s)', $this->settings->internalDatabasePath, $journalMode, $busyTimeout));
 
         return Command::SUCCESS;
     }

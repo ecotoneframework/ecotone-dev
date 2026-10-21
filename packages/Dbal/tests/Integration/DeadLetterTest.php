@@ -18,9 +18,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\StaticMessageBuilder;
 use Ecotone\Test\StubLogger;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -602,7 +602,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         try {
             $ecotone->getGateway(DeadLetterGateway::class)->replayAll('missingChannel');
             $this->fail('Replay to an unknown channel should be refused');
-        } catch (\Ecotone\Messaging\Support\InvalidArgumentException $exception) {
+        } catch (InvalidArgumentException $exception) {
             $this->assertStringContainsString('missingChannel', $exception->getMessage());
             $this->assertStringContainsString('omit the target channel', $exception->getMessage());
         }

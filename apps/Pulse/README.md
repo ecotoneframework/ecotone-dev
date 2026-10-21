@@ -27,7 +27,7 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
   snapshot no new request is sent. While waiting for a reply, the page keeps showing the service's previous snapshot.
   The wait observes replies in the cache; it does not depend on the application clock.
 * A replay sends one more snapshot request about 5 seconds later (the replayed message may fail again): the next page view at or after that time sends it even when the last snapshot is younger than 60 seconds, and the page keeps refreshing until it is answered.
-* The **replay target** of a dead letter is a `<select>` of the channels the service registers (its snapshot's `channels`), empty meaning the original channel. A filter replay offers the select only when a single service is chosen; a channel the service does not register is refused.
+* The **replay target** of a dead letter is a `<select>` of the handler input channels the service reports in its snapshot's `channels` (the routing keys of its `#[CommandHandler]`s and the input channels of its `#[InternalHandler]`s), empty meaning the original channel. The message runs that handler; an `#[Asynchronous]` handler runs once its channel is consumed. A filter replay offers the select only when a single service is chosen; a channel the service does not report is refused. Asynchronous queues are not offered: the dead letter refuses to replay to them.
 * **worker** runs `bin/console ecotone:run <PULSE_CHANNEL>`. It consumes the services' replies and writes them to the cache.
 * Web and worker **must share `PULSE_CACHE_DIR`** (a volume).
 

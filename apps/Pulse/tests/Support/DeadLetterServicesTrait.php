@@ -28,7 +28,6 @@ trait DeadLetterServicesTrait
     use PulseServicesTrait;
 
     private const WORK_CHANNEL = 'pulse_dead_letter_work';
-    private const AUDIT_CHANNEL = 'pulse_dead_letter_audit';
 
     private object $work;
 
@@ -57,6 +56,11 @@ trait DeadLetterServicesTrait
              */
             public array $audited = [];
 
+            /**
+             * @var list<string>
+             */
+            public array $auditedLater = [];
+
             #[Asynchronous('pulse_dead_letter_work')]
             #[CommandHandler('order.place', endpointId: 'pulse.order.place.endpoint')]
             public function place(array $order): void
@@ -71,11 +75,17 @@ trait DeadLetterServicesTrait
                 $this->handle('order.cancel', $order, new LogicException('cancel failed for order ' . $order['orderId']));
             }
 
-            #[Asynchronous('pulse_dead_letter_audit')]
-            #[InternalHandler('order.audited', endpointId: 'pulse.order.audited.endpoint')]
+            #[InternalHandler('order.audited')]
             public function audited(array $order): void
             {
                 $this->audited[] = (string) $order['orderId'];
+            }
+
+            #[Asynchronous('pulse_dead_letter_work')]
+            #[InternalHandler('order.audited_later', endpointId: 'pulse.order.audited_later.endpoint')]
+            public function auditedLater(array $order): void
+            {
+                $this->auditedLater[] = (string) $order['orderId'];
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.order.audit.endpoint')]
@@ -106,7 +116,6 @@ trait DeadLetterServicesTrait
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),
-                DbalBackedMessageChannelBuilder::create(self::AUDIT_CHANNEL)->withReceiveTimeout(1),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
@@ -139,11 +148,6 @@ trait DeadLetterServicesTrait
         foreach ($this->services as $name => $service) {
             $this->runService($service, $name);
         }
-    }
-
-    private function replayAuditOf(FlowTestSupport $service): void
-    {
-        $service->run(self::AUDIT_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
     }
 
     private function replayWorkOf(FlowTestSupport $service): void

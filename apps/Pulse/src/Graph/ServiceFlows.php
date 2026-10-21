@@ -13,8 +13,9 @@ final readonly class ServiceFlows
      * @param list<ServiceFlow> $flows
      * @param list<array{kind: string, message: string}> $notices
      * @param list<string> $notAnswering
+     * @param array<string, string> $serviceByChannel
      */
-    private function __construct(public array $flows, public array $notices, public array $notAnswering)
+    private function __construct(public array $flows, public array $notices, public array $notAnswering, public array $serviceByChannel)
     {
     }
 
@@ -26,7 +27,9 @@ final readonly class ServiceFlows
         $flows = [];
         $notices = [];
         $notAnswering = [];
+        $serviceByChannel = [];
         foreach ($snapshots as $snapshot) {
+            $serviceByChannel[$snapshot->channel] = $snapshot->service;
             if ($snapshot->status !== ServiceStatus::Connected) {
                 $notAnswering[] = $snapshot->service;
             }
@@ -44,7 +47,7 @@ final readonly class ServiceFlows
             }
         }
 
-        return new self($flows, $notices, $notAnswering);
+        return new self($flows, $notices, $notAnswering, $serviceByChannel);
     }
 
     public function isIncomplete(): bool

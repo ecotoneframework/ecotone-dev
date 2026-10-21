@@ -37,6 +37,74 @@ final class FannedOutEventsTest extends WebTestCase
         }
     }
 
+    public function test_topology_draws_the_event_edge_to_a_subscriber_that_sent_no_flow_graph(): void
+    {
+        $this->configurePulseWithServices('orders', 'shipping');
+        $client = $this->pulseWebClient();
+        $services = [
+            'orders' => $this->publishingOrders(DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['shipping'], ['order.*'])),
+            'shipping' => $this->serviceAnsweringWith('shipping', '{"schemaVersion":1,"serviceName":"shipping"}'),
+        ];
+        $this->pulseHavingHeardFrom($client, $services);
+        $crawler = $client->request('GET', '/topology');
+
+        self::assertStringContainsString('t0 -.->|"events order.*"| t1', MermaidDiagram::fromPage($crawler)->source);
+        self::assertStringContainsString('["shipping"]', MermaidDiagram::fromPage($crawler)->source);
+    }
+
+    public function test_an_event_mapping_excluding_the_publisher_draws_no_edge_and_is_reported_in_both_rules(): void
+    {
+        $mismatches = $this->mismatchesOf('excluding');
+
+        self::assertContains('unsubscribed-event', $mismatches);
+        self::assertContains('unpublished-subscription', $mismatches);
+    }
+
+    public function test_an_event_mapping_including_only_other_publishers_draws_no_edge_and_is_reported_in_both_rules(): void
+    {
+        $mismatches = $this->mismatchesOf('including');
+
+        self::assertContains('unsubscribed-event', $mismatches);
+        self::assertContains('unpublished-subscription', $mismatches);
+    }
+
+    public function test_a_permitted_event_mapping_is_reported_by_neither_rule(): void
+    {
+        $mismatches = $this->mismatchesOf('permitting');
+
+        self::assertSame([], $mismatches);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function mismatchesOf(string $case): array
+    {
+        $this->configurePulseWithServices('orders', 'audit');
+        $client = $this->pulseWebClient();
+        $map = match ($case) {
+            'excluding' => DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['audit'], ['order.*'], excludePublishingServices: ['orders']),
+            'including' => DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['audit'], ['order.*'], includePublishingServices: ['billing']),
+            default => DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['audit'], ['order.*'], includePublishingServices: ['orders']),
+        };
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->publishingOrders($map), 'audit' => $this->subscriber('audit')]);
+
+        return $client->request('GET', '/topology')->filter('[data-mismatch]')->each(static fn ($mismatch) => $mismatch->attr('data-mismatch'));
+    }
+
+    private function publishingOrders(DistributedServiceMap $map): FlowTestSupport
+    {
+        $orders = new class () {
+            #[\Ecotone\Api\Attribute\CommandHandler('order.place', endpointId: 'order.place.handler')]
+            public function place(array $payload, \Ecotone\Api\Gateway\DistributedBus $distributedBus): void
+            {
+                $distributedBus->publishEvent('order.placed', '{}');
+            }
+        };
+
+        return $this->distributedService('orders', $orders, $map);
+    }
+
     private function diagramWithFanOut(string $uri): MermaidDiagram
     {
         $this->configurePulseWithServices('orders', 'billing', 'shipping', 'audit');

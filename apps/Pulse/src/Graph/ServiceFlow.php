@@ -198,14 +198,23 @@ final readonly class ServiceFlow
     public function publishesToChannel(string $routingKey, string $channel): bool
     {
         foreach ($this->eventSubscriptions() as $subscription) {
-            $included = $subscription['includePublishingServices'] === [] || in_array($this->name, $subscription['includePublishingServices'], true);
-            $excluded = in_array($this->name, $subscription['excludePublishingServices'], true);
-            if ($subscription['channel'] === $channel && $included && ! $excluded && self::anyKeyMatches($subscription['subscriptionKeys'], $routingKey)) {
+            if ($subscription['channel'] === $channel && self::subscriptionAccepts($subscription, $this->name, $routingKey)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * @param array{channel: string, subscriptionKeys: list<string>, excludePublishingServices: list<string>, includePublishingServices: list<string>} $subscription
+     */
+    public static function subscriptionAccepts(array $subscription, string $publishingService, string $routingKey): bool
+    {
+        $included = $subscription['includePublishingServices'] === [] || in_array($publishingService, $subscription['includePublishingServices'], true);
+        $excluded = in_array($publishingService, $subscription['excludePublishingServices'], true);
+
+        return $included && ! $excluded && self::anyKeyMatches($subscription['subscriptionKeys'], $routingKey);
     }
 
     /**

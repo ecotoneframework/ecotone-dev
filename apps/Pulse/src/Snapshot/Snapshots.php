@@ -73,6 +73,7 @@ final readonly class Snapshots
                 $record->snapshot,
                 $record->requestFailure,
                 $record->replyError,
+                $record->hasPendingFollowUp(),
             );
         }, array_keys($this->settings->serviceChannels));
     }
@@ -89,6 +90,20 @@ final readonly class Snapshots
         }
 
         return false;
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     */
+    public static function needsAutoRefresh(array $snapshots): bool
+    {
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->followUpPending) {
+                return true;
+            }
+        }
+
+        return self::anyWaiting($snapshots);
     }
 
     /**

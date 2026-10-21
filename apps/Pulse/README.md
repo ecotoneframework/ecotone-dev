@@ -26,6 +26,8 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
   send one request per service. A request that timed out is sent again by the next view; within 60 seconds of a Connected
   snapshot no new request is sent. While waiting for a reply, the page keeps showing the service's previous snapshot.
   The wait observes replies in the cache; it does not depend on the application clock.
+* A replay sends one more snapshot request about 5 seconds later (the replayed message may fail again): the next page view at or after that time sends it even when the last snapshot is younger than 60 seconds, and the page keeps refreshing until it is answered.
+* The **replay target** of a dead letter is a `<select>` of the channels the service registers (its snapshot's `channels`), empty meaning the original channel. A filter replay offers the select only when a single service is chosen; a channel the service does not register is refused.
 * **worker** runs `bin/console ecotone:run <PULSE_CHANNEL>`. It consumes the services' replies and writes them to the cache.
 * Web and worker **must share `PULSE_CACHE_DIR`** (a volume).
 
@@ -53,7 +55,6 @@ what is wrong and how to fix it.
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_RENDER_WAIT` | `2` | Seconds a page waits for replies before rendering. `0` renders immediately |
-| `PULSE_SETUP_DATABASE` | `false` | Only with a database `PULSE_TRANSPORT_DSN`: when `true`, the entrypoint creates the missing message table (`ecotone:migration:database:setup --feature=message_queue --initialize --missing`) before `web` and `worker` start. Ecotone never creates a table while it handles a message, so without this (or your own migration) Pulse cannot send or receive. The services create the tables of their own channels |
 | `PULSE_CACHE_DIR` | `var/pulse-cache` | Cache directory shared by `web` and `worker` |
 | `APP_SECRET` | required in production | Symfony secret. Generate one with `openssl rand -hex 32` |
 
@@ -65,7 +66,7 @@ what is wrong and how to fix it.
 | `redis://` | Redis |
 | `sqs:` | Amazon SQS |
 | `kafka://` | Kafka. Several brokers: `kafka://one:9092,two:9092` |
-| `pgsql://`, `mysql://`, `sqlite://` | Database (DBAL). Create the tables with `bin/console ecotone:migration:database:setup --initialSetup` |
+| `pgsql://`, `mysql://`, `sqlite://` | Database (DBAL). The entrypoint creates Pulse's own message table before `web` and `worker` start (`ecotone:migration:database:setup --feature=message_queue --initialize --missing`, existing tables are skipped). The services create the tables of their own channels |
 
 ## Connect a service
 

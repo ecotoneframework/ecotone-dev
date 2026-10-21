@@ -19,6 +19,7 @@ final readonly class ServiceSnapshot
         public array $snapshot,
         public ?string $requestFailure,
         public ?string $replyError,
+        public bool $followUpPending,
     ) {
     }
 

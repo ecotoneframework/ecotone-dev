@@ -17,6 +17,8 @@ use Throwable;
 
 final readonly class DeadLetterActionRequester
 {
+    private const FOLLOW_UP_SECONDS = 5;
+
     public function __construct(
         private DistributedBus $distributedBus,
         private SnapshotStore $store,
@@ -28,7 +30,7 @@ final readonly class DeadLetterActionRequester
     public function send(string $service, DeadLetterAction $action): RequestResult
     {
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->store->update($service, fn ($record) => $record->requested($now));
+        $this->store->update($service, fn ($record) => $action->isReplay() ? $record->requested($now)->withFollowUpDueAt($now->modify('+' . self::FOLLOW_UP_SECONDS . ' seconds')) : $record->requested($now));
 
         try {
             $this->distributedBus->sendMessage($service, $action->routingKey, $action->payload, MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);

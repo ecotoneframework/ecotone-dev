@@ -36,7 +36,6 @@ return static function (ContainerConfigurator $container): void {
         '$replyTimeoutSeconds' => $settings->replyTimeoutSeconds,
         '$renderWaitSeconds' => $settings->renderWaitSeconds,
         '$cacheDir' => $settings->cacheDir,
-        '$setupDatabase' => $settings->setupDatabase,
     ]);
 
     $services->alias('pulse.clock', 'clock');

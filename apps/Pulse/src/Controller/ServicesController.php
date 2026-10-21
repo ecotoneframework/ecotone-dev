@@ -24,7 +24,7 @@ final class ServicesController extends AbstractController
         return $this->render('services/index.html.twig', [
             'services' => $services,
             'versions' => Snapshots::ecotoneVersions($services),
-            'waiting' => Snapshots::anyWaiting($services),
+            'waiting' => Snapshots::needsAutoRefresh($services),
         ]);
     }
 

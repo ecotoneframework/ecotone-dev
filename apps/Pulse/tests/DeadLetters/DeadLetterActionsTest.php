@@ -139,6 +139,60 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertContains('order.audited', $options);
     }
 
+    public function test_a_replay_requests_one_more_snapshot_five_seconds_later_even_within_sixty_seconds_of_the_last_one(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->deliver($client);
+
+        $this->advanceTimeBy(4);
+        $client->request('GET', '/dead-letters');
+        $this->deliver($client);
+        self::assertSame('4s', $this->ageOnServicesPage($client, 'orders'));
+
+        $this->advanceTimeBy(1);
+        $client->request('GET', '/dead-letters');
+        $this->deliver($client);
+        self::assertSame('0s', $this->ageOnServicesPage($client, 'orders'));
+
+        $this->advanceTimeBy(6);
+        $client->request('GET', '/dead-letters');
+        $this->deliver($client);
+        self::assertSame('6s', $this->ageOnServicesPage($client, 'orders'));
+    }
+
+    public function test_the_page_keeps_refreshing_until_the_follow_up_snapshot_is_answered(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->deliver($client);
+
+        self::assertCount(1, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));
+
+        $this->advanceTimeBy(5);
+        $client->request('GET', '/dead-letters');
+        $this->deliver($client);
+
+        self::assertCount(0, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));
+    }
+
+    public function test_a_delete_requests_no_follow_up_snapshot(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->deliver($client);
+
+        $this->advanceTimeBy(5);
+        $client->request('GET', '/dead-letters');
+        $this->deliver($client);
+
+        self::assertSame('5s', $this->ageOnServicesPage($client, 'orders'));
+        self::assertCount(0, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));
+    }
+
     public function test_the_sent_notice_says_a_refusing_service_shows_as_unreachable(): void
     {
         $client = $this->pulseWithFailures();
@@ -273,6 +327,11 @@ final class DeadLetterActionsTest extends WebTestCase
     /**
      * @return list<string>
      */
+    private function ageOnServicesPage(KernelBrowser $client, string $service): string
+    {
+        return $client->request('GET', '/')->filter(sprintf('[data-service="%s"] [data-age]', $service))->text();
+    }
+
     private function remainingNames(KernelBrowser $client): array
     {
         $names = $client->request('GET', '/dead-letters')->filter('[data-dead-letter]')->each(static fn (Crawler $row) => $row->attr('data-message-name'));

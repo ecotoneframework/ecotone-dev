@@ -108,8 +108,8 @@ final class DeadLetterHandler
         if (! $this->channelResolver->hasChannelWithName($targetChannel)) {
             throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToUnknownChannel($targetChannel));
         }
-        if ($this->channelResolver->resolve($targetChannel) instanceof PollableChannel) {
-            throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToAsynchronousChannel($targetChannel));
+        if (! $this->channelResolver->resolve($targetChannel) instanceof PollableChannel) {
+            throw InvalidArgumentException::create(ErrorChannelExceptionMessages::cannotReplayToNonAsynchronousChannel($targetChannel));
         }
     }
 
@@ -126,10 +126,6 @@ final class DeadLetterHandler
 
         if ($targetChannel !== null) {
             $entrypoint = $targetChannel;
-
-            $message = $this->messageBuilder->fromMessage($message)
-                ->removeHeader(MessageHeaders::ROUTING_SLIP)
-                ->build();
         } elseif ($hasPolledChannel) {
             $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
         } elseif ($hasInboundRequestChannel) {

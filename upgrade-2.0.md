@@ -3225,8 +3225,10 @@ message flow, or how it is wired to other services.
 `#[ServiceContext]` method makes the service answer the routing key `ecotone.pulse.snapshot`. The Pulse service sends
 `DistributedBus::sendMessage($service, 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey:
 'ecotone.pulse.snapshot_received')` and receives one JSON reply: `schemaVersion`, `serviceName`, `takenAt`, an
-`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph` and the distributed `topology` of the
-`DistributedServiceMap`s. Only requests from the configured Pulse service are served; any other source fails the
+`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
+`DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
+pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
 handler with a message naming the expected service. The application needs an Enterprise licence, a service name, and a
 `DistributedServiceMap` command mapping from the Pulse service to the channel the Pulse service consumes, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
@@ -3540,13 +3542,17 @@ rename test-support methods without aliases; the renamed methods are listed in e
   The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
   command names are unchanged. **How to adapt:** rename the calls, e.g.
   `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
-- **A dead letter is not replayed to an asynchronous channel.** **Before:** `DeadLetterGateway::replay($messageId, $targetChannel)`,
-  `replayAll()` and `ecotone:deadletter:replay` accepted any existing channel as the target, and a pollable (asynchronous)
-  channel took the message, consumed it without reaching a handler (the replay removed the routing slip the consumer routes
-  by) and the message was lost. **Now:** a pollable target is refused before anything is replayed, the dead letters are
-  kept, and the exception says so. **How to adapt:** replay without a target to send each message back to the channel it
-  was polled from, or pass the input channel of the handler that should process it (the routing key of a `#[CommandHandler]`
-  or the `inputChannelName` of an `#[InternalHandler]`); an asynchronous handler runs once its channel is consumed.
+- **A dead letter replayed to a target channel keeps its routing slip and goes through an asynchronous channel.** **Before:**
+  `DeadLetterGateway::replay($messageId, $targetChannel)`, `replayAll()` and `ecotone:deadletter:replay` removed the routing
+  slip of the message and accepted any existing channel, so a message replayed to a pollable channel was consumed there without
+  reaching a handler and was lost. **Now:** the target is the asynchronous (pollable) channel the message is sent through. The
+  message keeps its stored routing slip (only the error context is removed), so once that channel is consumed the original
+  handler runs; the channel can be the one of the handler or another asynchronous channel. A queue registered in your
+  `#[ServiceContext]` that no handler is bound to also keeps the message with its slip for a later consumer. A target that is
+  not asynchronous (a handler input channel, a direct channel) is refused before anything is replayed or deleted, on the
+  gateway, `replayAll()`, the console commands and the Pulse action, and the dead letters are kept. **How to adapt:** pass
+  an asynchronous channel instead of the input channel of a handler, or replay without a target to send each message back to
+  the channel it was polled from.
 - **A command or query sent to a handler that is not registered in a flow test names the class to register.** An
   Ecotone Lite bootstrap registers only the classes it lists, but the error suggested a missing attribute:
   `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In

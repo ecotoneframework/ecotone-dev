@@ -6,16 +6,16 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
@@ -28,6 +28,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
@@ -53,38 +54,24 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class PulseModule implements AnnotationModule
 {
-    private const FRAMEWORK_NAMESPACE = 'Ecotone\\';
-
     /**
-     * @param string[] $handlerInputChannels
+     * @param string[] $asynchronousHandlerChannels
      */
-    private function __construct(private array $handlerInputChannels)
+    private function __construct(private array $asynchronousHandlerChannels)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $channels = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
-            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
-                /** @var CommandHandler $annotation */
-                $annotation = $registration->getAnnotationForMethod();
-                if ($annotation->getInputChannelName() !== '') {
-                    $channels[] = $annotation->getInputChannelName();
-                }
-            }
+        $asynchronousHandlerChannels = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(Asynchronous::class) as $registration) {
+            $asynchronousHandlerChannels = [...$asynchronousHandlerChannels, ...$registration->getAnnotationForMethod()->getChannelName()];
         }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(InternalHandler::class) as $registration) {
-            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
-                /** @var InternalHandler $annotation */
-                $annotation = $registration->getAnnotationForMethod();
-                $channels[] = $annotation->getInputChannelName();
-            }
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Asynchronous::class) as $className) {
+            $asynchronousHandlerChannels = [...$asynchronousHandlerChannels, ...AnnotatedDefinitionReference::getSingleAnnotationForClass($annotationRegistrationService, $className, Asynchronous::class)->getChannelName()];
         }
-        $channels = array_values(array_unique($channels));
-        sort($channels);
 
-        return new self($channels);
+        return new self(array_values(array_unique($asynchronousHandlerChannels)));
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -123,7 +110,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
-                $this->handlerInputChannels,
+                $this->channelsOf($serviceMaps, $extensionObjects),
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -136,6 +123,35 @@ final class PulseModule implements AnnotationModule
                     HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME),
                 ])
         );
+    }
+
+    /**
+     * @param DistributedServiceMap[] $serviceMaps
+     * @return list<array{name: string, kind: string}>
+     */
+    private function channelsOf(array $serviceMaps, array $extensionObjects): array
+    {
+        $outboundChannels = [];
+        foreach ($serviceMaps as $serviceMap) {
+            $topology = self::topologyOf($serviceMap);
+            $outboundChannels = [
+                ...$outboundChannels,
+                ...array_values($topology['commandMapping']),
+                ...array_column($topology['eventSubscriptions'], 'channel'),
+                ...($topology['asynchronousChannel'] === null ? [] : [$topology['asynchronousChannel']]),
+            ];
+        }
+
+        $channels = [];
+        foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channelBuilder) {
+            $name = $channelBuilder->getMessageChannelName();
+            if ($channelBuilder->isPollable() && $name !== NullableMessageChannel::CHANNEL_NAME && ! in_array($name, $outboundChannels, true)) {
+                $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue'];
+            }
+        }
+        ksort($channels);
+
+        return array_values($channels);
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dead letters · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <h1>Dead letters</h1>
+
+    <form method="get" action="{{ path('dead_letters') }}" class="filters" data-filter-form>
+        <label>Service
+            <select name="service">
+                <option value="">All services</option>
+                {% for name in serviceNames %}<option value="{{ name }}"{% if filter.service == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Message name <input type="text" name="messageName" value="{{ filter.messageName }}"></label>
+        <label>Exception class <input type="text" name="exceptionClass" value="{{ filter.exceptionClass }}"></label>
+        <label>Failed from <input type="datetime-local" name="failedFrom" value="{{ filter.failedFrom }}"></label>
+        <label>Failed to <input type="datetime-local" name="failedTo" value="{{ filter.failedTo }}"></label>
+        <button type="submit">Filter</button>
+    </form>
+
+    <p class="muted" data-list-note>The list shows the latest 100 dead letters of each service and is filtered on that snapshot. Actions on a filter apply to all stored dead letters of the service.</p>
+
+    {% for service in services %}
+        <section class="card" data-service-section="{{ service.service }}">
+            <h2>{{ service.service }}</h2>
+            {% if not service.configured %}
+                <p class="muted" data-not-configured="{{ service.service }}">{% if service.status.hasSnapshot %}dead letter not configured{% else %}no snapshot yet ({{ service.status.status.name|lower }}){% endif %}</p>
+            {% else %}
+                <p>Total: <strong data-service-total="{{ service.service }}">{{ service.total }}</strong> <span class="muted">({{ service.status.status.name|lower }})</span></p>
+                <ul class="groups">
+                    {% for group in service.groups %}
+                        <li data-group data-service="{{ service.service }}" data-message-name="{{ group.messageName }}">
+                            <a href="{{ path('dead_letters', filter.toQuery|merge({service: service.service, messageName: group.messageName, exceptionClass: group.exceptionClass})) }}">{{ group.messageName ?: '(unnamed)' }} · {{ group.exceptionClass }} · {{ group.count }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <table>
+                    <thead><tr><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
+                    <tbody>
+                    {% for entry in service.entries %}
+                        <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
+                            <td>{{ entry.messageName ?: '(unnamed)' }}</td>
+                            <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
+                            <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </section>
+    {% endfor %}
+{% endblock %}

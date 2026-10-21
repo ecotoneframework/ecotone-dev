@@ -15,6 +15,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Interop\Amqp\Impl\AmqpQueue;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -34,7 +35,7 @@ final class RequiredExistingDestinationTest extends AmqpMessagingTestCase
 
         $this->expectException(DestinationDoesNotExistException::class);
         $this->expectExceptionMessage(sprintf(
-            "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or declare the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
+            "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
             $channel,
             $queue,
             AmqpConnectionReference::DEFAULT,
@@ -55,7 +56,7 @@ final class RequiredExistingDestinationTest extends AmqpMessagingTestCase
             try {
                 $ecotone->getCommandBus()->sendWithRouting('place_order', 'order-' . $attempt);
                 self::fail('Send to a missing queue should be refused');
-            } catch (ConfigurationException) {
+            } catch (DestinationDoesNotExistException) {
                 self::assertTrue(true);
             }
         }
@@ -73,6 +74,33 @@ final class RequiredExistingDestinationTest extends AmqpMessagingTestCase
         $consumer->run($channel, ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['order-1'], $consumer->getQueryBus()->sendWithRouting('placed_orders'));
+    }
+
+    public function test_the_refusal_is_a_runtime_failure_and_not_a_configuration_exception(): void
+    {
+        $ecotone = $this->bootstrap($this->recorder(), self::CHANNEL, 'q_' . Uuid::v7()->toRfc4122(), true);
+
+        try {
+            $ecotone->getCommandBus()->sendWithRouting('place_order', 'order-1');
+            self::fail('Send to a missing queue should be refused');
+        } catch (DestinationDoesNotExistException $exception) {
+            self::assertNotInstanceOf(ConfigurationException::class, $exception);
+        }
+    }
+
+    public function test_a_queue_deleted_after_a_successful_send_is_refused_on_the_next_send(): void
+    {
+        $channel = self::CHANNEL;
+        $queue = 'q_' . Uuid::v7()->toRfc4122();
+        $sender = $this->bootstrap($this->recorder(), $channel, $queue, true);
+        $consumer = $this->bootstrap($this->recorder(), $channel, $queue, false);
+        $consumer->run($channel, ExecutionPollingMetadata::createWithTestingSetup());
+        $sender->getCommandBus()->sendWithRouting('place_order', 'order-1');
+
+        $this->getRabbitConnectionFactory()->createContext()->deleteQueue(new AmqpQueue($queue));
+
+        $this->expectException(DestinationDoesNotExistException::class);
+        $sender->getCommandBus()->sendWithRouting('place_order', 'order-2');
     }
 
     public function test_the_channel_creates_its_queue_on_send_by_default(): void

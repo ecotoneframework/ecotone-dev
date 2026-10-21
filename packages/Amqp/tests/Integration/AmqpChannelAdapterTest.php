@@ -37,6 +37,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use RuntimeException;
@@ -68,6 +69,22 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
+    public function test_requiring_an_existing_destination_is_refused_when_the_routing_key_comes_from_a_header(): void
+    {
+        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Requiring an existing destination checks the queue named by the default routing key on the default exchange, so it cannot be combined with a custom exchange, an exchange from a header or a routing key from a header. Remove withRequiredExistingDestination(), or send with a fixed routing key to the default exchange.");
+
+        $this->send(
+            $this->prepareMessaging($amqpConnectionReferenceName, [], [], [], []),
+            AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
+                ->withRoutingKeyFromHeader('queue')
+                ->withRequiredExistingDestination(),
+            StaticMessageBuilder::withPayload('some')->build()
+        );
+    }
+
     public function test_sending_to_default_exchange_with_routing_by_queue_name()
     {
         $queueName = Uuid::v7()->toRfc4122();

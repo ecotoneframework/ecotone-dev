@@ -15,7 +15,6 @@ use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Ecotone\Api\Sqs\SqsConnectionReference;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 
@@ -43,10 +42,11 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
 
         $this->expectException(DestinationDoesNotExistException::class);
         $this->expectExceptionMessage(sprintf(
-            "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself. To let this channel create the queue on send, remove withRequiredExistingDestination().",
+            "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself, or fix the queue name (SqsBackedMessageChannelBuilder::create('%s')). To let this channel create the queue on send, remove withRequiredExistingDestination().",
             self::CHANNEL,
             self::CHANNEL,
             SqsConnectionReference::DEFAULT,
+            self::CHANNEL,
             self::CHANNEL,
         ));
 
@@ -61,7 +61,7 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
             try {
                 $ecotone->getCommandBus()->sendWithRouting('place_order', 'order-' . $attempt);
                 self::fail('Send to a missing queue should be refused');
-            } catch (ConfigurationException) {
+            } catch (DestinationDoesNotExistException) {
                 self::assertTrue(true);
             }
         }
@@ -77,6 +77,20 @@ final class RequiredExistingDestinationTest extends ConnectionTestCase
         $consumer->run(self::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
 
         self::assertSame(['order-1'], $consumer->getQueryBus()->sendWithRouting('placed_orders'));
+    }
+
+    public function test_a_queue_deleted_after_a_successful_send_is_refused_on_the_next_send(): void
+    {
+        $sender = $this->bootstrap(true);
+        $consumer = $this->bootstrap(false);
+        $consumer->run(self::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
+        $sender->getCommandBus()->sendWithRouting('place_order', 'order-1');
+
+        $context = self::getConnection()->createContext();
+        $context->deleteQueue($context->createQueue(self::CHANNEL));
+
+        $this->expectException(DestinationDoesNotExistException::class);
+        $sender->getCommandBus()->sendWithRouting('place_order', 'order-2');
     }
 
     public function test_the_channel_creates_its_queue_on_send_by_default(): void

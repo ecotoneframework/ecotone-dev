@@ -35,6 +35,13 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder 
         return new self($channelName, $connectionReferenceName);
     }
 
+    public function withRequiredExistingDestination(): self
+    {
+        $this->outboundChannelAdapter->withRequiredExistingDestination();
+
+        return $this;
+    }
+
     /**
      * @link https://docs.ecotone.tech/modules/amazon-sqs-support#high-throughput-publishing-enterprise
      */

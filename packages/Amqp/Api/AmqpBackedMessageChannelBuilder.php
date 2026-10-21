@@ -58,6 +58,13 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
         return $this->outboundChannelAdapter;
     }
 
+    public function withRequiredExistingDestination(): static
+    {
+        $this->outboundChannelAdapter->withRequiredExistingDestination();
+
+        return $this;
+    }
+
     public function withPublisherConfirms(bool $enabled): static
     {
         $this->outboundChannelAdapter->withPublisherConfirms($enabled);

@@ -18,9 +18,11 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
+use RdKafka\Exception as RdKafkaException;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
 use Throwable;
@@ -47,8 +49,6 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
 {
     private const POLL_EVERY_PRODUCED_MESSAGES = 100;
     private const METADATA_TIMEOUT_IN_MILLISECONDS = 10000;
-
-    private bool $destinationVerified = false;
 
     public function __construct(
         private string $referenceName,
@@ -94,29 +94,41 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
 
     private function verifyDestinationExists(Producer $producer): void
     {
-        if (! $this->requireExistingDestination || $this->destinationVerified) {
+        if (! $this->requireExistingDestination) {
             return;
         }
 
         $topicName = $this->kafkaAdmin->getTopicNameForProducer($this->referenceName);
-        $existingTopicNames = [];
-        foreach ($producer->getMetadata(true, null, self::METADATA_TIMEOUT_IN_MILLISECONDS)->getTopics() as $existingTopic) {
-            $existingTopicNames[] = $existingTopic->getTopic();
+        $brokerConfigurationReference = $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference;
+
+        try {
+            $topics = $producer->getMetadata(true, null, self::METADATA_TIMEOUT_IN_MILLISECONDS)->getTopics();
+        } catch (RdKafkaException $exception) {
+            throw MessagingException::createFromPreviousException(
+                sprintf(
+                    "Channel '%s' requires its destination to exist, but Ecotone could not check topic '%s' on Kafka broker configuration '%s' before sending (%s), so nothing was sent. Check that the bootstrap servers of the broker configuration are reachable, or remove withRequiredExistingDestination() to send without the check.",
+                    $this->referenceName,
+                    $topicName,
+                    $brokerConfigurationReference,
+                    $exception->getMessage(),
+                ),
+                $exception,
+            );
         }
 
-        if (! in_array($topicName, $existingTopicNames, true)) {
-            $brokerConfigurationReference = $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference;
-            throw DestinationDoesNotExistException::forChannel(sprintf(
-                "Channel '%s' requires its destination to exist, but topic '%s' does not exist on Kafka broker configuration '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the topic yourself, or fix the topic name (KafkaMessageChannelBuilder::create('%s', topicName: ...)). To let this channel create the topic on send, remove withRequiredExistingDestination().",
-                $this->referenceName,
-                $topicName,
-                $brokerConfigurationReference,
-                $this->referenceName,
-                $this->referenceName,
-            ), $this->referenceName, $topicName, $brokerConfigurationReference);
+        foreach ($topics as $existingTopic) {
+            if ($existingTopic->getTopic() === $topicName) {
+                return;
+            }
         }
 
-        $this->destinationVerified = true;
+        throw DestinationDoesNotExistException::forChannel(
+            $this->referenceName,
+            'topic',
+            $topicName,
+            sprintf("Kafka broker configuration '%s'", $brokerConfigurationReference),
+            sprintf("KafkaMessageChannelBuilder::create('%s', topicName: ...)", $this->referenceName),
+        );
     }
 
     public function isBatchPublishingEnabled(): bool

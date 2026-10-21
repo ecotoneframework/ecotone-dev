@@ -30,6 +30,7 @@ use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use RuntimeException;
+use Throwable;
 
 /**
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
@@ -40,11 +41,12 @@ use RuntimeException;
  */
 class AmqpOutboundChannelAdapter implements MessageHandler
 {
+    private const NOT_FOUND_REPLY_CODE = 404;
+
     /**
      * @var bool
      */
     private $initialized = false;
-    private bool $destinationVerified = false;
 
     public function __construct(
         private CachedConnectionFactory    $connectionFactory,
@@ -348,7 +350,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
     private function verifyDestinationExists(): void
     {
-        if (! $this->requireExistingDestination || $this->destinationVerified) {
+        if (! $this->requireExistingDestination) {
             return;
         }
 
@@ -360,24 +362,32 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         try {
             $context->declareQueue($queue);
-        } catch (AMQPQueueException|AMQPProtocolChannelException $exception) {
-            if (! str_contains($exception->getMessage(), 'NOT_FOUND')) {
+        } catch (Throwable $exception) {
+            if (! self::isQueueNotFound($exception)) {
                 throw $exception;
             }
 
-            throw DestinationDoesNotExistException::forChannel(sprintf(
-                "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or declare the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
+            throw DestinationDoesNotExistException::forChannel(
                 $this->channelName,
+                'queue',
                 $queueName,
-                $this->connectionReferenceName,
-                $this->channelName,
-                $this->channelName,
-            ), $this->channelName, $queueName, $this->connectionReferenceName);
+                sprintf("AMQP connection '%s'", $this->connectionReferenceName),
+                sprintf("AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)", $this->channelName),
+            );
         } finally {
             $context->close();
         }
+    }
 
-        $this->destinationVerified = true;
+    private static function isQueueNotFound(Throwable $exception): bool
+    {
+        for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+            if (($cause instanceof AMQPQueueException || $cause instanceof AMQPProtocolChannelException) && $cause->getCode() === self::NOT_FOUND_REPLY_CODE) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function __toString(): string

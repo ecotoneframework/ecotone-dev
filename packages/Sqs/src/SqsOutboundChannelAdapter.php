@@ -31,7 +31,6 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     private const BATCH_REQUEST_PAYLOAD_BUDGET_IN_BYTES = 204800;
 
     private SqsRequestDispatchPool $requestDispatchPool;
-    private bool $destinationVerified = false;
 
     public function __construct(
         CachedConnectionFactory $connectionFactory,
@@ -113,7 +112,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     private function verifyDestinationExists(): void
     {
-        if (! $this->requireExistingDestination || $this->destinationVerified) {
+        if (! $this->requireExistingDestination) {
             return;
         }
 
@@ -121,22 +120,20 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         $context = $this->connectionFactory->createContext();
 
         try {
-            $context->getQueueUrl(new SqsDestination($this->queueName));
+            $context->getAwsSqsClient()->getQueueUrl(['QueueName' => $this->queueName]);
         } catch (AwsException $exception) {
             if (! in_array($exception->getAwsErrorCode(), self::MISSING_QUEUE_ERROR_CODES, true)) {
                 throw $exception;
             }
 
-            throw DestinationDoesNotExistException::forChannel(sprintf(
-                "Channel '%s' requires its destination to exist, but queue '%s' does not exist on SQS connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the queue yourself. To let this channel create the queue on send, remove withRequiredExistingDestination().",
+            throw DestinationDoesNotExistException::forChannel(
                 $this->queueName,
+                'queue',
                 $this->queueName,
-                $this->connectionReferenceName,
-                $this->queueName,
-            ), $this->queueName, $this->queueName, $this->connectionReferenceName);
+                sprintf("SQS connection '%s'", $this->connectionReferenceName),
+                sprintf("SqsBackedMessageChannelBuilder::create('%s')", $this->queueName),
+            );
         }
-
-        $this->destinationVerified = true;
     }
 
     /**

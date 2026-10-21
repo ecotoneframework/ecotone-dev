@@ -9,7 +9,7 @@
 {% endmacro %}
 
 {% block body %}
-    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service, href: path('service_hub', {service: service})}, {label: 'Dead letters', href: path('dead_letters', {service: service})}, {label: entry.messageId}]} %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: scope.service, href: path('service_hub', {service: scope.service})}, {label: 'Dead letters', href: path('dead_letters', {service: service})}, {label: entry.messageId}]} %}
     <h1>Dead letter</h1>
 
     <div class="actions">

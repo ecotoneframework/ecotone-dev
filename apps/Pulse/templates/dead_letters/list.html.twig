@@ -15,7 +15,7 @@
         <label for="f-service">Service
             <select id="f-service" name="service">
                 <option value="">All services</option>
-                {% for name in serviceNames %}<option value="{{ name }}"{% if filter.service == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
+                {% for name in serviceNames %}<option value="{{ name }}"{% if filter.service == name %} selected{% endif %}>{{ name|replace({'@': ' · tenant '}) }}</option>{% endfor %}
             </select>
         </label>
         <label for="f-message-name">Message name <input id="f-message-name" type="text" name="messageName" value="{{ filter.messageName }}"></label>
@@ -41,7 +41,7 @@
     {% for service in services %}
         <section class="card flush" data-service-section="{{ service.service }}">
             <div class="service-head">
-                <h2>{{ service.service }}</h2>
+                <h2>{{ service.name }}{% if service.tenant %} <span class="chip" data-tenant="{{ service.tenant }}">tenant {{ service.tenant }}</span>{% endif %}</h2>
                 {% if not service.configured %}
                     <span class="muted" data-not-configured="{{ service.service }}">{% if service.status.hasSnapshot %}dead letter not configured{% else %}no snapshot yet ({{ service.status.status.name|lower }}){% endif %}</span>
                 {% else %}

@@ -17,9 +17,9 @@ final readonly class InternalTables
     public static function createStatements(): array
     {
         return [
-            'CREATE TABLE IF NOT EXISTS ' . self::SERVICE_RECORD . ' (service TEXT NOT NULL PRIMARY KEY, record TEXT NOT NULL)',
-            'CREATE TABLE IF NOT EXISTS ' . self::QUERY_RECORD . ' (service TEXT NOT NULL, query_key TEXT NOT NULL, record TEXT NOT NULL, expires_at INTEGER NOT NULL, PRIMARY KEY (service, query_key))',
-            'CREATE TABLE IF NOT EXISTS ' . self::QUERY_POINTER . ' (query_id TEXT NOT NULL PRIMARY KEY, service TEXT NOT NULL, query_key TEXT NOT NULL, expires_at INTEGER NOT NULL)',
+            'CREATE TABLE IF NOT EXISTS ' . self::SERVICE_RECORD . ' (service TEXT NOT NULL, tenant TEXT NOT NULL, record TEXT NOT NULL, PRIMARY KEY (service, tenant))',
+            'CREATE TABLE IF NOT EXISTS ' . self::QUERY_RECORD . ' (service TEXT NOT NULL, tenant TEXT NOT NULL, query_key TEXT NOT NULL, record TEXT NOT NULL, expires_at INTEGER NOT NULL, PRIMARY KEY (service, tenant, query_key))',
+            'CREATE TABLE IF NOT EXISTS ' . self::QUERY_POINTER . ' (query_id TEXT NOT NULL PRIMARY KEY, service TEXT NOT NULL, tenant TEXT NOT NULL, query_key TEXT NOT NULL, expires_at INTEGER NOT NULL)',
             'CREATE TABLE IF NOT EXISTS ' . self::HEARTBEAT . ' (process TEXT NOT NULL PRIMARY KEY, beat_at INTEGER NOT NULL)',
         ];
     }

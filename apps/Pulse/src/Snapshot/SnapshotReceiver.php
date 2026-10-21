@@ -35,8 +35,10 @@ final readonly class SnapshotReceiver
             return;
         }
 
-        $problem = $this->problemWith($decoded);
-        $this->store->update($service, fn (ServiceRecord $record) => $problem === null
+        $tenant = $decoded['tenant'] ?? null;
+        $scope = is_string($tenant) ? ServiceScope::ofTenant($service, $tenant) : ServiceScope::ofService($service);
+        $problem = $this->problemWith($decoded, $scope);
+        $this->store->update($scope, fn (ServiceRecord $record) => $problem === null
             ? $record->received($decoded, DateTimeImmutable::createFromInterface($this->clock->now()))
             : $record->replyRejected($problem));
     }
@@ -44,13 +46,13 @@ final readonly class SnapshotReceiver
     /**
      * @param array<string, mixed> $snapshot
      */
-    private function problemWith(array $snapshot): ?string
+    private function problemWith(array $snapshot, ServiceScope $scope): ?string
     {
         $schemaVersion = $snapshot['schemaVersion'] ?? null;
         if ($schemaVersion !== self::SUPPORTED_SCHEMA_VERSION) {
             return sprintf('Snapshot with schema version %s is not supported, Pulse reads schema version %d. Update Pulse or the service so both speak the same schema version.', is_scalar($schemaVersion) ? (string) $schemaVersion : 'unknown', self::SUPPORTED_SCHEMA_VERSION);
         }
-        if (! is_array($snapshot['overview'] ?? null)) {
+        if ($scope->tenant === null && ! is_array($snapshot['overview'] ?? null)) {
             return 'Snapshot has no overview section. Update the service to a version that answers Pulse snapshot requests.';
         }
 

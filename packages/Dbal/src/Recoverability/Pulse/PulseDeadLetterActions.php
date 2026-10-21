@@ -37,9 +37,13 @@ final class PulseDeadLetterActions
     ) {
     }
 
-    public function replay(string $payload, ?string $sourceService, PulseSnapshot $snapshot, MessagingEntrypointService $messagingEntrypoint): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function replay(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot, MessagingEntrypointService $messagingEntrypoint): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $snapshot->tenantOfScopedRequest($headers);
         $selection = PulseDeadLetterSelection::forReplay($payload);
 
         $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
@@ -49,12 +53,16 @@ final class PulseDeadLetterActions
             $affected++;
         }
 
-        return self::replyWithAffected($snapshot->snapshotJson($sourceService), $affected);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
     }
 
-    public function delete(string $payload, ?string $sourceService, PulseSnapshot $snapshot): string
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function delete(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
         $snapshot->authorizeRequestFrom($sourceService);
+        $snapshot->tenantOfScopedRequest($headers);
         $selection = PulseDeadLetterSelection::forDelete($payload);
 
         $affected = 0;
@@ -63,7 +71,7 @@ final class PulseDeadLetterActions
             $affected++;
         }
 
-        return self::replyWithAffected($snapshot->snapshotJson($sourceService), $affected);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
     }
 
     private static function replyWithAffected(string $snapshotJson, int $affected): string

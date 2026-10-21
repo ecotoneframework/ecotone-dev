@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Projection\ProjectionOverview;
 use App\Settings\PulseSettings;
+use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,22 +21,23 @@ final class ProjectionsController extends AbstractController
     #[Route('/services/{service}/projections', name: 'service_projections', methods: ['GET'], requirements: ['service' => '[^/]+'])]
     public function projections(string $service): Response
     {
-        foreach ($this->snapshots->viewAndRequestStale() as $snapshot) {
-            if ($snapshot->service !== $service) {
-                continue;
-            }
-
-            $statuses = ProjectionOverview::of($snapshot, $this->settings->projectionStalledAfterSeconds);
-
-            return $this->render('services/projections.html.twig', [
-                'service' => $snapshot,
-                'projections' => $statuses,
-                'counts' => ProjectionOverview::counts($statuses),
-                'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
-                'waiting' => Snapshots::needsAutoRefresh([$snapshot]),
-            ]);
+        $this->snapshots->viewScopesAndRequestStale();
+        $rows = array_values(array_filter($this->snapshots->scopes(), static fn (ServiceSnapshot $row): bool => $row->scope() === $service || $row->service === $service));
+        if ($rows === []) {
+            throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES, for example PULSE_SERVICES=%s.', $service, implode(',', [...array_keys($this->settings->routes), $service])));
         }
 
-        throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES, for example PULSE_SERVICES=%s.', $service, implode(',', [...array_keys($this->settings->routes), $service])));
+        $sections = [];
+        foreach ($rows as $row) {
+            $statuses = ProjectionOverview::of($row, $this->settings->projectionStalledAfterSeconds);
+            $sections[] = ['snapshot' => $row, 'projections' => $statuses, 'counts' => ProjectionOverview::counts($statuses)];
+        }
+
+        return $this->render('services/projections.html.twig', [
+            'service' => $rows[0],
+            'sections' => $sections,
+            'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
+            'waiting' => Snapshots::needsAutoRefresh($rows),
+        ]);
     }
 }

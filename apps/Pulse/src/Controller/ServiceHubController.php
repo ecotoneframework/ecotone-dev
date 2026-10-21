@@ -38,6 +38,7 @@ final class ServiceHubController extends AbstractController
 
         $failing = in_array($snapshot->status->value, ['unreachable', 'channel_missing'], true);
         $flowTypes = FlowTypeOverview::of([$snapshot])[0];
+        $tenantRows = array_values(array_filter($this->snapshots->scopes(), static fn (ServiceSnapshot $row): bool => $row->service === $service && $row->tenant !== null));
         $projections = ProjectionOverview::of($snapshot, $this->settings->projectionStalledAfterSeconds);
 
         return $this->render('services/hub.html.twig', [
@@ -46,12 +47,22 @@ final class ServiceHubController extends AbstractController
             'diagnosis' => $failing ? $this->checksOf($service) : ['checks' => [], 'skipped' => false],
             'snippets' => $failing ? $this->snippets->for($service) : [],
             'servicesEntry' => $this->snippets->pulseServicesEntry($service),
+            'tenantRows' => $tenantRows,
+            'tenantFlowTypes' => FlowTypeOverview::of($tenantRows),
+            'tenantChannels' => array_combine(
+                array_map(static fn (ServiceSnapshot $row): string => (string) $row->tenant, $tenantRows),
+                array_map(fn (ServiceSnapshot $row): array => array_values(array_filter(ChannelDepth::of($row, $this->settings->queueThresholds), static fn (ChannelDepth $depth): bool => $depth->perTenant)), $tenantRows),
+            ),
+            'tenantProjectionCounts' => array_combine(
+                array_map(static fn (ServiceSnapshot $row): string => (string) $row->tenant, $tenantRows),
+                array_map(fn (ServiceSnapshot $row): array => ProjectionOverview::counts(ProjectionOverview::of($row, $this->settings->projectionStalledAfterSeconds)), $tenantRows),
+            ),
             'channels' => ChannelDepth::of($snapshot, $this->settings->queueThresholds),
             'projectionCounts' => ProjectionOverview::counts($projections),
             'tracing' => $flowTypes['tracing'],
             'flowTypes' => $flowTypes['flowTypes'],
             'deadLetterEnabled' => $snapshot->snapshot['deadLetter']['enabled'] ?? null,
-            'waiting' => Snapshots::needsAutoRefresh([$snapshot]),
+            'waiting' => Snapshots::needsAutoRefresh([$snapshot, ...$tenantRows]),
         ]);
     }
 

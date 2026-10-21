@@ -8,7 +8,7 @@
 
 {% block body %}
     <h1>Traces of {{ flowType }}</h1>
-    <p><a href="{{ path('traces') }}">← Flow types</a> · service <strong data-detail="service">{{ service }}</strong></p>
+    <p><a href="{{ path('traces') }}">← Flow types</a> · service <strong data-detail="service">{{ scope.service }}</strong>{% if scope.tenant %} · tenant <strong data-detail="tenant">{{ scope.tenant }}</strong>{% endif %}</p>
 
     {% if statistics %}
         <p class="muted" data-statistics>{{ statistics.runs }} runs · {{ statistics.runsWithErrors }} with errors recorded ({{ statistics.errorRate }}) · p50 {{ statistics.p50Ms }} ms · p95 {{ statistics.p95Ms }} ms · max {{ statistics.maxMs }} ms</p>

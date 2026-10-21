@@ -6,6 +6,30 @@
     {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
 {% endblock %}
 
+{% macro channelTable(channels, tenant) %}
+    <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Channels{% if tenant %} of {{ tenant }}{% endif %}">
+        <table>
+            <thead>
+            <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th></tr>
+            </thead>
+            <tbody>
+            {% for channel in channels %}
+                <tr data-channel="{{ channel.name }}"{% if tenant %} data-tenant="{{ tenant }}"{% endif %}>
+                    <th scope="row">{{ channel.name }} <span class="muted">{{ channel.kind }}</span></th>
+                    <td class="num">
+                        <span class="pill {{ {ok: 'ok', warning: 'wait', critical: 'bad sq', unknown: 'off'}[channel.level] }}" data-level="{{ channel.level }}"><span data-ready>{{ channel.ready is null ? '–' : channel.ready|number_format }}</span><span class="visually-hidden"> {{ channel.level }}</span></span>
+                        {% if channel.probeError %}<br><span class="drift" data-probe-error>{{ channel.probeError }}</span>{% endif %}
+                    </td>
+                    <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
+                    <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
+                    <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
 {% block body %}
     {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service}]} %}
     <h1>{{ service.service }}</h1>
@@ -49,35 +73,47 @@
             </dl>
         </section>
 
+        {% if service.isMultiTenant or service.unadvertisedTenants %}
+        <section class="card" data-hub-tenants>
+            <h2>Tenants</h2>
+            {% if service.isMultiTenant %}<p class="muted">{{ service.service }} advertises its tenants in header <code>{{ service.tenantHeader }}</code>. Pulse asks for each tenant separately.</p>{% endif %}
+            {% include '_tenants.html.twig' %}
+            {% for row in tenantRows %}
+                {% set channels = tenantChannels[row.tenant] ?? [] %}
+                {% if channels %}
+                    <h3>Channels of {{ row.tenant }}</h3>
+                    {{ _self.channelTable(channels, row.tenant) }}
+                {% endif %}
+                {% set counts = tenantProjectionCounts[row.tenant] ?? {total: 0} %}
+                {% if counts.total > 0 %}
+                    <p data-tenant-projections="{{ row.tenant }}"><b>{{ counts.total }}</b> projections of {{ row.tenant }} · <b>{{ counts.behind }}</b> behind · <b>{{ counts.stalled }}</b> stalled · <b>{{ counts.failed }}</b> failed · <a href="{{ path('service_projections', {service: row.scope}) }}">Open</a></p>
+                {% endif %}
+            {% endfor %}
+            {% for row in tenantFlowTypes %}
+                {% if row.flowTypes %}
+                    <h3>Flow types of {{ row.tenant }}</h3>
+                    <ul data-tenant-flow-types="{{ row.tenant }}">
+                        {% for flowType in row.flowTypes %}
+                            <li><a href="{{ path('trace_list', {service: row.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+        </section>
+        {% endif %}
+
+
         <section class="card" id="channels" data-hub-channels>
             <h2>Channels</h2>
             {% if channels is empty %}
                 <p class="muted">{{ service.service }} reports no message channel to measure.</p>
             {% else %}
-                <div class="flush">
-                    <table>
-                        <thead>
-                        <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th></tr>
-                        </thead>
-                        <tbody>
-                        {% for channel in channels %}
-                            <tr data-channel="{{ channel.name }}">
-                                <th scope="row">{{ channel.name }} <span class="muted">{{ channel.kind }}</span></th>
-                                <td class="num">
-                                    <span class="pill {{ {ok: 'ok', warning: 'wait', critical: 'bad sq', unknown: 'off'}[channel.level] }}" data-level="{{ channel.level }}"><span data-ready>{{ channel.ready is null ? '–' : channel.ready|number_format }}</span><span class="visually-hidden"> {{ channel.level }}</span></span>
-                                    {% if channel.probeError %}<br><span class="drift" data-probe-error>{{ channel.probeError }}</span>{% endif %}
-                                </td>
-                                <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
-                                <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
-                                <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                {{ _self.channelTable(channels, null) }}
+                {% if service.isMultiTenant %}<p class="muted">Channels on the tenant connection are measured per tenant, see Tenants.</p>{% endif %}
             {% endif %}
         </section>
 
+        {% if not service.isMultiTenant %}
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
             {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
@@ -95,6 +131,8 @@
                 <p><b data-total>{{ projectionCounts.total }}</b> projections · <b data-behind>{{ projectionCounts.behind }}</b> behind · <b data-stalled>{{ projectionCounts.stalled }}</b> stalled · <b data-failed>{{ projectionCounts.failed }}</b> failed · <a href="{{ path('service_projections', {service: service.service}) }}">Open the projections of {{ service.service }}</a></p>
             {% endif %}
         </section>
+        {% endif %}
+        {% if not service.isMultiTenant %}
         <section class="card" data-hub-flow-types>
             <h2>Flow types</h2>
             {% if not tracing %}
@@ -109,6 +147,7 @@
                 </ul>
             {% endif %}
         </section>
+        {% endif %}
 
         <section class="card" data-hub-graph>
             <h2>Flow graph</h2>

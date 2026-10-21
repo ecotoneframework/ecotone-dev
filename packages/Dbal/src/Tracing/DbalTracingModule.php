@@ -39,6 +39,7 @@ use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
+use Ecotone\Dbal\Tracing\Pulse\PulseTracingStorage;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -58,6 +59,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -207,10 +209,8 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.']));
         }
         if ($pulseConfigured) {
-            $messagingConfiguration->registerServiceDefinition(
-                PulseTracing::class,
-                new Definition(PulseTracing::class, [new Reference(TraceStore::class), $flowTracking->inMemory, intdiv($flowTracking->retention->inMilliseconds(), 1000)])
-            );
+            $messagingConfiguration->registerServiceDefinition(PulseTracing::class, new Definition(PulseTracing::class, [new Reference(TraceStore::class)]));
+            $messagingConfiguration->registerServiceDefinition(PulseTracingStorage::class, new Definition(PulseTracingStorage::class, [$flowTracking->inMemory, intdiv($flowTracking->retention->inMilliseconds(), 1000)]));
             $this->registerPulseTraceQueries($messagingConfiguration, $interfaceToCallRegistry, PulseTraceQueries::class, new Definition(PulseTraceQueries::class, [new Reference(TraceStore::class), $serviceName]), 'list', 'trace');
         }
         $messagingConfiguration->registerServiceDefinition(
@@ -228,7 +228,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
         $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
         $queryId = HeaderBuilder::createOptional('queryId', PulseTraceQueries::QUERY_ID_HEADER);
-        $converters = $serviceClass === PulseTracesNotConfigured::class ? [$sourceService, $snapshot] : [PayloadBuilder::create('payload'), $sourceService, $queryId, $snapshot];
+        $converters = $serviceClass === PulseTracesNotConfigured::class ? [$sourceService, $snapshot] : [PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $queryId, $snapshot];
         foreach ([PulseTraceQueries::LIST_ROUTING_KEY => $listMethod, PulseTraceQueries::TRACE_ROUTING_KEY => $traceMethod] as $channel => $method) {
             $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::createForMethod($serviceClass, $interfaceToCallRegistry->getFor($serviceClass, $method))
@@ -247,7 +247,8 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         if (self::flowTrackingOf($serviceExtensions) !== null) {
             $extensions[] = new SpanRecorderReference(StoringSpanRecorder::class);
             if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'tracing', serviceReference: PulseTracing::class);
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'tracing', serviceReference: PulseTracingStorage::class, tenantScoped: false);
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'tracing', serviceReference: PulseTracing::class, tenantScoped: true);
             }
         }
 

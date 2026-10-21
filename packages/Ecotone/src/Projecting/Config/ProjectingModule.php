@@ -279,7 +279,7 @@ final class ProjectingModule implements AnnotationModule
     {
         $extensions = [new ProjectingModuleRoutingExtension(self::inputChannelForProjectingManager(...))];
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'projections', serviceReference: PulseProjections::class);
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'projections', serviceReference: PulseProjections::class, tenantScoped: true);
         }
 
         return $extensions;

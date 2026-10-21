@@ -11,6 +11,7 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\Pulse\PulseSnapshotRequest;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Throwable;
 
@@ -39,6 +40,10 @@ class ObjectManagerInterceptor
 
         foreach ($this->managerRegistryConnectionFactories as $managerRegistryConnectionFactory) {
             if ($managerRegistryConnectionFactory instanceof MultiTenantConnectionFactory) {
+                if (! $managerRegistryConnectionFactory->hasActiveTenant() && PulseSnapshotRequest::isIn($message)) {
+                    continue;
+                }
+
                 $managerRegistryConnectionFactory = $managerRegistryConnectionFactory->getConnectionFactory();
             }
 

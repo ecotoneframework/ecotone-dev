@@ -10,6 +10,8 @@ final readonly class ServiceSnapshot
 {
     /**
      * @param array<string, mixed> $snapshot
+     * @param list<string> $tenants
+     * @param list<string> $unadvertisedTenants
      * @param array<string, array{digest: string, since: string}> $projectionMovements
      */
     public function __construct(
@@ -23,8 +25,22 @@ final readonly class ServiceSnapshot
         public ?string $replyError,
         public bool $followUpPending,
         public bool $retrying,
+        public ?string $tenant,
+        public ?string $tenantHeader,
+        public array $tenants,
+        public array $unadvertisedTenants,
         public array $projectionMovements,
     ) {
+    }
+
+    public function scope(): string
+    {
+        return ($this->tenant === null ? ServiceScope::ofService($this->service) : ServiceScope::ofTenant($this->service, $this->tenant))->key();
+    }
+
+    public function isMultiTenant(): bool
+    {
+        return $this->tenantHeader !== null;
     }
 
     public function hasSnapshot(): bool

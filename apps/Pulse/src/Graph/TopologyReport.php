@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Graph;
+
+final readonly class TopologyReport
+{
+    /**
+     * @param list<array{from: string, to: string, channel: string}> $commandRoutes
+     * @param list<array{service: string, channel: string, keys: list<string>}> $eventSubscriptions
+     * @param list<Mismatch> $mismatches
+     */
+    private function __construct(public array $commandRoutes, public array $eventSubscriptions, public array $mismatches)
+    {
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @param list<string> $configuredServices
+     */
+    public static function of(array $flows, array $configuredServices, string $pulseServiceName): self
+    {
+        $routes = [];
+        $subscriptions = [];
+        $mismatches = [];
+        $answering = array_map(fn (ServiceFlow $flow) => $flow->name, $flows);
+        $allPublishedKeys = array_merge(...array_map(fn (ServiceFlow $flow) => array_map(fn (array $event) => $event['routingKey'], $flow->publishedEvents()), $flows) ?: [[]]);
+
+        foreach ($flows as $flow) {
+            $mapped = $flow->commandMappings();
+            foreach ($mapped as $target => $channel) {
+                if ($target === $pulseServiceName) {
+                    continue;
+                }
+                $routes[] = ['from' => $flow->pulseName, 'to' => $target, 'channel' => $channel];
+                if (! in_array($target, $configuredServices, true)) {
+                    $mismatches[] = new Mismatch('unconfigured-command-target', "{$flow->pulseName} maps commands for {$target}, which is not configured in Pulse. Add {$target} to PULSE_SERVICES, or remove the command mapping from the Service Map of {$flow->pulseName}.");
+                } elseif (! in_array($target, $answering, true)) {
+                    $mismatches[] = new Mismatch('silent-command-target', "{$flow->pulseName} maps commands for {$target}, which is configured in Pulse but did not answer. Check that {$target} runs with PulseConfiguration and consumes its channel.");
+                }
+            }
+            foreach ($flow->targetServicesSentTo() as $target) {
+                if ($target !== $pulseServiceName && ! array_key_exists($target, $mapped)) {
+                    $mismatches[] = new Mismatch('unmapped-command-target', "{$flow->pulseName} sends commands to {$target}, but its Service Map has no command mapping for {$target}. Add DistributedServiceMap::initialize()->withCommandMapping('{$target}', <channel>) to a #[ServiceContext] of {$flow->pulseName}.");
+                }
+            }
+            foreach ($flow->eventSubscriptions() as $subscription) {
+                $subscriptions[] = ['service' => $flow->pulseName, 'channel' => $subscription['channel'], 'keys' => $subscription['subscriptionKeys']];
+                foreach ($subscription['subscriptionKeys'] as $key) {
+                    if (array_filter($allPublishedKeys, fn (string $published) => RoutingKeyPattern::matches($key, $published)) === []) {
+                        $mismatches[] = new Mismatch('unpublished-subscription', "{$flow->pulseName} subscribes to {$key}, but no service publishes an event matching it. Publish it with DistributedBus::publishEvent(), or remove {$key} from withEventMapping().");
+                    }
+                }
+            }
+        }
+
+        $linked = array_map(fn (DistributedLink $link) => $link->fromService . '|' . $link->routingKey, array_filter(DistributedLinks::between($flows), fn (DistributedLink $link) => $link->kind === 'event'));
+        foreach ($flows as $flow) {
+            foreach ($flow->publishedEvents() as $event) {
+                if (! in_array($flow->pulseName . '|' . $event['routingKey'], $linked, true)) {
+                    $mismatches[] = new Mismatch('unsubscribed-event', "{$flow->pulseName} publishes {$event['routingKey']}, but no service subscribes to it. Add a #[Distributed] #[EventHandler('{$event['routingKey']}')] to a service and a withEventMapping() entry whose keys match {$event['routingKey']}.");
+                }
+            }
+        }
+
+        return new self($routes, $subscriptions, $mismatches);
+    }
+
+    public function toMermaid(): string
+    {
+        $lines = ['graph LR'];
+        foreach ($this->commandRoutes as $route) {
+            $lines[] = sprintf('    %s -->|"%s"| %s', self::identifier($route['from']), str_replace('"', '#quot;', $route['channel']), self::identifier($route['to']));
+        }
+
+        return implode("\n", array_values(array_unique($lines))) . "\n";
+    }
+
+    private static function identifier(string $value): string
+    {
+        return preg_replace('/[^A-Za-z0-9_]/', '_', $value);
+    }
+}

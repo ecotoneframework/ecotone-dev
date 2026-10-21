@@ -48,6 +48,28 @@ trait DistributedServicesTrait
             ->withEventMapping($this->serviceChannels['orders'], ['invoice.*']));
     }
 
+    private function ordersWithMismatches(): FlowTestSupport
+    {
+        $orders = new class () {
+            public function __construct(private ?DistributedBus $distributedBus = null)
+            {
+            }
+
+            #[CommandHandler('order.place', endpointId: 'order.place.handler')]
+            public function place(array $payload): void
+            {
+                $this->distributedBus->sendCommand('billing', 'invoice.create', '{}');
+                $this->distributedBus->sendCommand('shipping', 'parcel.ship', '{}');
+                $this->distributedBus->publishEvent('order.placed', '{}');
+            }
+        };
+
+        return $this->distributedService('orders', $orders, DistributedServiceMap::initialize()
+            ->withCommandMapping('shipping', $this->serviceChannels['orders'])
+            ->withCommandMapping('payments', $this->serviceChannels['payments'])
+            ->withEventMapping($this->serviceChannels['orders'], ['refund.*']));
+    }
+
     private function billingCreatingInvoices(?DistributedServiceMap $serviceMap = null): FlowTestSupport
     {
         $billing = new class () {

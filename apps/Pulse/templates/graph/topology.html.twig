@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Topology · Ecotone Pulse{% endblock %}
+
+{% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
+
+{% block body %}
+    <h1>Topology</h1>
+    {% if report.commandRoutes is empty %}
+        <p class="muted">No service maps commands to another service yet.</p>
+    {% else %}
+        <pre class="mermaid" data-topology>{{ diagram }}</pre>
+    {% endif %}
+
+    <h2>Command routes</h2>
+    <ul>
+        {% for route in report.commandRoutes %}
+            <li data-command-route="{{ route.from }}>{{ route.to }}">{{ route.from }} sends commands to {{ route.to }} over channel {{ route.channel }}</li>
+        {% else %}
+            <li class="muted">None</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Event subscriptions</h2>
+    <ul>
+        {% for subscription in report.eventSubscriptions %}
+            <li data-event-subscription="{{ subscription.service }}">{{ subscription.service }} over channel {{ subscription.channel }}: {{ subscription.keys|join(', ') }}</li>
+        {% else %}
+            <li class="muted">None</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Mismatches</h2>
+    <ul>
+        {% for mismatch in report.mismatches %}
+            <li data-mismatch="{{ mismatch.kind }}">{{ mismatch.message }}</li>
+        {% else %}
+            <li class="muted">None found</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

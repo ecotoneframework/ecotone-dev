@@ -16,12 +16,6 @@ final class PlaceholderController extends AbstractController
         return $this->placeholder('Dead letters');
     }
 
-    #[Route('/topology', name: 'topology', methods: ['GET'])]
-    public function topology(): Response
-    {
-        return $this->placeholder('Topology');
-    }
-
     #[Route('/catalogue', name: 'catalogue', methods: ['GET'])]
     public function catalogue(): Response
     {

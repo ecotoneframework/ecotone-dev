@@ -44,6 +44,22 @@ enum Transport: string
         }];
     }
 
+    public function destinationKind(): string
+    {
+        return $this === self::Kafka ? 'topic' : 'queue';
+    }
+
+    public function channelBuilder(): string
+    {
+        return match ($this) {
+            self::Amqp => 'AmqpBackedMessageChannelBuilder',
+            self::Redis => 'RedisBackedMessageChannelBuilder',
+            self::Sqs => 'SqsBackedMessageChannelBuilder',
+            self::Kafka => 'KafkaMessageChannelBuilder',
+            self::Dbal => 'DbalBackedMessageChannelBuilder',
+        };
+    }
+
     public function hasDestinationOfItsOwn(): bool
     {
         return $this === self::Amqp || $this === self::Kafka;

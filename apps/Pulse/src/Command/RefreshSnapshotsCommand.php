@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Health\Heartbeats;
 use App\Settings\PulseSettings;
 use App\Snapshot\Snapshots;
 use DateTimeImmutable;
@@ -23,6 +24,7 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
 
     public function __construct(
         private readonly Snapshots $snapshots,
+        private readonly Heartbeats $heartbeats,
         private readonly PulseSettings $settings,
         #[Autowire(service: 'pulse.clock')] private readonly ClockInterface $clock,
     ) {
@@ -41,6 +43,7 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
         $nextTickAt = DateTimeImmutable::createFromInterface($this->clock->now());
         do {
             $this->snapshots->refreshIdleServices();
+            $this->heartbeats->record(Heartbeats::REFRESH);
             $done++;
             $output->writeln('Pulse requested snapshots from the services that were not waiting for one.', OutputInterface::VERBOSITY_VERBOSE);
             $nextTickAt = $nextTickAt->modify(sprintf('+%d seconds', $this->settings->refreshIntervalSeconds));

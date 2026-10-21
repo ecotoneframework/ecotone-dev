@@ -31,10 +31,10 @@ return static function (ContainerConfigurator $container): void {
     foreach ($settings->connections as $connection) {
         $dsn = '%env(' . $connection->environmentVariable . ')%';
         match ($connection->transport) {
-            Transport::Amqp => $services->set($connection->referenceName(), AmqpExtConnectionFactory::class)->args([$dsn]),
-            Transport::Redis => $services->set($connection->referenceName(), RedisConnectionFactory::class)->args([['dsn' => $dsn, 'scheme_extensions' => ['phpredis']]]),
-            Transport::Sqs => $services->set($connection->referenceName(), SqsConnectionFactory::class)->args([$dsn]),
-            Transport::Dbal => $services->set($connection->referenceName(), DbalConnectionFactory::class)->args([$dsn]),
+            Transport::Amqp => $services->set($connection->referenceName(), AmqpExtConnectionFactory::class)->args([$dsn])->public(),
+            Transport::Redis => $services->set($connection->referenceName(), RedisConnectionFactory::class)->args([['dsn' => $dsn, 'scheme_extensions' => ['phpredis']]])->public(),
+            Transport::Sqs => $services->set($connection->referenceName(), SqsConnectionFactory::class)->args([$dsn])->public(),
+            Transport::Dbal => $services->set($connection->referenceName(), DbalConnectionFactory::class)->args([$dsn])->public(),
             Transport::Kafka => $services->set(KafkaBrokerConfiguration::class)->args([$connection->kafkaBootstrapServers()]),
         };
     }

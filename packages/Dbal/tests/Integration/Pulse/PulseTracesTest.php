@@ -8,11 +8,13 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Tracing\FlowTrackingConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
@@ -22,6 +24,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
@@ -67,6 +70,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private object $orders;
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
+    private FlowTestSupport $ticketService;
 
     public static function implementations(): iterable
     {
@@ -98,6 +102,84 @@ final class PulseTracesTest extends DbalMessagingTestCase
             ],
             $tracing['flowTypes'],
         );
+    }
+
+    #[DataProvider('implementations')]
+    public function test_pulse_requests_never_become_flow_types(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+
+        $this->requestSnapshot();
+        $this->listTraces(['flowType' => 'create.ticket']);
+        $this->traceOf(self::FIRST_TRACE);
+        $tracing = $this->requestSnapshot()['tracing'];
+
+        self::assertSame(['create.ticket'], array_column($tracing['flowTypes'], 'flowType'));
+        self::assertSame(1, $tracing['flowTypes'][0]['runs']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_pulse_snapshot_request_alone_records_no_flow_type(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        self::assertSame([], $this->requestSnapshot()['tracing']['flowTypes']);
+        self::assertSame([], $this->requestSnapshot()['tracing']['flowTypes']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_pulse_dead_letter_action_never_becomes_a_flow_type(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.dead_letter.delete', '{"messageIds": ["unknown"]}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $tracing = $this->requestSnapshot()['tracing'];
+
+        self::assertSame(['create.ticket'], array_column($tracing['flowTypes'], 'flowType'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_distributed_command_continues_the_trace_in_the_receiving_service(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->bootstrapTicketService();
+        $this->sendWithTrace('open.ticket.remotely', 'printer', self::FIRST_TRACE);
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $sending = $this->traceOf(self::FIRST_TRACE);
+        $receiving = $this->traceOf(self::FIRST_TRACE, 'ticket_service');
+
+        self::assertSame(self::FIRST_TRACE, $receiving['traceId']);
+        self::assertSame(['send command', 'process class@anonymous::openRemotely', 'send distributed', 'send ticket_channel'], array_column($sending['spans'], 'name'));
+        self::assertSame(['receive ticket_channel', 'send command', 'process class@anonymous::open'], array_column($receiving['spans'], 'name'));
+        $sent = array_column($sending['spans'], null, 'name')['send ticket_channel'];
+        self::assertSame($sent['spanId'], $receiving['spans'][0]['parentSpanId']);
+        self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'ticket.open'], 'ticket_service')['traces'], 'traceId'));
+        self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'open.ticket.remotely'])['traces'], 'traceId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_failure_recorded_after_the_flow_started_marks_the_flow_failed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '999', self::FIRST_TRACE);
+        $this->sendWithTrace('create.ticket', '100', self::SECOND_TRACE);
+
+        self::assertSame(
+            [['flowType' => 'create.ticket', 'runs' => 2, 'failedRuns' => 0]],
+            array_map(fn (array $flowType): array => array_intersect_key($flowType, array_flip(['flowType', 'runs', 'failedRuns'])), $this->requestSnapshot()['tracing']['flowTypes']),
+        );
+
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $flowType = $this->requestSnapshot()['tracing']['flowTypes'][0];
+        self::assertSame(1, $flowType['failedRuns']);
+        $statusByTrace = array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'status', 'traceId');
+        self::assertSame(['error', 'ok'], [$statusByTrace[self::FIRST_TRACE], $statusByTrace[self::SECOND_TRACE]]);
     }
 
     #[DataProvider('implementations')]
@@ -339,7 +421,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->listTraces(['flowType' => 'create.ticket']);
     }
 
-    private function bootstrap(string $implementation, bool $flowTracking = true): void
+    private function bootstrap(string $implementation, bool $flowTracking = true, bool $deadLetter = false): void
     {
         $this->orders = new class () {
             #[CommandHandler('create.ticket', endpointId: 'ticket.create')]
@@ -351,8 +433,22 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
             #[Asynchronous('async_channel')]
             #[EventHandler('ticket.created', endpointId: 'ticket.notify')]
-            public function notify(string $milliseconds): void
+            public function notify(string $milliseconds, CommandBus $commandBus): void
             {
+                if ($milliseconds !== '999') {
+                    return;
+                }
+
+                try {
+                    $commandBus->sendWithRouting('payment.reverse', $milliseconds);
+                } catch (RuntimeException) {
+                }
+            }
+
+            #[CommandHandler('open.ticket.remotely', endpointId: 'ticket.open_remotely')]
+            public function openRemotely(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendCommand('ticket_service', 'ticket.open', $subject);
             }
 
             #[CommandHandler('refund.ticket', endpointId: 'ticket.refund')]
@@ -390,6 +486,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('order_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->orders::class],
@@ -397,9 +494,10 @@ final class PulseTracesTest extends DbalMessagingTestCase
             extensionObjects: [
                 ...$channels,
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory')] : []),
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
+                ...($deadLetter ? [DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory: $implementation === 'in-memory')] : []),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -410,7 +508,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$this->pulse],
             extensionObjects: [
                 ...$channels,
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('ecotone_pulse'),
             ],
             enabledModules: [],
@@ -432,25 +530,54 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->orderService->sendCommandWithRouting($routingKey, $payload, metadata: [MessageHeaders::TRACEPARENT => (new SpanContext($traceId, self::CALLER_SPAN))->toTraceparent()]);
     }
 
-    private function listTraces(array $query): array
+    private function listTraces(array $query, string $service = 'order_service'): array
     {
-        return $this->ask('ecotone.pulse.traces.list', json_encode((object) $query, JSON_THROW_ON_ERROR));
+        return $this->ask('ecotone.pulse.traces.list', json_encode((object) $query, JSON_THROW_ON_ERROR), $service);
     }
 
-    private function traceOf(string $traceId): array
+    private function traceOf(string $traceId, string $service = 'order_service'): array
     {
-        return $this->ask('ecotone.pulse.traces.trace', json_encode(['traceId' => $traceId], JSON_THROW_ON_ERROR));
+        return $this->ask('ecotone.pulse.traces.trace', json_encode(['traceId' => $traceId], JSON_THROW_ON_ERROR), $service);
     }
 
-    private function ask(string $routingKey, string $payload): array
+    private function ask(string $routingKey, string $payload, string $service = 'order_service'): array
     {
         $queryId = 'query-' . (count($this->pulse->queryResults) + 1);
-        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, $payload, MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey: 'ecotone.pulse.query_result_received');
-        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->pulseService->getDistributedBus()->sendMessage($service, $routingKey, $payload, MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey: 'ecotone.pulse.query_result_received');
+        if ($service === 'order_service') {
+            $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        } else {
+            $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        }
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertArrayHasKey($queryId, $this->pulse->queryResults);
 
         return json_decode($this->pulse->queryResults[$queryId], true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    private function bootstrapTicketService(): void
+    {
+        $tickets = new class () {
+            #[Distributed]
+            #[CommandHandler('ticket.open', endpointId: 'ticket.opening')]
+            public function open(string $subject): void
+            {
+            }
+        };
+        $this->ticketService = $this->bootstrapFlowTesting(
+            classesToResolve: [$tickets::class],
+            containerOrAvailableServices: [$tickets],
+            extensionObjects: [
+                ...$this->channels,
+                FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage(true),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('ticket_service'),
+                PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+        );
     }
 
     private function requestSnapshot(): array

@@ -53,6 +53,13 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
         return $this->storingSpansOf(fn (): mixed => $methodInvocation->proceed());
     }
 
+    public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation): mixed
+    {
+        $this->recorder->excludeScopeFromTracking();
+
+        return $methodInvocation->proceed();
+    }
+
     public function publishingStepsAfterCommit(Closure $work): mixed
     {
         if ($this->recorder->isUnitOfWorkActive()) {

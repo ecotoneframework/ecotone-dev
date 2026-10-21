@@ -36,6 +36,8 @@ use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
@@ -179,6 +181,16 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 ProjectionFlush::class
             )
         );
+        if ($pulseConfigured) {
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    TraceRecordingInterceptor::class,
+                    $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'keepPulseRequestOutOfFlowTracking'),
+                    Precedence::TRACE_RECORDING_PRECEDENCE,
+                    implode('||', [PulseSnapshot::class, PulseTraceQueries::class, PulseDeadLetterActions::class, PulseDeadLettersNotConfigured::class])
+                )
+            );
+        }
         if ($flowTracking->notifications) {
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));
         }

@@ -145,6 +145,7 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertContains(self::OTHER_CHANNEL, $options);
         self::assertNotContains('order.place', $options);
         self::assertNotContains('order.audit', $options);
+        self::assertNotContains($this->pulseChannel, $options);
         self::assertCount(0, $list->filter('input[name^="targetChannel"]'));
         self::assertCount(0, $list->filter('[data-filter-action-form] select'));
     }

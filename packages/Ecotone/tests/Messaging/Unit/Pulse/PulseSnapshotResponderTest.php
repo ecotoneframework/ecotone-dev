@@ -129,7 +129,6 @@ final class PulseSnapshotResponderTest extends TestCase
         self::assertSame([
             ['name' => 'order_channel', 'kind' => 'queue'],
             ['name' => 'orders_async', 'kind' => 'async'],
-            ['name' => 'pulse_channel', 'kind' => 'queue'],
             ['name' => 'unused_queue', 'kind' => 'queue'],
         ], $snapshot['channels']);
     }

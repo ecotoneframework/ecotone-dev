@@ -3225,8 +3225,10 @@ message flow, or how it is wired to other services.
 `#[ServiceContext]` method makes the service answer the routing key `ecotone.pulse.snapshot`. The Pulse service sends
 `DistributedBus::sendMessage($service, 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey:
 'ecotone.pulse.snapshot_received')` and receives one JSON reply: `schemaVersion`, `serviceName`, `takenAt`, an
-`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph` and the distributed `topology` of the
-`DistributedServiceMap`s. Only requests from the configured Pulse service are served; any other source fails the
+`overview` (Ecotone and PHP versions, framework, licence), the `flowGraph`, the distributed `topology` of the
+`DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
+pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
+channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
 handler with a message naming the expected service. The application needs an Enterprise licence, a service name, and a
 `DistributedServiceMap` command mapping from the Pulse service to the channel the Pulse service consumes, otherwise
 bootstrap is refused; registering `PulseConfiguration` twice is refused as well.

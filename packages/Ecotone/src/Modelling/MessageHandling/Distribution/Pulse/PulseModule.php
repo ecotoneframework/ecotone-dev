@@ -110,7 +110,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
-                $this->channelsOf($extensionObjects),
+                $this->channelsOf($serviceMaps, $extensionObjects),
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -126,14 +126,26 @@ final class PulseModule implements AnnotationModule
     }
 
     /**
+     * @param DistributedServiceMap[] $serviceMaps
      * @return list<array{name: string, kind: string}>
      */
-    private function channelsOf(array $extensionObjects): array
+    private function channelsOf(array $serviceMaps, array $extensionObjects): array
     {
+        $outboundChannels = [];
+        foreach ($serviceMaps as $serviceMap) {
+            $topology = self::topologyOf($serviceMap);
+            $outboundChannels = [
+                ...$outboundChannels,
+                ...array_values($topology['commandMapping']),
+                ...array_column($topology['eventSubscriptions'], 'channel'),
+                ...($topology['asynchronousChannel'] === null ? [] : [$topology['asynchronousChannel']]),
+            ];
+        }
+
         $channels = [];
         foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channelBuilder) {
             $name = $channelBuilder->getMessageChannelName();
-            if ($channelBuilder->isPollable() && $name !== NullableMessageChannel::CHANNEL_NAME) {
+            if ($channelBuilder->isPollable() && $name !== NullableMessageChannel::CHANNEL_NAME && ! in_array($name, $outboundChannels, true)) {
                 $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue'];
             }
         }

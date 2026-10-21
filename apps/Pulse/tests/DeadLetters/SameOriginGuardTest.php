@@ -7,6 +7,7 @@ namespace App\Tests\DeadLetters;
 use App\Tests\Support\DeadLetterServicesTrait;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @internal
@@ -59,6 +60,45 @@ final class SameOriginGuardTest extends WebTestCase
         self::assertSame(0, $this->storedDeadLetters($client));
     }
 
+    public function test_the_fetch_site_header_decides_alone_when_it_is_present(): void
+    {
+        $client = $this->pulseWithFailures();
+
+        $client->request('POST', '/refresh', [], [], ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_ORIGIN' => 'https://pulse.internal.example']);
+
+        self::assertResponseRedirects();
+    }
+
+    public function test_a_cross_origin_post_without_the_fetch_site_header_is_refused(): void
+    {
+        $client = $this->pulseWithFailures();
+
+        $client->request('POST', '/refresh', [], [], ['HTTP_ORIGIN' => 'https://evil.example']);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function test_the_host_forwarded_by_a_trusted_proxy_is_the_host_the_origin_is_compared_with(): void
+    {
+        $this->trustProxy('127.0.0.1');
+        $client = $this->pulseWithFailures();
+
+        $client->request('POST', '/refresh', [], [], ['HTTP_X_FORWARDED_HOST' => 'pulse.example.com', 'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_ORIGIN' => 'https://pulse.example.com']);
+        self::assertResponseRedirects();
+
+        $client->request('POST', '/refresh', [], [], ['HTTP_X_FORWARDED_HOST' => 'pulse.example.com', 'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_ORIGIN' => 'https://evil.example']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function test_a_forwarded_host_from_a_proxy_that_is_not_trusted_is_ignored(): void
+    {
+        $client = $this->pulseWithFailures();
+
+        $client->request('POST', '/refresh', [], [], ['HTTP_X_FORWARDED_HOST' => 'pulse.example.com', 'HTTP_ORIGIN' => 'http://pulse.example.com']);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function test_a_post_without_browser_headers_is_served(): void
     {
         $client = $this->pulseWithFailures();
@@ -66,6 +106,20 @@ final class SameOriginGuardTest extends WebTestCase
         $client->request('POST', '/refresh');
 
         self::assertResponseRedirects();
+    }
+
+    private function trustProxy(string $address): void
+    {
+        $_SERVER['TRUSTED_PROXIES'] = $_ENV['TRUSTED_PROXIES'] = $address;
+        putenv('TRUSTED_PROXIES=' . $address);
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_SERVER['TRUSTED_PROXIES'], $_ENV['TRUSTED_PROXIES']);
+        putenv('TRUSTED_PROXIES');
+        Request::setTrustedProxies([], Request::HEADER_X_FORWARDED_FOR);
+        parent::tearDown();
     }
 
     private function pulseWithFailures(): KernelBrowser

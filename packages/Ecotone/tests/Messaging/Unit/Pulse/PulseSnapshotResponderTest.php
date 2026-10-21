@@ -85,7 +85,7 @@ final class PulseSnapshotResponderTest extends TestCase
         );
     }
 
-    public function test_the_snapshot_lists_the_handler_input_channels_a_dead_letter_can_be_replayed_to(): void
+    public function test_the_snapshot_lists_the_asynchronous_channels_a_dead_letter_can_be_replayed_to_with_their_kind(): void
     {
         $handlers = new class () {
             #[Asynchronous('orders_async')]
@@ -126,7 +126,12 @@ final class PulseSnapshotResponderTest extends TestCase
 
         $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(1, $snapshot['schemaVersion']);
-        self::assertSame(['order.audit', 'order.place', 'order.place_later'], $snapshot['channels']);
+        self::assertSame([
+            ['name' => 'order_channel', 'kind' => 'queue'],
+            ['name' => 'orders_async', 'kind' => 'async'],
+            ['name' => 'pulse_channel', 'kind' => 'queue'],
+            ['name' => 'unused_queue', 'kind' => 'queue'],
+        ], $snapshot['channels']);
     }
 
     public function test_an_asynchronous_service_map_is_reported_in_the_topology(): void

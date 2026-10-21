@@ -6,7 +6,6 @@ namespace App\Tests\Support;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -28,6 +27,7 @@ trait DeadLetterServicesTrait
     use PulseServicesTrait;
 
     private const WORK_CHANNEL = 'pulse_dead_letter_work';
+    private const OTHER_CHANNEL = 'pulse_dead_letter_other';
 
     private object $work;
 
@@ -51,16 +51,6 @@ trait DeadLetterServicesTrait
              */
             public array $handled = [];
 
-            /**
-             * @var list<string>
-             */
-            public array $audited = [];
-
-            /**
-             * @var list<string>
-             */
-            public array $auditedLater = [];
-
             #[Asynchronous('pulse_dead_letter_work')]
             #[CommandHandler('order.place', endpointId: 'pulse.order.place.endpoint')]
             public function place(array $order): void
@@ -73,19 +63,6 @@ trait DeadLetterServicesTrait
             public function cancel(array $order): void
             {
                 $this->handle('order.cancel', $order, new LogicException('cancel failed for order ' . $order['orderId']));
-            }
-
-            #[InternalHandler('order.audited')]
-            public function audited(array $order): void
-            {
-                $this->audited[] = (string) $order['orderId'];
-            }
-
-            #[Asynchronous('pulse_dead_letter_work')]
-            #[InternalHandler('order.audited_later', endpointId: 'pulse.order.audited_later.endpoint')]
-            public function auditedLater(array $order): void
-            {
-                $this->auditedLater[] = (string) $order['orderId'];
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.order.audit.endpoint')]
@@ -115,6 +92,7 @@ trait DeadLetterServicesTrait
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),
+                DbalBackedMessageChannelBuilder::create(self::OTHER_CHANNEL)->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
@@ -153,5 +131,10 @@ trait DeadLetterServicesTrait
     private function replayWorkOf(FlowTestSupport $service): void
     {
         $service->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+    }
+
+    private function replayOtherChannelOf(FlowTestSupport $service): void
+    {
+        $service->run(self::OTHER_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
     }
 }

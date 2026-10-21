@@ -38,7 +38,7 @@ final class PulseSnapshot
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param list<string> $channels
+     * @param list<array{name: string, kind: string}> $channels
      * @param array<string, PulseSnapshotSection> $sections
      */
     public function __construct(
@@ -68,7 +68,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<string>,
+     *     channels: list<array{name: string, kind: string}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array

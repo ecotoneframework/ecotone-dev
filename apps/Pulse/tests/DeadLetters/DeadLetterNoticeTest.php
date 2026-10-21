@@ -82,4 +82,36 @@ final class DeadLetterNoticeTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
     }
+
+    public function test_an_invalid_date_filter_shows_an_error_instead_of_failing(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+
+        $crawler = $client->request('GET', '/dead-letters?failedFrom=garbage');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Failed from', $crawler->filter('[data-notice-error]')->text());
+        self::assertStringContainsString('not a valid UTC date', $crawler->filter('[data-notice-error]')->text());
+    }
+
+    public function test_an_action_with_an_invalid_date_is_refused_with_an_error_and_sends_nothing(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $this->serviceWithDeadLetters('orders');
+        $client->request('POST', '/refresh');
+        $this->runAllServices();
+        $this->runPulseWorker($client->getKernel());
+        $this->advanceTimeBy(1);
+
+        $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'filter', 'service' => 'orders', 'failedTo' => 'x', 'confirm' => '1']);
+        $crawler = $client->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Failed to', $crawler->filter('[data-notice-error]')->text());
+        self::assertStringNotContainsString('waiting', $crawler->filter('[data-service-section="orders"]')->text());
+    }
 }

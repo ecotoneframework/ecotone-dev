@@ -32,6 +32,9 @@ final class DeadLetterActionController extends AbstractController
         $filter = DeadLetterFilter::fromInput($request->request);
         $targetChannel = $replay ? trim((string) $request->request->get('targetChannel', '')) : '';
         $byFilter = $request->request->get('scope') === 'filter';
+        if (($invalidDate = $filter->invalidDateField()) !== null) {
+            return $this->back($filter, DeadLetterNotice::invalidDate($invalidDate));
+        }
 
         $actions = $byFilter
             ? $this->actionsForFilter($filter, $replay, $targetChannel)

@@ -7,6 +7,7 @@ namespace App\DeadLetter;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
+use Exception;
 use Symfony\Component\HttpFoundation\InputBag;
 
 final readonly class DeadLetterFilter
@@ -70,20 +71,41 @@ final readonly class DeadLetterFilter
     public function matches(array $entry): bool
     {
         $failedAt = new DateTimeImmutable((string) ($entry['failedAt'] ?? '@0'));
+        $from = self::moment($this->failedFrom);
+        $to = self::moment($this->failedTo);
 
         return ($this->messageName === '' || $this->messageName === ($entry['messageName'] ?? null))
             && ($this->exceptionClass === '' || $this->exceptionClass === ($entry['exceptionClass'] ?? null))
-            && ($this->failedFrom === '' || $failedAt >= self::moment($this->failedFrom))
-            && ($this->failedTo === '' || $failedAt <= self::moment($this->failedTo));
+            && ($from === null || $failedAt >= $from)
+            && ($to === null || $failedAt <= $to);
+    }
+
+    public function invalidDateField(): ?string
+    {
+        foreach (self::DATE_FIELDS as $field) {
+            if ($this->{$field} !== '' && self::moment($this->{$field}) === null) {
+                return $field;
+            }
+        }
+
+        return null;
     }
 
     private static function atom(string $value): ?string
     {
-        return $value === '' ? null : self::moment($value)->format(DateTimeInterface::ATOM);
+        return self::moment($value)?->format(DateTimeInterface::ATOM);
     }
 
-    private static function moment(string $value): DateTimeImmutable
+    private static function moment(string $value): ?DateTimeImmutable
     {
-        return new DateTimeImmutable($value, new DateTimeZone('UTC'));
+        if (preg_match('/^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?)?$/', $value) !== 1) {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($value, new DateTimeZone('UTC'));
+        } catch (Exception) {
+            return null;
+        }
     }
 }

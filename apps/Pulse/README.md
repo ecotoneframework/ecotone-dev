@@ -23,7 +23,7 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
 ```
 
 One container runs everything: the web server ([FrankenPHP](https://frankenphp.dev)), the reply consumer
-(`bin/console ecotone:run <PULSE_CHANNEL>`) and the periodic refresh (`bin/console pulse:refresh`).
+(`bin/console ecotone:run <PULSE_CHANNEL>`, one per connection) and the periodic refresh (`bin/console pulse:refresh`).
 
 ### Internal storage
 
@@ -62,7 +62,8 @@ trace whether or not the service tracks its own flows.
 * Every `PULSE_REFRESH_INTERVAL` seconds (default 20) `pulse:refresh` requests a snapshot from every service, so pages normally open on a snapshot younger than the 60 second freshness limit without a page view triggering a request. A tick skips a service whose request is outstanding and has not yet passed `PULSE_REPLY_TIMEOUT`; it goes through the same transactional bookkeeping as page views, so the refresh and the web never double-request. A service whose request timed out is requested again by the first tick after the timeout and stays Unreachable (shown as "Unreachable — retrying", with its last seen time and last snapshot) until a reply arrives, so a dead service does not flip between Waiting and Unreachable.
   The refresh is a plain console loop rather than an Ecotone `#[Scheduled]` endpoint, because `ecotone:run` consumes one endpoint per process; its tick (`pulse:refresh --ticks=1`) runs in tests on the pinned clock. Ticks are scheduled on a deadline, so the cadence is `PULSE_REFRESH_INTERVAL` seconds, not the interval plus the tick's own run time.
 * The container entrypoint is a **bash** script (`#!/bin/bash`; the image is Debian based and ships bash) that supervises the three processes with `wait -n`. The reply consumer stops at `PULSE_WORKER_TIME_LIMIT_MS` (default one hour) or `PULSE_WORKER_MEMORY_LIMIT` megabytes (default 256); the supervisor starts it again in the same container, and so it does the refresh loop, so the internal database is not lost at a limit. A process that exits cleanly within `PULSE_RESTART_MIN_UPTIME_SECONDS` (default 10) of starting is restarted after 1, 2, 4 ... up to 30 seconds, and after `PULSE_RESTART_MAX_RAPID` (default 5) such exits in a row the container stops with a log line naming the process. The container also exits when the web server stops or the consumer or the refresh exits with an error (non-zero), with that exit code, so run it with `restart: unless-stopped` or `always`. SIGTERM (`docker stop`) stops all three and exits 0.
-* `GET /healthz` answers `ok` without asking any service; the image `HEALTHCHECK` calls it. It says the web server is up; a consumer or refresh that dies takes the container down through the supervisor, so the health check does not need to watch them.
+* `GET /healthz` answers `ok` without asking any service: the web server is up. The image `HEALTHCHECK` calls it every 5 seconds (30 second start period), so the container is `healthy` a few seconds after it starts. A consumer or refresh that dies takes the container down through the supervisor.
+* `GET /readyz` answers `200 {"status":"ready"}` or `503 {"status":"not_ready", "checks":[...]}` with one line per failing check and what to do about it: the internal SQLite database is writable, every reply consumer reported within the last `max(3 x PULSE_REFRESH_INTERVAL, 15)` seconds, and the refresh reported within `3 x PULSE_REFRESH_INTERVAL`. `pulse:refresh` records its own heartbeat at every tick and, in the same tick, one for each reply consumer the supervisor started that is still running and not stopped (it reads the process ids the supervisor wrote), both in the internal database; no extra process is started for it. Neither probe depends on the services being Connected. Use `/healthz` for liveness and `/readyz` for readiness (Kubernetes: `livenessProbe` and `readinessProbe`; `Deployment` with `replicas: 1`, `strategy: Recreate`, no volume).
 
 Service status:
 
@@ -105,26 +106,77 @@ is reused for 60 seconds, the request waits up to 20 seconds for it, and a servi
 Every setting is an environment variable, read when the container is built at start. **Changing a setting needs a restart** of the container: the entrypoint rebuilds the Symfony container from the current environment on every start. Do not mount `var/cache` as a volume. An invalid value is refused when the application boots, with a message naming
 what is wrong and how to fix it.
 
+Three values start Pulse:
+
+```bash
+docker run -p 8080:8080 \
+  -e ECOTONE_LICENCE_KEY=... \
+  -e PULSE_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672 \
+  -e PULSE_SERVICES=orders,billing \
+  ecotone-pulse
+```
+
+| Variable | |
+|---|---|
+| `ECOTONE_LICENCE_KEY` | Ecotone Enterprise licence key (or `ECOTONE_LICENCE_KEY_FILE`, or a file at `/run/secrets/ecotone_licence_key`) |
+| `PULSE_TRANSPORT_DSN` | The broker the services use, the default connection (or `PULSE_TRANSPORT_DSN_FILE`). The scheme selects the transport (see below) |
+| `PULSE_SERVICES` | Services to manage, comma separated: `orders,billing`. See [Services and connections](#services-and-connections) for the other broker and queue name forms |
+
+**Advanced**, all optional:
+
 | Variable | Default | |
 |---|---|---|
-| `ECOTONE_LICENCE_KEY` | required | Ecotone Enterprise licence key |
-| `PULSE_TRANSPORT_DSN` | required | The broker the services use. The scheme selects the transport (see below) |
-| `PULSE_SERVICES` | required | Services to manage, comma separated: `orders,billing`. Each service's request channel defaults to its service name; name it explicitly as `service_name:channel_name` (`orders:orders_channel,billing`) when it differs |
+| `PULSE_CONNECTION_<NAME>_DSN` | | Another broker for some services, see below (also `_FILE`) |
+| `PULSE_CONNECTION_<NAME>_REPLY_CHANNEL` | `PULSE_CHANNEL` | The destination Pulse reads that connection's replies from |
 | `PULSE_SERVICE_NAME` | `ecotone_pulse` | Pulse's own service name. Services accept requests only from this name |
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_REFRESH_INTERVAL` | `20` | Seconds between the periodic snapshot requests. A whole number from 1 to 59, below the 60 second freshness limit |
-| `APP_SECRET` | required in production | Symfony secret. Generate one with `openssl rand -hex 32` |
+| `PULSE_HTTP_PORT` | `8080` | |
+| `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
+| `APP_SECRET` (or `APP_SECRET_FILE`) | generated | Pulse signs nothing with it. When unset the entrypoint generates one for the lifetime of the container and logs one line saying so |
+
+A file variable (`ECOTONE_LICENCE_KEY_FILE`, `PULSE_TRANSPORT_DSN_FILE`, `PULSE_CONNECTION_<NAME>_DSN_FILE`, `APP_SECRET_FILE`) holds the path of a file with the value, which is how Docker and Kubernetes secrets are mounted; the variable itself wins when both are set. A file that cannot be read stops the container with a message naming the variable.
 
 `PULSE_TRANSPORT_DSN` schemes:
 
 | Scheme | Transport |
 |---|---|
 | `amqp://`, `amqps://` | RabbitMQ |
-| `redis://` | Redis |
+| `redis://` | Redis, read with the `phpredis` extension the image ships (no `predis/predis`: the extension is already there, and the services' own client is independent of Pulse's) |
 | `sqs:` | Amazon SQS |
 | `kafka://` | Kafka. Several brokers: `kafka://one:9092,two:9092` |
 | `pgsql://`, `mysql://`, `sqlite://` | Database (DBAL). The entrypoint creates the tables Pulse's own channels need on that database (the message queue and deduplication) before it starts, skipping existing tables. The services create the tables of their own channels |
+
+### Services and connections
+
+Every entry of `PULSE_SERVICES` is `service[:channel][#destination][@connection]`:
+
+| Part | Meaning | Default |
+|---|---|---|
+| `service` | The service's name (its `ServiceConfiguration` service name) | |
+| `:channel` | The Ecotone channel name Pulse sends the request to | the service name |
+| `#destination` | The actual queue (AMQP) or topic (Kafka) when it differs from the channel name | the channel name |
+| `@connection` | A connection defined with `PULSE_CONNECTION_<NAME>_DSN` | the default connection, `PULSE_TRANSPORT_DSN` |
+
+```
+PULSE_SERVICES=orders,billing:billing_channel@legacy,shipping:shipping#shipping_queue
+PULSE_CONNECTION_LEGACY_DSN=pgsql://user:secret@legacy-db:5432/db
+```
+
+`orders` is channel `orders` on the default connection; `billing` is channel `billing_channel` on the `legacy` connection; `shipping` is channel `shipping` whose AMQP queue is `shipping_queue`. A destination takes the characters the broker allows, so `legacy:orders/high` and `orders.v1-new` work; put it in double quotes when it contains a comma or an `@` (`orders#"a,b@c"`). A Kafka topic must use only letters, digits, `.`, `_` and `-` (up to 249 characters) and an AMQP queue name is at most 255 bytes; anything else is refused at start. A destination can only be named on a transport that has one apart from the channel name (AMQP, Kafka); on Redis, SQS and the database the channel is the queue, so name it `shipping:shipping_queue`.
+
+Pulse sends requests only to a destination that already exists, and it never creates one: a service that has not started its consumer is shown as *channel missing* with the destination it looked for. On Kafka the topic has to exist before Pulse asks (the broker creates it when the service, or anything else, produces to it or a topic administrator creates it); a consumer alone does not create it.
+
+Pulse reads replies on **every** connection, one reply consumer per connection, all started by the supervisor: a service replies through the reply channel its `PulseConfiguration` derives on its own broker. The reply channel is `PULSE_CHANNEL` on each connection. A channel name is registered once, so a second connection on a transport where the channel is the queue (Redis, SQS, database) cannot also be called `PULSE_CHANNEL`: Pulse refuses it at start, naming `PULSE_CONNECTION_<NAME>_REPLY_CHANNEL`, which gives that connection another reply channel; configure its services with `PulseConfiguration::withReplyChannel(...)` to match. On AMQP and Kafka the destination stays `PULSE_CHANNEL` and only the Ecotone channel name is made unique. At most one connection can be Kafka.
+
+A mistake in these entries (an unknown connection, a malformed entry, a service listed twice, two services on one channel or one destination) is refused at start with a message that names the entry and the fix.
+
+### Doctor
+
+`bin/console pulse:doctor` checks, and says what to do about every failure in one line: the settings, for each connection the host and port (with the milliseconds it took), the broker login, and for each service that its queue or topic exists (on Redis and the database it cannot be detected, so it says that and shows the configured name), the internal database, the licence and which reply channel Pulse reads. It exits `0` when everything passed and `1` otherwise; `--format=json` prints the same checks as `{"ok": bool, "checks": [{"name", "status": "ok|info|fail", "message", "fix"}]}`.
+
+The entrypoint prints a three line banner (transport, services, UI port and health paths) and runs the doctor at every start. It never blocks: a service that is down is what Pulse exists to show, and a wrong DSN is in the doctor output right above the first request error.
 
 ## Connect a service
 

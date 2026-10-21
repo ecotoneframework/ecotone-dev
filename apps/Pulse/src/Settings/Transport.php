@@ -14,7 +14,7 @@ enum Transport: string
     case Kafka = 'kafka';
     case Dbal = 'dbal';
 
-    public static function fromDsn(string $dsn): self
+    public static function fromDsn(string $dsn, string $variable = 'PULSE_TRANSPORT_DSN'): self
     {
         foreach (self::schemes() as $scheme => $transport) {
             if (str_starts_with(strtolower($dsn), $scheme)) {
@@ -23,7 +23,8 @@ enum Transport: string
         }
 
         throw new PulseConfigurationException(sprintf(
-            'PULSE_TRANSPORT_DSN "%s" does not start with a supported scheme (matched case-insensitively), so Pulse cannot tell which broker to connect to. Use one of: %s.',
+            '%s "%s" does not start with a supported scheme (matched case-insensitively), so Pulse cannot tell which broker to connect to. Use one of: %s.',
+            $variable,
             $dsn,
             implode(', ', array_map(static fn (string $scheme, self $transport) => sprintf('%s (%s)', $scheme, $transport->name), array_keys(self::schemes()), self::schemes()))
         ));
@@ -41,6 +42,27 @@ enum Transport: string
             self::Kafka => ModulePackageList::KAFKA_PACKAGE,
             self::Dbal => ModulePackageList::DBAL_PACKAGE,
         }];
+    }
+
+    public function destinationKind(): string
+    {
+        return $this === self::Kafka ? 'topic' : 'queue';
+    }
+
+    public function channelBuilder(): string
+    {
+        return match ($this) {
+            self::Amqp => 'AmqpBackedMessageChannelBuilder',
+            self::Redis => 'RedisBackedMessageChannelBuilder',
+            self::Sqs => 'SqsBackedMessageChannelBuilder',
+            self::Kafka => 'KafkaMessageChannelBuilder',
+            self::Dbal => 'DbalBackedMessageChannelBuilder',
+        };
+    }
+
+    public function hasDestinationOfItsOwn(): bool
+    {
+        return $this === self::Amqp || $this === self::Kafka;
     }
 
     /**

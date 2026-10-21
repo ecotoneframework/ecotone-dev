@@ -19,7 +19,7 @@ final class Kernel extends BaseKernel
         $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), $this->getProjectDir());
         $container->loadFromExtension('ecotone', [
             'licenceKey' => '%env(ECOTONE_LICENCE_KEY)%',
-            'enabledModulePackageNames' => $settings->transport->modulePackages(),
+            'enabledModulePackageNames' => $settings->modulePackages(),
         ]);
     }
 

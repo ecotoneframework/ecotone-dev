@@ -146,35 +146,61 @@ jobs:
           test "$status" -ne 0
           echo "$output" | grep -q "Pulse is stopping"
 
-      - name: Smoke test, one container serves, consumes replies, refreshes and answers a Refresh with Connected
+  smoke:
+    name: Pulse smoke, ${{ matrix.transport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - transport: pgsql
+            dsn: pgsql://ecotone:secret@database:5432/pulse_smoke
+            secret_files: '1'
+            stop_consumer: '1'
+          - transport: amqp
+            dsn: amqp://guest:guest@rabbitmq:5672
+          - transport: redis
+            dsn: redis://redis:6379
+          - transport: sqs
+            dsn: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
+          - transport: kafka
+            dsn: kafka://kafka:9092
+    env:
+      COMPOSE_PROJECT_NAME: pulse-smoke
+      SMOKE_NETWORK: pulse-smoke_default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the Pulse image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/Pulse/Dockerfile
+          push: false
+          load: true
+          tags: ecotone-pulse:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the broker of this transport
         run: |
-          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
-          dsn=pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-          docker run -d --name pulse --network host \
-            -e APP_SECRET=ci \
-            -e ECOTONE_LICENCE_KEY="$licence" \
-            -e PULSE_TRANSPORT_DSN="$dsn" \
-            -e PULSE_SERVICES=orders:orders_channel \
-            ecotone-pulse:ci
-          for attempt in $(seq 1 60); do
-            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/healthz || true)"
-            test "$code" = "200" && break
-            sleep 2
-          done
-          docker logs pulse
-          test "$code" = "200"
-          docker exec pulse test -f /app/var/internal/pulse.sqlite
-          for process in frankenphp "ecotone:run" "pulse:refresh"; do
-            docker exec pulse sh -c "grep -l '$process' /proc/[0-9]*/cmdline" > /dev/null
-          done
-          docker run -d --name orders --network host \
-            -e ECOTONE_LICENCE_KEY="$licence" \
-            -e PULSE_TRANSPORT_DSN="$dsn" \
-            --entrypoint php ecotone-pulse:ci docker/smoke-service.php
-          sleep 5
-          page="$(curl -s -L -d '' http://127.0.0.1:8080/refresh)"
-          echo "$page" | grep -q 'data-status="connected"'
-          if docker logs pulse 2>&1 | grep -qi "critical"; then
-            docker logs pulse
-            exit 1
+          case "${{ matrix.transport }}" in
+            pgsql) services="database" ;;
+            amqp) services="rabbitmq" ;;
+            redis) services="redis" ;;
+            sqs) services="localstack" ;;
+            kafka) services="kafka" ;;
+          esac
+          docker compose up -d --wait $services
+          if [ "${{ matrix.transport }}" = "pgsql" ]; then
+            docker compose exec -T database psql -U ecotone -d ecotone -c "CREATE DATABASE pulse_smoke"
           fi
+
+      - name: The image turns healthy, a fixture service reaches Connected and /readyz is ready
+        env:
+          SMOKE_SECRET_FILES: ${{ matrix.secret_files }}
+          SMOKE_STOP_CONSUMER: ${{ matrix.stop_consumer }}
+        run: apps/Pulse/docker/smoke.sh "${{ matrix.transport }}" "${{ matrix.dsn }}"

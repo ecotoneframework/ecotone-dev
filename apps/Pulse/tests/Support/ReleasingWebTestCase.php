@@ -43,8 +43,12 @@ abstract class ReleasingWebTestCase extends WebTestCase
 
         $container = static::getContainer();
         $container->get(InternalDatabase::class)->connection()->close();
-        if ($container->has(PulseSettings::TRANSPORT_CONNECTION_REFERENCE)) {
-            $transport = $container->get(PulseSettings::TRANSPORT_CONNECTION_REFERENCE);
+        foreach ($container->get(PulseSettings::class)->connections as $connection) {
+            $reference = $connection->referenceName();
+            if ($reference === null || ! $container->has($reference)) {
+                continue;
+            }
+            $transport = $container->get($reference);
             if ($transport instanceof DbalConnectionFactory) {
                 $transport->createContext()->getDbalConnection()->close();
             }

@@ -1,4 +1,5 @@
 parameters:
+    env(APP_SECRET): 'pulse-has-nothing-to-sign'
     env(TRUSTED_PROXIES): ''
     env(TRUSTED_HOSTS): '.*'
 

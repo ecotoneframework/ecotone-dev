@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Settings;
 
 use App\Snapshot\Snapshots;
-use PDO;
 
 final readonly class PulseSettings
 {
@@ -13,19 +12,26 @@ final readonly class PulseSettings
     public const INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS = 5;
 
     /**
+     * @param array<string, Connection> $connections
+     * @param array<string, ServiceRoute> $routes
      * @param array<string, string> $serviceChannels service name => channel the service consumes
      */
     public function __construct(
         public string $serviceName,
         public string $channel,
-        public string $transportDsn,
-        public Transport $transport,
+        public array $connections,
+        public array $routes,
         public array $serviceChannels,
         public int $replyTimeoutSeconds,
         public int $awaitTimeoutSeconds,
         public int $refreshIntervalSeconds,
         public string $internalDatabasePath,
     ) {
+    }
+
+    public static function fromProcessEnvironment(string $projectDir): self
+    {
+        return self::fromEnvironment(PulseEnvironment::read(), $projectDir);
     }
 
     /**
@@ -67,21 +73,11 @@ final readonly class PulseSettings
             $internalDatabasePath = $projectDir . '/' . $internalDatabasePath;
         }
 
-        $transport = Transport::fromDsn($dsn);
-        $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
+        $connections = self::connections($environment, $dsn, $channel);
+        $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
+        $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
-    }
-
-    /**
-     * @return array{dsn: string, connection: array{driverOptions: array<int, int>}}
-     */
-    public function internalDatabaseConfiguration(): array
-    {
-        return [
-            'dsn' => 'sqlite:///' . $this->internalDatabasePath,
-            'connection' => ['driverOptions' => [PDO::ATTR_TIMEOUT => self::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]],
-        ];
+        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
     }
 
     public function transportConnectionReference(): string
@@ -89,12 +85,84 @@ final readonly class PulseSettings
         return self::TRANSPORT_CONNECTION_REFERENCE;
     }
 
+    public function defaultConnection(): Connection
+    {
+        return $this->connections[Connection::DEFAULT];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function modulePackages(): array
+    {
+        return array_values(array_unique(array_merge(...array_map(static fn (Connection $connection) => $connection->transport->modulePackages(), array_values($this->connections)))));
+    }
+
+    public function transport(): Transport
+    {
+        return $this->defaultConnection()->transport;
+    }
+
+    public function connectionOf(string $service): Connection
+    {
+        return $this->connections[$this->routes[$service]->connection];
+    }
+
+    /**
+     * @return array<string, string> Ecotone channel name => destination on the broker
+     */
+    public function replyChannels(): array
+    {
+        $channels = [];
+        foreach ($this->connections as $connection) {
+            $channels[self::replyChannelName($connection, $this->channel)] = $connection->replyDestination;
+        }
+
+        return $channels;
+    }
+
+    public static function replyChannelName(Connection $connection, string $pulseChannel): string
+    {
+        if ($connection->isDefault()) {
+            return $pulseChannel;
+        }
+
+        return $connection->transport->hasDestinationOfItsOwn() ? $connection->replyDestination . '.' . $connection->name : $connection->replyDestination;
+    }
+
     /**
      * @return list<string>
      */
-    public function kafkaBootstrapServers(): array
+    private static function entries(string $services): array
     {
-        return array_values(array_filter(array_map('trim', explode(',', (string) preg_replace('#^kafka://#i', '', $this->transportDsn)))));
+        $entries = [];
+        $current = '';
+        $quoted = false;
+        foreach (str_split($services) as $character) {
+            if ($character === '"') {
+                $quoted = ! $quoted;
+            }
+            if ($character === ',' && ! $quoted) {
+                $entries[] = trim($current);
+                $current = '';
+
+                continue;
+            }
+            $current .= $character;
+        }
+        $entries[] = trim($current);
+
+        return $entries;
+    }
+
+    private static function checkDestination(string $entry, string $destination, Transport $transport): void
+    {
+        if ($transport === Transport::Kafka && (preg_match('/^[A-Za-z0-9._-]{1,249}$/', $destination) !== 1 || $destination === '.' || $destination === '..')) {
+            throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names destination "%s", which is not a Kafka topic name. A topic uses only letters, digits, ".", "_" and "-", up to 249 characters, and is not "." or "..".', $entry, $destination));
+        }
+        if ($transport === Transport::Amqp && strlen($destination) > 255) {
+            throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names a destination which is longer than the 255 bytes RabbitMQ allows for a queue name. Use the queue name the service consumes.', mb_substr($entry, 0, 60) . '...'));
+        }
     }
 
     private static function name(string $value, string $variable): string
@@ -116,40 +184,98 @@ final readonly class PulseSettings
     }
 
     /**
-     * @return array<string, string>
+     * @param array<string, mixed> $environment
+     * @return array<string, Connection>
      */
-    private static function serviceChannels(?string $services, string $pulseServiceName, string $pulseChannel): array
+    private static function connections(array $environment, string $defaultDsn, string $pulseChannel): array
     {
-        $expectedFormat = 'PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.';
+        $replyOf = static fn (string $variable): string => self::name(is_string($environment[$variable] ?? null) && trim($environment[$variable]) !== '' ? trim($environment[$variable]) : $pulseChannel, $variable);
+
+        $connections = [Connection::DEFAULT => new Connection(Connection::DEFAULT, $defaultDsn, Transport::fromDsn($defaultDsn), 'PULSE_TRANSPORT_DSN', $pulseChannel)];
+        foreach ($environment as $variable => $value) {
+            if (preg_match('/^PULSE_CONNECTION_([A-Z0-9]+(?:_[A-Z0-9]+)*)_DSN$/', (string) $variable, $matches) !== 1 || ! is_string($value) || trim($value) === '') {
+                continue;
+            }
+            $name = strtolower($matches[1]);
+            if ($name === Connection::DEFAULT) {
+                throw new PulseConfigurationException('PULSE_CONNECTION_DEFAULT_DSN is not allowed, because the default connection is PULSE_TRANSPORT_DSN. Give the connection another name, for example PULSE_CONNECTION_LEGACY_DSN.');
+            }
+            $connections[$name] = new Connection($name, trim($value), Transport::fromDsn(trim($value), $variable), $variable, $replyOf(sprintf('PULSE_CONNECTION_%s_REPLY_CHANNEL', $matches[1])));
+        }
+
+        $kafka = array_keys(array_filter($connections, static fn (Connection $connection) => $connection->transport === Transport::Kafka));
+        if (count($kafka) > 1) {
+            throw new PulseConfigurationException(sprintf('Pulse supports one Kafka connection, but "%s" and "%s" are both Kafka. Point the services at one Kafka connection, listing every broker in its DSN (kafka://one:9092,two:9092), or run a second Pulse for the other cluster.', $kafka[0], $kafka[1]));
+        }
+
+        $replyNames = [];
+        foreach ($connections as $connection) {
+            $replyName = self::replyChannelName($connection, $pulseChannel);
+            if (isset($replyNames[$replyName])) {
+                $other = $connections[$replyNames[$replyName]];
+
+                throw new PulseConfigurationException(sprintf('Pulse would read replies from a channel named "%s" on connections "%s" and "%s", and Pulse registers a channel name once. Give "%s" its own reply channel with PULSE_CONNECTION_%s_REPLY_CHANNEL=%s_%s, and configure its services with PulseConfiguration::withReplyChannel(\'%s_%s\').', $replyName, $other->name, $connection->name, $connection->name, strtoupper($connection->name), $pulseChannel, $connection->name, $pulseChannel, $connection->name));
+            }
+            $replyNames[$replyName] = $connection->name;
+        }
+
+        return $connections;
+    }
+
+    /**
+     * @param array<string, Connection> $connections
+     * @return array<string, ServiceRoute>
+     */
+    private static function routes(?string $services, string $pulseServiceName, string $pulseChannel, array $connections): array
+    {
+        $expectedFormat = 'PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel. A service on another broker adds "@connection" (defined with PULSE_CONNECTION_<NAME>_DSN) and a queue or topic that differs from the channel name adds "#destination": "service_name:channel_name#destination@connection".';
         if ($services === null) {
             throw new PulseConfigurationException('PULSE_SERVICES is not set, so Pulse has no services to ask for snapshots. ' . $expectedFormat);
         }
 
-        $serviceChannels = [];
-        foreach (explode(',', $services) as $pair) {
-            $parts = explode(':', trim($pair));
-            if (count($parts) > 2 || trim($parts[0]) === '' || (count($parts) === 2 && trim($parts[1]) === '')) {
-                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed. %s', trim($pair), $expectedFormat));
+        $routes = [];
+        foreach (self::entries($services) as $entry) {
+            if (preg_match('/^([^:#@",]+)(?::([^:#@",]+))?(?:#("[^"]+"|[^"@,]+))?(?:@([^:#@",]+))?$/', $entry, $parts) !== 1) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed. %s', $entry, $expectedFormat));
             }
 
-            $service = self::name(trim($parts[0]), 'PULSE_SERVICES service');
-            $serviceChannel = self::name(trim($parts[1] ?? $service), 'PULSE_SERVICES channel');
-            if (isset($serviceChannels[$service])) {
+            $service = self::name(trim($parts[1]), 'PULSE_SERVICES service');
+            $channel = self::name(trim(($parts[2] ?? '') !== '' ? $parts[2] : $service), 'PULSE_SERVICES channel');
+            $destination = ($parts[3] ?? '') !== '' ? trim($parts[3], '"') : null;
+            $connectionName = ($parts[4] ?? '') !== '' ? strtolower(trim($parts[4])) : Connection::DEFAULT;
+
+            if (! isset($connections[$connectionName])) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names connection "%s", which is not configured. Configured connections: %s. Define it with PULSE_CONNECTION_%s_DSN, for example PULSE_CONNECTION_%s_DSN=pgsql://user:secret@host:5432/db, or remove "@%s".', $entry, $connectionName, implode(', ', array_keys($connections)), strtoupper($connectionName), strtoupper($connectionName), $parts[4]));
+            }
+            $connection = $connections[$connectionName];
+            if ($destination !== null && ! $connection->transport->hasDestinationOfItsOwn()) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names destination "%s", but %s ties the channel to its name. Name the channel after the destination instead: "%s:%s".', $entry, $destination, $connection->transport->name, $service, $destination));
+            }
+            if ($destination !== null) {
+                self::checkDestination($entry, $destination, $connection->transport);
+            }
+            $destination ??= $channel;
+
+            if (isset($routes[$service])) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES lists service "%s" twice, so Pulse cannot tell which channel it consumes. Keep one "%s" or "%s:channel_name" entry.', $service, $service, $service));
             }
             if ($service === $pulseServiceName) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES lists "%s", which is the name of Pulse itself (PULSE_SERVICE_NAME). Remove it from PULSE_SERVICES, or give Pulse another name with PULSE_SERVICE_NAME.', $service));
             }
-            if ($serviceChannel === $pulseChannel) {
-                throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps service "%s" to channel "%s", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "%s" consumes, or change PULSE_CHANNEL.', $service, $serviceChannel, $service));
+            if ($channel === $pulseChannel || $destination === $connection->replyDestination) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps service "%s" to channel "%s", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "%s" consumes, or change PULSE_CHANNEL.', $service, $channel, $service));
             }
-            $sharing = array_search($serviceChannel, $serviceChannels, true);
-            if ($sharing !== false) {
-                throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps services "%s" and "%s" to the same channel "%s", so their replies could not be told apart. Give each service the channel it consumes.', $sharing, $service, $serviceChannel));
+            foreach ($routes as $other) {
+                if ($other->channel === $channel) {
+                    throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps services "%s" and "%s" to the same channel "%s", so their replies could not be told apart. Give each service the channel it consumes.', $other->service, $service, $channel));
+                }
+                if ($other->connection === $connectionName && $other->destination === $destination) {
+                    throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps services "%s" and "%s" to the same destination "%s" on connection "%s", so their requests would reach one consumer. Give each service the queue or topic it consumes.', $other->service, $service, $destination, $connectionName));
+                }
             }
-            $serviceChannels[$service] = $serviceChannel;
+            $routes[$service] = new ServiceRoute($service, $channel, $destination, $connectionName);
         }
 
-        return $serviceChannels;
+        return $routes;
     }
 }

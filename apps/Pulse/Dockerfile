@@ -49,7 +49,7 @@ USER www-data
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=5s --timeout=5s --start-period=30s --retries=3 \
     CMD php -r 'exit(@file_get_contents("http://127.0.0.1:" . (getenv("PULSE_HTTP_PORT") ?: "8080") . "/healthz") === "ok" ? 0 : 1);'
 
 ENTRYPOINT ["pulse-entrypoint"]

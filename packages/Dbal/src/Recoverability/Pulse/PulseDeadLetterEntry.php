@@ -12,8 +12,8 @@ use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
-use Ecotone\Tracing\TracingId;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Tracing\TracingId;
 
 /**
  * licence Enterprise

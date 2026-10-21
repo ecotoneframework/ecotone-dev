@@ -60,6 +60,17 @@ enum Transport: string
         };
     }
 
+    public function channelBuilderClass(): string
+    {
+        return match ($this) {
+            self::Amqp => 'Ecotone\\Api\\Amqp\\AmqpBackedMessageChannelBuilder',
+            self::Redis => 'Ecotone\\Api\\Redis\\RedisBackedMessageChannelBuilder',
+            self::Sqs => 'Ecotone\\Api\\Sqs\\SqsBackedMessageChannelBuilder',
+            self::Kafka => 'Ecotone\\Api\\Kafka\\KafkaMessageChannelBuilder',
+            self::Dbal => 'Ecotone\\Api\\Dbal\\ExtensionObject\\DbalBackedMessageChannelBuilder',
+        };
+    }
+
     public function hasDestinationOfItsOwn(): bool
     {
         return $this === self::Amqp || $this === self::Kafka;

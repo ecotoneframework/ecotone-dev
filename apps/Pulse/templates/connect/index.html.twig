@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connect a service · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>Connect a service</h1>
+    <form method="get" action="{{ path('connect') }}" class="filters card">
+        <label for="c-service">Service name <input id="c-service" type="text" name="service" value="{{ service }}" list="known-services"></label>
+        <datalist id="known-services">{% for name in known %}<option value="{{ name }}">{% endfor %}</datalist>
+        <button type="submit" class="pri">Generate</button>
+    </form>
+    {% include 'connect/_snippets.html.twig' %}
+{% endblock %}

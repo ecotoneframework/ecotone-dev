@@ -110,6 +110,45 @@ final class PeriodicRefreshTest extends WebTestCase
         self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
     }
 
+    public function test_a_service_whose_request_timed_out_stays_unreachable_while_the_retry_is_outstanding(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        [$orders, $handler] = $this->countingService('orders', $this->snapshotJson('orders'));
+
+        $this->refreshTick($client);
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $this->advanceTimeBy(20);
+        $this->refreshTick($client);
+        $this->advanceTimeBy(10);
+        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        $this->advanceTimeBy(10);
+        $this->refreshTick($client);
+        $this->advanceTimeBy(5);
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertStringContainsString('Unreachable — retrying', $crawler->filter('[data-service="orders"] [data-status]')->text());
+        self::assertSame('45s', $crawler->filter('[data-service="orders"] [data-age]')->text());
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_a_service_that_never_answered_stays_unreachable_across_ticks(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+
+        $this->refreshTick($client, ticks: 4);
+        $this->advanceTimeBy(5);
+
+        $crawler = $client->request('GET', '/');
+        self::assertSame('unreachable', $this->statusOf($crawler, 'orders'));
+        self::assertStringContainsString('retrying', $crawler->filter('[data-service="orders"] [data-status]')->text());
+    }
+
     public function test_ticks_request_stale_services_and_skip_outstanding_ones(): void
     {
         $this->configurePulseWithServices('orders');

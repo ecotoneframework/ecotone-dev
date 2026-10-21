@@ -20,6 +20,7 @@ final readonly class ServiceRecord
         public ?string $requestFailure,
         public ?string $replyError,
         public ?DateTimeImmutable $followUpDueAt = null,
+        public bool $retrying = false,
     ) {
     }
 
@@ -40,6 +41,7 @@ final readonly class ServiceRecord
             $stored['requestFailure'] ?? null,
             $stored['replyError'] ?? null,
             isset($stored['followUpDueAt']) ? new DateTimeImmutable($stored['followUpDueAt']) : null,
+            $stored['retrying'] ?? false,
         );
     }
 
@@ -55,17 +57,24 @@ final readonly class ServiceRecord
             'requestFailure' => $this->requestFailure,
             'replyError' => $this->replyError,
             'followUpDueAt' => $this->followUpDueAt?->format(self::TIME_FORMAT),
+            'retrying' => $this->retrying,
         ];
     }
 
-    public function requested(DateTimeImmutable $at): self
+    public function requested(DateTimeImmutable $at, int $replyTimeoutSeconds): self
     {
-        return new self($this->receivedAt, $this->snapshot, $at, null, null, $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt);
+        return $this->with([
+            'requestedAt' => $at,
+            'requestFailure' => null,
+            'replyError' => null,
+            'followUpDueAt' => $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt,
+            'retrying' => $this->hasOutstandingRequest() && $this->isUnanswered($at, $replyTimeoutSeconds),
+        ]);
     }
 
     public function withFollowUpDueAt(DateTimeImmutable $at): self
     {
-        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $this->requestFailure, $this->replyError, $at);
+        return $this->with(['followUpDueAt' => $at]);
     }
 
     public function hasPendingFollowUp(): bool
@@ -75,7 +84,7 @@ final readonly class ServiceRecord
 
     public function requestFailed(string $failure): self
     {
-        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $failure, $this->replyError, $this->followUpDueAt);
+        return $this->with(['requestFailure' => $failure]);
     }
 
     /**
@@ -83,12 +92,12 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return new self($at, $snapshot, $this->requestedAt, null, null, $this->followUpDueAt);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false]);
     }
 
     public function replyRejected(string $reason): self
     {
-        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $this->requestFailure, $reason, $this->followUpDueAt);
+        return $this->with(['replyError' => $reason]);
     }
 
     public function hasOutstandingRequest(): bool
@@ -111,13 +120,13 @@ final readonly class ServiceRecord
 
     public function needsRefresh(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
     {
-        return ! $this->hasOutstandingRequest() || self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds || $this->needsRequest($now);
+        return ! $this->hasOutstandingRequest() || $this->isUnanswered($now, $replyTimeoutSeconds) || $this->needsRequest($now);
     }
 
     public function statusAt(DateTimeImmutable $now, int $replyTimeoutSeconds): ServiceStatus
     {
         if ($this->hasOutstandingRequest()) {
-            return $this->requestFailure !== null || self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds
+            return $this->isUnanswered($now, $replyTimeoutSeconds)
                 ? ServiceStatus::Unreachable
                 : ServiceStatus::Waiting;
         }
@@ -130,6 +139,19 @@ final readonly class ServiceRecord
     public function ageAt(DateTimeImmutable $now): ?int
     {
         return $this->receivedAt === null ? null : self::secondsBetween($this->receivedAt, $now);
+    }
+
+    private function isUnanswered(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
+    {
+        return $this->retrying || $this->requestFailure !== null || self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds;
+    }
+
+    /**
+     * @param array<string, mixed> $changes
+     */
+    private function with(array $changes): self
+    {
+        return new self(...[...get_object_vars($this), ...$changes]);
     }
 
     private static function secondsBetween(DateTimeImmutable $from, DateTimeImmutable $to): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DeadLetter;
 
+use App\Settings\PulseSettings;
 use App\Snapshot\RequestResult;
 use App\Snapshot\SnapshotReceiver;
 use App\Snapshot\SnapshotStore;
@@ -22,6 +23,7 @@ final readonly class DeadLetterActionRequester
     public function __construct(
         private DistributedBus $distributedBus,
         private SnapshotStore $store,
+        private PulseSettings $settings,
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -30,7 +32,7 @@ final readonly class DeadLetterActionRequester
     public function send(string $service, DeadLetterAction $action): RequestResult
     {
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->store->update($service, fn ($record) => $action->isReplay() ? $record->requested($now)->withFollowUpDueAt($now->modify('+' . self::FOLLOW_UP_SECONDS . ' seconds')) : $record->requested($now));
+        $this->store->update($service, fn ($record) => $action->isReplay() ? $record->requested($now, $this->settings->replyTimeoutSeconds)->withFollowUpDueAt($now->modify('+' . self::FOLLOW_UP_SECONDS . ' seconds')) : $record->requested($now, $this->settings->replyTimeoutSeconds));
 
         try {
             $this->distributedBus->sendMessage($service, $action->routingKey, $action->payload, MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);

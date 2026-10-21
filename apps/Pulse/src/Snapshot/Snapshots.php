@@ -81,6 +81,7 @@ final readonly class Snapshots
                 $record->requestFailure,
                 $record->replyError,
                 $record->hasPendingFollowUp(),
+                $record->retrying,
             );
         }, array_keys($this->settings->serviceChannels));
     }

@@ -47,7 +47,7 @@ final readonly class SnapshotRequester
         $this->store->update($service, function (ServiceRecord $record) use ($shouldRequest, $now, &$claimed): ServiceRecord {
             $claimed = $shouldRequest($record, $now);
 
-            return $claimed ? $record->requested($now) : $record;
+            return $claimed ? $record->requested($now, $this->settings->replyTimeoutSeconds) : $record;
         });
         if (! $claimed) {
             return RequestResult::NotNeeded;

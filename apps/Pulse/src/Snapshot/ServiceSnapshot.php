@@ -20,6 +20,7 @@ final readonly class ServiceSnapshot
         public ?string $requestFailure,
         public ?string $replyError,
         public bool $followUpPending,
+        public bool $retrying,
     ) {
     }
 

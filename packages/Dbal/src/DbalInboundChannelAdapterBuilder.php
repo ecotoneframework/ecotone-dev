@@ -52,7 +52,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
-            new Reference(EnqueueTableManager::class),
+            new Reference(EnqueueTableManager::referenceFor($this->connectionReferenceName)),
         ]);
     }
 }

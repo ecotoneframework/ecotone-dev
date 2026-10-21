@@ -85,7 +85,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(MessageBuilder::class),
-            new Reference(EnqueueTableManager::class),
+            new Reference(EnqueueTableManager::referenceFor($this->connectionFactoryReferenceName)),
             $this->batchPublishing,
         ]);
     }

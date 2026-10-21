@@ -8,6 +8,7 @@ use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Headers;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
@@ -88,6 +89,13 @@ final class TenantSectionsTest extends ReleasingWebTestCase
             public array $projections = [];
             public array $depths = [];
             public array $failures = [];
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.trackings.list', endpointId: 'orders.trackings')]
+            public function trackings(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
+            {
+                return json_encode(['queryId' => $queryId, 'cap' => 100, 'truncated' => false, 'trackings' => []], JSON_THROW_ON_ERROR);
+            }
 
             #[Distributed]
             #[CommandHandler('ecotone.pulse.snapshot')]

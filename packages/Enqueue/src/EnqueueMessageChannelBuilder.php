@@ -96,6 +96,13 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this;
     }
 
+    public function withRequiredExistingDestination(): static
+    {
+        $this->getOutboundChannelAdapter()->withRequiredExistingDestination();
+
+        return $this;
+    }
+
     public function getConversionMediaType(): ?MediaType
     {
         return $this->getOutboundChannelAdapter()->getDefaultConversionMediaType();

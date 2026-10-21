@@ -17,12 +17,15 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
+use AMQPQueueException;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpContext as InteropAmqpContext;
 use Interop\Amqp\AmqpMessage;
+use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
+use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use RuntimeException;
@@ -40,6 +43,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
      * @var bool
      */
     private $initialized = false;
+    private bool $destinationVerified = false;
 
     public function __construct(
         private CachedConnectionFactory    $connectionFactory,
@@ -61,6 +65,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private bool                       $nonBlockingConfirmation = false,
         private int                        $confirmationTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
         private string                     $channelName = '',
+        private bool                       $requireExistingDestination = false,
+        private string                     $connectionReferenceName = '',
     ) {
     }
 
@@ -84,6 +90,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         if ($messagesToPublish === []) {
             return;
         }
+
+        $this->verifyDestinationExists();
 
         $context = $this->connectionFactory->createContext();
         $confirmations = $this->getPublisherConfirmations();
@@ -335,6 +343,39 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             fn (FailedDelivery $failedDelivery): string => $failedDelivery->getFailureReason(),
             $deliveryResult->getFailedDeliveries(),
         ))));
+    }
+
+    private function verifyDestinationExists(): void
+    {
+        if (! $this->requireExistingDestination || $this->destinationVerified) {
+            return;
+        }
+
+        $queueName = (string) $this->routingKey;
+        $context = $this->connectionFactory->getInnerConnectionFactory()->createContext();
+        $queue = new AmqpQueue($queueName);
+        $queue->addFlag(AmqpQueue::FLAG_PASSIVE);
+
+        try {
+            $context->declareQueue($queue);
+        } catch (AMQPQueueException|AMQPProtocolChannelException $exception) {
+            if (! str_contains($exception->getMessage(), 'NOT_FOUND')) {
+                throw $exception;
+            }
+
+            throw ConfigurationException::create(sprintf(
+                "Channel '%s' requires its destination to exist, but queue '%s' does not exist on AMQP connection '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or declare the queue yourself, or fix the queue name (AmqpBackedMessageChannelBuilder::create('%s', queueName: ...)). To let this channel create the queue on send, remove withRequiredExistingDestination().",
+                $this->channelName,
+                $queueName,
+                $this->connectionReferenceName,
+                $this->channelName,
+                $this->channelName,
+            ));
+        } finally {
+            $context->close();
+        }
+
+        $this->destinationVerified = true;
     }
 
     public function __toString(): string

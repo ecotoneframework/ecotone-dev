@@ -41,9 +41,15 @@ final class FlowGraphController extends AbstractController
         $totalNodes = array_sum(array_map(fn (ServiceFlow $flow) => count($flow->graph->nodes()), $flows));
         $crossed = $highlight === null ? [] : array_values(array_intersect($available, $highlight->services));
         $narrowedByTrace = $requested === [] && $crossed !== [];
-        $overview = $requested === [] && ! $narrowedByTrace && $request->query->get('view') !== 'detail' && ($request->query->get('view') === 'overview' || count($available) > self::OVERVIEW_ABOVE_SERVICES || ($totalNodes > $this->defaultNodeLimit && count($available) > 1));
+        $view = (string) $request->query->get('view', '');
+        $crossedNodes = array_sum(array_map(fn (ServiceFlow $flow) => in_array($flow->name, $crossed, true) ? count($flow->graph->nodes()) : 0, $flows));
+        $overview = $requested === [] && $view !== 'detail' && match (true) {
+            $view === 'overview' => true,
+            $narrowedByTrace => $crossedNodes > $this->defaultNodeLimit,
+            default => count($available) > self::OVERVIEW_ABOVE_SERVICES || ($totalNodes > $this->defaultNodeLimit && count($available) > 1),
+        };
         $shown = match (true) {
-            $narrowedByTrace => $crossed,
+            $narrowedByTrace && ! $overview => $crossed,
             $requested === [] => $available,
             default => array_values(array_intersect($available, array_map('strval', $requested))),
         };
@@ -61,7 +67,7 @@ final class FlowGraphController extends AbstractController
             'services' => $available,
             'shown' => $shown,
             'notices' => $serviceFlows->notices,
-            'diagram' => $overview ? StitchedFlowGraph::overview($flows) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight),
+            'diagram' => $overview ? StitchedFlowGraph::overview($flows, $highlight) : StitchedFlowGraph::toMermaid($flows, $shown, $highlight),
             'trace' => $highlight,
             'traceStates' => $traceView?->states ?? [],
             'traceEmpty' => $traceView !== null && $traceView->trace->isEmpty(),

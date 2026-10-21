@@ -63,7 +63,7 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
     {
         $client = $this->pulseWithAllServices();
 
-        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::ANNOUNCED));
+        $graph = new HighlightedDiagram($this->traceView($client, '/flow?view=detail&trace=' . self::ANNOUNCED));
 
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'billing', 'order.announced'));
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'shipping', 'order.announced'));
@@ -109,6 +109,101 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         self::assertTrue($graph->hasNode('tracePending', 'orders', '::notify'));
         self::assertTrue($graph->hasNode('tracePassed', 'orders', '::place'));
         self::assertSame([], $graph->nodesOf('traceFailed'));
+    }
+
+    public function test_the_service_overview_of_a_trace_highlights_the_services_it_crossed_and_the_distributed_edges_it_took(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, '/flow?view=overview&trace=' . self::INVOICED);
+
+        self::assertCount(1, $crawler->filter('[data-flow-overview]'));
+        self::assertCount(1, $crawler->filter('[data-trace-banner]'));
+        $overview = $this->overviewOf($crawler);
+        self::assertSame(['billing', 'orders'], $this->highlightedServices($overview, 'tracePassed'));
+        self::assertTrue($this->highlightedEdge($overview, 'orders', 'billing', 'command'));
+        self::assertFalse($this->highlightedEdge($overview, 'orders', 'shipping', 'event'));
+    }
+
+    public function test_a_trace_crossing_more_nodes_than_the_limit_opens_as_the_highlighted_overview_and_the_detail_stays_one_click_away(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $overview = $this->traceView($client, '/flow?trace=' . self::ANNOUNCED);
+        $detail = $this->traceView($client, '/flow?view=detail&trace=' . self::ANNOUNCED);
+
+        self::assertCount(1, $overview->filter('[data-flow-overview]'));
+        self::assertSame(['billing', 'orders', 'shipping'], $this->highlightedServices($this->overviewOf($overview), 'tracePassed'));
+        self::assertCount(0, $detail->filter('[data-flow-overview]'));
+        self::assertStringContainsString('subgraph', $detail->filter('pre.mermaid')->text());
+    }
+
+    public function test_a_trace_within_the_node_limit_still_opens_as_the_detailed_graph(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, '/flow?trace=' . self::INVOICED);
+
+        self::assertCount(0, $crawler->filter('[data-flow-overview]'));
+        self::assertStringContainsString('subgraph', $crawler->filter('pre.mermaid')->text());
+    }
+
+    /**
+     * @return array{services: array<string, string>, lines: list<string>}
+     */
+    private function overviewOf(Crawler $crawler): array
+    {
+        $lines = explode("\n", rtrim($crawler->filter('pre.mermaid')->getNode(0)->textContent));
+        $services = [];
+        foreach ($lines as $line) {
+            if (preg_match('/^    (s\d+)\["([^"]*)"\]$/', $line, $match) === 1) {
+                $services[$match[1]] = $match[2];
+            }
+        }
+
+        return ['services' => $services, 'lines' => $lines];
+    }
+
+    /**
+     * @param array{services: array<string, string>, lines: list<string>} $overview
+     * @return list<string>
+     */
+    private function highlightedServices(array $overview, string $state): array
+    {
+        $names = [];
+        foreach ($overview['lines'] as $line) {
+            if (preg_match('/^    class ([\w,]+) ' . $state . '$/', $line, $match) === 1) {
+                foreach (explode(',', $match[1]) as $id) {
+                    $names[] = $overview['services'][$id];
+                }
+            }
+        }
+        sort($names);
+
+        return $names;
+    }
+
+    /**
+     * @param array{services: array<string, string>, lines: list<string>} $overview
+     */
+    private function highlightedEdge(array $overview, string $from, string $to, string $kind): bool
+    {
+        $edges = [];
+        $highlighted = [];
+        foreach ($overview['lines'] as $line) {
+            if (preg_match('/^    (s\d+) (?:==>|-\.->)\|"\d+ (\w+?)s?"\| (s\d+)$/', $line, $match) === 1) {
+                $edges[] = [$overview['services'][$match[1]], $overview['services'][$match[3]], $match[2]];
+            } elseif (preg_match('/^    linkStyle ([\d,]+) /', $line, $match) === 1) {
+                $highlighted = array_map('intval', explode(',', $match[1]));
+            }
+        }
+        foreach ($edges as $index => $edge) {
+            if ($edge === [$from, $to, $kind]) {
+                return in_array($index, $highlighted, true);
+            }
+        }
+
+        return false;
     }
 
     public function test_the_highlight_carries_no_fixed_colours_so_the_design_tokens_colour_it_in_both_schemes(): void

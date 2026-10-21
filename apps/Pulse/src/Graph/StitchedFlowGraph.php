@@ -46,24 +46,64 @@ final class StitchedFlowGraph
     /**
      * @param list<ServiceFlow> $flows
      */
-    public static function overview(array $flows): string
+    public static function overview(array $flows, ?TraceHighlight $highlight = null): string
     {
         $indexes = array_flip(array_map(fn (ServiceFlow $flow) => $flow->name, $flows));
         $lines = ['flowchart LR'];
+        $byState = [];
         foreach ($flows as $index => $flow) {
             $lines[] = sprintf('    s%d["%s"]', $index, MermaidText::escape(ShortLabel::of($flow->name)));
+            $state = $highlight?->stateOfService($flow->name);
+            if ($state !== null) {
+                $byState[$state][] = sprintf('s%d', $index);
+            }
         }
         $counts = [];
+        $traversed = [];
         foreach (DistributedLinks::between($flows) as $link) {
             $key = sprintf('s%d|%s|s%d', $indexes[$link->fromService], $link->kind, $indexes[$link->toService]);
             $counts[$key] = ($counts[$key] ?? 0) + 1;
+            $traversed[$key] = ($traversed[$key] ?? false) || ($highlight?->traverses($link) ?? false);
         }
         foreach ($counts as $key => $count) {
             [$from, $kind, $to] = explode('|', $key);
             $lines[] = sprintf('    %s %s|"%d %s"| %s', $from, $kind === 'reply' ? '-.->' : '==>', $count, $kind === 'reply' ? ($count === 1 ? 'reply' : 'replies') : $kind . ($count === 1 ? '' : 's'), $to);
         }
+        if ($highlight !== null) {
+            array_push($lines, ...self::highlightClassLines($byState), ...self::highlightedLinkLines(array_values($traversed)));
+        }
 
         return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * @param array<string, list<string>> $nodeIdsByState
+     * @return list<string>
+     */
+    private static function highlightClassLines(array $nodeIdsByState): array
+    {
+        $lines = [];
+        foreach ([TraceHighlight::PASSED, TraceHighlight::PENDING, TraceHighlight::FAILED] as $state) {
+            $lines[] = '    classDef ' . $state . ' stroke-width:3px';
+        }
+        foreach ([TraceHighlight::PASSED, TraceHighlight::PENDING, TraceHighlight::FAILED] as $state) {
+            if (isset($nodeIdsByState[$state])) {
+                $lines[] = sprintf('    class %s %s', implode(',', $nodeIdsByState[$state]), $state);
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param list<bool> $highlightedEdges
+     * @return list<string>
+     */
+    private static function highlightedLinkLines(array $highlightedEdges): array
+    {
+        $indexes = array_keys(array_filter($highlightedEdges));
+
+        return $indexes === [] ? [] : [sprintf('    linkStyle %s stroke-width:3px', implode(',', $indexes))];
     }
 
     /**
@@ -123,30 +163,17 @@ final class StitchedFlowGraph
         if ($highlight === null) {
             return [];
         }
-        $lines = [
-            '    classDef ' . TraceHighlight::PASSED . ' stroke-width:3px',
-            '    classDef ' . TraceHighlight::PENDING . ' stroke-width:3px',
-            '    classDef ' . TraceHighlight::FAILED . ' stroke-width:3px',
-        ];
-        foreach ([TraceHighlight::PASSED, TraceHighlight::PENDING, TraceHighlight::FAILED] as $state) {
-            $nodeIds = [];
-            foreach ($shown as $flow) {
-                foreach ($flow->graph->nodes() as $node) {
-                    if ($highlight->stateOf($flow->name, $node->id) === $state) {
-                        $nodeIds[] = $ids[$flow->name][$node->id];
-                    }
+        $byState = [];
+        foreach ($shown as $flow) {
+            foreach ($flow->graph->nodes() as $node) {
+                $state = $highlight->stateOf($flow->name, $node->id);
+                if ($state !== null) {
+                    $byState[$state][] = $ids[$flow->name][$node->id];
                 }
             }
-            if ($nodeIds !== []) {
-                $lines[] = sprintf('    class %s %s', implode(',', $nodeIds), $state);
-            }
-        }
-        $edgeIndexes = array_keys(array_filter($highlightedEdges));
-        if ($edgeIndexes !== []) {
-            $lines[] = sprintf('    linkStyle %s stroke-width:3px', implode(',', $edgeIndexes));
         }
 
-        return $lines;
+        return [...self::highlightClassLines($byState), ...self::highlightedLinkLines($highlightedEdges)];
     }
 
     private static function shape(FlowNode $node, ?string $duration = null): string

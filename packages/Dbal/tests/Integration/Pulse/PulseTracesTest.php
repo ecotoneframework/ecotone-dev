@@ -231,6 +231,42 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_a_dead_lettered_message_carries_the_trace_id_its_trace_can_be_loaded_by(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->sendWithTrace('ticket.close', 'ticket-1', self::FIRST_TRACE);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $recent = $this->requestSnapshot()['deadLetters']['recent'];
+
+        self::assertSame([self::FIRST_TRACE], array_column($recent, 'traceId'));
+        self::assertNotSame([], $this->traceOf($recent[0]['traceId'])['spans']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_lettered_message_of_a_service_without_flow_tracking_has_no_trace_id(string $implementation): void
+    {
+        $this->bootstrap($implementation, flowTracking: false, deadLetter: true);
+        $this->orderService->sendCommandWithRouting('ticket.close', 'ticket-1');
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        $recent = $this->requestSnapshot()['deadLetters']['recent'];
+
+        self::assertCount(1, $recent);
+        self::assertNull($recent[0]['traceId']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_dead_lettered_message_sent_with_a_tracing_id_carries_that_trace_id(string $implementation): void
+    {
+        $this->bootstrap($implementation, deadLetter: true);
+        $this->orderService->sendCommandWithRouting('ticket.close', 'ticket-1', metadata: [MessageHeaders::TRACING_ID => self::FIRST_TRACE]);
+        $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
+
+        self::assertSame([self::FIRST_TRACE], array_column($this->requestSnapshot()['deadLetters']['recent'], 'traceId'));
+    }
+
+    #[DataProvider('implementations')]
     public function test_the_snapshot_has_no_tracing_section_without_flow_tracking(string $implementation): void
     {
         $this->bootstrap($implementation, flowTracking: false);
@@ -499,6 +535,13 @@ final class PulseTracesTest extends DbalMessagingTestCase
                 $distributedBus->sendCommand('ticket_service', 'ticket.open', $subject);
             }
 
+            #[Asynchronous('async_channel')]
+            #[CommandHandler('ticket.close', endpointId: 'ticket.closing')]
+            public function close(string $ticketId): void
+            {
+                throw new RuntimeException("Ticket {$ticketId} could not be closed");
+            }
+
             #[CommandHandler('refund.ticket', endpointId: 'ticket.refund')]
             public function refund(string $ticketId, CommandBus $commandBus): void
             {
@@ -543,7 +586,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
                 ...$channels,
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory')] : []),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
-                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel($deadLetter ? 'dbal_dead_letter' : 'errorChannel'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
                 ...($deadLetter ? [DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory: $implementation === 'in-memory')] : []),
             ],

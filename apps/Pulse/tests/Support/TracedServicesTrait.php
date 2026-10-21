@@ -122,7 +122,7 @@ trait TracedServicesTrait
             }
         };
 
-        return $this->tracedService('billing', $billing, DistributedServiceMap::initialize());
+        return $this->tracedService('billing', $billing, DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['billing'], ['order.*']));
     }
 
     private function tracedShipping(): FlowTestSupport
@@ -135,7 +135,7 @@ trait TracedServicesTrait
             }
         };
 
-        return $this->tracedService('shipping', $shipping, DistributedServiceMap::initialize());
+        return $this->tracedService('shipping', $shipping, DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['shipping'], ['order.*']));
     }
 
     private function tracedService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing = true): FlowTestSupport

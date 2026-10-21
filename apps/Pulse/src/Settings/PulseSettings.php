@@ -26,6 +26,7 @@ final readonly class PulseSettings
         public int $awaitTimeoutSeconds,
         public int $refreshIntervalSeconds,
         public int $doctorBudgetSeconds,
+        public int $projectionStalledAfterSeconds,
         public string $internalDatabasePath,
     ) {
     }
@@ -70,6 +71,7 @@ final readonly class PulseSettings
         }
 
         $doctorBudget = self::seconds($read('PULSE_DOCTOR_BUDGET_SECONDS', '8'), 'PULSE_DOCTOR_BUDGET_SECONDS', 0);
+        $projectionStalledAfter = self::seconds($read('PULSE_PROJECTION_STALLED_AFTER', '300'), 'PULSE_PROJECTION_STALLED_AFTER', 1);
 
         $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
         if (! str_starts_with($internalDatabasePath, '/')) {
@@ -80,7 +82,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $internalDatabasePath);
+        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $internalDatabasePath);
     }
 
     public function transportConnectionReference(): string

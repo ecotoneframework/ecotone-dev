@@ -10,6 +10,7 @@ final readonly class ServiceSnapshot
 {
     /**
      * @param array<string, mixed> $snapshot
+     * @param array<string, array{digest: string, since: string}> $projectionMovements
      */
     public function __construct(
         public string $service,
@@ -22,6 +23,7 @@ final readonly class ServiceSnapshot
         public ?string $replyError,
         public bool $followUpPending,
         public bool $retrying,
+        public array $projectionMovements,
     ) {
     }
 

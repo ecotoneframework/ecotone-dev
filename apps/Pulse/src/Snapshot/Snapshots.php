@@ -65,6 +65,7 @@ final readonly class Snapshots
                 $record->replyError,
                 $record->hasPendingFollowUp(),
                 $record->retrying,
+                $record->projectionMovements,
             );
         }, array_keys($this->settings->serviceChannels));
     }

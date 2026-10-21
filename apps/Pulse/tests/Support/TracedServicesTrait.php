@@ -19,6 +19,7 @@ use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -86,6 +87,18 @@ trait TracedServicesTrait
                 $distributedBus->sendCommand('billing', 'invoice.create', '{}');
             }
 
+            #[CommandHandler('order.sync', endpointId: 'order.sync.handler')]
+            public function sync(array $order, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendCommand('billing', 'invoice.sync', '{}');
+            }
+
+            #[CommandHandler('order.sync_event', endpointId: 'order.sync_event.handler')]
+            public function syncEvent(array $order, DistributedBus $distributedBus): void
+            {
+                $distributedBus->publishEvent('invoice.synced', '{}');
+            }
+
             #[CommandHandler('order.announce', endpointId: 'order.announce.handler')]
             public function announce(array $order, DistributedBus $distributedBus): void
             {
@@ -95,7 +108,7 @@ trait TracedServicesTrait
 
         return $this->tracedService('orders', $orders, DistributedServiceMap::initialize()
             ->withCommandMapping('billing', $this->serviceChannels['billing'])
-            ->withEventMapping($this->serviceChannels['billing'], ['order.*'])
+            ->withEventMapping($this->serviceChannels['billing'], ['order.*', 'invoice.*'])
             ->withEventMapping($this->serviceChannels['shipping'], ['order.*']), $tracing);
     }
 
@@ -116,13 +129,26 @@ trait TracedServicesTrait
             }
 
             #[Distributed]
+            #[CommandHandler('invoice.sync', endpointId: 'invoice.sync.command.handler')]
+            public function syncCommand(string $payload, EventBus $eventBus): void
+            {
+                $eventBus->publishWithRouting('invoice.synced', $payload);
+            }
+
+            #[Distributed]
+            #[EventHandler('invoice.synced', endpointId: 'invoice.synced.event.handler')]
+            public function syncEvent(string $payload): void
+            {
+            }
+
+            #[Distributed]
             #[EventHandler('order.announced', endpointId: 'billing.order.announced')]
             public function whenAnnounced(string $payload): void
             {
             }
         };
 
-        return $this->tracedService('billing', $billing, DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['billing'], ['order.*']));
+        return $this->tracedService('billing', $billing, DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['billing'], ['order.*', 'invoice.*']));
     }
 
     private function tracedShipping(): FlowTestSupport

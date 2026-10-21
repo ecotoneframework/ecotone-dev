@@ -40,10 +40,10 @@ final readonly class TraceHighlight
         $durations = [];
         $hops = [];
         $services = [];
-        foreach ($trace->rows as $row) {
+        foreach ($trace->rows as $index => $row) {
             $services[$row['service']] = true;
             if ($row['hop'] && is_string($row['parentService'])) {
-                $hops[$row['parentService']][$row['service']] = true;
+                $hops[] = ['from' => $row['parentService'], 'to' => $row['service'], 'channel' => $row['channel'], 'entries' => self::entriesOf($trace->rows, $index)];
             }
         }
         foreach ($flows as $flow) {
@@ -63,13 +63,52 @@ final readonly class TraceHighlight
 
         $traversed = [];
         foreach (DistributedLinks::between($flows) as $link) {
-            if (isset($hops[$link->fromService][$link->toService], $states[$link->toService][$link->toNodeId])) {
+            if (isset($states[$link->toService][$link->toNodeId]) && self::hopCarries($hops, $link)) {
                 $traversed[self::linkKey($link)] = true;
                 $states[$link->fromService][$link->fromNodeId] ??= self::PASSED;
             }
         }
 
         return new self($traceId, $trace->status, $states, $durations, $traversed, array_keys($services));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<string>
+     */
+    private static function entriesOf(array $rows, int $receiveIndex): array
+    {
+        $entries = [];
+        for ($next = $receiveIndex + 1; isset($rows[$next]) && $rows[$next]['depth'] > $rows[$receiveIndex]['depth']; $next++) {
+            if ($rows[$next]['depth'] === $rows[$receiveIndex]['depth'] + 1 && $rows[$next]['destination'] !== null && str_starts_with($rows[$next]['name'], 'send ')) {
+                $entries[] = $rows[$next]['name'] . '|' . $rows[$next]['destination'];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<array{from: string, to: string, channel: ?string, entries: list<string>}> $hops
+     */
+    private static function hopCarries(array $hops, DistributedLink $link): bool
+    {
+        foreach ($hops as $hop) {
+            if ($hop['from'] !== $link->fromService || $hop['to'] !== $link->toService) {
+                continue;
+            }
+            $carried = match ($link->kind) {
+                'command' => in_array('send command|' . $link->routingKey, $hop['entries'], true),
+                'event' => in_array('send event|' . $link->routingKey, $hop['entries'], true),
+                'message' => $hop['channel'] === $link->routingKey,
+                default => true,
+            };
+            if ($carried) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function stateOf(string $service, string $nodeId): ?string
@@ -122,7 +161,7 @@ final readonly class TraceHighlight
             return $node->kind === FlowNodeKind::CHANNEL && $node->label === $row['channel'];
         }
         if ($row['destination'] !== null && str_starts_with($row['name'], 'send ') && $node->kind->isMessage()) {
-            return ServiceFlow::routingKeyOf($node) === $row['destination'];
+            return 'send ' . $node->kind->value === $row['name'] && ServiceFlow::routingKeyOf($node) === $row['destination'];
         }
         if ($row['function'] !== null && $node->kind->isHandler() && isset($node->attributes['class'], $node->attributes['method'])) {
             return $row['function'] === $node->attributes['class'] . '::' . $node->attributes['method'];

@@ -23,6 +23,8 @@ final class TraceOnFlowGraphTest extends WebTestCase
     private const ANNOUNCED = '33333333333333333333333333333333';
     private const EXPLODED = '44444444444444444444444444444444';
     private const NOTIFYING = '55555555555555555555555555555555';
+    private const SYNCED_BY_COMMAND = '77777777777777777777777777777777';
+    private const SYNCED_BY_EVENT = '88888888888888888888888888888888';
 
     public function test_the_trace_page_links_to_the_flow_graph_highlighting_the_trace(): void
     {
@@ -66,6 +68,26 @@ final class TraceOnFlowGraphTest extends WebTestCase
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'billing', 'order.announced'));
         self::assertTrue($graph->isEdgeHighlighted('orders', 'order.announced', 'distributed event', 'shipping', 'order.announced'));
         self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.create', 'distributed command', 'billing', 'invoice.create'));
+    }
+
+    public function test_only_the_command_edge_is_highlighted_when_the_trace_took_the_command(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_COMMAND));
+
+        self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed command', 'billing', 'invoice.sync'));
+        self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed event', 'billing', 'invoice.synced'));
+            }
+
+    public function test_only_the_event_edge_is_highlighted_when_the_trace_took_the_event(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $graph = new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::SYNCED_BY_EVENT));
+
+        self::assertTrue($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed event', 'billing', 'invoice.synced'));
+        self::assertFalse($graph->isEdgeHighlighted('orders', 'invoice.sync', 'distributed command', 'billing', 'invoice.sync'));
     }
 
     public function test_a_failed_asynchronous_step_is_marked_failed_on_the_graph(): void
@@ -132,6 +154,8 @@ final class TraceOnFlowGraphTest extends WebTestCase
         $orders->sendCommandWithRouting('order.explode', ['orderId' => 1], metadata: $this->inTrace(self::EXPLODED));
         $this->consume('orders', 'orders_async');
         $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: $this->inTrace(self::NOTIFYING));
+        $orders->sendCommandWithRouting('order.sync', ['orderId' => 1], metadata: $this->inTrace(self::SYNCED_BY_COMMAND));
+        $orders->sendCommandWithRouting('order.sync_event', ['orderId' => 1], metadata: $this->inTrace(self::SYNCED_BY_EVENT));
         $this->deliverEverywhere();
         $this->pulseHavingHeardFrom($client, $this->tracedServices);
 

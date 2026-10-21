@@ -103,7 +103,7 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
             );
         }
         $client->request('GET', '/services');
-        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
+        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
         $this->runPulseWorker($client->getKernel());
 
         self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));

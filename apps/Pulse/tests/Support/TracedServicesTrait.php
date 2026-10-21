@@ -202,7 +202,7 @@ trait TracedServicesTrait
         $inMemory = $inMemory && ! $this->databasePerService;
         $leftOver = $this->bootstrapService($service, $handler, $serviceMap, false, true);
         foreach (self::ASYNC_CHANNELS as $channel) {
-            $leftOver->run($channel, ExecutionPollingMetadata::createWithTestingSetup(1000, 300, false));
+            $leftOver->run($channel, ExecutionPollingMetadata::createWithTestingSetup(1000, 300, false)->withMemoryLimitInMegabytes(4096));
         }
 
         return $this->tracedServices[$service] = $this->bootstrapService($service, $handler, $serviceMap, $tracing, $inMemory);
@@ -238,7 +238,7 @@ trait TracedServicesTrait
 
     private function consume(string $service, string $channel): void
     {
-        $this->tracedServices[$service]->run($channel, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
+        $this->tracedServices[$service]->run($channel, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false)->withMemoryLimitInMegabytes(4096));
     }
 
     private function deliverEverywhere(): void

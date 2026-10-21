@@ -3540,6 +3540,13 @@ rename test-support methods without aliases; the renamed methods are listed in e
   The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
   command names are unchanged. **How to adapt:** rename the calls, e.g.
   `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
+- **A dead letter is not replayed to an asynchronous channel.** **Before:** `DeadLetterGateway::replay($messageId, $targetChannel)`,
+  `replayAll()` and `ecotone:deadletter:replay` accepted any existing channel as the target, and a pollable (asynchronous)
+  channel took the message, consumed it without reaching a handler (the replay removed the routing slip the consumer routes
+  by) and the message was lost. **Now:** a pollable target is refused before anything is replayed, the dead letters are
+  kept, and the exception says so. **How to adapt:** replay without a target to send each message back to the channel it
+  was polled from, or pass the input channel of the handler that should process it (the routing key of a `#[CommandHandler]`
+  or the `inputChannelName` of an `#[InternalHandler]`); an asynchronous handler runs once its channel is consumed.
 - **A command or query sent to a handler that is not registered in a flow test names the class to register.** An
   Ecotone Lite bootstrap registers only the classes it lists, but the error suggested a missing attribute:
   `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In

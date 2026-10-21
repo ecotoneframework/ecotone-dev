@@ -34,10 +34,11 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
+     * @param list<string> $channels
      * @param array<string, PulseSnapshotSection> $sections
      */
     public function __construct(
@@ -45,6 +46,7 @@ final class PulseSnapshot
         private string $pulseServiceName,
         private string $framework,
         private array $serviceMaps,
+        private array $channels,
         private array $sections,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
@@ -66,6 +68,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
+     *     channels: list<string>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -82,6 +85,7 @@ final class PulseSnapshot
             ],
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
+            'channels' => $this->channels,
         ];
 
         foreach ($this->sections as $sectionName => $section) {

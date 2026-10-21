@@ -19,6 +19,7 @@ final readonly class ServiceRecord
         public ?DateTimeImmutable $requestedAt,
         public ?string $requestFailure,
         public ?string $replyError,
+        public ?DateTimeImmutable $followUpDueAt = null,
     ) {
     }
 
@@ -38,6 +39,7 @@ final readonly class ServiceRecord
             isset($stored['requestedAt']) ? new DateTimeImmutable($stored['requestedAt']) : null,
             $stored['requestFailure'] ?? null,
             $stored['replyError'] ?? null,
+            isset($stored['followUpDueAt']) ? new DateTimeImmutable($stored['followUpDueAt']) : null,
         );
     }
 
@@ -52,17 +54,28 @@ final readonly class ServiceRecord
             'requestedAt' => $this->requestedAt?->format(self::TIME_FORMAT),
             'requestFailure' => $this->requestFailure,
             'replyError' => $this->replyError,
+            'followUpDueAt' => $this->followUpDueAt?->format(self::TIME_FORMAT),
         ];
     }
 
     public function requested(DateTimeImmutable $at): self
     {
-        return new self($this->receivedAt, $this->snapshot, $at, null, null);
+        return new self($this->receivedAt, $this->snapshot, $at, null, null, $this->followUpDueAt !== null && $at >= $this->followUpDueAt ? null : $this->followUpDueAt);
+    }
+
+    public function withFollowUpDueAt(DateTimeImmutable $at): self
+    {
+        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $this->requestFailure, $this->replyError, $at);
+    }
+
+    public function hasPendingFollowUp(): bool
+    {
+        return $this->followUpDueAt !== null;
     }
 
     public function requestFailed(string $failure): self
     {
-        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $failure, $this->replyError);
+        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $failure, $this->replyError, $this->followUpDueAt);
     }
 
     /**
@@ -70,12 +83,12 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return new self($at, $snapshot, $this->requestedAt, null, null);
+        return new self($at, $snapshot, $this->requestedAt, null, null, $this->followUpDueAt);
     }
 
     public function replyRejected(string $reason): self
     {
-        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $this->requestFailure, $reason);
+        return new self($this->receivedAt, $this->snapshot, $this->requestedAt, $this->requestFailure, $reason, $this->followUpDueAt);
     }
 
     public function hasOutstandingRequest(): bool
@@ -85,6 +98,10 @@ final readonly class ServiceRecord
 
     public function needsRequest(DateTimeImmutable $now): bool
     {
+        if ($this->followUpDueAt !== null && $now >= $this->followUpDueAt) {
+            return true;
+        }
+
         if ($this->hasOutstandingRequest()) {
             return self::secondsBetween($this->requestedAt, $now) >= Snapshots::FRESHNESS_SECONDS;
         }

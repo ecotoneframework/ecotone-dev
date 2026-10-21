@@ -31,15 +31,14 @@ final class DeadLetterActionController extends AbstractController
     {
         $replay = $request->request->get('action') === 'replay';
         $filter = DeadLetterFilter::fromInput($request->request);
-        $targetChannel = $replay ? trim((string) $request->request->get('targetChannel', '')) : '';
         $byFilter = $request->request->get('scope') === 'filter';
         if (($invalidDate = $filter->invalidDateField()) !== null) {
             return $this->back($filter, DeadLetterNotice::invalidDate($invalidDate));
         }
 
         $actions = $byFilter
-            ? $this->actionsForFilter($filter, $replay, $targetChannel)
-            : $this->actionsForSelection($request->request->all('selected'), $replay, $targetChannel);
+            ? $this->actionsForFilter($filter, $replay, $replay ? trim((string) $request->request->get('targetChannel', '')) : '')
+            : $this->actionsForSelection($request->request->all('selected'), $replay, $replay ? $request->request->all()['targetChannel'] ?? [] : []);
         if ($actions instanceof DeadLetterNotice) {
             return $this->back($filter, $actions);
         }
@@ -72,6 +71,14 @@ final class DeadLetterActionController extends AbstractController
         if ($services instanceof DeadLetterNotice) {
             return $services;
         }
+        if ($targetChannel !== '') {
+            if ($filter->service === '') {
+                return DeadLetterNotice::targetNeedsService();
+            }
+            if (! $this->registersChannel($filter->service, $targetChannel)) {
+                return DeadLetterNotice::unknownChannel($filter->service, $targetChannel);
+            }
+        }
         $services = DeadLetterOverview::withoutServicesSharingAnEarlierStore($this->snapshots->all(), $services);
         $conditions = $filter->storedConditions();
         $action = $replay ? DeadLetterAction::replayMatching($conditions, $targetChannel) : DeadLetterAction::deleteMatching($conditions);
@@ -83,8 +90,12 @@ final class DeadLetterActionController extends AbstractController
      * @param array<mixed> $selected
      * @return array<string, DeadLetterAction>|DeadLetterNotice
      */
-    private function actionsForSelection(array $selected, bool $replay, string $targetChannel): array|DeadLetterNotice
+    private function actionsForSelection(array $selected, bool $replay, mixed $targetChannels): array|DeadLetterNotice
     {
+        if (! is_array($targetChannels)) {
+            return DeadLetterNotice::targetPerService();
+        }
+
         $idsByService = [];
         foreach ($selected as $service => $messageIds) {
             $messageIds = array_values(array_filter(is_array($messageIds) ? $messageIds : [], static fn (mixed $messageId) => is_string($messageId) && $messageId !== ''));
@@ -101,6 +112,10 @@ final class DeadLetterActionController extends AbstractController
         foreach ($idsByService as $service => $messageIds) {
             if (! is_array($configured) || ! in_array($service, $configured, true)) {
                 return DeadLetterNotice::notConfigured($service);
+            }
+            $targetChannel = is_string($targetChannels[$service] ?? null) ? trim($targetChannels[$service]) : '';
+            if ($targetChannel !== '' && ! $this->registersChannel($service, $targetChannel)) {
+                return DeadLetterNotice::unknownChannel($service, $targetChannel);
             }
             $actions[$service] = $replay ? DeadLetterAction::replayIds($messageIds, $targetChannel) : DeadLetterAction::deleteIds($messageIds);
         }
@@ -129,6 +144,11 @@ final class DeadLetterActionController extends AbstractController
         }
 
         return $services;
+    }
+
+    private function registersChannel(string $service, string $channel): bool
+    {
+        return in_array($channel, DeadLetterOverview::channelsByService($this->snapshots->all())[$service] ?? [], true);
     }
 
     private function back(DeadLetterFilter $filter, DeadLetterNotice $notice): RedirectResponse

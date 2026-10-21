@@ -55,6 +55,13 @@ final class ErrorChannelExceptionMessages
             . 'or omit the target channel to replay each message to the channel it was polled from.';
     }
 
+    public static function cannotReplayToAsynchronousChannel(string $targetChannel): string
+    {
+        return "Can not replay dead letter messages to channel `{$targetChannel}`, as it is an asynchronous (pollable) channel: its consumer routes each message by the routing slip, which a replay to a chosen channel removes, so the message would be consumed without reaching a handler and be lost. "
+            . 'Replay without a target channel to send each message back to the channel it was polled from, '
+            . 'or pass the input channel of the handler that should process it (e.g. the routing key of a #[CommandHandler] or the inputChannelName of an #[InternalHandler]); if that handler is asynchronous, the message runs once its channel is consumed.';
+    }
+
     public static function delayedRetryRequiresPolledChannelName(string $originalErrorMessage): string
     {
         return 'Failed to handle Error Message via Retry Configuration, as it does not contain information about origination channel from which it was polled. Original error message: '

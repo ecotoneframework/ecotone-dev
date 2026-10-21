@@ -6,6 +6,8 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
@@ -51,9 +53,38 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class PulseModule implements AnnotationModule
 {
+    private const FRAMEWORK_NAMESPACE = 'Ecotone\\';
+
+    /**
+     * @param string[] $handlerInputChannels
+     */
+    private function __construct(private array $handlerInputChannels)
+    {
+    }
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $channels = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
+            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
+                /** @var CommandHandler $annotation */
+                $annotation = $registration->getAnnotationForMethod();
+                if ($annotation->getInputChannelName() !== '') {
+                    $channels[] = $annotation->getInputChannelName();
+                }
+            }
+        }
+        foreach ($annotationRegistrationService->findAnnotatedMethods(InternalHandler::class) as $registration) {
+            if (! str_starts_with($registration->getClassName(), self::FRAMEWORK_NAMESPACE)) {
+                /** @var InternalHandler $annotation */
+                $annotation = $registration->getAnnotationForMethod();
+                $channels[] = $annotation->getInputChannelName();
+            }
+        }
+        $channels = array_values(array_unique($channels));
+        sort($channels);
+
+        return new self($channels);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -92,6 +123,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
+                $this->handlerInputChannels,
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),

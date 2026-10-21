@@ -15,6 +15,11 @@ final readonly class DeadLetterAction
     ) {
     }
 
+    public function isReplay(): bool
+    {
+        return $this->routingKey === self::REPLAY_ROUTING_KEY;
+    }
+
     /**
      * @param list<string> $messageIds
      */

@@ -16,10 +16,13 @@ final readonly class DeadLetterNotice
     public const NOT_CONFIGURED = 'not_configured';
     public const NO_DEAD_LETTERS_ANYWHERE = 'no_dead_letters_anywhere';
     public const INVALID_DATE = 'invalid_date';
+    public const UNKNOWN_CHANNEL = 'unknown_channel';
+    public const TARGET_NEEDS_SERVICE = 'target_needs_service';
+    public const TARGET_PER_SERVICE = 'target_per_service';
 
     private const CODES = [
         self::ACTION_SENT, self::SEND_FAILED, self::NOTHING_SELECTED, self::NO_FILTER_CONDITION, self::UNKNOWN_SERVICE,
-        self::NOT_CONFIGURED, self::NO_DEAD_LETTERS_ANYWHERE, self::INVALID_DATE,
+        self::NOT_CONFIGURED, self::NO_DEAD_LETTERS_ANYWHERE, self::INVALID_DATE, self::UNKNOWN_CHANNEL, self::TARGET_NEEDS_SERVICE, self::TARGET_PER_SERVICE,
     ];
 
     /**
@@ -77,6 +80,21 @@ final readonly class DeadLetterNotice
         return new self(self::INVALID_DATE, ['field' => $field]);
     }
 
+    public static function unknownChannel(string $service, string $channel): self
+    {
+        return new self(self::UNKNOWN_CHANNEL, ['service' => $service, 'channel' => $channel]);
+    }
+
+    public static function targetPerService(): self
+    {
+        return new self(self::TARGET_PER_SERVICE, []);
+    }
+
+    public static function targetNeedsService(): self
+    {
+        return new self(self::TARGET_NEEDS_SERVICE, []);
+    }
+
     /**
      * @param InputBag<string> $query
      * @param list<string> $configuredServices
@@ -92,11 +110,13 @@ final readonly class DeadLetterNotice
         $services = array_values(array_filter(explode(',', (string) $query->get('services', '')), static fn (string $name) => in_array($name, $configuredServices, true)));
         $action = (string) $query->get('action', '');
         $field = (string) $query->get('field', '');
+        $channel = (string) $query->get('channel', '');
 
         return match ($code) {
             self::ACTION_SENT => in_array($action, ['replay', 'delete'], true) && $services !== [] ? self::actionSent($action, $services) : null,
             self::SEND_FAILED => $services !== [] ? self::sendFailed($services) : null,
             self::NOT_CONFIGURED => in_array($service, $configuredServices, true) ? self::notConfigured($service) : null,
+            self::UNKNOWN_CHANNEL => in_array($service, $configuredServices, true) && $channel !== '' ? self::unknownChannel($service, $channel) : null,
             self::INVALID_DATE => in_array($field, DeadLetterFilter::DATE_FIELDS, true) ? self::invalidDate($field) : null,
             default => new self($code, []),
         };

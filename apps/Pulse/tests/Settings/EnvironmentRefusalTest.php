@@ -25,9 +25,9 @@ final class EnvironmentRefusalTest extends KernelTestCase
         self::assertTrue(self::$booted);
     }
 
-    public function test_the_database_setup_can_be_enabled_for_a_database_transport(): void
+    public function test_a_leftover_database_setup_variable_is_ignored_for_any_transport(): void
     {
-        $this->configurePulse(['PULSE_SETUP_DATABASE' => 'true']);
+        $this->configurePulse(['PULSE_SETUP_DATABASE' => 'yes', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672']);
 
         self::bootKernel();
 
@@ -89,8 +89,6 @@ final class EnvironmentRefusalTest extends KernelTestCase
         yield 'pulse listed as its own service' => [['PULSE_SERVICES' => 'ecotone_pulse:a'], 'PULSE_SERVICES lists "ecotone_pulse", which is the name of Pulse itself (PULSE_SERVICE_NAME). Remove it from PULSE_SERVICES, or give Pulse another name with PULSE_SERVICE_NAME.'];
         yield 'service reading the pulse channel' => [['PULSE_SERVICES' => 'orders:ecotone_pulse'], 'PULSE_SERVICES maps service "orders" to channel "ecotone_pulse", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "orders" consumes, or change PULSE_CHANNEL.'];
         yield 'two services on one channel' => [['PULSE_SERVICES' => 'orders:shared,billing:shared'], 'PULSE_SERVICES maps services "orders" and "billing" to the same channel "shared", so their replies could not be told apart. Give each service the channel it consumes.'];
-        yield 'database setup on a broker transport' => [['PULSE_SETUP_DATABASE' => 'true', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672'], 'PULSE_SETUP_DATABASE is true, but PULSE_TRANSPORT_DSN "amqp://guest:guest@rabbitmq:5672" is not a database, so there is no message table to create. Remove PULSE_SETUP_DATABASE, or point PULSE_TRANSPORT_DSN at pgsql://, mysql:// or sqlite://.'];
-        yield 'invalid database setup flag' => [['PULSE_SETUP_DATABASE' => 'yes'], 'PULSE_SETUP_DATABASE "yes" is not true or false. Set it to true to let the entrypoint create the message table of a database transport at start, or to false.'];
         yield 'invalid reply timeout' => [['PULSE_REPLY_TIMEOUT' => 'soon'], 'PULSE_REPLY_TIMEOUT "soon" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];
         yield 'invalid render wait' => [['PULSE_RENDER_WAIT' => '-1'], 'PULSE_RENDER_WAIT "-1" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 0 or more.'];
         yield 'invalid service name' => [['PULSE_SERVICE_NAME' => 'my pulse'], 'PULSE_SERVICE_NAME "my pulse" is not a valid name, because names are used as broker channel names. Use only letters, digits, "_", "." and "-", for example ecotone_pulse.'];

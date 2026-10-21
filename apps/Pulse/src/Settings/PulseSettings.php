@@ -18,7 +18,6 @@ final readonly class PulseSettings
         public int $replyTimeoutSeconds,
         public int $renderWaitSeconds,
         public string $cacheDir,
-        public bool $setupDatabase,
     ) {
     }
 
@@ -57,13 +56,9 @@ final readonly class PulseSettings
         }
 
         $transport = Transport::fromDsn($dsn);
-        $setupDatabase = self::flag($read('PULSE_SETUP_DATABASE', 'false'));
-        if ($setupDatabase && $transport !== Transport::Dbal) {
-            throw new PulseConfigurationException(sprintf('PULSE_SETUP_DATABASE is true, but PULSE_TRANSPORT_DSN "%s" is not a database, so there is no message table to create. Remove PULSE_SETUP_DATABASE, or point PULSE_TRANSPORT_DSN at pgsql://, mysql:// or sqlite://.', $dsn));
-        }
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $cacheDir, $setupDatabase);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $cacheDir);
     }
 
     /**
@@ -72,15 +67,6 @@ final readonly class PulseSettings
     public function kafkaBootstrapServers(): array
     {
         return array_values(array_filter(array_map('trim', explode(',', (string) preg_replace('#^kafka://#i', '', $this->transportDsn)))));
-    }
-
-    private static function flag(string $value): bool
-    {
-        return match (strtolower($value)) {
-            'true', '1' => true,
-            'false', '0' => false,
-            default => throw new PulseConfigurationException(sprintf('PULSE_SETUP_DATABASE "%s" is not true or false. Set it to true to let the entrypoint create the message table of a database transport at start, or to false.', $value)),
-        };
     }
 
     private static function name(string $value, string $variable): string

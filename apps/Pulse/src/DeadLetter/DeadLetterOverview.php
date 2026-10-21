@@ -63,9 +63,9 @@ final class DeadLetterOverview
         $channels = [];
         foreach ($snapshots as $snapshot) {
             $names = [];
-            foreach ($snapshot->snapshot['flowGraph']['nodes'] ?? [] as $node) {
-                if (($node['kind'] ?? null) === 'channel' && is_string($node['label'] ?? null)) {
-                    $names[] = $node['label'];
+            foreach ($snapshot->snapshot['channels'] ?? [] as $channel) {
+                if (is_string($channel)) {
+                    $names[] = $channel;
                 }
             }
             sort($names);

@@ -6,10 +6,12 @@ namespace Test\Ecotone\Messaging\Unit\Pulse;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
@@ -81,6 +83,50 @@ final class PulseSnapshotResponderTest extends TestCase
             ]],
             $snapshot['topology']['serviceMaps'],
         );
+    }
+
+    public function test_the_snapshot_lists_the_handler_input_channels_a_dead_letter_can_be_replayed_to(): void
+    {
+        $handlers = new class () {
+            #[Asynchronous('orders_async')]
+            #[CommandHandler('order.place_later', endpointId: 'order.place_later.endpoint')]
+            public function placeLater(string $orderId): void
+            {
+            }
+
+            #[CommandHandler('order.place')]
+            public function place(string $orderId): void
+            {
+            }
+
+            #[CommandHandler]
+            public function placeByClass(PulseClassRoutedOrder $order): void
+            {
+            }
+
+            #[InternalHandler('order.audit')]
+            public function audit(string $orderId): void
+            {
+            }
+
+            #[QueryHandler('order.status')]
+            public function status(string $orderId): string
+            {
+                return $orderId;
+            }
+        };
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('orders_async'), SimpleMessageChannelBuilder::createQueueChannel('unused_queue')];
+        $orderService = $this->orderService($handlers, $channels);
+        $pulse = $this->pulseReplies();
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(1, $snapshot['schemaVersion']);
+        self::assertSame(['order.audit', 'order.place', 'order.place_later'], $snapshot['channels']);
     }
 
     public function test_an_asynchronous_service_map_is_reported_in_the_topology(): void
@@ -298,4 +344,8 @@ interface SourcelessPulseRequest
 {
     #[MessageGateway('ecotone.pulse.snapshot')]
     public function ask(#[Payload] string $payload): string;
+}
+
+final class PulseClassRoutedOrder
+{
 }

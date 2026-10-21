@@ -56,6 +56,11 @@ trait DeadLetterServicesTrait
              */
             public array $audited = [];
 
+            /**
+             * @var list<string>
+             */
+            public array $auditedLater = [];
+
             #[Asynchronous('pulse_dead_letter_work')]
             #[CommandHandler('order.place', endpointId: 'pulse.order.place.endpoint')]
             public function place(array $order): void
@@ -74,6 +79,13 @@ trait DeadLetterServicesTrait
             public function audited(array $order): void
             {
                 $this->audited[] = (string) $order['orderId'];
+            }
+
+            #[Asynchronous('pulse_dead_letter_work')]
+            #[InternalHandler('order.audited_later', endpointId: 'pulse.order.audited_later.endpoint')]
+            public function auditedLater(array $order): void
+            {
+                $this->auditedLater[] = (string) $order['orderId'];
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.order.audit.endpoint')]

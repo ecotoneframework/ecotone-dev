@@ -27,9 +27,6 @@
 
     {% if notice %}{% include 'dead_letters/_notice.html.twig' %}{% endif %}
 
-    <datalist id="channels-all">{% for service, names in channels %}{% for name in names %}<option value="{{ name }}">{% endfor %}{% endfor %}</datalist>
-    {% for service, names in channels %}<datalist id="channels-{{ service }}">{% for name in names %}<option value="{{ name }}">{% endfor %}</datalist>{% endfor %}
-
     {% for group in sharedStores %}
         <p class="drift" data-shared-store>{{ group|join(', ') }} share one dead letter store: they report the same dead letters, so act through one of them. A filter action across services is sent only to {{ group|first }}.</p>
     {% endfor %}
@@ -63,11 +60,16 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                <label>Replay to channel
+                    <select name="targetChannel[{{ service.service }}]">
+                        <option value="">original channel</option>
+                        {% for name in channels[service.service] ?? [] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                    </select>
+                </label>
             {% endif %}
         </section>
     {% endfor %}
     <p>
-        <label>Replay to channel <input type="text" name="targetChannel" list="channels-all" placeholder="original channel"></label>
         <button type="submit" name="action" value="replay">Replay selected</button>
         <button type="submit" name="action" value="delete">Delete selected</button>
     </p>
@@ -77,7 +79,14 @@
         <h2>Everything matching the filter</h2>
         <input type="hidden" name="scope" value="filter">
         {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-        <label>Replay to channel <input type="text" name="targetChannel" list="channels-all" placeholder="original channel"></label>
+        {% if filter.service and channels[filter.service] is defined %}
+            <label>Replay to channel
+                <select name="targetChannel">
+                    <option value="">original channel</option>
+                    {% for name in channels[filter.service] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                </select>
+            </label>
+        {% endif %}
         <button type="submit" name="action" value="replay">Replay matching</button>
         <button type="submit" name="action" value="delete">Delete matching</button>
     </form>

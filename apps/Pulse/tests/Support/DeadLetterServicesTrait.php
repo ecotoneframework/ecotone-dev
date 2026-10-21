@@ -6,6 +6,7 @@ namespace App\Tests\Support;
 
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -37,7 +38,7 @@ trait DeadLetterServicesTrait
 
     private function serviceWithDeadLetters(string $service, bool $deadLettersEnabled = true): FlowTestSupport
     {
-        $this->work = new class () {
+        $work = new class () {
             public bool $failing = true;
 
             /**
@@ -48,7 +49,7 @@ trait DeadLetterServicesTrait
             /**
              * @var list<string>
              */
-            public array $channels = [];
+            public array $audited = [];
 
             #[Asynchronous('pulse_dead_letter_work')]
             #[CommandHandler('order.place', endpointId: 'pulse.order.place.endpoint')]
@@ -62,6 +63,12 @@ trait DeadLetterServicesTrait
             public function cancel(array $order): void
             {
                 $this->handle('order.cancel', $order, new LogicException('cancel failed for order ' . $order['orderId']));
+            }
+
+            #[InternalHandler('order.audited')]
+            public function audited(array $order): void
+            {
+                $this->audited[] = (string) $order['orderId'];
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.order.audit.endpoint')]
@@ -80,9 +87,13 @@ trait DeadLetterServicesTrait
             }
         };
 
+        if ($deadLettersEnabled) {
+            $this->work = $work;
+        }
+
         $application = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$this->work::class],
-            containerOrAvailableServices: [$this->work, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            classesToResolve: [$work::class],
+            containerOrAvailableServices: [$work, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),

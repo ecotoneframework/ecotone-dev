@@ -29,7 +29,7 @@ final class DeadLetterListTest extends WebTestCase
         self::assertStringContainsString(RuntimeException::class, $rows);
         self::assertStringContainsString('place failed for order 1', $rows);
         self::assertStringContainsString('place failed for order 3', $rows);
-        self::assertStringContainsString(gmdate('Y-m-d'), $row);
+        self::assertStringContainsString(gmdate('Y-m-d'), $rows);
         self::assertCount(1, $crawler->filter('[data-dead-letter][data-service="invoices"]'));
     }
 

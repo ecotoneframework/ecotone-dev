@@ -25,6 +25,11 @@
 
     <p class="muted" data-list-note>The list shows the latest 100 dead letters of each service and is filtered on that snapshot. Actions on a filter apply to all stored dead letters of the service.</p>
 
+    {% if actionSent %}<p class="notice" data-notice>Action sent: {{ actionSent }}. The service answers with a fresh snapshot.</p>{% endif %}
+    {% if actionError %}<p class="drift" data-notice-error>{{ actionError }}</p>{% endif %}
+
+    <form method="post" action="{{ path('dead_letter_actions') }}" data-selection-form>
+    <input type="hidden" name="scope" value="ids">
     {% for service in services %}
         <section class="card" data-service-section="{{ service.service }}">
             <h2>{{ service.service }}</h2>
@@ -40,10 +45,11 @@
                     {% endfor %}
                 </ul>
                 <table>
-                    <thead><tr><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
+                    <thead><tr><th></th><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
                     <tbody>
                     {% for entry in service.entries %}
                         <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
+                            <td><input type="checkbox" name="selected[]" value="{{ service.service }}:{{ entry.messageId }}"></td>
                             <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a></td>
                             <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
                             <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}</td>
@@ -54,4 +60,19 @@
             {% endif %}
         </section>
     {% endfor %}
+    <p>
+        <label>Replay to channel <input type="text" name="targetChannel" placeholder="original channel"></label>
+        <button type="submit" name="action" value="replay">Replay selected</button>
+        <button type="submit" name="action" value="delete">Delete selected</button>
+    </p>
+    </form>
+
+    <form method="post" action="{{ path('dead_letter_actions') }}" data-filter-action-form>
+        <h2>Everything matching the filter</h2>
+        <input type="hidden" name="scope" value="filter">
+        {% for name, value in filter.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+        <label>Replay to channel <input type="text" name="targetChannel" placeholder="original channel"></label>
+        <button type="submit" name="action" value="replay">Replay matching</button>
+        <button type="submit" name="action" value="delete">Delete matching</button>
+    </form>
 {% endblock %}

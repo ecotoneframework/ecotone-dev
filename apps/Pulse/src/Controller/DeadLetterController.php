@@ -28,6 +28,8 @@ final class DeadLetterController extends AbstractController
             'filter' => $filter,
             'services' => DeadLetterOverview::of($snapshots, $filter),
             'serviceNames' => array_map(static fn ($snapshot) => $snapshot->service, $snapshots),
+            'actionSent' => $request->query->get('actionSent'),
+            'actionError' => $request->query->get('actionError'),
             'waiting' => Snapshots::anyWaiting($snapshots),
         ]);
     }

@@ -19,6 +19,7 @@
         <dt>Exception</dt><dd data-detail="exception">{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</dd>
         <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'unknown' }}</dd>
         <dt>Channel</dt><dd data-detail="channel">{{ entry.channel ?? 'unknown' }}</dd>
+        {% if entry.traceId is defined and entry.traceId %}<dt>Trace</dt><dd><a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a></dd>{% endif %}
     </dl>
     <h2>Stack trace</h2>
     {{ _self.text('stackTrace', entry.stackTrace) }}

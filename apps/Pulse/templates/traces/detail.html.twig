@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Trace {{ traceId }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <h1>Trace <code data-trace-id>{{ traceId }}</code></h1>
+    <p><a href="{{ path('traces') }}">← Traces</a> · <a href="{{ path('flow_graph', {trace: traceId}) }}" data-show-on-flow-graph>Show on flow graph</a></p>
+
+    <ul class="service-states">
+        {% for state in states %}
+            <li data-service-state="{{ state.service }}" data-state="{{ state.state }}">
+                <strong>{{ state.service }}</strong>:
+                {% if state.state == 'answered' %}answered{% if state.totalSpans %} ({{ state.totalSpans }} spans){% endif %}
+                {% elseif state.state == 'waiting' %}pending, waiting for the answer…
+                {% elseif state.state == 'not_answering' %}not answering for this query.{% if state.failure %} {{ state.failure }}{% endif %}
+                {% elseif state.state == 'tracing_disabled' %}flow tracking not enabled, not asked
+                {% else %}not asked, service is {{ state.status|lower }}
+                {% endif %}
+                {% if state.truncated %}<span class="drift" data-reply-truncated>only the first spans of {{ state.totalSpans }} were sent by {{ state.service }}.</span>{% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if trace.isEmpty %}
+        {% if not waiting %}<p class="muted" data-no-spans>No service stored a span of this trace id. It may be older than the retention, or from a service that does not track flows.</p>{% endif %}
+    {% else %}
+        <dl>
+            <dt>Status</dt><dd data-trace-status="{{ trace.status }}">{{ trace.status }}</dd>
+            <dt>Started at (UTC)</dt><dd data-started-at>{{ trace.startedAt }}</dd>
+            <dt>Total duration</dt><dd data-total-duration>{{ trace.durationLabel }}</dd>
+        </dl>
+        {% if trace.omittedRows > 0 %}
+            <p class="drift" data-rows-capped>Showing the first {{ trace.rows|length }} of {{ trace.totalRows }} steps; the rest are left out.</p>
+        {% endif %}
+        <table class="waterfall">
+            <thead><tr><th>Service</th><th>Step</th><th>Endpoint</th><th>Kind</th><th>Started (UTC)</th><th>Offset</th><th>Queue wait</th><th>Duration</th><th>Status</th><th>Error</th></tr></thead>
+            <tbody>
+            {% for row in trace.rows %}
+                <tr data-span data-service="{{ row.service }}" data-depth="{{ row.depth }}"{% if row.hop %} data-hop{% endif %}{% if row.pending %} data-pending{% endif %}{% if row.failed %} data-failed{% endif %} class="status-{{ row.status }}">
+                    <td data-column="service">{{ row.service }}{% if row.hop %} <span class="muted">⇢ hop</span>{% endif %}</td>
+                    <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em">{{ row.name }}</td>
+                    <td data-column="endpoint">{{ row.endpoint }}</td>
+                    <td data-column="kind">{{ row.kind }}</td>
+                    <td data-column="startedAt">{{ row.startedAt }}</td>
+                    <td data-column="offset">{{ row.offsetLabel }}</td>
+                    <td data-column="queueWait"{% if row.clockSkew %} data-clock-skew class="drift"{% endif %}>{{ row.queueWaitLabel }}</td>
+                    <td data-column="duration">{{ row.durationLabel }}</td>
+                    <td data-column="status">{{ row.status }}</td>
+                    <td data-column="error">{{ row.error }}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">dead letter</a>{% endif %}</td>
+                </tr>
+                {% if row.attributes or row.events %}
+                <tr data-span-details><td colspan="10">
+                    <details><summary>Attributes and events</summary>
+                        <table>
+                            {% for name, value in row.attributes %}<tr><th>{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}
+                        </table>
+                        {% for event in row.events %}
+                            <p><strong>{{ event.name }}</strong> {{ event.at }}</p>
+                            <table>{% for name, value in event.attributes %}<tr><th>{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
+                        {% endfor %}
+                    </details>
+                </td></tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

@@ -2,13 +2,31 @@
 
 {% block title %}Flow graph · Ecotone Pulse{% endblock %}
 
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
 {% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
 
 {% block body %}
     <h1>Flow graph</h1>
     <p class="muted">Every service's message flow, joined along distributed commands and events. Dashed arrows are inferred from source code.</p>
     {% include 'graph/_notices.html.twig' %}
+    {% if trace %}
+        <section class="card" data-trace-banner>
+            <p>Highlighting trace <a href="{{ path('trace_detail', {traceId: trace.traceId}) }}"><code>{{ trace.traceId }}</code></a>{% if not traceEmpty %} ({{ trace.status }}){% endif %}.
+            {% if traceEmpty %}<span data-trace-no-spans>{% if waiting %}Waiting for the services to answer…{% else %}No service stored a span of this trace id.{% endif %}</span>{% endif %}
+            </p>
+            <p class="muted">Green: passed · amber dashed: sent but not processed yet · red: failed. Thick arrows: the trace crossed them. Durations are the longest step through the node.</p>
+            {% for state in traceStates %}
+                {% if state.state in ['waiting', 'not_answering'] %}
+                    <p class="drift" data-trace-service-state="{{ state.service }}">{{ state.service }}: {{ state.state == 'waiting' ? 'pending, waiting for the answer…' : 'not answering for this query.' }}</p>
+                {% endif %}
+            {% endfor %}
+        </section>
+    {% endif %}
     <form method="get" class="service-toggles">
+        {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
         {% for service in services %}
             <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>
         {% endfor %}

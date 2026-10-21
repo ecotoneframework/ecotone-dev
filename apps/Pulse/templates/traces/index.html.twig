@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Traces · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <h1>Traces</h1>
+    <p class="muted">Flow types are named by how a flow entered its service, so the same business flow has a different flow type in each service. Statistics cover the latest runs of each flow type; errors recorded are failures inside a unit of work that still completed. A failed asynchronous step is found among the dead letters.</p>
+
+    <form method="get" action="{{ path('traces') }}" data-trace-search>
+        <label>Find a trace by id <input type="text" name="traceId" required></label>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if searchError %}<p class="notice" data-search-error>{{ searchError }}</p>{% endif %}
+
+    {% for service in services %}
+        <section class="card" data-service-section="{{ service.service }}">
+            <h2>{{ service.service }}</h2>
+            {% if not service.status.hasSnapshot %}
+                <p class="muted" data-no-snapshot="{{ service.service }}">no snapshot yet ({{ service.status.status.name|lower }})</p>
+            {% elseif not service.tracing %}
+                <p class="muted" data-tracing-disabled="{{ service.service }}">flow tracking not enabled in {{ service.service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
+            {% elseif service.flowTypes is empty %}
+                <p class="muted" data-no-flow-types="{{ service.service }}">No flow has been tracked yet.</p>
+            {% else %}
+                <table>
+                    <thead><tr><th>Flow type</th><th>Runs</th><th>Errors recorded</th><th>Error rate</th><th>p50</th><th>p95</th><th>Max</th><th>Last run (UTC)</th></tr></thead>
+                    <tbody>
+                    {% for flowType in service.flowTypes %}
+                        <tr data-flow-type="{{ flowType.flowType }}" data-service="{{ service.service }}">
+                            <td><a href="{{ path('trace_list', {service: service.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a></td>
+                            <td data-stat="runs">{{ flowType.runs }}</td>
+                            <td data-stat="runsWithErrors">{{ flowType.runsWithErrors }}</td>
+                            <td data-stat="errorRate">{{ flowType.errorRate }}</td>
+                            <td data-stat="p50">{{ flowType.p50Ms }} ms</td>
+                            <td data-stat="p95">{{ flowType.p95Ms }} ms</td>
+                            <td data-stat="max">{{ flowType.maxMs }} ms</td>
+                            <td data-stat="lastRun">{{ flowType.lastStartedAt|date('Y-m-d H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <p class="muted">Statistics cover the latest {{ service.statsWindow }} runs.</p>
+            {% endif %}
+        </section>
+    {% endfor %}
+{% endblock %}

@@ -19,10 +19,11 @@ final readonly class DeadLetterNotice
     public const UNKNOWN_CHANNEL = 'unknown_channel';
     public const TARGET_NEEDS_SERVICE = 'target_needs_service';
     public const TARGET_PER_SERVICE = 'target_per_service';
+    public const SEARCH_NOT_STORED = 'search_not_stored';
 
     private const CODES = [
         self::ACTION_SENT, self::SEND_FAILED, self::NOTHING_SELECTED, self::NO_FILTER_CONDITION, self::UNKNOWN_SERVICE,
-        self::NOT_CONFIGURED, self::NO_DEAD_LETTERS_ANYWHERE, self::INVALID_DATE, self::UNKNOWN_CHANNEL, self::TARGET_NEEDS_SERVICE, self::TARGET_PER_SERVICE,
+        self::NOT_CONFIGURED, self::NO_DEAD_LETTERS_ANYWHERE, self::INVALID_DATE, self::UNKNOWN_CHANNEL, self::TARGET_NEEDS_SERVICE, self::TARGET_PER_SERVICE, self::SEARCH_NOT_STORED,
     ];
 
     /**
@@ -88,6 +89,11 @@ final readonly class DeadLetterNotice
     public static function targetPerService(): self
     {
         return new self(self::TARGET_PER_SERVICE, []);
+    }
+
+    public static function searchNotStored(): self
+    {
+        return new self(self::SEARCH_NOT_STORED, []);
     }
 
     public static function targetNeedsService(): self

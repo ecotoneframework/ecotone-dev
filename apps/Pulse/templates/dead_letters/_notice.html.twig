@@ -1,11 +1,12 @@
 {% set services = notice.services|join(', ') %}
 {% if notice.code == 'action_sent' %}
-    <p class="notice" data-notice>Action sent: {{ notice.parameters.action }} to {{ services }}. The service answers with a fresh snapshot. If the service refuses the action, it shows as unreachable after the reply timeout.</p>
+    <p class="notice toast" role="status" data-notice>Action sent: {{ notice.parameters.action }} to {{ services }}. The service answered with a fresh snapshot, and Pulse asks for one more a few seconds later. If the service refuses the action, it shows as unreachable after the reply timeout.</p>
 {% else %}
-    <p class="drift" data-notice-error>
+    <p class="notice toast drift" role="alert" data-notice-error>
     {% if notice.code == 'send_failed' %}The action could not be sent to {{ services }}; the service shows the reason.
     {% elseif notice.code == 'nothing_selected' %}No dead letters were selected. Tick at least one dead letter, or use the filter actions.
     {% elseif notice.code == 'no_filter_condition' %}A filter action needs at least one filter condition (message name, exception class, failed from or failed to), as without one it would apply to every dead letter. Fill one in, or select dead letters by id instead.
+    {% elseif notice.code == 'search_not_stored' %}A search narrows only the list Pulse shows, so an action on a filter cannot honour it and would reach more dead letters than you see. Clear the search to act on the filter, or tick the dead letters you found and act on the selection.
     {% elseif notice.code == 'unknown_service' %}That service is not configured in PULSE_SERVICES, so Pulse cannot send it dead letter actions. Pick one of the listed services.
     {% elseif notice.code == 'not_configured' %}Service "{{ notice.parameters.service }}" has dead letter not configured in its latest snapshot, so Pulse sends it no dead letter actions. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in that service, then refresh.
     {% elseif notice.code == 'no_dead_letters_anywhere' %}No service has dead letter configured, so there is nothing to act on.

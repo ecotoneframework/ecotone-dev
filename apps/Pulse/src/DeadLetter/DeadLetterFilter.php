@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\InputBag;
 final readonly class DeadLetterFilter
 {
     public const DATE_FIELDS = ['failedFrom', 'failedTo'];
-    public const FIELDS = ['service', 'messageName', 'exceptionClass', 'failedFrom', 'failedTo'];
+    public const FIELDS = ['service', 'messageName', 'exceptionClass', 'failedFrom', 'failedTo', 'search'];
 
     public function __construct(
         public string $service,
@@ -21,6 +21,7 @@ final readonly class DeadLetterFilter
         public string $exceptionClass,
         public string $failedFrom,
         public string $failedTo,
+        public string $search,
     ) {
     }
 
@@ -60,6 +61,11 @@ final readonly class DeadLetterFilter
         return $conditions;
     }
 
+    public function hasSearch(): bool
+    {
+        return $this->search !== '';
+    }
+
     public function selectsService(string $service): bool
     {
         return $this->service === '' || $this->service === $service;
@@ -77,7 +83,22 @@ final readonly class DeadLetterFilter
         return ($this->messageName === '' || $this->messageName === ($entry['messageName'] ?? null))
             && ($this->exceptionClass === '' || $this->exceptionClass === ($entry['exceptionClass'] ?? null))
             && ($from === null || $failedAt >= $from)
-            && ($to === null || $failedAt <= $to);
+            && ($to === null || $failedAt <= $to)
+            && ($this->search === '' || $this->searchMatches($entry));
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    private function searchMatches(array $entry): bool
+    {
+        foreach (['messageId', 'payload'] as $field) {
+            if (is_string($entry[$field] ?? null) && stripos($entry[$field], $this->search) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function invalidDateField(): ?string

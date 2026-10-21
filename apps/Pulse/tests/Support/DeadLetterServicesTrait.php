@@ -15,6 +15,7 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -104,6 +105,7 @@ trait DeadLetterServicesTrait
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),
+                SimpleMessageChannelBuilder::createDirectMessageChannel('order.audited'),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),

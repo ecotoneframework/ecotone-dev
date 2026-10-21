@@ -51,7 +51,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => 'order.audited']);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => ['orders' => 'order.audited']]);
         $this->deliver($client);
 
         self::assertSame(['2'], $this->work->audited);
@@ -59,30 +59,84 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertSame(['order.place', 'order.place'], $this->remainingNames($client));
     }
 
-    public function test_replaying_to_a_channel_missing_from_the_flow_graph_is_still_sent(): void
+    public function test_replaying_everything_matching_a_filter_of_one_service_to_a_chosen_channel_sends_the_messages_there(): void
+    {
+        $client = $this->pulseWithFailures();
+        $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'service' => 'orders', 'messageName' => 'order.cancel', 'targetChannel' => 'order.audited']);
+        $this->deliver($client);
+
+        self::assertSame(['2'], $this->work->audited);
+        self::assertSame(['order.place', 'order.place'], $this->remainingNames($client));
+    }
+
+    public function test_replaying_to_a_channel_the_service_does_not_register_is_refused(): void
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
         $this->advanceTimeBy(1);
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => 'not_in_the_graph']);
-        $sent = $client->followRedirect();
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => ['orders' => 'not_a_channel']]);
+        $refused = $client->followRedirect();
+        $this->deliver($client);
 
-        self::assertCount(0, $sent->filter('[data-notice-error]'));
-        self::assertStringContainsString('Action sent', $sent->filter('[data-notice]')->text());
-        self::assertStringContainsString('waiting', $sent->filter('[data-service-section="orders"]')->text());
+        self::assertStringContainsString('not_a_channel', $refused->filter('[data-notice-error]')->text());
+        self::assertStringContainsString('orders', $refused->filter('[data-notice-error]')->text());
+        self::assertCount(0, $refused->filter('[data-notice]'));
+        self::assertSame([], $this->work->audited);
+        self::assertCount(3, $client->request('GET', '/dead-letters')->filter('[data-dead-letter]'));
     }
 
-    public function test_the_channels_of_the_services_are_offered_as_suggestions_for_the_target_channel(): void
+    public function test_a_filter_replay_to_a_channel_the_chosen_service_does_not_register_is_refused(): void
+    {
+        $client = $this->pulseWithFailures();
+        $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'service' => 'orders', 'messageName' => 'order.cancel', 'targetChannel' => 'not_a_channel']);
+        $refused = $client->followRedirect();
+
+        self::assertStringContainsString('not_a_channel', $refused->filter('[data-notice-error]')->text());
+    }
+
+    public function test_a_filter_replay_across_services_cannot_name_a_target_channel(): void
+    {
+        $client = $this->pulseWithFailures();
+        $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'messageName' => 'order.cancel', 'targetChannel' => 'order.audited']);
+        $refused = $client->followRedirect();
+        $this->deliver($client);
+
+        self::assertStringContainsString('single service', $refused->filter('[data-notice-error]')->text());
+        self::assertSame([], $this->work->audited);
+    }
+
+    public function test_the_channels_a_service_registers_are_offered_as_a_select_for_the_target_channel_of_that_service(): void
     {
         $client = $this->pulseWithFailures();
 
         $list = $this->freshView($client, '/dead-letters');
 
-        $options = $list->filter('datalist[id="channels-orders"] option')->each(static fn (Crawler $option) => $option->attr('value'));
+        $select = $list->filter('select[name="targetChannel[orders]"]');
+        self::assertCount(1, $select);
+        $options = $select->filter('option')->each(static fn (Crawler $option) => $option->attr('value'));
+        self::assertSame('', $options[0]);
         self::assertContains('order.audited', $options);
         self::assertContains('pulse_dead_letter_work', $options);
-        self::assertCount(2, $list->filter('input[name="targetChannel"][list]'));
+        self::assertCount(0, $list->filter('input[name^="targetChannel"]'));
+        self::assertCount(0, $list->filter('[data-filter-action-form] select'));
+    }
+
+    public function test_the_filter_replay_offers_the_channels_only_once_a_single_service_is_chosen(): void
+    {
+        $client = $this->pulseWithFailures();
+        $this->freshView($client, '/dead-letters');
+
+        $list = $client->request('GET', '/dead-letters?service=orders');
+
+        $options = $list->filter('[data-filter-action-form] select[name="targetChannel"] option')->each(static fn (Crawler $option) => $option->attr('value'));
+        self::assertContains('order.audited', $options);
     }
 
     public function test_the_sent_notice_says_a_refusing_service_shows_as_unreachable(): void

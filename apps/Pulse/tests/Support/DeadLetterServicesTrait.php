@@ -32,6 +32,11 @@ trait DeadLetterServicesTrait
     private object $work;
 
     /**
+     * @var array<string, object>
+     */
+    private array $works = [];
+
+    /**
      * @var array<string, FlowTestSupport>
      */
     private array $services = [];
@@ -89,6 +94,7 @@ trait DeadLetterServicesTrait
 
         if ($deadLettersEnabled) {
             $this->work = $work;
+            $this->works[$service] = $work;
         }
 
         $application = EcotoneLite::bootstrapFlowTesting(

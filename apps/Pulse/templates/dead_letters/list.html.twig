@@ -27,6 +27,10 @@
 
     {% if notice %}{% include 'dead_letters/_notice.html.twig' %}{% endif %}
 
+    {% for group in sharedStores %}
+        <p class="drift" data-shared-store>{{ group|join(', ') }} share one dead letter store: they report the same dead letters, so act through one of them. A filter action across services is sent only to {{ group|first }}.</p>
+    {% endfor %}
+
     <form method="post" action="{{ path('dead_letter_actions') }}" data-selection-form>
     <input type="hidden" name="scope" value="ids">
     {% for service in services %}

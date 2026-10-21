@@ -31,6 +31,7 @@ final class DeadLetterController extends AbstractController
             'serviceNames' => array_map(static fn ($snapshot) => $snapshot->service, $snapshots),
             'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->service, $snapshots)),
             'channels' => DeadLetterOverview::channelsByService($snapshots),
+            'sharedStores' => DeadLetterOverview::servicesSharingAStore($snapshots),
             'waiting' => Snapshots::anyWaiting($snapshots),
         ]);
     }

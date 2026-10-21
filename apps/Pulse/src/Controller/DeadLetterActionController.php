@@ -80,6 +80,7 @@ final class DeadLetterActionController extends AbstractController
         if ($services instanceof DeadLetterNotice) {
             return $services;
         }
+        $services = DeadLetterOverview::withoutServicesSharingAnEarlierStore($this->snapshots->all(), $services);
         $conditions = $filter->storedConditions();
         $action = $replay ? DeadLetterAction::replayMatching($conditions, $targetChannel) : DeadLetterAction::deleteMatching($conditions);
 

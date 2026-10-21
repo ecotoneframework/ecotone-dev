@@ -74,4 +74,48 @@ final class DeadLetterOverview
 
         return $channels;
     }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return list<list<string>>
+     */
+    public static function servicesSharingAStore(array $snapshots): array
+    {
+        $groups = [];
+        $firstServiceOfId = [];
+        foreach ($snapshots as $snapshot) {
+            $owners = [];
+            foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
+                $id = $entry['messageId'] ?? null;
+                if (is_string($id) && isset($firstServiceOfId[$id])) {
+                    $owners[$firstServiceOfId[$id]] = true;
+                }
+            }
+            foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
+                if (is_string($entry['messageId'] ?? null)) {
+                    $firstServiceOfId[$entry['messageId']] ??= $snapshot->service;
+                }
+            }
+            foreach (array_keys($owners) as $owner) {
+                $groups[$owner][] = $snapshot->service;
+            }
+        }
+
+        return array_map(static fn (string $owner, array $others) => [$owner, ...array_values(array_unique($others))], array_keys($groups), array_values($groups));
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @param list<string> $services
+     * @return list<string>
+     */
+    public static function withoutServicesSharingAnEarlierStore(array $snapshots, array $services): array
+    {
+        $duplicates = [];
+        foreach (self::servicesSharingAStore($snapshots) as $group) {
+            array_push($duplicates, ...array_slice($group, 1));
+        }
+
+        return array_values(array_diff($services, $duplicates));
+    }
 }

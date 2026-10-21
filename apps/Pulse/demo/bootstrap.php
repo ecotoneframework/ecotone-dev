@@ -13,6 +13,11 @@ require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/Orders.php';
 require __DIR__ . '/Billing.php';
 
+if (! getenv('ECOTONE_LICENCE_KEY')) {
+    fwrite(STDERR, "ECOTONE_LICENCE_KEY is not set, but the demo services are Ecotone Enterprise services. Start the demo with ECOTONE_LICENCE_KEY=<your key> docker compose ... --profile demo up (trial: https://ecotone.tech/pricing).\n");
+    exit(1);
+}
+
 function demoDsn(?string $service = null): string
 {
     $dsn = getenv('PULSE_TRANSPORT_DSN') ?: 'pgsql://ecotone:secret@database:5432/pulse_demo';

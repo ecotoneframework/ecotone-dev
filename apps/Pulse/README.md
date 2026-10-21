@@ -26,9 +26,12 @@ replay or delete, and **Traces** lists the flows of both services (`order.place`
 To manage your own services, run Pulse with three settings (the broker of your services and their names):
 
 ```bash
-docker run -p 8080:8080 -e ECOTONE_LICENCE_KEY=<your key> \
+docker build -f apps/Pulse/Dockerfile -t ecotone-pulse .     # from the repository root, once
+docker run -p 8080:8080 --network <the network your broker is on> -e ECOTONE_LICENCE_KEY=<your key> \
     -e PULSE_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672 -e PULSE_SERVICES=orders,billing ecotone-pulse
 ```
+
+`rabbitmq` is the broker host as that network sees it; use the DSN your services use. Without `ECOTONE_LICENCE_KEY` the container stops with a message that names it, and `down` of the compose example works without it.
 
 Then open **Connect** in the navigation (`/connect?service=orders`): it generates the `#[ServiceContext]` class for Ecotone Lite, Symfony
 and Laravel with this Pulse's names and the channel builder of your transport, and the `PULSE_SERVICES` entry. A service that

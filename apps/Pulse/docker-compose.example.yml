@@ -6,16 +6,19 @@
 #   ECOTONE_LICENCE_KEY=... docker compose -f apps/Pulse/docker-compose.example.yml --profile amqp up --build
 #       Pulse and RabbitMQ only, for your own services (PULSE_SERVICES=orders,billing).
 #
+# Without ECOTONE_LICENCE_KEY the containers stop at start with a message that names it; `down` and `ps` work without it.
+# The two Pulse services (pulse, pulse-demo) share the host port 8080: start one profile at a time.
 # Pulse keeps its own state in an SQLite database inside the container, without a volume:
 # it is created when the container starts and is gone when the container is replaced.
 
+x-pulse-build: &pulse-build
+  context: ../..
+  dockerfile: apps/Pulse/Dockerfile
+
 x-pulse: &pulse
-  build:
-    context: ../..
-    dockerfile: apps/Pulse/Dockerfile
   image: ecotone-pulse:compose
   environment: &pulse-environment
-    ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:?set ECOTONE_LICENCE_KEY to your Ecotone Enterprise licence key}
+    ECOTONE_LICENCE_KEY: ${ECOTONE_LICENCE_KEY:-}
 
 x-pulse-healthcheck: &pulse-healthcheck
   test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/healthz') === 'ok' ? 0 : 1);"]
@@ -27,6 +30,7 @@ x-pulse-healthcheck: &pulse-healthcheck
 services:
   pulse:
     <<: *pulse
+    build: *pulse-build
     profiles: ["amqp"]
     environment:
       <<: *pulse-environment
@@ -108,6 +112,7 @@ services:
 
   pulse-demo:
     <<: *pulse
+    build: *pulse-build
     profiles: ["demo"]
     environment:
       <<: *demo-environment

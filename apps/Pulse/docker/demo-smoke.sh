@@ -17,6 +17,12 @@ fail() {
 }
 trap 'compose down -v > /dev/null 2>&1' EXIT
 
+licence="$ECOTONE_LICENCE_KEY"
+unset ECOTONE_LICENCE_KEY
+compose down -v > /dev/null 2>&1 || fail "docker compose down needs ECOTONE_LICENCE_KEY"
+echo "down without the licence key: ok"
+export ECOTONE_LICENCE_KEY="$licence"
+
 started="$(date +%s)"
 compose up -d --build > /dev/null 2>&1 || fail "docker compose up failed"
 
@@ -39,4 +45,11 @@ traces="$(curl -s "$url/traces" | grep -c 'data-flow-type=')"
 [ "$traces" -ge 2 ] || fail "the traces page lists $traces flow types, expected at least 2"
 echo "Flow types with traces: $traces"
 curl -s "$url/services/orders" | grep -q 'data-hub-status="connected"' || fail "the orders hub page is not Connected"
+compose up -d > /dev/null 2>&1 || fail "the second docker compose up failed"
+for attempt in $(seq 1 30); do
+    compose logs demo-seed 2>&1 | grep -q 'already seeded' && break
+    sleep 2
+done
+compose logs demo-seed 2>&1 | grep -q 'already seeded' || fail "a second up seeded the demo again"
+echo "second up does not seed again: ok"
 echo "DEMO SMOKE OK"

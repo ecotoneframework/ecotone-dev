@@ -175,12 +175,13 @@ trait DistributedServicesTrait
 
     /**
      * @param array<object> $extensionObjects
+     * @param array<object> $otherHandlers
      */
-    private function distributedService(string $service, object $handler, DistributedServiceMap $serviceMap, array $extensionObjects = []): FlowTestSupport
+    private function distributedService(string $service, object $handler, DistributedServiceMap $serviceMap, array $extensionObjects = [], array $otherHandlers = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            classesToResolve: [$handler::class, ...array_map(fn (object $other) => $other::class, $otherHandlers)],
+            containerOrAvailableServices: [$handler, ...$otherHandlers, DbalConnectionFactory::class => OpenedConnections::factory($_SERVER['PULSE_TRANSPORT_DSN'])],
             extensionObjects: [
                 ...array_map(
                     fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel)->withReceiveTimeout(1),

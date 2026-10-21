@@ -9,6 +9,7 @@ use App\Storage\InternalDatabase;
 use App\Storage\InternalTables;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 final readonly class Heartbeats
 {
@@ -59,7 +60,7 @@ final readonly class Heartbeats
     {
         try {
             $this->record('readiness');
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             return new ReadinessCheck('internal database', false, sprintf('The internal SQLite database at %s is not writable: %s. Make the directory writable by the user Pulse runs as.', $this->settings->internalDatabasePath, $exception->getMessage()));
         }
 
@@ -70,7 +71,7 @@ final readonly class Heartbeats
     {
         try {
             $beatAt = $this->database->connection()->fetchOne('SELECT beat_at FROM ' . InternalTables::HEARTBEAT . ' WHERE process = ?', [$process]);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $beatAt = false;
         }
 

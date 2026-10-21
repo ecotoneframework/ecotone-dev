@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Doctor;
 
+use AMQPChannel;
+use AMQPConnection;
+use AMQPQueue;
+use AMQPQueueException;
 use App\Settings\Connection;
 use App\Settings\ServiceRoute;
 use App\Settings\Transport;
-use Ecotone\Api\Dbal\DbalConnectionFactory;
-use Ecotone\Api\Sqs\SqsConnectionFactory;
 use Psr\Container\ContainerInterface;
+use Redis;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 final readonly class BrokerProbe
 {
@@ -67,7 +71,7 @@ final readonly class BrokerProbe
                 Transport::Sqs => $this->container->get($connection->referenceName())->createContext()->getClient()->listQueues(),
                 Transport::Kafka => $this->kafka($connection)->getMetadata(false, null, self::TIMEOUT_SECONDS * 1000),
             };
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             return $exception->getMessage();
         }
 
@@ -83,15 +87,15 @@ final readonly class BrokerProbe
                 Transport::Sqs => $this->sqsQueueExists($connection, $route->destination),
                 Transport::Redis, Transport::Dbal => null,
             };
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }
 
-    private function amqpConnection(Connection $connection): \AMQPConnection
+    private function amqpConnection(Connection $connection): AMQPConnection
     {
         $parts = parse_url($connection->dsn) ?: [];
-        $amqp = new \AMQPConnection([
+        $amqp = new AMQPConnection([
             'host' => $parts['host'] ?? 'localhost',
             'port' => $parts['port'] ?? 5672,
             'login' => urldecode($parts['user'] ?? 'guest'),
@@ -108,11 +112,11 @@ final readonly class BrokerProbe
     {
         $amqp = $this->amqpConnection($connection);
         try {
-            $queue = new \AMQPQueue(new \AMQPChannel($amqp));
+            $queue = new AMQPQueue(new AMQPChannel($amqp));
             $queue->setName($queueName);
             $queue->setFlags(AMQP_PASSIVE);
             $queue->declareQueue();
-        } catch (\AMQPQueueException) {
+        } catch (AMQPQueueException) {
             return false;
         } finally {
             $amqp->disconnect();
@@ -124,7 +128,7 @@ final readonly class BrokerProbe
     private function redis(Connection $connection): void
     {
         $parts = parse_url($connection->dsn) ?: [];
-        $redis = new \Redis();
+        $redis = new Redis();
         $redis->connect($parts['host'] ?? 'localhost', $parts['port'] ?? 6379, self::TIMEOUT_SECONDS);
         if (isset($parts['pass'])) {
             $redis->auth(urldecode($parts['pass']));

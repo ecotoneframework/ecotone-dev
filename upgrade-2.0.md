@@ -3258,6 +3258,8 @@ first. A flow type has `runs` (every retained run), `windowRuns` (the most recen
 entered this service with) and `lastStartedAt`. Reading the section costs one index-only count per snapshot and one
 read of at most `statsWindow` entries per flow type.
 
+Flow types are case-sensitive on every engine (on MySQL and MariaDB the column is `utf8mb4_bin`).
+
 A flow type is the routing name the flow entered this service through: the routing key of a command, event or query
 sent to its bus, the class name when it was sent by class, and, for a flow that arrived through a channel or from
 another service, the name of the first message its handling sent (bus sends before channel sends, then the earliest,
@@ -3306,7 +3308,7 @@ MySQL and MariaDB:
 
 ```sql
 ALTER TABLE ecotone_tracing
-    ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL,
+    ADD COLUMN flow_type VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
     ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL,
     ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
 ```

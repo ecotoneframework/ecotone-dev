@@ -75,7 +75,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         Add the columns with the statement for your database:
           PostgreSQL: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
-          MySQL and MariaDB: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
+          MySQL and MariaDB: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
           SQLite: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
 
         Or, as tracked flows are only kept for the configured retention, drop the 'ecotone_tracing' table and create it again with $messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('tracing').
@@ -431,6 +431,20 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_flow_types_differing_only_in_case_stay_apart(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->sendWithTrace('Create.Ticket', '100', self::SECOND_TRACE);
+        $this->sendWithTrace('Create.Ticket', '100', self::THIRD_TRACE);
+
+        $flowTypes = $this->requestSnapshot()['tracing']['flowTypes'];
+
+        self::assertSame([['Create.Ticket', 2], ['create.ticket', 1]], array_map(fn (array $flowType): array => [$flowType['flowType'], $flowType['runs']], $flowTypes));
+        self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'traceId'));
+    }
+
+    #[DataProvider('implementations')]
     public function test_the_snapshot_has_no_tracing_section_without_flow_tracking(string $implementation): void
     {
         $this->bootstrap($implementation, flowTracking: false);
@@ -728,6 +742,11 @@ final class PulseTracesTest extends DbalMessagingTestCase
             public function openLater(string $subject, DistributedBus $distributedBus): void
             {
                 $distributedBus->sendCommand('ticket_service', 'ticket.open.later', $subject);
+            }
+
+            #[CommandHandler('Create.Ticket', endpointId: 'ticket.create_capitalised')]
+            public function createCapitalised(string $milliseconds): void
+            {
             }
 
             #[CommandHandler('fan.out', endpointId: 'ticket.fan_out')]

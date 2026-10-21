@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -59,7 +61,7 @@ final class SpansTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        return DbalIdempotentDdl::withIfNotExists($connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema()));
+        return DbalIdempotentDdl::withIfNotExists($connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema($connection->getDatabasePlatform())));
     }
 
     public function getDropTableSql(Connection $connection): string
@@ -74,7 +76,7 @@ final class SpansTableManager implements DbalTableManager
         }
 
         try {
-            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+            $connection->createSchemaManager()->createTable($this->buildTableSchema($connection->getDatabasePlatform()));
         } catch (TableExistsException) {
         }
     }
@@ -96,7 +98,7 @@ final class SpansTableManager implements DbalTableManager
         return "The '{$table}' table required by the '" . self::FEATURE_NAME . "' feature has no 'flow_type' and 'flow_status' columns, which flow tracking writes and Ecotone Pulse reads since the 2.0 release. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.\n\n"
             . "Add the columns with the statement for your database:\n"
             . "  PostgreSQL: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX {$index} ON {$table} (flow_type, started_at);\n"
-            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX {$index} (flow_type, started_at);\n"
+            . "  MySQL and MariaDB: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX {$index} (flow_type, started_at);\n"
             . "  SQLite: ALTER TABLE {$table} ADD COLUMN flow_type VARCHAR({$length}) DEFAULT NULL; ALTER TABLE {$table} ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX {$index} ON {$table} (flow_type, started_at);\n\n"
             . "Or, as tracked flows are only kept for the configured retention, {$drop}.";
     }
@@ -126,7 +128,7 @@ final class SpansTableManager implements DbalTableManager
         return $this->tableName . '_flow_type_started_at_idx';
     }
 
-    private function buildTableSchema(): Table
+    private function buildTableSchema(AbstractPlatform $platform): Table
     {
         $table = new Table($this->tableName);
         $table->addColumn('span_id', Types::STRING, ['length' => 16]);
@@ -140,7 +142,7 @@ final class SpansTableManager implements DbalTableManager
         $table->addColumn('events', Types::TEXT);
         $table->addColumn('started_at', Types::BIGINT);
         $table->addColumn('ended_at', Types::BIGINT);
-        $table->addColumn('flow_type', Types::STRING, ['length' => FlowEntries::FLOW_TYPE_MAX_LENGTH, 'notnull' => false]);
+        $table->addColumn('flow_type', Types::STRING, ['length' => FlowEntries::FLOW_TYPE_MAX_LENGTH, 'notnull' => false, 'platformOptions' => $platform instanceof AbstractMySQLPlatform ? ['charset' => 'utf8mb4', 'collation' => 'utf8mb4_bin'] : []]);
         $table->addColumn('flow_status', Types::STRING, ['length' => 16, 'notnull' => false]);
         $table->setPrimaryKey(['trace_id', 'span_id']);
         $table->addIndex(['started_at']);

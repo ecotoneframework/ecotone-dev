@@ -49,6 +49,35 @@
             </dl>
         </section>
 
+        <section class="card" id="channels" data-hub-channels>
+            <h2>Channels</h2>
+            {% if channels is empty %}
+                <p class="muted">{{ service.service }} reports no message channel to measure.</p>
+            {% else %}
+                <div class="flush">
+                    <table>
+                        <thead>
+                        <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for channel in channels %}
+                            <tr data-channel="{{ channel.name }}">
+                                <th scope="row">{{ channel.name }} <span class="muted">{{ channel.kind }}</span></th>
+                                <td class="num">
+                                    <span class="pill {{ {ok: 'ok', warning: 'wait', critical: 'bad sq', unknown: 'off'}[channel.level] }}" data-level="{{ channel.level }}"><span data-ready>{{ channel.ready is null ? '–' : channel.ready|number_format }}</span><span class="visually-hidden"> {{ channel.level }}</span></span>
+                                    {% if channel.probeError %}<br><span class="drift" data-probe-error>{{ channel.probeError }}</span>{% endif %}
+                                </td>
+                                <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
+                                <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
+                                <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </section>
+
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
             {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}

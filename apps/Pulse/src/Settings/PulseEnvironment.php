@@ -17,6 +17,8 @@ final class PulseEnvironment
         'PULSE_REFRESH_INTERVAL',
         'PULSE_DOCTOR_BUDGET_SECONDS',
         'PULSE_INTERNAL_DATABASE_PATH',
+        'PULSE_QUEUE_WARNING',
+        'PULSE_QUEUE_CRITICAL',
     ];
 
     private const CONNECTION_VARIABLE = '/^PULSE_CONNECTION_[A-Z0-9]+(?:_[A-Z0-9]+)*_(?:DSN|REPLY_CHANNEL)(?:_FILE)?$/';

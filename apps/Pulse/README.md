@@ -166,6 +166,8 @@ docker run -p 8080:8080 \
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_REFRESH_INTERVAL` | `20` | Seconds between the periodic snapshot requests. A whole number from 1 to 59, below the 60 second freshness limit |
 | `PULSE_DOCTOR_BUDGET_SECONDS` | `8` | Seconds the service page (`/services/{name}`) of an Unreachable service spends on broker checks. Probes that do not fit are skipped and the page says so; `0` skips them all. |
+| `PULSE_QUEUE_WARNING` | `1000` | Ready messages from which a channel shows a warning. A whole number, optionally with per-channel overrides: `orders:invoices=500,*=1000` |
+| `PULSE_QUEUE_CRITICAL` | `10000` | Ready messages from which a channel shows as critical. Same form as `PULSE_QUEUE_WARNING`, and always above it |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
 | `APP_SECRET` (or `APP_SECRET_FILE`) | generated | Pulse signs nothing with it. When unset the entrypoint generates one for the lifetime of the container and logs one line saying so |

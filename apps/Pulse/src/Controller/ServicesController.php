@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DeadLetter\DeadLetterOverview;
+use App\Settings\PulseSettings;
+use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\ServiceStatus;
 use App\Snapshot\Snapshots;
@@ -15,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class ServicesController extends AbstractController
 {
-    public function __construct(private readonly Snapshots $snapshots)
+    public function __construct(private readonly Snapshots $snapshots, private readonly PulseSettings $settings)
     {
     }
 
@@ -37,6 +39,10 @@ final class ServicesController extends AbstractController
                 'deadLetters' => DeadLetterOverview::total($services),
                 'drift' => count(array_filter($services, static fn (ServiceSnapshot $service) => $newest !== null && $service->ecotoneVersion() !== null && $service->ecotoneVersion() !== $newest)),
             ],
+            'channelsOver' => array_combine(
+                array_map(static fn (ServiceSnapshot $service) => $service->service, $services),
+                array_map(fn (ServiceSnapshot $service) => ChannelDepth::overThreshold(ChannelDepth::of($service, $this->settings->queueThresholds)), $services),
+            ),
             'updatedAgo' => $ages === [] ? null : min($ages),
             'waiting' => Snapshots::needsAutoRefresh($services),
         ]);

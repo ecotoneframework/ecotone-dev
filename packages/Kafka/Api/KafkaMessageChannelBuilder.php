@@ -7,9 +7,12 @@ namespace Ecotone\Api\Kafka;
 use Ecotone\Api\ExtensionObject\FinalFailureStrategy;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Kafka\Channel\KafkaMessageChannel;
+use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
+use Ecotone\Kafka\Pulse\KafkaChannelDepthProbe;
+use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -23,7 +26,7 @@ use Ecotone\Messaging\Support\Assert;
  *
  * Use requires an Ecotone Enterprise licence (see LICENSE-ENTERPRISE; trial: https://ecotone.tech/pricing).
  */
-final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder
+final class KafkaMessageChannelBuilder implements MessageChannelWithSerializationBuilder, DepthProbedMessageChannelBuilder
 {
     private KafkaInboundChannelAdapterBuilder $inboundChannelAdapterBuilder;
     private KafkaOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder;
@@ -141,6 +144,21 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         }
 
         return $this;
+    }
+
+    public function depthProbeGroup(): string
+    {
+        return 'kafka';
+    }
+
+    public function depthProbeDestination(): string
+    {
+        return $this->channelName;
+    }
+
+    public function depthProbeDefinition(): Definition
+    {
+        return new Definition(KafkaChannelDepthProbe::class, [Reference::to(KafkaAdmin::class)]);
     }
 
     public function isBatchPublishingEnabled(): bool

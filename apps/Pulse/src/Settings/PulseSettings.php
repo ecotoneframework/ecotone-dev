@@ -27,6 +27,7 @@ final readonly class PulseSettings
         public int $refreshIntervalSeconds,
         public int $doctorBudgetSeconds,
         public string $internalDatabasePath,
+        public QueueThresholds $queueThresholds,
     ) {
     }
 
@@ -80,7 +81,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $internalDatabasePath);
+        return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
     }
 
     public function transportConnectionReference(): string

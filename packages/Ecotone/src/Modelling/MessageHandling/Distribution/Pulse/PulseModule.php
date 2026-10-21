@@ -15,6 +15,7 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -102,6 +103,7 @@ final class PulseModule implements AnnotationModule
         self::guardReplyChannel($pulseConfigurations[0], $serviceConfiguration->serviceName, $serviceMaps, $extensionObjects);
 
         $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
+        ['channels' => $channels, 'probes' => $probes] = $this->channelsOf($serviceMaps, $extensionObjects);
         $sections = self::sectionReferences(ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects));
 
         $messagingConfiguration->registerServiceDefinition(
@@ -111,7 +113,8 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
-                $this->channelsOf($serviceMaps, $extensionObjects),
+                $channels,
+                $probes,
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -128,7 +131,7 @@ final class PulseModule implements AnnotationModule
 
     /**
      * @param DistributedServiceMap[] $serviceMaps
-     * @return list<array{name: string, kind: string}>
+     * @return array{channels: list<array{name: string, kind: string, probeGroup: string|null, destination: string|null}>, probes: array<string, Definition>}
      */
     private function channelsOf(array $serviceMaps, array $extensionObjects): array
     {
@@ -144,15 +147,20 @@ final class PulseModule implements AnnotationModule
         }
 
         $channels = [];
+        $probes = [];
         foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channelBuilder) {
             $name = $channelBuilder->getMessageChannelName();
             if ($channelBuilder->isPollable() && $name !== NullableMessageChannel::CHANNEL_NAME && ! in_array($name, $outboundChannels, true)) {
-                $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue'];
+                $probeGroup = $channelBuilder instanceof DepthProbedMessageChannelBuilder ? $channelBuilder->depthProbeGroup() : null;
+                if ($probeGroup !== null && ! isset($probes[$probeGroup])) {
+                    $probes[$probeGroup] = $channelBuilder->depthProbeDefinition();
+                }
+                $channels[$name] = ['name' => $name, 'kind' => in_array($name, $this->asynchronousHandlerChannels, true) ? 'async' : 'queue', 'probeGroup' => $probeGroup, 'destination' => $probeGroup === null ? null : $channelBuilder->depthProbeDestination()];
             }
         }
         ksort($channels);
 
-        return array_values($channels);
+        return ['channels' => array_values($channels), 'probes' => $probes];
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

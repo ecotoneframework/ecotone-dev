@@ -9,6 +9,7 @@ use DateTimeInterface;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -34,11 +35,13 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
+    public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
     public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param list<array{name: string, kind: string}> $channels
+     * @param list<array{name: string, kind: string, probeGroup: string|null, destination: string|null}> $channels
+     * @param array<string, PulseChannelProbe> $probes
      * @param array<string, PulseSnapshotSection> $sections
      */
     public function __construct(
@@ -47,6 +50,7 @@ final class PulseSnapshot
         private string $framework,
         private array $serviceMaps,
         private array $channels,
+        private array $probes,
         private array $sections,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
@@ -68,7 +72,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<array{name: string, kind: string}>,
+     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -85,7 +89,7 @@ final class PulseSnapshot
             ],
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
-            'channels' => $this->channels,
+            'channels' => $this->channelsWithDepth(),
         ];
 
         foreach ($this->sections as $sectionName => $section) {
@@ -93,6 +97,54 @@ final class PulseSnapshot
         }
 
         return $snapshot;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function channelsWithDepth(): array
+    {
+        $namesByGroup = [];
+        foreach ($this->channels as $channel) {
+            if ($channel['probeGroup'] !== null) {
+                $namesByGroup[$channel['probeGroup']][$channel['name']] = $channel['destination'];
+            }
+        }
+
+        $depths = [];
+        foreach ($namesByGroup as $group => $destinationByChannel) {
+            $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
+        }
+
+        return array_map(
+            fn (array $channel): array => [
+                'name' => $channel['name'],
+                'kind' => $channel['kind'],
+                ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
+            ],
+            $this->channels
+        );
+    }
+
+    /**
+     * @param array<string, string> $destinationByChannel
+     * @return array<string, PulseChannelDepth>
+     */
+    private function probe(PulseChannelProbe $probe, array $destinationByChannel): array
+    {
+        $startedAt = hrtime(true);
+        try {
+            $depths = $probe->depthsOf($destinationByChannel, self::PROBE_BUDGET_IN_MILLISECONDS);
+        } catch (Throwable $exception) {
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed($exception->getMessage()));
+        }
+
+        $tookInMilliseconds = intdiv(hrtime(true) - $startedAt, 1_000_000);
+        if ($tookInMilliseconds > self::PROBE_BUDGET_IN_MILLISECONDS) {
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed('Measuring the channel depth took ' . $tookInMilliseconds . ' ms, over the ' . self::PROBE_BUDGET_IN_MILLISECONDS . ' ms budget, so the result was dropped.'));
+        }
+
+        return $depths;
     }
 
     public function authorizeRequestFrom(?string $sourceService): void

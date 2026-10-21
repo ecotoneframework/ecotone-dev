@@ -4,16 +4,21 @@ namespace Ecotone\Api\Amqp;
 
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
+use Ecotone\Amqp\Pulse\AmqpChannelDepthProbe;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Channel\DepthProbedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 
 /**
  * licence Apache-2.0
  */
-class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection
+class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection, DepthProbedMessageChannelBuilder
 {
     private string $channelName;
     private string $amqpConnectionReferenceName;
+    private string $queueName;
 
     private function __construct(
         string $channelName,
@@ -22,6 +27,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
     ) {
         $this->channelName = $channelName;
         $this->amqpConnectionReferenceName = $amqpConnectionReferenceName;
+        $this->queueName = $queueName;
 
         parent::__construct(
             AmqpInboundChannelAdapterBuilder::createWith($channelName, $queueName, null, $amqpConnectionReferenceName),
@@ -51,6 +57,21 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
     public function forSendOnlyChannelOnSameConnection(string $channelName): self
     {
         return self::create($channelName, $this->amqpConnectionReferenceName)->withRequiredExistingDestination();
+    }
+
+    public function depthProbeGroup(): string
+    {
+        return 'amqp:' . $this->amqpConnectionReferenceName;
+    }
+
+    public function depthProbeDestination(): string
+    {
+        return $this->queueName;
+    }
+
+    public function depthProbeDefinition(): Definition
+    {
+        return new Definition(AmqpChannelDepthProbe::class, [new Reference($this->amqpConnectionReferenceName)]);
     }
 
     private function getAmqpOutboundChannelAdapter(): AmqpOutboundChannelAdapterBuilder

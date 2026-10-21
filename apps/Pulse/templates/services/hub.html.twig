@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% macro channelTable(channels, tenant) %}
-    <div class="flush">
+    <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Channels{% if tenant %} of {{ tenant }}{% endif %}">
         <table>
             <thead>
             <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th></tr>

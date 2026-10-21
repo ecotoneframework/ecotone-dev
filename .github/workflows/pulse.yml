@@ -118,6 +118,23 @@ jobs:
           test "$status" -ne 0
           echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"
 
+      - name: Smoke test, a consumer that keeps exiting at once backs off and then stops the container
+        run: |
+          licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\\Test\\LicenceTesting::VALID_LICENCE;')"
+          set +e
+          output="$(docker run --rm \
+            -e APP_SECRET=ci \
+            -e ECOTONE_LICENCE_KEY="$licence" \
+            -e PULSE_TRANSPORT_DSN=sqlite:////tmp/transport.db \
+            -e PULSE_SERVICES=orders:orders_channel \
+            -e PULSE_WORKER_TIME_LIMIT_MS=1 \
+            -e PULSE_RESTART_MAX_RAPID=3 \
+            ecotone-pulse:ci 2>&1)"
+          status=$?
+          echo "$output"
+          test "$status" -ne 0
+          echo "$output" | grep -q "Pulse is stopping"
+
       - name: Smoke test, one container serves, consumes replies, refreshes and answers a Refresh with Connected
         run: |
           licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"

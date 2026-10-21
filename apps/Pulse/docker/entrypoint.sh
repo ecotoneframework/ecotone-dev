@@ -26,8 +26,13 @@ prepare() {
 keep_running() {
     stopping=0
     child=
+    rapid=0
+    delay=1
+    minimum_uptime="${PULSE_RESTART_MIN_UPTIME_SECONDS:-10}"
+    maximum_rapid="${PULSE_RESTART_MAX_RAPID:-5}"
     trap 'stopping=1; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null' TERM INT
     while true; do
+        started=$(date +%s)
         "$@" &
         child=$!
         status=0
@@ -39,11 +44,37 @@ keep_running() {
         if [ "$status" -ne 0 ]; then
             exit "$status"
         fi
+        if [ $(( $(date +%s) - started )) -ge "$minimum_uptime" ]; then
+            rapid=0
+            delay=1
+            continue
+        fi
+        rapid=$(( rapid + 1 ))
+        if [ "$rapid" -ge "$maximum_rapid" ]; then
+            echo "Pulse is stopping: \"$*\" exited cleanly $rapid times in a row, each within ${minimum_uptime}s of starting, so restarting it again would not help. Check its limits (PULSE_WORKER_TIME_LIMIT_MS, PULSE_WORKER_MEMORY_LIMIT) and its log above." >&2
+            exit 1
+        fi
+        echo "Pulse restarts \"$*\" in ${delay}s ($rapid of $maximum_rapid quick clean exits)." >&2
+        sleep "$delay" &
+        child=$!
+        wait "$child" || true
+        if [ "$stopping" = 1 ]; then
+            exit 0
+        fi
+        delay=$(( delay * 2 > 30 ? 30 : delay * 2 ))
     done
 }
 
 run_pulse() {
+    stopping=0
+    web=
+    consumer=
+    refresher=
+    trap 'stopping=1; kill -TERM $web $consumer $refresher 2>/dev/null' TERM INT
     prepare
+    if [ "$stopping" = 1 ]; then
+        exit 0
+    fi
     frankenphp run --config /etc/caddy/Caddyfile &
     web=$!
     keep_running php bin/console ecotone:run "${PULSE_CHANNEL:-ecotone_pulse}" \
@@ -52,8 +83,6 @@ run_pulse() {
     consumer=$!
     keep_running php bin/console pulse:refresh &
     refresher=$!
-    stopping=0
-    trap 'stopping=1; kill -TERM "$web" "$consumer" "$refresher" 2>/dev/null' TERM INT
     status=0
     wait -n || status=$?
     kill -TERM "$web" "$consumer" "$refresher" 2>/dev/null || true

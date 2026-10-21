@@ -7,6 +7,8 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
 
 > **There is no authentication.** Anyone who can reach Pulse can see every service it manages. Run it behind your own
 > network protection or ingress authentication (VPN, private network, reverse proxy with SSO).
+>
+> Every `POST` is refused with `403` when the browser's `Sec-Fetch-Site` is not `same-origin`/`none`, or its `Origin` host differs from the host Pulse is served on, so another site cannot make a visitor's browser replay or delete dead letters; requests carrying neither header (scripts) are served.
 
 ## How it works
 

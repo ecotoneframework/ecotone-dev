@@ -12,6 +12,7 @@ final readonly class ServiceRecord
 
     /**
      * @param array<string, mixed> $snapshot
+     * @param array<string, array{digest: string, since: string}> $projectionMovements
      */
     public function __construct(
         public ?DateTimeImmutable $receivedAt,
@@ -22,6 +23,7 @@ final readonly class ServiceRecord
         public ?DateTimeImmutable $followUpDueAt = null,
         public bool $retrying = false,
         public ?string $missingDestination = null,
+        public array $projectionMovements = [],
     ) {
     }
 
@@ -44,6 +46,7 @@ final readonly class ServiceRecord
             isset($stored['followUpDueAt']) ? new DateTimeImmutable($stored['followUpDueAt']) : null,
             $stored['retrying'] ?? false,
             $stored['missingDestination'] ?? null,
+            $stored['projectionMovements'] ?? [],
         );
     }
 
@@ -61,6 +64,7 @@ final readonly class ServiceRecord
             'followUpDueAt' => $this->followUpDueAt?->format(self::TIME_FORMAT),
             'retrying' => $this->retrying,
             'missingDestination' => $this->missingDestination,
+            'projectionMovements' => $this->projectionMovements,
         ];
     }
 
@@ -101,7 +105,28 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null]);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at)]);
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, array{digest: string, since: string}>
+     */
+    private function projectionMovementsAfter(array $snapshot, DateTimeImmutable $at): array
+    {
+        $movements = [];
+        foreach (is_array($snapshot['projections'] ?? null) ? $snapshot['projections'] : [] as $projection) {
+            if (! is_array($projection) || ! is_string($projection['name'] ?? null)) {
+                continue;
+            }
+            $digest = is_string($projection['positionDigest'] ?? null) ? $projection['positionDigest'] : '';
+            $previous = $this->projectionMovements[$projection['name']] ?? null;
+            $movements[$projection['name']] = $previous !== null && $previous['digest'] === $digest
+                ? $previous
+                : ['digest' => $digest, 'since' => $at->format(self::TIME_FORMAT)];
+        }
+
+        return $movements;
     }
 
     public function replyRejected(string $reason): self

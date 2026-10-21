@@ -12,6 +12,7 @@ final readonly class ServiceSnapshot
      * @param array<string, mixed> $snapshot
      * @param list<string> $tenants
      * @param list<string> $unadvertisedTenants
+     * @param array<string, array{digest: string, since: string}> $projectionMovements
      */
     public function __construct(
         public string $service,
@@ -28,6 +29,7 @@ final readonly class ServiceSnapshot
         public ?string $tenantHeader,
         public array $tenants,
         public array $unadvertisedTenants,
+        public array $projectionMovements,
     ) {
     }
 
@@ -61,5 +63,15 @@ final readonly class ServiceSnapshot
         }
 
         return is_int($deadLetters['total'] ?? null) ? $deadLetters['total'] : null;
+    }
+
+    public function failureCount(): ?int
+    {
+        $deadLetters = $this->snapshot['deadLetters'] ?? null;
+        if (! is_array($deadLetters) || ! is_array($deadLetters['groups'] ?? null)) {
+            return null;
+        }
+
+        return count($deadLetters['groups']);
     }
 }

@@ -47,11 +47,13 @@ final class PulseDeadLetterActions
         $selection = PulseDeadLetterSelection::forReplay($payload);
 
         $this->deadLetterHandler->assertTargetChannelExists($selection->targetChannel);
+        $affected = 0;
         foreach ($this->existing($selection) as $messageId) {
             $this->deadLetterHandler->replay($messageId, $messagingEntrypoint, $selection->targetChannel);
+            $affected++;
         }
 
-        return $snapshot->snapshotJson($sourceService, $headers);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
     }
 
     /**
@@ -63,11 +65,18 @@ final class PulseDeadLetterActions
         $snapshot->tenantOfScopedRequest($headers);
         $selection = PulseDeadLetterSelection::forDelete($payload);
 
+        $affected = 0;
         foreach ($this->existing($selection) as $messageId) {
             $this->deadLetterHandler->delete($messageId);
+            $affected++;
         }
 
-        return $snapshot->snapshotJson($sourceService, $headers);
+        return self::replyWithAffected($snapshot->snapshotJson($sourceService, $headers), $affected);
+    }
+
+    private static function replyWithAffected(string $snapshotJson, int $affected): string
+    {
+        return json_encode([...json_decode($snapshotJson, true, flags: JSON_THROW_ON_ERROR), 'deadLetterAction' => ['affected' => $affected]], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     /**

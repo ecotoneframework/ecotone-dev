@@ -24,8 +24,14 @@
             <a class="btn" data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>
             <a class="btn" data-view-graph href="{{ path('flow_graph', {trace: entry.traceId}) }}">View on flow graph</a>
         {% endif %}
-        <a class="btn" data-similar href="{{ path('dead_letters', {service: service, messageName: entry.messageName, exceptionClass: entry.exceptionClass}) }}">{{ similar }} similar</a>
+        <a class="btn" data-similar href="{{ path('dead_letters', {service: service, failureId: entry.failureId}) }}">{{ similar }} more with this failure</a>
     </div>
+    {% if similar > 0 %}
+        <form method="post" action="{{ path('dead_letter_actions') }}" class="actions" data-failure-actions>
+            <button type="submit" name="failure" value="{{ [service, entry.failureId]|json_encode }}" class="pri" data-await>Replay all {{ failure.count ?? (similar + 1) }} with this failure</button>
+            <button type="submit" name="deleteFailure" value="{{ [service, entry.failureId]|json_encode }}" class="danger">Delete all {{ failure.count ?? (similar + 1) }} with this failure</button>
+        </form>
+    {% endif %}
 
     <div class="card">
     <dl>
@@ -33,6 +39,7 @@
         <dt>Message id</dt><dd><span class="mono" data-detail="messageId" id="detail-messageId">{{ entry.messageId }}</span> <button type="button" class="copy" data-copy="#detail-messageId" hidden>Copy</button></dd>
         <dt>Message name</dt><dd data-detail="messageName">{{ entry.messageName }}</dd>
         <dt>Failed at</dt><dd data-detail="failedAt">{{ entry.failedAt|date('Y-m-d H:i:s T', 'UTC') }}</dd>
+        <dt>Failure</dt><dd data-detail="failure"><span class="mono" data-detail="failureClass">{{ entry.exceptionClass }}</span>{% if entry.exceptionFile %} at <span class="mono" data-detail="failureLocation" title="{{ entry.exceptionFile }}:{{ entry.exceptionLine }}">{{ entry.exceptionFile|split('/')|last }}:{{ entry.exceptionLine }}</span>{% endif %}</dd>
         <dt>Exception</dt><dd data-detail="exception">{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</dd>
         <dt>Content type</dt><dd data-detail="contentType">{{ entry.contentType ?? 'unknown' }}</dd>
         <dt>Channel</dt><dd data-detail="channel">{{ entry.channel ?? 'unknown' }}</dd>

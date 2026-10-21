@@ -58,6 +58,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private ?string $rebuildAsyncChannelName = null,
         private bool    $hasRebuild = false,
         private bool    $hasDeployment = false,
+        private bool    $polling = false,
     ) {
         if ($this->partitionHeader && ! $this->automaticInitialization) {
             throw new ConfigurationException("Cannot set partition header for projection {$this->projectionName} with automatic initialization disabled");
@@ -125,6 +126,11 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function getAsyncAttribute(): ?Asynchronous
     {
         return $this->asyncAttribute;
+    }
+
+    public function isPolling(): bool
+    {
+        return $this->polling;
     }
 
     public function automaticInitialization(): bool

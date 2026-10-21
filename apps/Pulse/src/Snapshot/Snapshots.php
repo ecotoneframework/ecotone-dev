@@ -129,6 +129,26 @@ final readonly class Snapshots
         return $scopes;
     }
 
+    /**
+     * @param array<string, mixed> $service
+     * @param array<string, mixed> $tenant
+     * @return array<string, mixed>
+     */
+    private static function mergedWithTenant(array $service, array $tenant): array
+    {
+        $measured = [];
+        foreach (is_array($tenant['channels'] ?? null) ? $tenant['channels'] : [] as $channel) {
+            if (is_array($channel) && is_string($channel['name'] ?? null)) {
+                $measured[$channel['name']] = $channel + ['perTenant' => true];
+            }
+        }
+        unset($tenant['channels']);
+        $merged = array_replace_recursive($service, $tenant);
+        $merged['channels'] = array_map(static fn (mixed $channel): mixed => is_array($channel) ? ($measured[$channel['name'] ?? ''] ?? $channel) : $channel, is_array($service['channels'] ?? null) ? $service['channels'] : []);
+
+        return $merged;
+    }
+
     private function snapshotOf(ServiceScope $scope, DateTimeImmutable $now, ?ServiceSnapshot $service = null): ServiceSnapshot
     {
         $record = $this->store->read($scope);
@@ -144,7 +164,7 @@ final readonly class Snapshots
             $record->statusAt($now, $this->settings->replyTimeoutSeconds),
             $record->receivedAt,
             $record->ageAt($now),
-            $service === null ? $record->snapshot : array_replace_recursive($service->snapshot, $record->snapshot),
+            $service === null ? $record->snapshot : self::mergedWithTenant($service->snapshot, $record->snapshot),
             $record->requestFailure,
             $record->replyError,
             $record->hasPendingFollowUp(),
@@ -153,6 +173,7 @@ final readonly class Snapshots
             is_array($tenancy) && is_string($tenancy['header'] ?? null) ? $tenancy['header'] : $service?->tenantHeader,
             $service === null ? $tenants : [],
             $unadvertised,
+            $record->projectionMovements,
         );
     }
 

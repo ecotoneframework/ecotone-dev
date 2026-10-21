@@ -17,11 +17,11 @@ final class NavigationExtension extends AbstractExtension
 
     public function getFunctions(): array
     {
-        return [new TwigFunction('dead_letter_total', $this->deadLetterTotal(...))];
+        return [new TwigFunction('dead_letter_failures', $this->deadLetterFailures(...))];
     }
 
-    public function deadLetterTotal(): int
+    public function deadLetterFailures(): int
     {
-        return DeadLetterOverview::total($this->snapshots->scopes());
+        return DeadLetterOverview::failures($this->snapshots->scopes());
     }
 }

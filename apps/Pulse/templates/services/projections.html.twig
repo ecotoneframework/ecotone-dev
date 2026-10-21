@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Projections of {{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: 'Projections'}]} %}
+    <h1>Projections of {{ service.service }}</h1>
+    {% for section in sections %}
+    <section data-projections-section="{{ section.snapshot.scope }}">
+    {% if section.snapshot.tenant %}<h2>Tenant <span class="chip" data-tenant="{{ section.snapshot.tenant }}">{{ section.snapshot.tenant }}</span></h2>{% endif %}
+    {% if not section.snapshot.hasSnapshot %}
+        <p class="muted" data-no-snapshot>No snapshot of {{ service.service }} yet.</p>
+    {% elseif section.projections is empty %}
+        <p class="muted" data-no-projections>{{ service.service }} reports no projections. A class annotated with <code>#[Projection('name')]</code> is reported here with its position, how far it is behind and whether it is stalled.</p>
+    {% else %}
+        <p class="muted">A projection is stalled when it is behind and its position has not moved across Pulse's snapshots for {{ stalledAfter }} seconds (<code>PULSE_PROJECTION_STALLED_AFTER</code>). It is failed when dead letters are stored for its asynchronous channel.</p>
+        <div class="card flush" tabindex="0" role="region" aria-label="Projections of {{ service.service }}{% if section.snapshot.tenant %} for tenant {{ section.snapshot.tenant }}{% endif %}">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">Projection</th><th scope="col">Status</th><th scope="col" class="num">Behind</th><th scope="col">Mode</th>
+                    <th scope="col" class="hide-narrow">Partitioned</th><th scope="col" class="hide-narrow">Initialization</th><th scope="col">Last change seen</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for projection in section.projections %}
+                    {% set tone = {up_to_date: 'ok', catching_up: 'wait', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
+                    <tr data-projection="{{ projection.name }}">
+                        <th scope="row">{{ projection.name }}{% if projection.unavailable %}<br><span class="drift" data-unavailable>{{ projection.unavailable }}</span>{% endif %}</th>
+                        <td><span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-projection-status="{{ projection.state.value }}">{{ projection.state.label }}</span></td>
+                        <td class="num" data-gap>{{ projection.gap }}</td>
+                        <td data-mode>{{ projection.mode }}</td>
+                        <td class="hide-narrow" data-partitioned>{{ projection.partitioned ? 'yes' : 'no' }}</td>
+                        <td class="hide-narrow" data-initialization>{{ projection.initialization ?? '–' }}</td>
+                        <td data-last-change>{{ projection.changedAgo ?? '–' }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    </section>
+    {% endfor %}
+{% endblock %}

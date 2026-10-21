@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Recoverability\Pulse;
 
+use DateTimeInterface;
 use Ecotone\Dbal\Recoverability\DeadLetterStore;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
 
@@ -36,27 +37,41 @@ final class PulseDeadLetters implements PulseSnapshotSection
     }
 
     /**
-     * @return array{total: int, groups: array<array{messageName: string, exceptionClass: string, count: int}>, recent: array<array<string, mixed>>}
+     * @return array{total: int, groups: list<array{failureId: string, messageName: string, exceptionClass: string, exceptionFile: string, exceptionLine: int, exceptionMessage: string, count: int, firstFailedAt: string, lastFailedAt: string}>, recent: array<array<string, mixed>>}
      */
     public function snapshot(): array
     {
-        $counts = [];
+        $failures = [];
         $recent = [];
         foreach (PulseDeadLetterScan::newestFirst($this->store) as $entry) {
-            $counts[$entry->messageName()][$entry->exceptionClass()] = ($counts[$entry->messageName()][$entry->exceptionClass()] ?? 0) + 1;
+            $failureId = $entry->failureId();
+            $failedAt = $entry->failedAt();
+            if (! isset($failures[$failureId])) {
+                $failures[$failureId] = [
+                    'failureId' => $failureId,
+                    'messageName' => $entry->messageName(),
+                    'exceptionClass' => $entry->exceptionClass(),
+                    'exceptionFile' => $entry->exceptionFile(),
+                    'exceptionLine' => $entry->exceptionLine(),
+                    'exceptionMessage' => $entry->exceptionMessage(),
+                    'count' => 0,
+                    'firstFailedAt' => $failedAt,
+                    'lastFailedAt' => $failedAt,
+                ];
+            }
+            $failures[$failureId]['count']++;
+            $failures[$failureId]['firstFailedAt'] = min($failures[$failureId]['firstFailedAt'], $failedAt);
+            $failures[$failureId]['lastFailedAt'] = max($failures[$failureId]['lastFailedAt'], $failedAt);
             if (count($recent) < self::RECENT_LIMIT) {
                 $recent[] = $entry->toArray();
             }
         }
 
-        $groups = [];
-        foreach ($counts as $messageName => $countsByException) {
-            foreach ($countsByException as $exceptionClass => $count) {
-                $groups[] = ['messageName' => (string) $messageName, 'exceptionClass' => (string) $exceptionClass, 'count' => $count];
-            }
-        }
-
-        usort($groups, fn (array $first, array $second): int => [$second['count'], $first['messageName'], $first['exceptionClass']] <=> [$first['count'], $second['messageName'], $second['exceptionClass']]);
+        $groups = array_map(
+            fn (array $failure): array => [...$failure, 'firstFailedAt' => $failure['firstFailedAt']->format(DateTimeInterface::ATOM), 'lastFailedAt' => $failure['lastFailedAt']->format(DateTimeInterface::ATOM)],
+            array_values($failures),
+        );
+        usort($groups, fn (array $first, array $second): int => [$second['count'], $second['lastFailedAt'], $first['failureId']] <=> [$first['count'], $first['lastFailedAt'], $second['failureId']]);
 
         return ['total' => $this->store->count(), 'groups' => $groups, 'recent' => $recent];
     }

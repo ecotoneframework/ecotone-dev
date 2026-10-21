@@ -26,7 +26,8 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         self::assertSame('connected', $crawler->filter('[data-hub-status]')->attr('data-hub-status'));
         self::assertStringContainsString(PHP_VERSION, $crawler->filter('[data-hub-versions]')->text());
         self::assertSame('/dead-letters?service=orders', $crawler->filter('[data-hub-dead-letters] a')->attr('href'));
-        self::assertSame('2', $crawler->filter('[data-hub-dead-letters] [data-total]')->text());
+        self::assertSame('1', $crawler->filter('[data-hub-dead-letters] [data-total]')->text());
+        self::assertStringContainsString('1 failure (2 stored)', preg_replace('/\s+/', ' ', $crawler->filter('[data-hub-dead-letters]')->text()));
         $flowType = $crawler->filter('[data-hub-flow-types] a')->first();
         self::assertSame('order.place', $flowType->text());
         self::assertSame('/traces/orders/order.place', $flowType->attr('href'));
@@ -143,7 +144,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
 
     private function ordersSnapshot(): string
     {
-        $entry = static fn (string $id): array => ['messageId' => $id, 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'failed', 'stackTrace' => '#0', 'payload' => '{}', 'contentType' => 'application/json', 'channel' => 'orders'];
+        $entry = static fn (string $id): array => ['messageId' => $id, 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '/srv/Place.php', 'exceptionLine' => 3, 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'failed', 'stackTrace' => '#0', 'payload' => '{}', 'contentType' => 'application/json', 'channel' => 'orders'];
 
         return json_encode([
             'schemaVersion' => 1,
@@ -153,7 +154,7 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
             'flowGraph' => ['nodes' => [], 'edges' => []],
             'topology' => ['serviceMaps' => []],
             'deadLetter' => ['enabled' => true],
-            'deadLetters' => ['total' => 2, 'groups' => [['messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'count' => 2]], 'recent' => [$entry('a'), $entry('b')]],
+            'deadLetters' => ['total' => 2, 'groups' => [['failureId' => 'aaaaaaaaaaaa', 'messageName' => 'order.place', 'exceptionClass' => 'RuntimeException', 'exceptionFile' => '/srv/app/src/Place.php', 'exceptionLine' => 12, 'exceptionMessage' => 'failed', 'count' => 2, 'firstFailedAt' => gmdate('c'), 'lastFailedAt' => gmdate('c')]], 'recent' => [$entry('a'), $entry('b')]],
             'tracing' => ['statsWindow' => 100, 'flowTypes' => [['flowType' => 'order.place', 'runs' => 3, 'windowRuns' => 3, 'runsWithErrors' => 0, 'p50Ms' => 5, 'p95Ms' => 9, 'maxMs' => 9, 'lastStartedAt' => gmdate('c')]]],
         ], JSON_THROW_ON_ERROR);
     }

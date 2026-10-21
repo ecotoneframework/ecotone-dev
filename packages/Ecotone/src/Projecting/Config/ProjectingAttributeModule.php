@@ -115,6 +115,7 @@ final class ProjectingAttributeModule implements AnnotationModule
                 rebuildAsyncChannelName: $rebuildAttribute?->asyncChannelName,
                 hasRebuild: $rebuildAttribute !== null,
                 hasDeployment: $projectionDeployment !== null,
+                polling: $pollingAttribute !== null,
             );
 
             $asyncAttribute = self::getProjectionAsynchronousAttribute($annotationRegistrationService, $projectionClassName);
@@ -274,10 +275,16 @@ final class ProjectingAttributeModule implements AnnotationModule
     {
         // Filter out event streaming projections - they don't need ProjectingManager
         $eventStreamingProjectionNames = array_keys($this->eventStreamingProjections);
-        return array_filter(
-            $this->projectionBuilders,
-            fn ($builder) => ! in_array($builder->projectionName(), $eventStreamingProjectionNames, true)
-        );
+        return [
+            ...array_filter(
+                $this->projectionBuilders,
+                fn ($builder) => ! in_array($builder->projectionName(), $eventStreamingProjectionNames, true)
+            ),
+            ...array_map(
+                fn (string $projectionName): StreamingProjectionDescription => new StreamingProjectionDescription($projectionName, $this->eventStreamingProjections[$projectionName]['streamingChannelName']),
+                $eventStreamingProjectionNames
+            ),
+        ];
     }
 
     public function getModulePackageName(): string

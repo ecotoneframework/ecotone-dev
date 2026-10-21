@@ -11,6 +11,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -36,11 +37,13 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
+    public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
     public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
-     * @param list<array{name: string, kind: string}> $channels
+     * @param list<array{name: string, kind: string, probeGroup: string|null, destination: string|null, tenantScoped: bool}> $channels
+     * @param array<string, PulseChannelProbe> $probes
      * @param array<string, PulseSnapshotSection> $tenantIndependentSections
      * @param array<string, PulseSnapshotSection> $tenantScopedSections
      * @param array{header: string, tenants: list<string>}|array{} $tenancy
@@ -51,6 +54,7 @@ final class PulseSnapshot
         private string $framework,
         private array $serviceMaps,
         private array $channels,
+        private array $probes,
         private array $tenantIndependentSections,
         private array $tenantScopedSections,
         private array $tenancy,
@@ -113,6 +117,7 @@ final class PulseSnapshot
             'serviceName' => $this->serviceName,
             'takenAt' => $this->clock->now()->format(DateTimeInterface::ATOM),
             'tenant' => $tenant,
+            'channels' => $this->channelsWithDepth(forTenant: true),
         ];
 
         foreach ($this->tenantScopedSections as $sectionName => $section) {
@@ -130,7 +135,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<array{name: string, kind: string}>,
+     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -147,7 +152,7 @@ final class PulseSnapshot
             ],
             'flowGraph' => $this->messagingSystem->getMessageFlowGraph()->toArray(),
             'topology' => ['serviceMaps' => $this->serviceMaps],
-            'channels' => $this->channels,
+            'channels' => $this->channelsWithDepth(forTenant: false),
         ];
 
         if ($this->isMultiTenant()) {
@@ -164,6 +169,57 @@ final class PulseSnapshot
         }
 
         return $snapshot;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function channelsWithDepth(bool $forTenant): array
+    {
+        $measuredHere = fn (array $channel): bool => ! $this->isMultiTenant() || $channel['tenantScoped'] === $forTenant;
+        $namesByGroup = [];
+        foreach ($this->channels as $channel) {
+            if ($channel['probeGroup'] !== null && $measuredHere($channel)) {
+                $namesByGroup[$channel['probeGroup']][$channel['name']] = $channel['destination'];
+            }
+        }
+
+        $depths = [];
+        foreach ($namesByGroup as $group => $destinationByChannel) {
+            $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
+        }
+
+        $listed = $forTenant ? array_filter($this->channels, static fn (array $channel): bool => $channel['tenantScoped']) : $this->channels;
+
+        return array_values(array_map(
+            fn (array $channel): array => [
+                'name' => $channel['name'],
+                'kind' => $channel['kind'],
+                ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
+            ],
+            $listed
+        ));
+    }
+
+    /**
+     * @param array<string, string> $destinationByChannel
+     * @return array<string, PulseChannelDepth>
+     */
+    private function probe(PulseChannelProbe $probe, array $destinationByChannel): array
+    {
+        $startedAt = hrtime(true);
+        try {
+            $depths = $probe->depthsOf($destinationByChannel, self::PROBE_BUDGET_IN_MILLISECONDS);
+        } catch (Throwable $exception) {
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed($exception->getMessage()));
+        }
+
+        $tookInMilliseconds = intdiv(hrtime(true) - $startedAt, 1_000_000);
+        if ($tookInMilliseconds > self::PROBE_BUDGET_IN_MILLISECONDS) {
+            return array_fill_keys(array_keys($destinationByChannel), PulseChannelDepth::failed('Measuring the channel depth took ' . $tookInMilliseconds . ' ms, over the ' . self::PROBE_BUDGET_IN_MILLISECONDS . ' ms budget, so the result was dropped.'));
+        }
+
+        return $depths;
     }
 
     public function authorizeRequestFrom(?string $sourceService): void

@@ -22,14 +22,14 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
 
-    public function test_the_navigation_badge_equals_the_total_of_dead_letters(): void
+    public function test_the_navigation_badge_counts_failures_not_dead_letters(): void
     {
         $client = $this->pulseWithFailures();
 
         $list = $this->freshView($client, '/dead-letters');
 
-        self::assertSame('3', $list->filter('nav [data-nav-dead-letters]')->text());
-        self::assertSame('3', $client->request('GET', '/')->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failures', $list->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failures', $client->request('GET', '/')->filter('nav [data-nav-dead-letters]')->text());
     }
 
     public function test_the_navigation_has_no_badge_without_dead_letters(): void
@@ -161,8 +161,8 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $detail = $client->click($list->filter('[data-dead-letter][data-message-name="order.place"] a')->link());
 
-        self::assertSame('1 similar', trim($detail->filter('[data-similar]')->text()));
-        self::assertStringContainsString('exceptionClass=RuntimeException', $detail->filter('[data-similar]')->attr('href'));
+        self::assertSame('1 more with this failure', trim($detail->filter('[data-similar]')->text()));
+        self::assertStringContainsString('failureId=', $detail->filter('[data-similar]')->attr('href'));
         self::assertGreaterThanOrEqual(2, $detail->filter('[data-copy]')->count());
         self::assertCount(1, $detail->filter('details[data-stack-trace]'));
     }
@@ -183,14 +183,14 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         self::assertStringContainsString("{\n    \"orderId\": 2\n}", $detail->filter('[data-detail="payload"]')->html());
     }
 
-    public function test_a_named_group_says_replay_all_with_its_stored_count_and_an_unnamed_group_says_replay_these(): void
+    public function test_a_named_and_an_unnamed_failure_both_say_replay_all_with_their_stored_count(): void
     {
         $client = $this->pulseWithUnnamedFailures();
 
         $list = $this->freshView($client, '/dead-letters');
 
         self::assertSame('Replay all 2', trim($list->filter('[data-group][data-message-name="order.place"] [data-group-replay] button')->text()));
-        self::assertSame('Replay these 2', trim($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->text()));
+        self::assertSame('Replay all 2', trim($list->filter('[data-group][data-message-name=""] [data-group-replay] button')->text()));
     }
 
     public function test_replaying_an_unnamed_group_replays_those_messages_and_never_the_named_ones_of_the_same_exception(): void
@@ -204,13 +204,14 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
     }
 
-    public function test_an_unnamed_group_offers_no_link_that_narrows_the_list_to_the_whole_exception(): void
+    public function test_an_unnamed_failure_narrows_the_list_by_its_failure_not_by_the_whole_exception(): void
     {
         $client = $this->pulseWithUnnamedFailures();
 
         $list = $this->freshView($client, '/dead-letters');
 
         self::assertCount(0, $list->filter('[data-group][data-message-name=""] a[href*="exceptionClass"]'));
+        self::assertCount(1, $list->filter('[data-group][data-message-name=""] a[data-only-failure][href*="failureId="]'));
     }
 
     public function test_replaying_a_group_honours_the_replay_channel_chosen_for_the_service(): void

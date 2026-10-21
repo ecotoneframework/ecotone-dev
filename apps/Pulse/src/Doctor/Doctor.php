@@ -43,6 +43,7 @@ final readonly class Doctor
         $checks[] = DoctorCheck::ok('licence', 'accepted, Pulse started with an Ecotone Enterprise licence');
         $checks[] = DoctorCheck::info('reply channels', $this->replyChannels());
         $checks[] = $this->tenants();
+        $checks[] = DoctorCheck::info('queue thresholds', sprintf('warning: %s; critical: %s', $this->settings->queueThresholds->describeWarning(), $this->settings->queueThresholds->describeCritical()));
 
         return $checks;
     }

@@ -118,6 +118,25 @@ final class KafkaAdmin
         return $this->initializedConsumers[$consumerKey];
     }
 
+    /**
+     * @return array{consumer: KafkaConsumer, topics: string[]}
+     */
+    public function createGroupInspector(string $channelName): array
+    {
+        $configuration = $this->getRdKafkaConfiguration($channelName);
+        $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
+        $conf = $configuration->getConfig();
+        $kafkaConsumerConfig = $this->getConsumerConfiguration($channelName, $channelName);
+
+        $conf->set('group.id', $kafkaConsumerConfig->groupId);
+        $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->bootstrapServers));
+
+        return [
+            'consumer' => new KafkaConsumer($conf),
+            'topics' => $this->getMappedTopicNames($this->resolveExpressions($kafkaConsumerConfig->getTopics())),
+        ];
+    }
+
     public function closeAllConsumers(): void
     {
         foreach (array_keys($this->initializedConsumers) as $consumerKey) {

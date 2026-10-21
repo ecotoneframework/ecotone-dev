@@ -68,7 +68,7 @@ final class DeadLetterNoticeTest extends ReleasingWebTestCase
         $client = static::createClient();
         $client->disableReboot();
         $this->setUpPulseDatabase($client->getKernel());
-        $entry = ['messageId' => 'm-1', 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'boom', 'stackTrace' => null, 'payload' => null, 'contentType' => null, 'channel' => null];
+        $entry = ['messageId' => 'm-1', 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '', 'exceptionLine' => 0, 'messageName' => 'order.place', 'failedAt' => gmdate('c'), 'exceptionClass' => 'RuntimeException', 'exceptionMessage' => 'boom', 'stackTrace' => null, 'payload' => null, 'contentType' => null, 'channel' => null];
         $this->services['orders'] = $this->serviceAnsweringWith('orders', json_encode([
             'schemaVersion' => 1,
             'serviceName' => 'orders',

@@ -28,8 +28,9 @@ final class PulseTenancyRegistration
 {
     /**
      * @param list<string> $tenants
+     * @param list<string> $tenantProbeGroups
      */
-    public function __construct(public readonly string $tenantHeaderName, public readonly array $tenants)
+    public function __construct(public readonly string $tenantHeaderName, public readonly array $tenants, public readonly array $tenantProbeGroups)
     {
     }
 }

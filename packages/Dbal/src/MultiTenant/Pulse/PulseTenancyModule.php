@@ -99,7 +99,9 @@ final class PulseTenancyModule extends NoExternalConfigurationModule implements 
             $tenants = [...$tenants, ...array_map('strval', array_keys($multiTenantConfiguration->tenantToConnectionMapping))];
         }
 
-        return [new PulseTenancyRegistration($multiTenantConfigurations[0]->tenantHeaderName, array_values(array_unique($tenants)))];
+        $probeGroups = array_map(static fn (MultiTenantConfiguration $configuration): string => DbalBackedMessageChannelBuilder::depthProbeGroupOf($configuration->getReferenceName()), $multiTenantConfigurations);
+
+        return [new PulseTenancyRegistration($multiTenantConfigurations[0]->tenantHeaderName, array_values(array_unique($tenants)), $probeGroups)];
     }
 
     public function getModulePackageName(): string

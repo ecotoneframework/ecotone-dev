@@ -10,7 +10,7 @@ final class DeadLetterOverview
 {
     /**
      * @param list<ServiceSnapshot> $snapshots
-     * @return list<array{service: string, name: string, tenant: ?string, status: ServiceSnapshot, configured: bool, total: int, groups: list<array<string, mixed>>, entries: list<array<string, mixed>>}>
+     * @return list<array{service: string, name: string, tenant: ?string, status: ServiceSnapshot, configured: bool, total: int, groups: list<array<string, mixed>>}>
      */
     public static function of(array $snapshots, DeadLetterFilter $filter): array
     {
@@ -21,6 +21,8 @@ final class DeadLetterOverview
             }
             $deadLetters = $snapshot->snapshot['deadLetters'] ?? null;
             $configured = is_array($deadLetters) && ($snapshot->snapshot['deadLetter']['enabled'] ?? true) === true;
+            $entries = $configured ? array_values(array_filter($deadLetters['recent'] ?? [], $filter->matches(...))) : [];
+            $groups = $configured ? array_values(array_filter($deadLetters['groups'] ?? [], $filter->selectsFailure(...))) : [];
             $services[] = [
                 'service' => $snapshot->scope(),
                 'name' => $snapshot->service,
@@ -28,12 +30,21 @@ final class DeadLetterOverview
                 'status' => $snapshot,
                 'configured' => $configured,
                 'total' => $configured ? (int) ($deadLetters['total'] ?? 0) : 0,
-                'groups' => $configured ? array_values($deadLetters['groups'] ?? []) : [],
-                'entries' => $configured ? array_values(array_filter($deadLetters['recent'] ?? [], $filter->matches(...))) : [],
+                'groups' => array_map(static fn (array $group): array => $group + ['entries' => self::entriesOf($group, $entries)], $groups),
             ];
         }
 
         return $services;
+    }
+
+    /**
+     * @param array<string, mixed> $group
+     * @param list<array<string, mixed>> $entries
+     * @return list<array<string, mixed>>
+     */
+    private static function entriesOf(array $group, array $entries): array
+    {
+        return array_values(array_filter($entries, static fn (array $entry) => ($entry['failureId'] ?? null) === ($group['failureId'] ?? '')));
     }
 
     /**
@@ -48,6 +59,48 @@ final class DeadLetterOverview
 
     /**
      * @param list<ServiceSnapshot> $snapshots
+     */
+    public static function failures(array $snapshots): int
+    {
+        $names = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->scope(), $snapshots));
+
+        return array_sum(array_map(static fn (ServiceSnapshot $snapshot) => in_array($snapshot->scope(), $names, true) ? (int) $snapshot->failureCount() : 0, $snapshots));
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
+     * @return array<string, mixed>|null
+     */
+    public static function failure(array $snapshots, string $service, string $failureId): ?array
+    {
+        foreach ($snapshots as $snapshot) {
+            if ($snapshot->scope() !== $service) {
+                continue;
+            }
+            foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
+                if (($group['failureId'] ?? null) === $failureId) {
+                    return $group;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $failure
+     */
+    public static function failureLabel(?array $failure): string
+    {
+        if ($failure === null) {
+            return '';
+        }
+
+        return sprintf('%s at %s:%d for %s', $failure['exceptionClass'] ?? '', basename((string) ($failure['exceptionFile'] ?? '')), (int) ($failure['exceptionLine'] ?? 0), ($failure['messageName'] ?? '') ?: '(unnamed)');
+    }
+
+    /**
+     * @param list<ServiceSnapshot> $snapshots
      * @param array<string, mixed> $entry
      */
     public static function similar(array $snapshots, string $service, array $entry): int
@@ -57,34 +110,13 @@ final class DeadLetterOverview
                 continue;
             }
             foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
-                if (($group['messageName'] ?? null) === ($entry['messageName'] ?? null) && ($group['exceptionClass'] ?? null) === ($entry['exceptionClass'] ?? null)) {
+                if (($group['failureId'] ?? null) === ($entry['failureId'] ?? null)) {
                     return max(0, (int) ($group['count'] ?? 0) - 1);
                 }
             }
         }
 
         return 0;
-    }
-
-    /**
-     * @param list<ServiceSnapshot> $snapshots
-     * @return list<string>
-     */
-    public static function unnamedMessageIds(array $snapshots, string $service, string $exceptionClass): array
-    {
-        $ids = [];
-        foreach ($snapshots as $snapshot) {
-            if ($snapshot->scope() !== $service) {
-                continue;
-            }
-            foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
-                if (($entry['messageName'] ?? '') === '' && ($entry['exceptionClass'] ?? '') === $exceptionClass && is_string($entry['messageId'] ?? null)) {
-                    $ids[] = $entry['messageId'];
-                }
-            }
-        }
-
-        return $ids;
     }
 
     /**

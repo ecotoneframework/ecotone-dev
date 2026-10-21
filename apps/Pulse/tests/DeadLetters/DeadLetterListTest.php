@@ -57,6 +57,7 @@ final class DeadLetterListTest extends ReleasingWebTestCase
 
         self::assertSame('3', $crawler->filter('[data-service-total="orders"]')->text());
         self::assertSame('1', $crawler->filter('[data-service-total="invoices"]')->text());
+        self::assertSame('2', $crawler->filter('[data-service-failures="orders"]')->text());
         $group = $crawler->filter('[data-group][data-service="orders"][data-message-name="order.cancel"]');
         self::assertCount(1, $group);
         self::assertStringContainsString(LogicException::class, $group->text());
@@ -177,7 +178,7 @@ final class DeadLetterListTest extends ReleasingWebTestCase
 
     private function invoicesSnapshot(): string
     {
-        $entry = ['messageId' => 'invoice-1', 'messageName' => 'invoice.issue', 'failedAt' => gmdate('c'), 'exceptionClass' => 'DomainException', 'exceptionMessage' => 'cannot issue invoice', 'stackTrace' => '#0 trace', 'payload' => '{"invoiceId":4}', 'contentType' => 'application/json', 'channel' => 'invoices'];
+        $entry = ['messageId' => 'invoice-1', 'failureId' => 'aaaaaaaaaaaa', 'exceptionFile' => '/srv/app/src/Invoice.php', 'exceptionLine' => 12, 'messageName' => 'invoice.issue', 'failedAt' => gmdate('c'), 'exceptionClass' => 'DomainException', 'exceptionMessage' => 'cannot issue invoice', 'stackTrace' => '#0 trace', 'payload' => '{"invoiceId":4}', 'contentType' => 'application/json', 'channel' => 'invoices'];
 
         return json_encode([
             'schemaVersion' => 1,
@@ -186,7 +187,7 @@ final class DeadLetterListTest extends ReleasingWebTestCase
             'overview' => ['ecotoneVersion' => '2.0.0', 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
             'flowGraph' => ['nodes' => [], 'edges' => []],
             'topology' => ['serviceMaps' => []],
-            'deadLetters' => ['total' => 1, 'groups' => [['messageName' => 'invoice.issue', 'exceptionClass' => 'DomainException', 'count' => 1]], 'recent' => [$entry]],
+            'deadLetters' => ['total' => 1, 'groups' => [['failureId' => 'aaaaaaaaaaaa', 'messageName' => 'invoice.issue', 'exceptionClass' => 'DomainException', 'exceptionFile' => '/srv/app/src/Invoice.php', 'exceptionLine' => 12, 'exceptionMessage' => 'cannot issue invoice', 'count' => 1, 'firstFailedAt' => gmdate('c'), 'lastFailedAt' => gmdate('c')]], 'recent' => [$entry]],
         ], JSON_THROW_ON_ERROR);
     }
 

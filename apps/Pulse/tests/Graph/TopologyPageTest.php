@@ -55,4 +55,19 @@ final class TopologyPageTest extends WebTestCase
         self::assertContains('unpublished-subscription: orders subscribes to refund.*, but no service publishes an event matching it. Publish it with DistributedBus::publishEvent(), or remove refund.* from withEventMapping().', $mismatches);
         self::assertContains('silent-command-target: orders maps commands for payments, which is configured in Pulse but did not answer. Check that payments runs with PulseConfiguration and consumes its channel.', $mismatches);
     }
+
+    public function test_topology_diagram_keeps_services_with_similar_or_reserved_names_apart(): void
+    {
+        $this->configurePulseWithServices('orders', 'a-b', 'a_b', 'end');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersMappingCommandsTo('a-b', 'a_b', 'end')]);
+
+        $crawler = $client->request('GET', '/topology');
+
+        $lines = explode("\n", rtrim($crawler->filter('pre.mermaid')->getNode(0)->textContent));
+        $declared = array_values(array_filter($lines, fn (string $line) => preg_match('/^    \w+\["/', $line) === 1));
+        self::assertCount(4, array_unique($declared));
+        self::assertCount(4, array_unique(array_map(fn (string $line) => explode('[', trim($line))[0], $declared)));
+        self::assertSame([], array_filter($lines, fn (string $line) => preg_match('/^    (end|graph|subgraph)\b/', $line) === 1));
+    }
 }

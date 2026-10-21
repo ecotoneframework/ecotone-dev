@@ -70,15 +70,17 @@ final readonly class TopologyReport
     public function toMermaid(): string
     {
         $lines = ['graph LR'];
+        $ids = [];
         foreach ($this->commandRoutes as $route) {
-            $lines[] = sprintf('    %s -->|"%s"| %s', self::identifier($route['from']), str_replace('"', '#quot;', $route['channel']), self::identifier($route['to']));
+            foreach ([$route['from'], $route['to']] as $service) {
+                if (! isset($ids[$service])) {
+                    $ids[$service] = 't' . count($ids);
+                    $lines[] = sprintf('    %s["%s"]', $ids[$service], MermaidText::escape($service));
+                }
+            }
+            $lines[] = sprintf('    %s -->|"%s"| %s', $ids[$route['from']], MermaidText::escape($route['channel']), $ids[$route['to']]);
         }
 
         return implode("\n", array_values(array_unique($lines))) . "\n";
-    }
-
-    private static function identifier(string $value): string
-    {
-        return preg_replace('/[^A-Za-z0-9_]/', '_', $value);
     }
 }

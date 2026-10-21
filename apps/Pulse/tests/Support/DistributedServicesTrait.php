@@ -70,6 +70,44 @@ trait DistributedServicesTrait
             ->withEventMapping($this->serviceChannels['orders'], ['refund.*']));
     }
 
+    private function ordersMappingCommandsTo(string ...$targets): FlowTestSupport
+    {
+        $orders = new class () {
+        };
+        $serviceMap = DistributedServiceMap::initialize();
+        foreach ($targets as $target) {
+            $serviceMap = $serviceMap->withCommandMapping($target, $this->serviceChannels[$target]);
+        }
+
+        return $this->distributedService('orders', $orders, $serviceMap);
+    }
+
+    private function serviceHandlingCommandX(string $service): FlowTestSupport
+    {
+        $handler = new class () {
+            #[Distributed]
+            #[CommandHandler('x', endpointId: 'x.handler')]
+            public function handle(array $payload): void
+            {
+            }
+        };
+
+        return $this->distributedService($service, $handler, DistributedServiceMap::initialize());
+    }
+
+    private function serviceHandlingHostileCommand(string $service): FlowTestSupport
+    {
+        $handler = new class () {
+            #[Distributed]
+            #[CommandHandler("A<img src=x onerror=alert(1)>\n\"B]", endpointId: 'hostile.handler')]
+            public function handle(array $payload): void
+            {
+            }
+        };
+
+        return $this->distributedService($service, $handler, DistributedServiceMap::initialize());
+    }
+
     private function billingCreatingInvoices(?DistributedServiceMap $serviceMap = null): FlowTestSupport
     {
         $billing = new class () {

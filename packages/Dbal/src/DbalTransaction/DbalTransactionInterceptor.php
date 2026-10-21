@@ -14,11 +14,13 @@ use Ecotone\Api\Interceptor\MethodInvocation;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Throwable;
@@ -57,6 +59,10 @@ class DbalTransactionInterceptor
                 $possibleFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $DbalTransaction->connectionReferenceNames);
             } else {
                 $possibleFactories = $this->connectionFactories;
+            }
+
+            if (PulseSnapshot::isSnapshotRequest($message)) {
+                $possibleFactories = array_filter($possibleFactories, static fn (ConnectionFactory $connectionFactory): bool => ! $connectionFactory instanceof MultiTenantConnectionFactory || $connectionFactory->hasActiveTenant());
             }
 
             /** @var Connection[] $connections */

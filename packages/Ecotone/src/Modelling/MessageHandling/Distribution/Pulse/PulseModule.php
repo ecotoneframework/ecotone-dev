@@ -27,6 +27,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
@@ -102,7 +103,8 @@ final class PulseModule implements AnnotationModule
         self::guardReplyChannel($pulseConfigurations[0], $serviceConfiguration->serviceName, $serviceMaps, $extensionObjects);
 
         $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
-        $sections = self::sectionReferences(ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects));
+        $sectionRegistrations = ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects);
+        $tenancy = ExtensionObjectResolver::resolve(PulseTenancyRegistration::class, $extensionObjects)[0] ?? null;
 
         $messagingConfiguration->registerServiceDefinition(
             PulseSnapshot::class,
@@ -112,7 +114,9 @@ final class PulseModule implements AnnotationModule
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
                 $this->channelsOf($serviceMaps, $extensionObjects),
-                $sections,
+                self::sectionReferences($sectionRegistrations, tenantScoped: false),
+                self::sectionReferences($sectionRegistrations, tenantScoped: true),
+                $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
             ])
@@ -122,6 +126,7 @@ final class PulseModule implements AnnotationModule
                 ->withInputChannelName(PulseSnapshot::ROUTING_KEY)
                 ->withMethodParameterConverters([
                     HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME),
+                    AllHeadersBuilder::createWith('headers'),
                 ])
         );
     }
@@ -192,12 +197,15 @@ final class PulseModule implements AnnotationModule
      * @param PulseSnapshotSectionRegistration[] $registrations
      * @return array<string, Reference>
      */
-    private static function sectionReferences(array $registrations): array
+    private static function sectionReferences(array $registrations, bool $tenantScoped): array
     {
         $references = [];
         foreach ($registrations as $registration) {
             if (in_array($registration->sectionName, PulseSnapshot::CORE_KEYS, true)) {
                 throw ConfigurationException::create("Pulse snapshot section `{$registration->sectionName}` collides with a key the snapshot already has. Name the section anything but " . implode(', ', PulseSnapshot::CORE_KEYS) . '.');
+            }
+            if ($registration->tenantScoped !== $tenantScoped) {
+                continue;
             }
             if (array_key_exists($registration->sectionName, $references)) {
                 throw ConfigurationException::create("Pulse snapshot section `{$registration->sectionName}` was registered twice, so the snapshot could hold only one of them. Register each section under its own name, or remove the duplicate registration.");

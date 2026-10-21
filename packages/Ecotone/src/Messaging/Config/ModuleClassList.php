@@ -22,6 +22,7 @@ use Ecotone\Dbal\DbalTransaction\DbalTransactionModule;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStoreModule;
 use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
+use Ecotone\Dbal\MultiTenant\Pulse\PulseTenancyModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\Dbal\Tracing\DbalTracingModule;
@@ -176,6 +177,7 @@ class ModuleClassList
         DbalPublisherModule::class,
         DbalBusinessMethodModule::class,
         MultiTenantConnectionFactoryModule::class,
+        PulseTenancyModule::class,
         DatabaseSetupModule::class,
         DbalTracingModule::class,
     ];

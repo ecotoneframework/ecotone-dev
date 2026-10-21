@@ -14,6 +14,7 @@ use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Interop\Queue\Exception\Exception;
 
 /**
@@ -37,7 +38,7 @@ final class DeduplicationInterceptor
 
     public function deduplicate(MethodInvocation $methodInvocation, Message $message, #[ExecutorFor(Deduplicated::class)] ?AttributeExpressionExecutor $deduplicated, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint, ?WithoutDatabaseTransaction $withoutDatabaseTransaction = null): mixed
     {
-        if ($withoutDatabaseTransaction !== null) {
+        if ($withoutDatabaseTransaction !== null || PulseSnapshot::isSnapshotRequest($message)) {
             return $methodInvocation->proceed();
         }
 

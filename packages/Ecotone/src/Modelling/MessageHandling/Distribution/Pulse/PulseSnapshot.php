@@ -6,8 +6,10 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Composer\InstalledVersions;
 use DateTimeInterface;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -34,12 +36,14 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
      * @param list<array{name: string, kind: string}> $channels
-     * @param array<string, PulseSnapshotSection> $sections
+     * @param array<string, PulseSnapshotSection> $tenantIndependentSections
+     * @param array<string, PulseSnapshotSection> $tenantScopedSections
+     * @param array{header: string, tenants: list<string>}|array{} $tenancy
      */
     public function __construct(
         private string $serviceName,
@@ -47,17 +51,75 @@ final class PulseSnapshot
         private string $framework,
         private array $serviceMaps,
         private array $channels,
-        private array $sections,
+        private array $tenantIndependentSections,
+        private array $tenantScopedSections,
+        private array $tenancy,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
     ) {
     }
 
-    public function snapshotJson(?string $sourceService): string
+    public static function isSnapshotRequest(Message $message): bool
+    {
+        return $message->getHeaders()->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && $message->getHeaders()->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) === self::ROUTING_KEY;
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function snapshotJson(?string $sourceService, array $headers): string
     {
         $this->authorizeRequestFrom($sourceService);
 
-        return json_encode($this->snapshot(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $tenant = $this->isMultiTenant() && isset($headers[$this->tenancy['header']]) ? $this->advertisedTenant($headers[$this->tenancy['header']]) : null;
+
+        return json_encode($tenant === null ? $this->snapshot() : $this->tenantSnapshot($tenant), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function tenantOfScopedRequest(array $headers): ?string
+    {
+        if (! $this->isMultiTenant() || ! isset($headers[$this->tenancy['header']])) {
+            return null;
+        }
+
+        return $this->advertisedTenant($headers[$this->tenancy['header']]);
+    }
+
+    private function isMultiTenant(): bool
+    {
+        return $this->tenancy !== [];
+    }
+
+    private function advertisedTenant(mixed $tenant): string
+    {
+        if (! is_string($tenant) || ! in_array($tenant, $this->tenancy['tenants'], true)) {
+            $named = is_scalar($tenant) ? (string) $tenant : get_debug_type($tenant);
+            throw InvalidArgumentException::create("Service {$this->serviceName} was asked by Pulse for tenant `{$named}`, but it advertises only " . implode(', ', $this->tenancy['tenants']) . ", so the answer would come from the default connection and be shown as that tenant. Ask for one of the advertised tenants, or add `{$named}` to the tenant mapping of MultiTenantConfiguration.");
+        }
+
+        return $tenant;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function tenantSnapshot(string $tenant): array
+    {
+        $snapshot = [
+            'schemaVersion' => self::SCHEMA_VERSION,
+            'serviceName' => $this->serviceName,
+            'takenAt' => $this->clock->now()->format(DateTimeInterface::ATOM),
+            'tenant' => $tenant,
+        ];
+
+        foreach ($this->tenantScopedSections as $sectionName => $section) {
+            $snapshot[$sectionName] = $section->snapshot();
+        }
+
+        return $snapshot;
     }
 
     /**
@@ -88,8 +150,17 @@ final class PulseSnapshot
             'channels' => $this->channels,
         ];
 
-        foreach ($this->sections as $sectionName => $section) {
+        if ($this->isMultiTenant()) {
+            $snapshot['tenancy'] = $this->tenancy;
+        }
+
+        foreach ($this->tenantIndependentSections as $sectionName => $section) {
             $snapshot[$sectionName] = $section->snapshot();
+        }
+        if (! $this->isMultiTenant()) {
+            foreach ($this->tenantScopedSections as $sectionName => $section) {
+                $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+            }
         }
 
         return $snapshot;

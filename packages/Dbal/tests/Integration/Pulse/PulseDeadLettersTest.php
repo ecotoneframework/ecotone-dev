@@ -97,6 +97,19 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_the_snapshot_of_a_single_tenant_service_has_no_tenancy_and_carries_the_dead_letters(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->deadLetter('m-1', 'order.place', 'RuntimeException', 'boom 1', self::FAILED_AT);
+
+        $snapshot = $this->requestSnapshot();
+
+        self::assertArrayNotHasKey('tenancy', $snapshot);
+        self::assertArrayNotHasKey('tenant', $snapshot);
+        self::assertSame(1, $snapshot['deadLetters']['total']);
+    }
+
+    #[DataProvider('implementations')]
     public function test_recent_dead_letters_describe_each_failure_newest_first(string $implementation): void
     {
         $this->bootstrap($implementation);

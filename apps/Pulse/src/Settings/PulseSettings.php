@@ -130,6 +130,41 @@ final readonly class PulseSettings
         return $connection->transport->hasDestinationOfItsOwn() ? $connection->replyDestination . '.' . $connection->name : $connection->replyDestination;
     }
 
+    /**
+     * @return list<string>
+     */
+    private static function entries(string $services): array
+    {
+        $entries = [];
+        $current = '';
+        $quoted = false;
+        foreach (str_split($services) as $character) {
+            if ($character === '"') {
+                $quoted = ! $quoted;
+            }
+            if ($character === ',' && ! $quoted) {
+                $entries[] = trim($current);
+                $current = '';
+
+                continue;
+            }
+            $current .= $character;
+        }
+        $entries[] = trim($current);
+
+        return $entries;
+    }
+
+    private static function checkDestination(string $entry, string $destination, Transport $transport): void
+    {
+        if ($transport === Transport::Kafka && (preg_match('/^[A-Za-z0-9._-]{1,249}$/', $destination) !== 1 || $destination === '.' || $destination === '..')) {
+            throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names destination "%s", which is not a Kafka topic name. A topic uses only letters, digits, ".", "_" and "-", up to 249 characters, and is not "." or "..".', $entry, $destination));
+        }
+        if ($transport === Transport::Amqp && strlen($destination) > 255) {
+            throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names a destination which is longer than the 255 bytes RabbitMQ allows for a queue name. Use the queue name the service consumes.', mb_substr($entry, 0, 60) . '...'));
+        }
+    }
+
     private static function name(string $value, string $variable): string
     {
         if (preg_match('/^[A-Za-z0-9_.-]+$/', $value) !== 1) {
@@ -199,15 +234,14 @@ final readonly class PulseSettings
         }
 
         $routes = [];
-        foreach (explode(',', $services) as $entry) {
-            $entry = trim($entry);
-            if (preg_match('/^([^:#@]+)(?::([^:#@]+))?(?:#([^:#@]+))?(?:@([^:#@]+))?$/', $entry, $parts) !== 1) {
+        foreach (self::entries($services) as $entry) {
+            if (preg_match('/^([^:#@",]+)(?::([^:#@",]+))?(?:#("[^"]+"|[^"@,]+))?(?:@([^:#@",]+))?$/', $entry, $parts) !== 1) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed. %s', $entry, $expectedFormat));
             }
 
             $service = self::name(trim($parts[1]), 'PULSE_SERVICES service');
             $channel = self::name(trim(($parts[2] ?? '') !== '' ? $parts[2] : $service), 'PULSE_SERVICES channel');
-            $destination = ($parts[3] ?? '') !== '' ? self::name(trim($parts[3]), 'PULSE_SERVICES destination') : null;
+            $destination = ($parts[3] ?? '') !== '' ? trim($parts[3], '"') : null;
             $connectionName = ($parts[4] ?? '') !== '' ? strtolower(trim($parts[4])) : Connection::DEFAULT;
 
             if (! isset($connections[$connectionName])) {
@@ -216,6 +250,9 @@ final readonly class PulseSettings
             $connection = $connections[$connectionName];
             if ($destination !== null && ! $connection->transport->hasDestinationOfItsOwn()) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" names destination "%s", but %s ties the channel to its name. Name the channel after the destination instead: "%s:%s".', $entry, $destination, $connection->transport->name, $service, $destination));
+            }
+            if ($destination !== null) {
+                self::checkDestination($entry, $destination, $connection->transport);
             }
             $destination ??= $channel;
 

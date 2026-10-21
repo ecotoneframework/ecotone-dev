@@ -164,7 +164,7 @@ PULSE_SERVICES=orders,billing:billing_channel@legacy,shipping:shipping#shipping_
 PULSE_CONNECTION_LEGACY_DSN=pgsql://user:secret@legacy-db:5432/db
 ```
 
-`orders` is channel `orders` on the default connection; `billing` is channel `billing_channel` on the `legacy` connection; `shipping` is channel `shipping` whose AMQP queue is `shipping_queue`. A destination can only be named on a transport that has one apart from the channel name (AMQP, Kafka); on Redis, SQS and the database the channel is the queue, so name it `shipping:shipping_queue`.
+`orders` is channel `orders` on the default connection; `billing` is channel `billing_channel` on the `legacy` connection; `shipping` is channel `shipping` whose AMQP queue is `shipping_queue`. A destination takes the characters the broker allows, so `legacy:orders/high` and `orders.v1-new` work; put it in double quotes when it contains a comma or an `@` (`orders#"a,b@c"`). A Kafka topic must use only letters, digits, `.`, `_` and `-` (up to 249 characters) and an AMQP queue name is at most 255 bytes; anything else is refused at start. A destination can only be named on a transport that has one apart from the channel name (AMQP, Kafka); on Redis, SQS and the database the channel is the queue, so name it `shipping:shipping_queue`.
 
 Pulse sends requests only to a destination that already exists, and it never creates one: a service that has not started its consumer is shown as *channel missing* with the destination it looked for. On Kafka the topic has to exist before Pulse asks (the broker creates it when the service, or anything else, produces to it or a topic administrator creates it); a consumer alone does not create it.
 

@@ -9,6 +9,7 @@ use Ecotone\Api\Tracing\Span;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Api\Tracing\SpanStatus;
+use Ecotone\Tracing\TracingInterceptor;
 
 /**
  * licence Enterprise
@@ -30,8 +31,6 @@ use Ecotone\Api\Tracing\SpanStatus;
  */
 final class TraceLedger
 {
-    private const DISTRIBUTED_SEND_SPAN = 'send distributed';
-
     /**
      * @param Span[] $spans
      */
@@ -52,7 +51,7 @@ final class TraceLedger
             if (isset($span->attributes[MessageHeaders::MESSAGE_ID], $span->attributes[MessageHeaders::PARENT_MESSAGE_ID])) {
                 $causedBy[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = (string) $span->attributes[MessageHeaders::PARENT_MESSAGE_ID];
             }
-            if ($span->name === self::DISTRIBUTED_SEND_SPAN && isset($span->attributes[MessageHeaders::MESSAGE_ID])) {
+            if ($span->name === TracingInterceptor::DISTRIBUTED_SEND_SPAN && isset($span->attributes[MessageHeaders::MESSAGE_ID])) {
                 $sentToOtherServices[(string) $span->attributes[MessageHeaders::MESSAGE_ID]] = true;
             }
             if ($span->attributes[SpanAttribute::TRACE_ROOT] ?? false) {

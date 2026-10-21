@@ -54,13 +54,14 @@ final class DbalPublisherModule implements AnnotationModule
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults()));
         foreach (self::connectionsWithQueues($extensionObjects) as $connectionReferenceName => $hasMessageQueues) {
             $messagingConfiguration->registerServiceDefinition(
                 EnqueueTableManager::referenceFor($connectionReferenceName),
                 new \Ecotone\Messaging\Config\Container\Definition(EnqueueTableManager::class, [
                     EnqueueTableManager::DEFAULT_TABLE_NAME,
                     $hasMessageQueues,
-                    ConsoleInvocationResolver::resolveConsolePrefix(ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults())),
+                    $consoleInvocationPrefix,
                     $connectionReferenceName,
                 ])
             );

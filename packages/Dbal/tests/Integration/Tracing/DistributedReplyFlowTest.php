@@ -104,6 +104,62 @@ final class DistributedReplyFlowTest extends DbalMessagingTestCase
         self::assertTrue($gateway->isCompletedFor($tracingId, $users::class));
     }
 
+    public function test_across_a_hand_off_the_destination_counts_as_reached_on_the_first_processed_reply_so_each_request_needs_its_own_tracing_id(): void
+    {
+        $sharedId = bin2hex(random_bytes(16));
+        $firstId = bin2hex(random_bytes(16));
+        $secondId = bin2hex(random_bytes(16));
+        $users = $this->userHandlers();
+        $userService = $this->bootstrapFlowTesting(
+            classesToResolve: [$users::class],
+            containerOrAvailableServices: [$users, DbalConnectionFactory::class => $this->getConnectionFactory(), self::CHANNELS => $this->getConnectionFactory()],
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create('user_channel', self::CHANNELS),
+                DbalBackedMessageChannelBuilder::create('ticket_a_channel', self::CHANNELS),
+                DbalBackedMessageChannelBuilder::create('ticket_b_channel', self::CHANNELS),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_a', channelName: 'ticket_a_channel')->withCommandMapping(targetServiceName: 'ticket_b', channelName: 'ticket_b_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('user_service'),
+                FlowTrackingConfiguration::createWithDefaults(),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ticketServices = [];
+        foreach (['ticket_a', 'ticket_b'] as $ticketService) {
+            $handlers = $this->ticketHandlers();
+            $ticketServices[$ticketService] = $this->bootstrapFlowTesting(
+                classesToResolve: [$handlers::class],
+                containerOrAvailableServices: [$handlers, DbalConnectionFactory::class => $this->getConnectionFactory(), self::CHANNELS => $this->getConnectionFactory()],
+                extensionObjects: [
+                    DbalBackedMessageChannelBuilder::create($ticketService . '_channel', self::CHANNELS),
+                    DbalBackedMessageChannelBuilder::create('user_channel', self::CHANNELS),
+                    DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'user_service', channelName: 'user_channel'),
+                    ServiceConfiguration::createWithDefaults()->withServiceName($ticketService),
+                ],
+                enabledModules: [ModulePackageList::DBAL_PACKAGE],
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+        }
+        $bus = $userService->getDistributedBus();
+        $bus->sendMessage('ticket_a', 'ticket.create', 'a', metadata: [MessageHeaders::TRACING_ID => $sharedId], replyRoutingKey: 'ticket.created');
+        $bus->sendMessage('ticket_b', 'ticket.create', 'b', metadata: [MessageHeaders::TRACING_ID => $sharedId], replyRoutingKey: 'ticket.created');
+        $bus->sendMessage('ticket_a', 'ticket.create', 'a', metadata: [MessageHeaders::TRACING_ID => $firstId], replyRoutingKey: 'ticket.created');
+        $bus->sendMessage('ticket_b', 'ticket.create', 'b', metadata: [MessageHeaders::TRACING_ID => $secondId], replyRoutingKey: 'ticket.created');
+        $gateway = $userService->getGateway(TracingGateway::class);
+
+        $ticketServices['ticket_a']->run('ticket_a_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+        $this->consumeThroughConsole($userService, 'user_channel');
+
+        self::assertTrue($gateway->isCompletedFor($sharedId, $users::class));
+        self::assertTrue($gateway->isCompletedFor($firstId, $users::class));
+        self::assertFalse($gateway->isCompletedFor($secondId, $users::class));
+
+        $ticketServices['ticket_b']->run('ticket_b_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+        $this->consumeThroughConsole($userService, 'user_channel');
+
+        self::assertTrue($gateway->isCompletedFor($secondId, $users::class));
+    }
+
     private function consumeThroughConsole(FlowTestSupport $service, string $channel): void
     {
         $service->getGateway(ConsoleCommandRunner::class)->execute('ecotone:run', ['consumerName' => $channel, 'finishWhenNoMessages' => true, 'executionTimeLimit' => 1000]);

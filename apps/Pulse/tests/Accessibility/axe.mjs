@@ -50,6 +50,13 @@ const discover = async () => {
         }
     }
 
+    const scoped = ['/services/orders', '/flow?service=orders', '/topology?service=orders', '/catalogue?service=orders', ...(process.env.PULSE_AXE_EXTRA ?? '').split(',').filter((path) => path !== '')];
+    for (const path of scoped) {
+        if (!pages.includes(path)) {
+            pages.push(path);
+        }
+    }
+
     return pages;
 };
 

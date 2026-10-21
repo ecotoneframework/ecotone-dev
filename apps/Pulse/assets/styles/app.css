@@ -192,4 +192,5 @@ td details form{margin-top:.5rem}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:1rem}.tiles .card{margin:0}.tiles ul{list-style:none;padding:0;margin:0 0 .5rem}.tiles li{margin:.35rem 0}
 .tenant-switcher{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}.tenant-switcher a[aria-current=page]{font-weight:700;text-decoration:underline}
-.scope-filter{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed{opacity:.55}
+.scope-filter{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}.greyed,.greyed h2,.greyed th{color:var(--muted)}
+section[data-group],.card.flush{overflow-x:auto}

@@ -13,8 +13,8 @@
     </form>
     <p class="muted" data-search-help>A message is listed when its service, class name, routing key, aggregate, handler, endpoint id, asynchronous channel, emitting handler or subscriber contains the whole text, ignoring case. The text is not split into words.</p>
     {% for group in groups %}
-        <section{% if group.greyed %} class="greyed" data-greyed{% endif %} data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
-            <h2>{{ group.service }} · {% if group.aggregate is not null %}{{ group.aggregate }} <span class="muted">aggregate</span>{% else %}Services and handlers{% endif %}</h2>
+        <section tabindex="0" role="region" aria-label="{{ group.service }}{% if group.aggregate is not null %} {{ group.aggregate }}{% endif %} messages"{% if group.greyed %} class="greyed" data-greyed{% endif %} data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
+            <h2>{{ group.service }}{% if group.greyed %} <span class="chip">talks to {{ scope.selected }}</span>{% endif %} · {% if group.aggregate is not null %}{{ group.aggregate }} <span class="muted">aggregate</span>{% else %}Services and handlers{% endif %}</h2>
             <table>
                 <thead>
                 <tr><th>Kind</th><th>Message</th><th>Handled by / subscribers</th><th>Emitted by</th></tr>

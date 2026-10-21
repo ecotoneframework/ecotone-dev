@@ -6,7 +6,10 @@ namespace App\Graph;
 
 final readonly class Mismatch
 {
-    public function __construct(public string $kind, public string $message)
+    /**
+     * @param list<string> $services
+     */
+    public function __construct(public string $kind, public string $message, public array $services = [])
     {
     }
 }

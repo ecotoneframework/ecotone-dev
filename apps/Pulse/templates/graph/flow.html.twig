@@ -25,6 +25,7 @@
             {% endfor %}
         </section>
     {% endif %}
+    {% include 'graph/_scope.html.twig' with {carry: trace ? {trace: trace.traceId} : {}} %}
     <form method="get" class="service-toggles">
         {% if trace %}<input type="hidden" name="trace" value="{{ trace.traceId }}">{% endif %}
         {% for service in services %}

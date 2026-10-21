@@ -12,16 +12,17 @@ final class MessageCatalogue
 {
     /**
      * @param list<ServiceFlow> $flows
-     * @return list<array{service: string, kind: string, aggregate: ?string, entries: list<array{service: string, kind: string, name: string, routingKey: string, aggregate: ?string, handlers: list<array{label: string, endpointId: ?string, channel: ?string, owner: ?string}>, subscribers: list<array{service: string, label: ?string, endpointId: ?string, channel: ?string, owner: ?string}>, emittedBy: list<string>}>}>
+     * @return list<array{service: string, kind: string, aggregate: ?string, greyed: bool, entries: list<array{service: string, kind: string, name: string, routingKey: string, aggregate: ?string, handlers: list<array{label: string, endpointId: ?string, channel: ?string, owner: ?string}>, subscribers: list<array{service: string, label: ?string, endpointId: ?string, channel: ?string, owner: ?string}>, emittedBy: list<string>}>}>
      */
-    public static function groups(array $flows, string $query, string $service = ''): array
+    public static function groups(array $flows, string $query, ?ServiceScopeFilter $scope = null): array
     {
         $links = DistributedLinks::between($flows);
         $groups = [];
         foreach ($flows as $flow) {
-            if ($service !== '' && $flow->name !== $service) {
+            if ($scope !== null && ! in_array($flow->name, $scope->visible(), true)) {
                 continue;
             }
+            $greyed = $scope?->isGreyed($flow->name) === true;
             $byAggregate = [];
             foreach (self::entriesOf($flow, $flows, $links) as $entry) {
                 if (self::matches($entry, $query)) {
@@ -32,10 +33,10 @@ final class MessageCatalogue
             $ungrouped = $byAggregate[''] ?? [];
             unset($byAggregate['']);
             foreach ($byAggregate as $aggregate => $entries) {
-                $groups[] = ['service' => $flow->name, 'kind' => 'aggregate', 'aggregate' => (string) $aggregate, 'entries' => $entries];
+                $groups[] = ['service' => $flow->name, 'kind' => 'aggregate', 'aggregate' => (string) $aggregate, 'greyed' => $greyed, 'entries' => $entries];
             }
             if ($ungrouped !== []) {
-                $groups[] = ['service' => $flow->name, 'kind' => 'services', 'aggregate' => null, 'entries' => $ungrouped];
+                $groups[] = ['service' => $flow->name, 'kind' => 'services', 'aggregate' => null, 'greyed' => $greyed, 'entries' => $ungrouped];
             }
         }
 

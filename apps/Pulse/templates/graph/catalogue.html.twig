@@ -5,19 +5,15 @@
 {% block body %}
     <h1>Message catalogue</h1>
     {% include 'graph/_notices.html.twig' %}
-    <form method="get">
-        <select name="service" aria-label="Show one service or all services">
-            <option value=""{% if service == '' %} selected{% endif %}>All services</option>
-            {% for name in services %}
-                <option value="{{ name }}"{% if service == name %} selected{% endif %}>{{ name }}</option>
-            {% endfor %}
-        </select>
+    {% include 'graph/_scope.html.twig' with {carry: query ? {q: query} : {}} %}
+    <form method="get" data-catalogue-search>
+        {% if scope.narrowed %}<input type="hidden" name="service" value="{{ scope.selected }}">{% endif %}
         <input type="search" name="q" aria-label="Search the catalogue" value="{{ query }}" placeholder="Class name, routing key, handler, aggregate or service">
         <button type="submit">Search</button>
     </form>
     <p class="muted" data-search-help>A message is listed when its service, class name, routing key, aggregate, handler, endpoint id, asynchronous channel, emitting handler or subscriber contains the whole text, ignoring case. The text is not split into words.</p>
     {% for group in groups %}
-        <section data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
+        <section{% if group.greyed %} class="greyed" data-greyed{% endif %} data-group="{{ group.kind }}" data-service="{{ group.service }}"{% if group.aggregate is not null %} data-aggregate="{{ group.aggregate }}"{% endif %}>
             <h2>{{ group.service }} · {% if group.aggregate is not null %}{{ group.aggregate }} <span class="muted">aggregate</span>{% else %}Services and handlers{% endif %}</h2>
             <table>
                 <thead>

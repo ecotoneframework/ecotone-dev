@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Graph\MessageCatalogue;
 use App\Graph\ServiceFlows;
+use App\Graph\ServiceScopeFilter;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,16 +23,15 @@ final class CatalogueController extends AbstractController
     public function catalogue(Request $request): Response
     {
         $query = $request->query->getString('q');
-        $service = $request->query->getString('service');
         $snapshots = $this->snapshots->viewAndRequestStale();
         $serviceFlows = ServiceFlows::of($snapshots);
+        $scope = ServiceScopeFilter::of($serviceFlows->flows, $request->query->getString('service'));
 
         return $this->render('graph/catalogue.html.twig', [
             'query' => $query,
-            'service' => $service,
-            'services' => MessageCatalogue::services($serviceFlows->flows),
+            'scope' => $scope,
             'notices' => $serviceFlows->notices,
-            'groups' => MessageCatalogue::groups($serviceFlows->flows, $query, $service),
+            'groups' => MessageCatalogue::groups($serviceFlows->flows, $query, $scope),
         ]);
     }
 }

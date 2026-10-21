@@ -7,6 +7,8 @@ namespace App\Tests\Awaited;
 use App\Tests\Support\ConcurrentRespondersTrait;
 use App\Tests\Support\DeadLetterServicesTrait;
 use App\Tests\Support\TracedServicesTrait;
+use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -116,6 +118,65 @@ final class AwaitedRequestsTest extends WebTestCase
 
         self::assertCount(2, $crawler->filter('[data-trace]'));
         self::assertCount(0, $crawler->filter('[data-waiting]'));
+    }
+
+    public function test_a_fan_out_renders_each_service_only_once_its_own_reply_was_processed(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $this->awaitRepliesFor(30);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders']);
+        $this->respondInBackground(['billing'], startAfterSeconds: 6);
+
+        $startedAt = microtime(true);
+        $crawler = $client->request('GET', '/');
+
+        self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('connected', $this->statusOf($crawler, 'billing'));
+    }
+
+    public function test_a_fan_out_renders_the_fast_service_fresh_and_the_slow_one_as_waiting_when_the_budget_ends(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $this->awaitRepliesFor(4);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders']);
+        $this->respondInBackground(['billing'], startAfterSeconds: 30);
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('connected', $this->statusOf($crawler, 'orders'));
+        self::assertSame('waiting', $this->statusOf($crawler, 'billing'));
+    }
+
+    public function test_a_trace_search_renders_each_service_only_once_its_own_reply_was_processed(): void
+    {
+        $traceId = '55555555555555555555555555555555';
+        $inTrace = [MessageHeaders::TRACEPARENT => (new SpanContext($traceId, 'aaaaaaaaaaaaaaaa'))->toTraceparent()];
+        $this->configurePulseWithServices('orders', 'billing', 'shipping');
+        $this->awaitRepliesFor(40);
+        $client = $this->pulseClient();
+        $this->respondInBackground(['orders'], function () use ($inTrace): array {
+            $orders = $this->tracedOrders();
+            $orders->sendCommandWithRouting('order.place', ['orderId' => 1], metadata: $inTrace);
+
+            return ['orders' => $orders];
+        });
+        $this->respondInBackground(['billing'], function () use ($inTrace): array {
+            $billing = $this->tracedBilling();
+            $billing->sendCommandWithRouting('invoice.create', 'payload', metadata: $inTrace);
+
+            return ['billing' => $billing];
+        }, startAfterSeconds: 6);
+
+        $startedAt = microtime(true);
+        $crawler = $client->request('GET', '/traces/trace/' . $traceId);
+
+        self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
+        self::assertCount(1, $crawler->filter('[data-service-state="orders"][data-state="answered"]'));
+        self::assertCount(1, $crawler->filter('[data-service-state="billing"][data-state="answered"]'));
+        self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
     }
 
     private function pulseClient(): KernelBrowser

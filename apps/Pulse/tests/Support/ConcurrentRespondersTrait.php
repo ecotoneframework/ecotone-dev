@@ -23,7 +23,7 @@ trait ConcurrentRespondersTrait
      * @param list<string> $services
      * @param (callable(): array<string, \Ecotone\Api\Lite\Test\FlowTestSupport>)|null $build
      */
-    private function respondInBackground(array $services, ?callable $build = null): void
+    private function respondInBackground(array $services, ?callable $build = null, int $startAfterSeconds = 0): void
     {
         $process = pcntl_fork();
         if ($process !== 0) {
@@ -33,6 +33,7 @@ trait ConcurrentRespondersTrait
         }
 
         try {
+            sleep($startAfterSeconds);
             $kernel = new Kernel('test', true);
             $kernel->boot();
             $applications = [];

@@ -1,0 +1,3 @@
+{% for notice in notices %}
+    <p class="notice" data-notice="{{ notice.kind }}">{{ notice.message }}</p>
+{% endfor %}

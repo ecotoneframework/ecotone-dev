@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Flow graph · Ecotone Pulse{% endblock %}
+
+{% block importmap %}{{ importmap(['app', 'graph']) }}{% endblock %}
+
+{% block body %}
+    <h1>Flow graph</h1>
+    <p class="muted">Every service's message flow, joined along distributed commands and events. Dashed arrows are inferred from source code.</p>
+    {% include 'graph/_notices.html.twig' %}
+    <form method="get" class="service-toggles">
+        {% for service in services %}
+            <label><input type="checkbox" name="services[]" value="{{ service }}"{% if service in shown %} checked{% endif %}> {{ service }}</label>
+        {% endfor %}
+        <button type="submit">Show</button>
+    </form>
+    {% if narrowedMessage %}<p class="notice" data-notice="narrowed">{{ narrowedMessage }}</p>{% endif %}
+    {% if services is empty %}
+        <p class="muted">No service has answered yet.</p>
+    {% else %}
+        <pre class="mermaid" data-flow-graph>{{ diagram }}</pre>
+    {% endif %}
+{% endblock %}

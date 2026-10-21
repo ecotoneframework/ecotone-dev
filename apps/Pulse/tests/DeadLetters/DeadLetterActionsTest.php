@@ -22,7 +22,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->work->failing = false;
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
 
@@ -173,7 +173,7 @@ final class DeadLetterActionsTest extends WebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $this->deliver($client);
 
         $this->advanceTimeBy(4);
@@ -196,7 +196,7 @@ final class DeadLetterActionsTest extends WebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $this->deliver($client);
 
         self::assertCount(1, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));
@@ -212,7 +212,7 @@ final class DeadLetterActionsTest extends WebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $this->deliver($client);
 
         $this->advanceTimeBy(5);
@@ -228,7 +228,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $sent = $client->followRedirect();
 
         self::assertStringContainsString('unreachable after the reply timeout', $sent->filter('[data-notice]')->text());
@@ -240,7 +240,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->work->failing = false;
 
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
 
@@ -265,13 +265,43 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertSame(['order.cancel'], $this->remainingNames($client));
     }
 
+    public function test_deleting_selected_dead_letters_asks_for_confirmation_first(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $confirmation = $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->deliver($client);
+
+        self::assertCount(1, $confirmation->filter('[data-confirm-delete]'));
+        self::assertStringContainsString('2 dead letters', $confirmation->filter('[data-confirm-delete]')->text());
+        self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+
+        $client->submit($confirmation->filter('[data-confirm-delete] button')->form());
+        $this->deliver($client);
+
+        self::assertSame(['order.cancel'], $this->remainingNames($client));
+    }
+
+    public function test_cancelling_the_confirmation_of_selected_dead_letters_deletes_nothing(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $confirmation = $client->request('POST', '/dead-letters/actions', ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $client->click($confirmation->filter('[data-confirm-delete] a')->link());
+        $this->deliver($client);
+
+        self::assertSame(['order.cancel', 'order.place', 'order.place'], $this->remainingNames($client));
+    }
+
     public function test_a_sent_action_shows_a_notice_and_the_service_as_waiting_until_its_snapshot_arrives(): void
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
         $this->advanceTimeBy(1);
 
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $waiting = $client->followRedirect();
 
         self::assertStringContainsString('Action sent', $waiting->filter('[data-notice]')->text());

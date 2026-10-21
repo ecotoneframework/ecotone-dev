@@ -59,6 +59,7 @@
             "php-http/discovery": true,
             "symfony/runtime": true
         },
+        "process-timeout": 0,
         "sort-packages": true
     },
     "extra": {

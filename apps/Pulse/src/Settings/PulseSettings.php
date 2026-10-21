@@ -141,11 +141,15 @@ final readonly class PulseSettings
         $entries = [];
         $current = '';
         $quoted = false;
+        $braced = false;
         foreach (str_split($services) as $character) {
             if ($character === '"') {
                 $quoted = ! $quoted;
             }
-            if ($character === ',' && ! $quoted) {
+            if (! $quoted && ($character === '{' || $character === '}')) {
+                $braced = $character === '{';
+            }
+            if ($character === ',' && ! $quoted && ! $braced) {
                 $entries[] = trim($current);
                 $current = '';
 
@@ -156,6 +160,24 @@ final readonly class PulseSettings
         $entries[] = trim($current);
 
         return $entries;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function tenants(string $list, string $entry): array
+    {
+        $tenants = array_map('trim', explode(',', $list));
+        foreach ($tenants as $tenant) {
+            if (preg_match('/^[A-Za-z0-9_.-]+$/', $tenant) !== 1) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s{tenants=%s}" names tenant "%s", which is not a tenant name. List the tenants Pulse should ask for as "service_name{tenants=tenant_a,tenant_b}", using only letters, digits, "_", "." and "-", or remove "{tenants=...}" to ask for every tenant the service advertises.', $entry, $list, $tenant));
+            }
+        }
+        if (count(array_unique($tenants)) !== count($tenants)) {
+            throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s{tenants=%s}" lists a tenant twice, so Pulse would ask for it twice. List each tenant once.', $entry, $list));
+        }
+
+        return $tenants;
     }
 
     private static function checkDestination(string $entry, string $destination, Transport $transport): void
@@ -238,6 +260,13 @@ final readonly class PulseSettings
 
         $routes = [];
         foreach (self::entries($services) as $entry) {
+            $tenants = null;
+            if (preg_match('/^(.*)\{tenants=([^{}]*)\}$/', $entry, $narrowing) === 1) {
+                $entry = $narrowing[1];
+                $tenants = self::tenants($narrowing[2], $entry);
+            } elseif (str_contains($entry, '{')) {
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed: a "{" can only open the tenant list at the end of an entry, as "service_name{tenants=tenant_a,tenant_b}". %s', $entry, $expectedFormat));
+            }
             if (preg_match('/^([^:#@",]+)(?::([^:#@",]+))?(?:#("[^"]+"|[^"@,]+))?(?:@([^:#@",]+))?$/', $entry, $parts) !== 1) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed. %s', $entry, $expectedFormat));
             }
@@ -276,7 +305,7 @@ final readonly class PulseSettings
                     throw new PulseConfigurationException(sprintf('PULSE_SERVICES maps services "%s" and "%s" to the same destination "%s" on connection "%s", so their requests would reach one consumer. Give each service the queue or topic it consumes.', $other->service, $service, $destination, $connectionName));
                 }
             }
-            $routes[$service] = new ServiceRoute($service, $channel, $destination, $connectionName);
+            $routes[$service] = new ServiceRoute($service, $channel, $destination, $connectionName, $tenants);
         }
 
         return $routes;

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -63,6 +65,22 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
         self::assertSame([null], $ecotone->sendQueryWithRouting('routingKeys.of', 'order.cancel'));
     }
 
+    public function test_an_asynchronous_aggregate_command_handler_sees_the_routing_key_it_was_sent_with(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [PulseRoutedBasket::class],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('baskets')],
+            enabledModules: [],
+        );
+
+        $ecotone->sendCommandWithRouting('basket.create', ['basketId' => '1']);
+        $ecotone->run('baskets', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotone->sendCommandWithRouting('basket.add', ['basketId' => '1'], metadata: ['aggregate.id' => '1']);
+        $ecotone->run('baskets', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['basket.create', 'basket.add'], $ecotone->sendQueryWithRouting('basket.routingKeys', metadata: ['aggregate.id' => '1']));
+    }
+
     private function bootstrap(): FlowTestSupport
     {
         $handlers = new class () {
@@ -108,5 +126,36 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
             extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
             enabledModules: [],
         );
+    }
+}
+
+#[Aggregate]
+final class PulseRoutedBasket
+{
+    private array $routingKeys = [];
+
+    private function __construct(#[Identifier] private string $basketId, string $routingKey)
+    {
+        $this->routingKeys[] = $routingKey;
+    }
+
+    #[Asynchronous('baskets')]
+    #[CommandHandler('basket.create', endpointId: 'basket.create.endpoint')]
+    public static function create(array $command, #[Headers] array $headers): self
+    {
+        return new self($command['basketId'], $headers['ecotone_modelling_bus_routing_key'] ?? 'none');
+    }
+
+    #[Asynchronous('baskets')]
+    #[CommandHandler('basket.add', endpointId: 'basket.add.endpoint')]
+    public function add(array $command, #[Headers] array $headers): void
+    {
+        $this->routingKeys[] = $headers['ecotone_modelling_bus_routing_key'] ?? 'none';
+    }
+
+    #[QueryHandler('basket.routingKeys')]
+    public function routingKeys(): array
+    {
+        return $this->routingKeys;
     }
 }

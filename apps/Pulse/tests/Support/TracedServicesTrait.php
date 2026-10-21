@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
@@ -24,6 +25,7 @@ use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
+use PDO;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
@@ -37,6 +39,37 @@ trait TracedServicesTrait
      * @var array<string, FlowTestSupport>
      */
     private array $tracedServices = [];
+
+    private bool $databasePerService = false;
+
+    /**
+     * @var array<string, string>
+     */
+    private array $serviceDatabases = [];
+
+    private function serviceDsn(string $service): string
+    {
+        $shared = parse_url($_SERVER['PULSE_TRANSPORT_DSN']);
+        $name = 'pulse_trace_' . $service . '_' . substr(sha1($this->pulseChannel), 0, 10);
+        if (! isset($this->serviceDatabases[$service])) {
+            $admin = new PDO(sprintf('pgsql:host=%s;port=%d;dbname=%s', $shared['host'], $shared['port'] ?? 5432, ltrim($shared['path'], '/')), $shared['user'], $shared['pass']);
+            $admin->exec(sprintf('DROP DATABASE IF EXISTS %s WITH (FORCE)', $name));
+            $admin->exec(sprintf('CREATE DATABASE %s', $name));
+            $this->serviceDatabases[$service] = $name;
+        }
+
+        return (string) preg_replace('#(@[^/]+)/[^?]+#', '$1/' . $name, $_SERVER['PULSE_TRANSPORT_DSN']);
+    }
+
+    private function dropServiceDatabases(): void
+    {
+        $shared = parse_url($_SERVER['PULSE_TRANSPORT_DSN']);
+        $admin = new PDO(sprintf('pgsql:host=%s;port=%d;dbname=%s', $shared['host'], $shared['port'] ?? 5432, ltrim($shared['path'], '/')), $shared['user'], $shared['pass']);
+        foreach ($this->serviceDatabases as $name) {
+            $admin->exec(sprintf('DROP DATABASE IF EXISTS %s WITH (FORCE)', $name));
+        }
+        $this->serviceDatabases = [];
+    }
 
     private function pulseWebClient(): KernelBrowser
     {
@@ -166,6 +199,7 @@ trait TracedServicesTrait
 
     private function tracedService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing = true, bool $inMemory = true): FlowTestSupport
     {
+        $inMemory = $inMemory && ! $this->databasePerService;
         $leftOver = $this->bootstrapService($service, $handler, $serviceMap, false, true);
         foreach (self::ASYNC_CHANNELS as $channel) {
             $leftOver->run($channel, ExecutionPollingMetadata::createWithTestingSetup(1000, 300, false));
@@ -177,13 +211,17 @@ trait TracedServicesTrait
     private function bootstrapService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing, bool $inMemory): FlowTestSupport
     {
         $asyncChannels = self::ASYNC_CHANNELS;
+        $channelConnection = $this->databasePerService ? 'pulse_shared' : DbalConnectionReference::DEFAULT;
+        $connections = $this->databasePerService
+            ? [DbalConnectionFactory::class => new DbalConnectionFactory($this->serviceDsn($service)), 'pulse_shared' => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])]
+            : [DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])];
         $application = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => new DbalConnectionFactory($_SERVER['PULSE_TRANSPORT_DSN'])],
+            containerOrAvailableServices: [$handler, ...$connections],
             extensionObjects: [
-                ...array_map(fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel)->withReceiveTimeout(1), array_values($this->serviceChannels)),
-                ...array_map(fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel)->withReceiveTimeout(1), $asyncChannels),
-                DbalBackedMessageChannelBuilder::create($this->pulseChannel),
+                ...array_map(fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel, $channelConnection)->withReceiveTimeout(1), array_values($this->serviceChannels)),
+                ...array_map(fn (string $channel) => DbalBackedMessageChannelBuilder::create($channel, $channelConnection)->withReceiveTimeout(1), $asyncChannels),
+                DbalBackedMessageChannelBuilder::create($this->pulseChannel, $channelConnection),
                 $serviceMap->withCommandMapping('ecotone_pulse', $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 DbalConfiguration::createWithDefaults()->withDeadLetter(true),

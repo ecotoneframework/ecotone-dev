@@ -26,8 +26,10 @@ trait PulseEnvironmentTrait
             ...$overrides,
         ];
 
-        static $connectionVariables = [];
-        $connectionVariables = array_unique([...$connectionVariables, ...array_filter(array_keys($environment), static fn (string $name) => str_starts_with($name, 'PULSE_CONNECTION_'))]);
+        $connectionVariables = array_filter(
+            array_unique([...array_keys($_SERVER), ...array_keys($_ENV), ...array_keys(getenv()), ...array_keys($environment)]),
+            static fn (int|string $name) => str_starts_with((string) $name, 'PULSE_CONNECTION_')
+        );
 
         foreach ([...PulseEnvironment::VARIABLES, ...$connectionVariables] as $name) {
             $value = $environment[$name] ?? null;

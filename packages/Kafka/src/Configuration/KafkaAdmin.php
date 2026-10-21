@@ -177,10 +177,15 @@ final class KafkaAdmin
         return $this->deliveryTrackers[$referenceName] ??= new KafkaDeliveryTracker();
     }
 
+    public function getTopicNameForProducer(string $referenceName): string
+    {
+        return $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->defaultTopicName);
+    }
+
     public function getTopicForProducer(string $referenceName): ProducerTopic
     {
         $producer = $this->getProducer($referenceName);
-        $topicName = $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->defaultTopicName);
+        $topicName = $this->getTopicNameForProducer($referenceName);
 
         return $producer->newTopic(
             $topicName,

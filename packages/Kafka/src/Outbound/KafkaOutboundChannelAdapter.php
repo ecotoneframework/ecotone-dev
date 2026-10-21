@@ -45,6 +45,9 @@ use Throwable;
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
     private const POLL_EVERY_PRODUCED_MESSAGES = 100;
+    private const METADATA_TIMEOUT_IN_MILLISECONDS = 10000;
+
+    private bool $destinationVerified = false;
 
     public function __construct(
         private string $referenceName,
@@ -53,6 +56,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         private OutboundMessageConverter $outboundMessageConverter,
         private PendingDeliveryRegistry $pendingDeliveryRegistry,
         private MessageBuilder $messageBuilder,
+        private bool $requireExistingDestination = false,
     ) {
     }
 
@@ -66,6 +70,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         }
 
         $producer = $this->kafkaAdmin->getProducer($this->referenceName);
+        $this->verifyDestinationExists($producer);
         $topic = $this->kafkaAdmin->getTopicForProducer($this->referenceName);
 
         if ($message->getPayload() instanceof BatchMessage) {
@@ -84,6 +89,32 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         }
 
         $this->flushSynchronously($producer, [$deliveryId]);
+    }
+
+    private function verifyDestinationExists(Producer $producer): void
+    {
+        if (! $this->requireExistingDestination || $this->destinationVerified) {
+            return;
+        }
+
+        $topicName = $this->kafkaAdmin->getTopicNameForProducer($this->referenceName);
+        $existingTopicNames = [];
+        foreach ($producer->getMetadata(true, null, self::METADATA_TIMEOUT_IN_MILLISECONDS)->getTopics() as $existingTopic) {
+            $existingTopicNames[] = $existingTopic->getTopic();
+        }
+
+        if (! in_array($topicName, $existingTopicNames, true)) {
+            throw ConfigurationException::create(sprintf(
+                "Channel '%s' requires its destination to exist, but topic '%s' does not exist on Kafka broker configuration '%s', so nothing was sent. Run the consumer of this channel (ecotone:run %s) or create the topic yourself, or fix the topic name (KafkaMessageChannelBuilder::create('%s', topicName: ...)). To let this channel create the topic on send, remove withRequiredExistingDestination().",
+                $this->referenceName,
+                $topicName,
+                $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference,
+                $this->referenceName,
+                $this->referenceName,
+            ));
+        }
+
+        $this->destinationVerified = true;
     }
 
     public function isBatchPublishingEnabled(): bool

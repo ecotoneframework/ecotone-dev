@@ -30,6 +30,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     private string $headerMapper;
     private ?MediaType $conversionMediaType = null;
     private bool $batchPublishing = false;
+    private bool $requireExistingDestination = false;
     private bool $nonBlockingConfirmation = false;
     private ?int $confirmationTimeout = null;
 
@@ -54,6 +55,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
                 $this->inboundChannelAdapterBuilder
                     ->compile($builder),
                 $this->outboundChannelAdapterBuilder
+                    ->withRequiredExistingDestination($this->requireExistingDestination)
                     ->withHeaderMapper($this->getHeaderMapper())
                     ->withDefaultConversionMediaType($this->conversionMediaType?->toString())
                     ->compile($builder),
@@ -74,6 +76,13 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
             $topicName ?? $channelName,
             $messageGroupId ?? $channelName,
         );
+    }
+
+    public function withRequiredExistingDestination(): self
+    {
+        $this->requireExistingDestination = true;
+
+        return $this;
     }
 
     public function getConversionMediaType(): ?MediaType

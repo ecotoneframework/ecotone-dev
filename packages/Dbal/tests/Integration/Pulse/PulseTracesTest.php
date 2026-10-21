@@ -298,6 +298,16 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_any_request_under_the_pulse_routing_prefix_is_kept_out_of_flow_tracking(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->pulseService->getDistributedBus()->sendCommand('order_service', 'ecotone.pulse.contributed', 'payload');
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame([], $this->requestSnapshot()['tracing']['flowTypes']);
+    }
+
+    #[DataProvider('implementations')]
     public function test_the_snapshot_has_no_tracing_section_without_flow_tracking(string $implementation): void
     {
         $this->bootstrap($implementation, flowTracking: false);
@@ -571,6 +581,12 @@ final class PulseTracesTest extends DbalMessagingTestCase
             public function close(string $ticketId): void
             {
                 throw new RuntimeException("Ticket {$ticketId} could not be closed");
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.contributed', endpointId: 'pulse.contributed')]
+            public function contributed(string $payload): void
+            {
             }
 
             #[CommandHandler('refund.ticket', endpointId: 'ticket.refund')]

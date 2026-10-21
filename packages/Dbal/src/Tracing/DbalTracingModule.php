@@ -36,8 +36,6 @@ use Ecotone\Api\Projecting\ProjectionFlush;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
-use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
-use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
 use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
@@ -66,6 +64,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
@@ -187,7 +186,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                     TraceRecordingInterceptor::class,
                     $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'keepPulseRequestOutOfFlowTracking'),
                     Precedence::TRACE_RECORDING_PRECEDENCE,
-                    implode('||', [PulseSnapshot::class, PulseTraceQueries::class, PulseDeadLetterActions::class, PulseDeadLettersNotConfigured::class])
+                    DistributedMessageHandler::class
                 )
             );
         }

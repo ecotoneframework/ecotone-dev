@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
@@ -57,6 +58,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
         yield 'class command' => [PulsePlaceOrder::class, fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->sendCommand(new PulsePlaceOrder(2))];
         yield 'class event' => [PulseOrderWasPlaced::class, fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->publishEvent(new PulseOrderWasPlaced(3))];
         yield 'named event' => ['order.shipped', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->publishEventWithRouting('order.shipped', ['orderId' => 4])];
+        yield 'business interface' => ['order.invoiced', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $service->getGateway(PulseInvoiceGateway::class)->invoice(['orderId' => 5])];
         yield 'distributed command' => ['order.synchronized', fn (FlowTestSupport $service, FlowTestSupport $pulse) => $pulse->getDistributedBus()->sendMessage('order_service', 'order.synchronized', 'sync', MediaType::TEXT_PLAIN)];
     }
 
@@ -95,6 +97,13 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
                 $this->handle('order.shipped');
             }
 
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.invoiced', endpointId: 'order.invoiced.endpoint')]
+            public function invoice(array $order): void
+            {
+                $this->handle('order.invoiced');
+            }
+
             #[Distributed]
             #[CommandHandler('order.synchronized', endpointId: 'order.synchronized.endpoint')]
             public function synchronize(string $payload): void
@@ -123,7 +132,7 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
         $channels = [SimpleMessageChannelBuilder::createQueueChannel('order_channel'), SimpleMessageChannelBuilder::createQueueChannel('pulse_channel')];
         $connectionFactory = $this->getConnectionFactory();
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$this->orders::class],
+            classesToResolve: [$this->orders::class, PulseInvoiceGateway::class],
             containerOrAvailableServices: [$this->orders, DbalConnectionFactory::class => $connectionFactory],
             extensionObjects: [
                 ...$channels,
@@ -178,13 +187,13 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
             $sendOther($this->orderService, $this->pulseService);
         }
         $this->consumeFailures();
-        self::assertSame(5, $this->snapshot()['deadLetters']['total']);
+        self::assertSame(6, $this->snapshot()['deadLetters']['total']);
         $this->orders->failing = false;
 
         $deadLetters = $this->ask('ecotone.pulse.dead_letter.replay', json_encode(['filter' => ['messageName' => $expectedName]]))['deadLetters'];
         $this->consumeFailures();
 
-        self::assertSame(4, $deadLetters['total']);
+        self::assertSame(5, $deadLetters['total']);
         self::assertSame([$expectedName], $this->orders->succeeded);
     }
 
@@ -209,6 +218,12 @@ final class PulseDeadLettersFromFailuresTest extends DbalMessagingTestCase
 
         return json_decode($this->pulse->snapshots[$received], true, flags: JSON_THROW_ON_ERROR);
     }
+}
+
+interface PulseInvoiceGateway
+{
+    #[BusinessMethod('order.invoiced')]
+    public function invoice(array $order): void;
 }
 
 final class PulsePlaceOrder

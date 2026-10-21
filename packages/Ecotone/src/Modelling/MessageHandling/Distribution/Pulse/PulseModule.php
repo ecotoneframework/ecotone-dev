@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
@@ -92,6 +93,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
+                self::channelsOf($extensionObjects),
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -134,6 +136,18 @@ final class PulseModule implements AnnotationModule
         }
 
         return $references;
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     * @return array<array{name: string, pollable: bool}>
+     */
+    private static function channelsOf(array $extensionObjects): array
+    {
+        return array_map(
+            static fn (MessageChannelBuilder $channel) => ['name' => $channel->getMessageChannelName(), 'pollable' => $channel->isPollable()],
+            ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects)
+        );
     }
 
     /**

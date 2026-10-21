@@ -83,6 +83,29 @@ final class PulseSnapshotResponderTest extends TestCase
         );
     }
 
+    public function test_the_snapshot_lists_the_channels_the_service_registers_and_whether_they_are_pollable(): void
+    {
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createDirectMessageChannel('orders_direct')];
+        $orderService = $this->orderService($this->orders(), $channels);
+        $pulse = $this->pulseReplies();
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(1, $snapshot['schemaVersion']);
+        self::assertSame(
+            [
+                ['name' => 'order_channel', 'pollable' => true],
+                ['name' => 'pulse_channel', 'pollable' => true],
+                ['name' => 'orders_direct', 'pollable' => false],
+            ],
+            $snapshot['channels'],
+        );
+    }
+
     public function test_an_asynchronous_service_map_is_reported_in_the_topology(): void
     {
         $channels = $this->channels();

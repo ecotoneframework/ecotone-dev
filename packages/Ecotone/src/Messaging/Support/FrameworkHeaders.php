@@ -121,7 +121,8 @@ final class FrameworkHeaders
         unset(
             $metadata[MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME],
             $metadata[MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME],
-            $metadata[MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME]
+            $metadata[MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME],
+            $metadata[MessageBusChannel::ROUTING_KEY_HEADER]
         );
 
         return $metadata;

@@ -82,6 +82,16 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   or from a #[ServiceContext] method.`
   Flow tests (`bootstrapFlowTesting()`) do not throw this; they provide the in-memory channel instead.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
+- **A message sent through a bus keeps its routing key on the asynchronous channel.** **Before:** the bus removed the
+  routing key when it put the message on an asynchronous channel, so the handler, the outbox and the dead letter could
+  not tell which name the message was sent with. **Now:** every message sent by `CommandBus`/`EventBus` to an
+  `#[Asynchronous]` handler carries the header `ecotone_modelling_bus_routing_key`: the key given to `sendWithRouting()`
+  or `publishWithRouting()` (for an event, the published name, not the handler's pattern), or the class-based name for a
+  class-routed message. Read it with `#[Header]`. It is informational: routing on consume is unchanged, it is not passed
+  on to messages the handler sends or publishes, and it stays on the stored message (outbox, dead letter) and when that
+  message is replayed to another channel. A message sent to the handler by a `#[BusinessMethod]` or `#[MessageGateway]`
+  routing key carries that routing key. **How to adapt:**
+  nothing is required; tests asserting the exact header set of an asynchronous message see one more header.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
 
@@ -3223,6 +3233,23 @@ bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
 
 **How to adapt:** nothing is required. To use it, register `PulseConfiguration` and the command mapping to the Pulse
 service.
+
+With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
+and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
+`failedAt`, exception class and message, stack trace and payload (both cut at 4096 bytes with a `... [truncated]`
+marker), content type and original channel.
+
+The name is the distributed routing key; else the routing key the message was sent with (see §1); else the
+`__TypeId__`, when it is a class or a type alias, for messages that never went through a bus.
+
+Pulse acts on dead letters with the routing keys `ecotone.pulse.dead_letter.replay` (optionally with a `targetChannel`)
+and `ecotone.pulse.dead_letter.delete`, sending `{"messageIds": [...]}` or `{"filter": {"messageName": ...,
+"exceptionClass": ..., "failedFrom": ..., "failedTo": ...}}`, and receives a fresh snapshot as the reply.
+
+A filter applies to every stored dead letter and matches the name shown in the snapshot. `failedFrom` and `failedTo` are
+inclusive at whole-second precision, and `failedFrom` later than `failedTo` is refused, as is an empty filter. A dead
+letter removed while a filtered action runs is skipped. A service without a dead letter refuses the action with how to
+enable it.
 
 ## 15. Testing and developer-experience changes
 

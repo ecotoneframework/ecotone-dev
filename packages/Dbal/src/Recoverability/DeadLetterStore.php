@@ -19,6 +19,11 @@ interface DeadLetterStore
      */
     public function list(int $limit, int $offset): array;
 
+    /**
+     * @return Message[]
+     */
+    public function listMessages(int $limit, int $offset): array;
+
     public function find(string $messageId): ?Message;
 
     public function count(): int;

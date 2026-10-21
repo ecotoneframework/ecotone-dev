@@ -100,7 +100,7 @@ final readonly class PulseSettings
      */
     private static function serviceChannels(?string $services, string $pulseServiceName, string $pulseChannel): array
     {
-        $expectedFormat = 'PULSE_SERVICES has to list the services Pulse manages as "service_name:channel_name" pairs separated by commas, for example PULSE_SERVICES=orders:orders_channel,billing:billing_channel.';
+        $expectedFormat = 'PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.';
         if ($services === null) {
             throw new PulseConfigurationException('PULSE_SERVICES is not set, so Pulse has no services to ask for snapshots. ' . $expectedFormat);
         }
@@ -108,14 +108,14 @@ final readonly class PulseSettings
         $serviceChannels = [];
         foreach (explode(',', $services) as $pair) {
             $parts = explode(':', trim($pair));
-            if (count($parts) !== 2 || trim($parts[0]) === '' || trim($parts[1]) === '') {
+            if (count($parts) > 2 || trim($parts[0]) === '' || (count($parts) === 2 && trim($parts[1]) === '')) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES entry "%s" is malformed. %s', trim($pair), $expectedFormat));
             }
 
             $service = self::name(trim($parts[0]), 'PULSE_SERVICES service');
-            $serviceChannel = self::name(trim($parts[1]), 'PULSE_SERVICES channel');
+            $serviceChannel = self::name(trim($parts[1] ?? $service), 'PULSE_SERVICES channel');
             if (isset($serviceChannels[$service])) {
-                throw new PulseConfigurationException(sprintf('PULSE_SERVICES lists service "%s" twice, so Pulse cannot tell which channel it consumes. Keep one "%s:channel_name" entry.', $service, $service));
+                throw new PulseConfigurationException(sprintf('PULSE_SERVICES lists service "%s" twice, so Pulse cannot tell which channel it consumes. Keep one "%s" or "%s:channel_name" entry.', $service, $service, $service));
             }
             if ($service === $pulseServiceName) {
                 throw new PulseConfigurationException(sprintf('PULSE_SERVICES lists "%s", which is the name of Pulse itself (PULSE_SERVICE_NAME). Remove it from PULSE_SERVICES, or give Pulse another name with PULSE_SERVICE_NAME.', $service));

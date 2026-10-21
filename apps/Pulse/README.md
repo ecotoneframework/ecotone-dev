@@ -78,7 +78,7 @@ what is wrong and how to fix it.
 |---|---|---|
 | `ECOTONE_LICENCE_KEY` | required | Ecotone Enterprise licence key |
 | `PULSE_TRANSPORT_DSN` | required | The broker the services use. The scheme selects the transport (see below) |
-| `PULSE_SERVICES` | required | Services to manage as `service_name:channel_name`, comma separated: `orders:orders_channel,billing:billing_channel`. The channel is the one the service consumes |
+| `PULSE_SERVICES` | required | Services to manage, comma separated: `orders,billing`. Each service's request channel defaults to its service name; name it explicitly as `service_name:channel_name` (`orders:orders_channel,billing`) when it differs |
 | `PULSE_SERVICE_NAME` | `ecotone_pulse` | Pulse's own service name. Services accept requests only from this name |
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
@@ -99,13 +99,16 @@ what is wrong and how to fix it.
 
 ## Connect a service
 
-Every service Pulse manages needs Ecotone Enterprise and one `#[ServiceContext]`. The service must have a name, and its
-`DistributedServiceMap` maps Pulse's service name (`PULSE_SERVICE_NAME`) to Pulse's channel (`PULSE_CHANNEL`), so the reply
-reaches Pulse:
+Every service Pulse manages needs Ecotone Enterprise, a service name, and one `PulseConfiguration`. The reply mapping to
+Pulse is implied, and so is the reply channel: the service replies to a channel named after the Pulse service
+(`PULSE_SERVICE_NAME`, `ecotone_pulse` by default), registered for it with the same builder class and connection as the
+channel Pulse sends its requests to, which is the channel named after the service (`orders` below). Only the builder
+class and the connection are followed, never a queue name, topic or table, so the reply channel is exactly what
+`Builder::create('ecotone_pulse', sameConnection)` would register:
 
 ```php
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Pulse\PulseConfiguration;
 
@@ -124,16 +127,26 @@ final class PulseSetup
     }
 
     #[ServiceContext]
-    public function pulseServiceMap(): DistributedServiceMap
+    public function channels(): array
     {
-        return DistributedServiceMap::initialize()
-            ->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'ecotone_pulse');
+        return [
+            AmqpBackedMessageChannelBuilder::create('orders'),
+        ];
     }
 }
 ```
 
-The service consumes its own channel (`orders_channel` in the example above) like any asynchronous channel.
-Pulse's side is `PULSE_SERVICES=orders:orders_channel`.
+The service consumes its request channel (`orders`, named after the service) like any asynchronous channel, and Pulse's
+side is `PULSE_SERVICES=orders`. Use another channel name with `PULSE_SERVICES=orders:orders_channel` and
+`PulseConfiguration::createWithDefaults(...)->withRequestChannel('orders_channel')`. Use another reply channel with
+`->withReplyChannel('pulse_replies')`, and set `PULSE_CHANNEL` to match. A reply channel you register yourself wins and is
+not registered twice. Bootstrap is refused, naming `withRequestChannel` and the builder to add, when the request channel is
+not registered, and for a Kafka request channel (its reply channel is registered explicitly with
+`KafkaMessageChannelBuilder::create('ecotone_pulse')`). A `DistributedServiceMap` that already maps the Pulse service keeps
+working; a mapping that contradicts `withReplyChannel` is refused at bootstrap.
+
+A request channel is shared with anything else that reads it, because Pulse's requests queue up behind the messages
+already on it. Give the service a dedicated, mostly empty request channel for Pulse and consume it with a poller of its own.
 
 ## Run it
 

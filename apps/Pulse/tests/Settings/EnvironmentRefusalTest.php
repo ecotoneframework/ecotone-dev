@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Settings;
 
 use App\Settings\PulseConfigurationException;
+use App\Settings\PulseSettings;
 use App\Tests\Support\PulseEnvironmentTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -23,6 +24,13 @@ final class EnvironmentRefusalTest extends KernelTestCase
         self::bootKernel();
 
         self::assertTrue(self::$booted);
+    }
+
+    public function test_services_listed_by_name_consume_a_channel_named_like_the_service(): void
+    {
+        $settings = PulseSettings::fromEnvironment(['ECOTONE_LICENCE_KEY' => 'key', 'PULSE_TRANSPORT_DSN' => 'amqp://guest:guest@rabbitmq:5672', 'PULSE_SERVICES' => 'orders, billing:billing_requests'], __DIR__);
+
+        self::assertSame(['orders' => 'orders', 'billing' => 'billing_requests'], $settings->serviceChannels);
     }
 
     public function test_a_leftover_database_setup_variable_is_ignored_for_any_transport(): void
@@ -83,12 +91,18 @@ final class EnvironmentRefusalTest extends KernelTestCase
         yield 'missing licence key' => [['ECOTONE_LICENCE_KEY' => null], 'ECOTONE_LICENCE_KEY is not set, but Ecotone Pulse is an Ecotone Enterprise application and does not start without a licence. Set ECOTONE_LICENCE_KEY to your Enterprise licence key (trial: https://ecotone.tech/pricing).'];
         yield 'missing transport' => [['PULSE_TRANSPORT_DSN' => null], 'PULSE_TRANSPORT_DSN is not set, so Pulse does not know which broker the services are reachable on.'];
         yield 'unknown transport scheme' => [['PULSE_TRANSPORT_DSN' => 'ftp://host'], 'PULSE_TRANSPORT_DSN "ftp://host" does not start with a supported scheme (matched case-insensitively), so Pulse cannot tell which broker to connect to. Use one of: amqp:// (Amqp), amqps:// (Amqp), redis:// (Redis), sqs: (Sqs), kafka:// (Kafka), pgsql:// (Dbal), mysql:// (Dbal), sqlite:// (Dbal).'];
-        yield 'missing services' => [['PULSE_SERVICES' => null], 'PULSE_SERVICES is not set, so Pulse has no services to ask for snapshots. PULSE_SERVICES has to list the services Pulse manages as "service_name:channel_name" pairs separated by commas, for example PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
-        yield 'malformed services' => [['PULSE_SERVICES' => 'orders'], 'PULSE_SERVICES entry "orders" is malformed. PULSE_SERVICES has to list the services Pulse manages as "service_name:channel_name" pairs separated by commas, for example PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
-        yield 'service listed twice' => [['PULSE_SERVICES' => 'orders:a,orders:b'], 'PULSE_SERVICES lists service "orders" twice, so Pulse cannot tell which channel it consumes. Keep one "orders:channel_name" entry.'];
+        yield 'missing services' => [['PULSE_SERVICES' => null], 'PULSE_SERVICES is not set, so Pulse has no services to ask for snapshots. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
+        yield 'malformed services' => [['PULSE_SERVICES' => 'orders:a:b'], 'PULSE_SERVICES entry "orders:a:b" is malformed. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
+        yield 'empty service name' => [['PULSE_SERVICES' => ':a'], 'PULSE_SERVICES entry ":a" is malformed. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
+        yield 'empty channel name' => [['PULSE_SERVICES' => 'orders:'], 'PULSE_SERVICES entry "orders:" is malformed. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
+        yield 'empty entry between commas' => [['PULSE_SERVICES' => 'orders,,billing'], 'PULSE_SERVICES entry "" is malformed. PULSE_SERVICES has to list the services Pulse manages by name, optionally with the channel the service consumes, as "service_name" or "service_name:channel_name" separated by commas, for example PULSE_SERVICES=orders,billing or PULSE_SERVICES=orders:orders_channel,billing:billing_channel.'];
+        yield 'service listed twice' => [['PULSE_SERVICES' => 'orders:a,orders:b'], 'PULSE_SERVICES lists service "orders" twice, so Pulse cannot tell which channel it consumes. Keep one "orders" or "orders:channel_name" entry.'];
+        yield 'service listed twice without channels' => [['PULSE_SERVICES' => 'orders,orders'], 'PULSE_SERVICES lists service "orders" twice, so Pulse cannot tell which channel it consumes. Keep one "orders" or "orders:channel_name" entry.'];
         yield 'pulse listed as its own service' => [['PULSE_SERVICES' => 'ecotone_pulse:a'], 'PULSE_SERVICES lists "ecotone_pulse", which is the name of Pulse itself (PULSE_SERVICE_NAME). Remove it from PULSE_SERVICES, or give Pulse another name with PULSE_SERVICE_NAME.'];
         yield 'service reading the pulse channel' => [['PULSE_SERVICES' => 'orders:ecotone_pulse'], 'PULSE_SERVICES maps service "orders" to channel "ecotone_pulse", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "orders" consumes, or change PULSE_CHANNEL.'];
+        yield 'service named like the pulse channel' => [['PULSE_SERVICES' => 'orders', 'PULSE_CHANNEL' => 'orders'], 'PULSE_SERVICES maps service "orders" to channel "orders", which is Pulse\'s own channel (PULSE_CHANNEL), so Pulse would read its own requests. Use the channel "orders" consumes, or change PULSE_CHANNEL.'];
         yield 'two services on one channel' => [['PULSE_SERVICES' => 'orders:shared,billing:shared'], 'PULSE_SERVICES maps services "orders" and "billing" to the same channel "shared", so their replies could not be told apart. Give each service the channel it consumes.'];
+        yield 'default channel taken by another service' => [['PULSE_SERVICES' => 'billing:orders,orders'], 'PULSE_SERVICES maps services "billing" and "orders" to the same channel "orders", so their replies could not be told apart. Give each service the channel it consumes.'];
         yield 'invalid reply timeout' => [['PULSE_REPLY_TIMEOUT' => 'soon'], 'PULSE_REPLY_TIMEOUT "soon" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];
         yield 'invalid render wait' => [['PULSE_RENDER_WAIT' => '-1'], 'PULSE_RENDER_WAIT "-1" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 0 or more.'];
         yield 'refresh interval that is not a number' => [['PULSE_REFRESH_INTERVAL' => 'often'], 'PULSE_REFRESH_INTERVAL "often" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];

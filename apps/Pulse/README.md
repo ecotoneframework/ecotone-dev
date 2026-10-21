@@ -19,8 +19,11 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
 ```
 
 * **web** renders pages. A page view sends a snapshot request to every service whose cached snapshot is older than 60 seconds
-  (at most one request per service per 60 seconds, however many people view the page) and optionally waits up to
-  `PULSE_RENDER_WAIT` seconds for the replies.
+  and optionally waits up to `PULSE_RENDER_WAIT` seconds for the replies. The check and the bookkeeping of the request
+  run under a lock (Symfony Lock, file locks in `PULSE_CACHE_DIR/locks`) before the request is sent, so concurrent page views
+  send one request per service. A request that timed out is sent again by the next view; within 60 seconds of a Connected
+  snapshot no new request is sent. While waiting for a reply, the page keeps showing the service's previous snapshot.
+  The wait observes replies in the cache; it does not depend on the application clock.
 * **worker** runs `bin/console ecotone:run <PULSE_CHANNEL>`. It consumes the services' replies and writes them to the cache.
 * Web and worker **must share `PULSE_CACHE_DIR`** (a volume).
 
@@ -29,14 +32,14 @@ Service status:
 | Status | Meaning |
 |---|---|
 | Connected | A snapshot was received within the last 60 seconds |
-| Waiting | A request is outstanding and `PULSE_REPLY_TIMEOUT` has not passed |
+| Waiting | A request is outstanding and `PULSE_REPLY_TIMEOUT` has not passed (also right after Refresh, showing the previous snapshot and its age) |
 | Unreachable | The request is older than `PULSE_REPLY_TIMEOUT` with no reply, or it could not be sent (the reason is shown). The last seen time and last snapshot are kept |
 
 The **Refresh** button on the Services page requests new snapshots regardless of their age.
 
 ## Configuration
 
-Every setting is an environment variable. An invalid value is refused when the application boots, with a message naming
+Every setting is an environment variable, read when the container is built at start. **Changing a setting needs a restart** of `web` and `worker`: the entrypoint rebuilds the container from the current environment on every start, and the cache directory of the container is keyed by the settings, so a container built for other settings is never reused. Do not mount `var/cache` as a shared volume. An invalid value is refused when the application boots, with a message naming
 what is wrong and how to fix it.
 
 | Variable | Default | |
@@ -49,7 +52,7 @@ what is wrong and how to fix it.
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_RENDER_WAIT` | `2` | Seconds a page waits for replies before rendering. `0` renders immediately |
 | `PULSE_CACHE_DIR` | `var/pulse-cache` | Cache directory shared by `web` and `worker` |
-| `APP_SECRET` | | Symfony secret, any random string |
+| `APP_SECRET` | required in production | Symfony secret. Generate one with `openssl rand -hex 32` |
 
 `PULSE_TRANSPORT_DSN` schemes:
 
@@ -58,7 +61,7 @@ what is wrong and how to fix it.
 | `amqp://`, `amqps://` | RabbitMQ |
 | `redis://` | Redis |
 | `sqs:` | Amazon SQS |
-| `kafka://` | Kafka |
+| `kafka://` | Kafka. Several brokers: `kafka://one:9092,two:9092` |
 | `pgsql://`, `mysql://`, `sqlite://` | Database (DBAL). Create the tables with `bin/console ecotone:migration:database:setup --initialSetup` |
 
 ## Connect a service

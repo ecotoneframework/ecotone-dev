@@ -2,11 +2,19 @@ name: Ecotone Pulse
 
 on:
   pull_request:
+    paths:
+      - 'apps/Pulse/**'
+      - 'packages/**'
+      - '.github/workflows/pulse.yml'
   push:
     branches:
       - '**'
     tags-ignore:
       - '*.*'
+    paths:
+      - 'apps/Pulse/**'
+      - 'packages/**'
+      - '.github/workflows/pulse.yml'
 
 concurrency:
   group: pulse-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
@@ -31,15 +39,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
-      rabbitmq:
-        image: rabbitmq:4
-        ports:
-          - 5672:5672
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
     env:
       DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
       COMPOSER_ROOT_VERSION: dev-main
@@ -50,8 +49,12 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: amqp, rdkafka, redis, pdo_pgsql, pdo_mysql, sockets, intl
+          extensions: amqp, rdkafka, redis, pdo_pgsql, sockets, intl
           coverage: none
+
+      - name: Pin the path packages the way the Docker image does
+        working-directory: apps/Pulse
+        run: php docker/pin-path-package-versions.php
 
       - name: Install Pulse with fresh path packages
         working-directory: apps/Pulse
@@ -90,7 +93,7 @@ jobs:
           test "$status" -ne 0
           echo "$output" | grep -q "ECOTONE_LICENCE_KEY is not set"
 
-      - name: Smoke test, the web role answers on /
+      - name: Smoke test, the web role serves the Services page while the broker is unreachable
         run: |
           licence="$(docker run --rm --entrypoint php ecotone-pulse:ci -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')"
           docker run -d --name pulse-web -p 8080:8080 \

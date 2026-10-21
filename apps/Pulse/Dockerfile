@@ -8,7 +8,9 @@ RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql sockets intl o
 ENV APP_ENV=prod \
     APP_DEBUG=0 \
     PULSE_CACHE_DIR=/app/var/pulse-cache \
-    PULSE_HTTP_PORT=8080
+    PULSE_HTTP_PORT=8080 \
+    XDG_DATA_HOME=/app/var/xdg/data \
+    XDG_CONFIG_HOME=/app/var/xdg/config
 
 FROM base AS build
 
@@ -20,7 +22,7 @@ COPY apps/Pulse ./apps/Pulse
 
 WORKDIR /build/apps/Pulse
 
-RUN php -r '$versions = []; foreach (glob("../../packages/*/composer.json") as $file) { $versions[json_decode(file_get_contents($file), true)["name"]] = "2.0.x-dev"; } $composer = json_decode(file_get_contents("composer.json"), true); $composer["repositories"][0]["options"] = ["symlink" => false, "versions" => $versions]; file_put_contents("composer.json", json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));' \
+RUN php docker/pin-path-package-versions.php --copy \
     && COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
     && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --classmap-authoritative --no-scripts
 
@@ -38,7 +40,7 @@ COPY --from=build /build/apps/Pulse /app
 COPY apps/Pulse/docker/Caddyfile /etc/caddy/Caddyfile
 COPY apps/Pulse/docker/entrypoint.sh /usr/local/bin/pulse-entrypoint
 
-RUN mkdir -p var/cache var/log var/pulse-cache \
+RUN mkdir -p var/cache var/log var/pulse-cache var/xdg/data var/xdg/config \
     && chown -R www-data:www-data var \
     && chmod +x /usr/local/bin/pulse-entrypoint \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \

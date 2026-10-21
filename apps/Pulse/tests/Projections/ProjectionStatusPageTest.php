@@ -42,8 +42,8 @@ final class ProjectionStatusPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
 
         self::assertSame('catching_up', $this->statusOf($crawler, 'tickets'));
-        self::assertSame('12 events', $crawler->filter('tr[data-projection="tickets"] [data-gap]')->text());
-        self::assertSame('at least 1000 events', $crawler->filter('tr[data-projection="capped"] [data-gap]')->text());
+        self::assertSame('12 events behind', $crawler->filter('tr[data-projection="tickets"] [data-gap]')->text());
+        self::assertSame('1000+ events behind', $crawler->filter('tr[data-projection="capped"] [data-gap]')->text());
     }
 
     public function test_a_partitioned_projection_shows_how_many_partitions_are_behind(): void
@@ -54,7 +54,7 @@ final class ProjectionStatusPageTest extends ReleasingWebTestCase
         $crawler = $this->observe($client);
 
         self::assertSame('catching_up', $this->statusOf($crawler, 'per_ticket'));
-        self::assertSame('at least 7 of 120 partitions', $crawler->filter('tr[data-projection="per_ticket"] [data-gap]')->text());
+        self::assertSame('7+ of 120 partitions behind', $crawler->filter('tr[data-projection="per_ticket"] [data-gap]')->text());
         self::assertSame('yes', $crawler->filter('tr[data-projection="per_ticket"] [data-partitioned]')->text());
     }
 

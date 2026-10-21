@@ -83,9 +83,9 @@ final class ProjectionOverview
     {
         $partitions = $projection['partitions'] ?? null;
         if (is_array($partitions)) {
-            $prefix = ($partitions['atLeast'] ?? false) === true ? 'at least ' : '';
+            $plus = ($partitions['atLeast'] ?? false) === true ? '+' : '';
 
-            return [sprintf('%s%d of %d partitions', $prefix, $partitions['behind'] ?? 0, $partitions['total'] ?? 0), ($partitions['behind'] ?? 0) > 0];
+            return [sprintf('%d%s of %d partitions behind', $partitions['behind'] ?? 0, $plus, $partitions['total'] ?? 0), ($partitions['behind'] ?? 0) > 0];
         }
 
         $eventsBehind = $projection['eventsBehind'] ?? null;
@@ -97,7 +97,7 @@ final class ProjectionOverview
             return ['0', false];
         }
 
-        return [sprintf('%s%d events', ($eventsBehind['atLeast'] ?? false) === true ? 'at least ' : '', $events), true];
+        return [sprintf('%d%s events behind', $events, ($eventsBehind['atLeast'] ?? false) === true ? '+' : ''), true];
     }
 
     /**

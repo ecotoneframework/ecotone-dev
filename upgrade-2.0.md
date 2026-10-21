@@ -3242,7 +3242,9 @@ is implied: replies go to a channel named after the Pulse service, or to the one
 `PulseConfiguration::createWithDefaults(...)->withReplyChannel('pulse_replies')`, and no `DistributedServiceMap` is
 needed for it. The reply channel is registered for you with the builder class and connection of the request channel (the
 channel named after the service, or `->withRequestChannel('...')`), for Amqp, Dbal, Redis and Sqs channels; queue names,
-topics and tables are not copied. A reply channel you register yourself wins. When the request channel is not registered,
+topics and tables are not copied. For Amqp and Sqs it is registered with `withRequiredExistingDestination()` (see
+below): the Pulse service creates its reply queue, so a service that replies before it exists fails the reply instead of
+creating a queue nobody consumes. A reply channel you register yourself wins. When the request channel is not registered,
 or is a Kafka channel, bootstrap is refused with a message naming `withRequestChannel` and the builder to register
 (for example `AmqpBackedMessageChannelBuilder::create('ecotone_pulse')`). A `DistributedServiceMap`
 that maps the Pulse service still works and wins; one that maps it to a different channel than `withReplyChannel` is
@@ -3331,6 +3333,39 @@ ALTER TABLE ecotone_tracing
 
 Or drop the table, as tracked flows are only kept for the retention, and create it again:
 `DROP TABLE ecotone_tracing;` followed by `ecotone:migration:database:setup --initialize --feature=tracing`.
+
+### A channel can refuse to create its destination on send: `withRequiredExistingDestination()`
+
+**Before:** an AMQP channel declared its queue on every first send, an SQS channel created its queue on send, and a Kafka
+topic was created by the broker when it allowed it. A destination whose name was overridden (the `queueName` of
+`AmqpBackedMessageChannelBuilder::create()`, the `topicName` of `KafkaMessageChannelBuilder::create()`) and mistyped on the
+sending side was created quietly and the messages went into a queue nobody consumes.
+
+**Now:** `AmqpBackedMessageChannelBuilder`, `SqsBackedMessageChannelBuilder` and `KafkaMessageChannelBuilder` have
+`withRequiredExistingDestination()`, for a service that only sends to a channel another service consumes. The channel never
+declares or creates the destination. Before its first send it checks that it exists (a passive queue declare on AMQP, a
+queue URL lookup on SQS, the topic list of the broker metadata on Kafka, so a broker that auto-creates topics does not hide
+a missing one), and a missing destination throws `Ecotone\Api\Messaging\DestinationDoesNotExistException`
+(a `ConfigurationException`) with the channel name, the actual destination after the overrides, the connection, and the ways
+out: run the consumer of the channel, create the destination yourself, fix the name, or remove the option. Nothing is sent and
+the destination is not created, so the next send checks again and succeeds once it exists; a destination found once is not
+checked again by that sender. The default of every builder is unchanged.
+
+```php
+AmqpBackedMessageChannelBuilder::create('orders', queueName: 'orders_v2')->withRequiredExistingDestination();
+```
+
+Redis and DBAL channels have no such option, on purpose: a Redis list does not exist while it is empty, and a DBAL queue is a
+value in the shared `enqueue` table, so neither has a reliable "this destination exists" signal and Ecotone does not fake one.
+Name those channels explicitly and check them yourself.
+
+Pulse uses it for every channel it sends to on a service's broker (AMQP, SQS, Kafka) and for the reply channel a service
+derives for it. A service whose channel does not exist is shown as "Channel missing" with the destination, distinct from
+Unreachable, and is asked again on the next view. Pulse's own reply channel is still declared by Pulse, when it consumes it.
+
+**How to adapt:** nothing is required. A service that replies to Pulse over AMQP or SQS needs Pulse to have started
+consuming its reply channel first; until then the reply fails with the exception above and the request is retried by the
+service's normal error handling.
 
 ## 15. Testing and developer-experience changes
 

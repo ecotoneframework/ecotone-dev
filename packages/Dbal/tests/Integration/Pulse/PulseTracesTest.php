@@ -400,6 +400,22 @@ final class PulseTracesTest extends DbalMessagingTestCase
     }
 
     #[DataProvider('implementations')]
+    public function test_flows_older_than_the_retention_disappear_from_lists_and_statistics_once_removed(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+        $this->orderService->advanceTimeBy(Duration::minutes(6 * 24 * 60));
+        $this->sendWithTrace('create.ticket', '100', self::SECOND_TRACE);
+        $this->orderService->advanceTimeBy(Duration::minutes(2 * 24 * 60));
+
+        $this->orderService->runConsoleCommand('ecotone:tracing:remove-expired-traces');
+
+        self::assertSame([self::SECOND_TRACE], array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'traceId'));
+        self::assertSame(1, $this->requestSnapshot()['tracing']['flowTypes'][0]['runs']);
+        self::assertSame([], $this->traceOf(self::FIRST_TRACE)['spans']);
+    }
+
+    #[DataProvider('implementations')]
     public function test_the_snapshot_has_no_tracing_section_without_flow_tracking(string $implementation): void
     {
         $this->bootstrap($implementation, flowTracking: false);

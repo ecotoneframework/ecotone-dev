@@ -18,15 +18,14 @@
         </label>
         <label>Message name <input type="text" name="messageName" value="{{ filter.messageName }}"></label>
         <label>Exception class <input type="text" name="exceptionClass" value="{{ filter.exceptionClass }}"></label>
-        <label>Failed from <input type="datetime-local" name="failedFrom" value="{{ filter.failedFrom }}"></label>
-        <label>Failed to <input type="datetime-local" name="failedTo" value="{{ filter.failedTo }}"></label>
+        <label>Failed from (UTC) <input type="datetime-local" step="1" name="failedFrom" value="{{ filter.failedFrom }}"></label>
+        <label>Failed to (UTC) <input type="datetime-local" step="1" name="failedTo" value="{{ filter.failedTo }}"></label>
         <button type="submit">Filter</button>
     </form>
 
     <p class="muted" data-list-note>The list shows the latest 100 dead letters of each service and is filtered on that snapshot. Actions on a filter apply to all stored dead letters of the service.</p>
 
-    {% if actionSent %}<p class="notice" data-notice>Action sent: {{ actionSent }}. The service answers with a fresh snapshot.</p>{% endif %}
-    {% if actionError %}<p class="drift" data-notice-error>{{ actionError }}</p>{% endif %}
+    {% if notice %}{% include 'dead_letters/_notice.html.twig' %}{% endif %}
 
     <form method="post" action="{{ path('dead_letter_actions') }}" data-selection-form>
     <input type="hidden" name="scope" value="ids">
@@ -49,7 +48,7 @@
                     <tbody>
                     {% for entry in service.entries %}
                         <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
-                            <td><input type="checkbox" name="selected[]" value="{{ service.service }}:{{ entry.messageId }}"></td>
+                            <td><input type="checkbox" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}"></td>
                             <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a></td>
                             <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
                             <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}</td>

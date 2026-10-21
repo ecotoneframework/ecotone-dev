@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\DeadLetter\DeadLetterAction;
 use App\DeadLetter\DeadLetterActionRequester;
 use App\DeadLetter\DeadLetterFilter;
+use App\DeadLetter\DeadLetterNotice;
 use App\Snapshot\RequestResult;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
@@ -35,8 +36,8 @@ final class DeadLetterActionController extends AbstractController
         $actions = $byFilter
             ? $this->actionsForFilter($filter, $replay, $targetChannel)
             : $this->actionsForSelection($request->request->all('selected'), $replay, $targetChannel);
-        if (is_string($actions)) {
-            return $this->back($filter, ['actionError' => $actions]);
+        if ($actions instanceof DeadLetterNotice) {
+            return $this->back($filter, $actions);
         }
         if (! $replay && $byFilter && $request->request->get('confirm') !== '1') {
             return $this->render('dead_letters/confirm_delete.html.twig', ['filter' => $filter, 'services' => array_keys($actions)]);
@@ -50,21 +51,21 @@ final class DeadLetterActionController extends AbstractController
         }
 
         return $this->back($filter, $failed === []
-            ? ['actionSent' => ($replay ? 'replay' : 'delete') . ' to ' . implode(', ', array_keys($actions))]
-            : ['actionError' => 'The action could not be sent to ' . implode(', ', $failed) . '; the service shows the reason.']);
+            ? DeadLetterNotice::actionSent($replay ? 'replay' : 'delete', array_keys($actions))
+            : DeadLetterNotice::sendFailed($failed));
     }
 
     /**
-     * @return array<string, DeadLetterAction>|string
+     * @return array<string, DeadLetterAction>|DeadLetterNotice
      */
-    private function actionsForFilter(DeadLetterFilter $filter, bool $replay, string $targetChannel): array|string
+    private function actionsForFilter(DeadLetterFilter $filter, bool $replay, string $targetChannel): array|DeadLetterNotice
     {
         if (! $filter->hasStoredConditions()) {
-            return 'A filter action needs at least one filter condition (message name, exception class, failed from or failed to), as without one it would apply to every dead letter. Fill one in, or select dead letters by id instead.';
+            return DeadLetterNotice::noFilterCondition();
         }
 
-        $services = $this->servicesWithDeadLetters($filter);
-        if (is_string($services)) {
+        $services = $this->servicesWithDeadLetters($filter->service);
+        if ($services instanceof DeadLetterNotice) {
             return $services;
         }
         $conditions = $filter->storedConditions();
@@ -75,26 +76,26 @@ final class DeadLetterActionController extends AbstractController
 
     /**
      * @param array<mixed> $selected
-     * @return array<string, DeadLetterAction>|string
+     * @return array<string, DeadLetterAction>|DeadLetterNotice
      */
-    private function actionsForSelection(array $selected, bool $replay, string $targetChannel): array|string
+    private function actionsForSelection(array $selected, bool $replay, string $targetChannel): array|DeadLetterNotice
     {
         $idsByService = [];
-        foreach ($selected as $selection) {
-            if (is_string($selection) && str_contains($selection, ':')) {
-                [$service, $messageId] = explode(':', $selection, 2);
-                $idsByService[$service][] = $messageId;
+        foreach ($selected as $service => $messageIds) {
+            $messageIds = array_values(array_filter(is_array($messageIds) ? $messageIds : [], static fn (mixed $messageId) => is_string($messageId) && $messageId !== ''));
+            if ($messageIds !== []) {
+                $idsByService[(string) $service] = $messageIds;
             }
         }
         if ($idsByService === []) {
-            return 'No dead letters were selected. Tick at least one dead letter, or use the filter actions.';
+            return DeadLetterNotice::nothingSelected();
         }
 
-        $configured = $this->servicesWithDeadLetters(new DeadLetterFilter('', '', '', '', ''));
+        $configured = $this->servicesWithDeadLetters(null);
         $actions = [];
         foreach ($idsByService as $service => $messageIds) {
             if (! is_array($configured) || ! in_array($service, $configured, true)) {
-                return $this->notConfigured((string) $service);
+                return DeadLetterNotice::notConfigured($service);
             }
             $actions[$service] = $replay ? DeadLetterAction::replayIds($messageIds, $targetChannel) : DeadLetterAction::deleteIds($messageIds);
         }
@@ -103,38 +104,30 @@ final class DeadLetterActionController extends AbstractController
     }
 
     /**
-     * @return list<string>|string
+     * @return list<string>|DeadLetterNotice
      */
-    private function servicesWithDeadLetters(DeadLetterFilter $filter): array|string
+    private function servicesWithDeadLetters(?string $onlyService): array|DeadLetterNotice
     {
         $snapshots = $this->snapshots->all();
-        if ($filter->service !== '' && ! in_array($filter->service, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->service, $snapshots), true)) {
-            return sprintf('Service "%s" is not configured in PULSE_SERVICES, so Pulse cannot send it dead letter actions. Pick one of the listed services.', $filter->service);
+        if ($onlyService !== null && $onlyService !== '' && ! in_array($onlyService, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->service, $snapshots), true)) {
+            return DeadLetterNotice::unknownService();
         }
 
         $services = [];
         foreach ($snapshots as $snapshot) {
-            if ($filter->selectsService($snapshot->service) && is_array($snapshot->snapshot['deadLetters'] ?? null)) {
+            if (($onlyService === null || $onlyService === '' || $onlyService === $snapshot->service) && is_array($snapshot->snapshot['deadLetters'] ?? null)) {
                 $services[] = $snapshot->service;
             }
         }
         if ($services === []) {
-            return $filter->service !== '' ? $this->notConfigured($filter->service) : 'No service has dead letter configured, so there is nothing to act on.';
+            return $onlyService !== null && $onlyService !== '' ? DeadLetterNotice::notConfigured($onlyService) : DeadLetterNotice::noDeadLettersAnywhere();
         }
 
         return $services;
     }
 
-    private function notConfigured(string $service): string
+    private function back(DeadLetterFilter $filter, DeadLetterNotice $notice): RedirectResponse
     {
-        return sprintf('Service "%s" has dead letter not configured in its latest snapshot, so Pulse sends it no dead letter actions. Enable it with DbalConfiguration::createWithDefaults()->withDeadLetter(true) in that service, then refresh.', $service);
-    }
-
-    /**
-     * @param array<string, string> $notice
-     */
-    private function back(DeadLetterFilter $filter, array $notice): RedirectResponse
-    {
-        return new RedirectResponse($this->generateUrl('dead_letters', $notice + $filter->toQuery()));
+        return new RedirectResponse($this->generateUrl('dead_letters', $notice->toQuery() + $filter->toQuery()));
     }
 }

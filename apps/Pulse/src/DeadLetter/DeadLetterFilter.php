@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\InputBag;
 
 final readonly class DeadLetterFilter
 {
+    public const DATE_FIELDS = ['failedFrom', 'failedTo'];
     public const FIELDS = ['service', 'messageName', 'exceptionClass', 'failedFrom', 'failedTo'];
 
     public function __construct(

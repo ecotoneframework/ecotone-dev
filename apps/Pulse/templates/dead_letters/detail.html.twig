@@ -2,7 +2,8 @@
 
 {% block title %}Dead letter · Ecotone Pulse{% endblock %}
 
-{% macro text(name, value) %}
+{% macro text(name, text) %}
+    {% set value = text ?? '' %}
     {% set marker = "\n... [truncated]" %}
     <pre data-detail="{{ name }}">{% if value ends with marker %}{{ value|slice(0, value|length - marker|length) }}<span data-truncated class="muted">{{ marker }}</span>{% else %}{{ value }}{% endif %}</pre>
 {% endmacro %}

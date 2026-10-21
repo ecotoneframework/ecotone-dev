@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DeadLetter\DeadLetterFilter;
+use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,8 +29,7 @@ final class DeadLetterController extends AbstractController
             'filter' => $filter,
             'services' => DeadLetterOverview::of($snapshots, $filter),
             'serviceNames' => array_map(static fn ($snapshot) => $snapshot->service, $snapshots),
-            'actionSent' => $request->query->get('actionSent'),
-            'actionError' => $request->query->get('actionError'),
+            'notice' => DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->service, $snapshots)),
             'waiting' => Snapshots::anyWaiting($snapshots),
         ]);
     }

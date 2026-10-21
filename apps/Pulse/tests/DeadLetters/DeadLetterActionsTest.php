@@ -22,7 +22,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->work->failing = false;
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => $this->selectionOf($list, 'orders', 'order.place')]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
 
@@ -51,7 +51,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => $this->selectionOf($list, 'orders', 'order.cancel'), 'targetChannel' => 'order.audited']);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => 'order.audited']);
         $this->deliver($client);
 
         self::assertSame(['2'], $this->work->audited);
@@ -65,7 +65,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->work->failing = false;
 
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => $this->selectionOf($list, 'orders', 'order.place')]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
 
@@ -96,7 +96,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->advanceTimeBy(1);
 
-        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => $this->selectionOf($list, 'orders', 'order.cancel')]);
+        $this->post($client, ['action' => 'delete', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $waiting = $client->followRedirect();
 
         self::assertStringContainsString('Action sent', $waiting->filter('[data-notice]')->text());
@@ -176,7 +176,7 @@ final class DeadLetterActionsTest extends WebTestCase
      */
     private function selectionOf(Crawler $list, string $service, string $messageName): array
     {
-        return $list->filter(sprintf('[data-dead-letter][data-service="%s"][data-message-name="%s"] input[name="selected[]"]', $service, $messageName))->each(static fn (Crawler $box) => $box->attr('value'));
+        return $list->filter(sprintf('[data-dead-letter][data-service="%1$s"][data-message-name="%2$s"] input[name="selected[%1$s][]"]', $service, $messageName))->each(static fn (Crawler $box) => $box->attr('value'));
     }
 
     /**

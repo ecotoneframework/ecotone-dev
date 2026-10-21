@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
+use App\Trace\FlameGraph;
 use App\Trace\FlowTypeOverview;
 use App\Trace\TraceAnswerState;
 use App\Trace\TraceLoader;
@@ -48,7 +49,7 @@ final class TracesController extends AbstractController
     {
         $view = $this->traces->load($traceId, $this->snapshots->viewAndRequestStale());
 
-        return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'states' => $view->states, 'waiting' => $view->waiting]);
+        return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'flame' => FlameGraph::of($view->trace), 'states' => $view->states, 'waiting' => $view->waiting]);
     }
 
     #[Route('/traces/{service}/{flowType}', name: 'trace_list', methods: ['GET'], requirements: ['service' => '[^/]+', 'flowType' => '.+'])]

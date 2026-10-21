@@ -6,6 +6,8 @@
     {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
 {% endblock %}
 
+{% block importmap %}{{ importmap(['app', 'flame']) }}{% endblock %}
+
 {% block body %}
     <h1>Trace <code data-trace-id>{{ traceId }}</code></h1>
     <p><a href="{{ path('traces') }}">← Traces</a> · <a href="{{ path('flow_graph', {trace: traceId}) }}" data-show-on-flow-graph>Show on flow graph</a></p>
@@ -57,6 +59,86 @@
             <p class="drift" data-rows-capped>Showing the first {{ trace.rows|length }} of {{ trace.totalRows }} steps; the rest are left out.</p>
         {% endif %}
         {% set total = max(1, trace.totalMicro) %}
+        <section class="card flame-card" id="flame-graph" data-flame data-timeline-total="{{ trace.totalMicro }}" aria-labelledby="flame-heading">
+            <div class="flame-head">
+                <h2 id="flame-heading">Flame graph</h2>
+                <div class="flame-controls" data-flame-controls>
+                    <button type="button" data-zoom="in">Zoom in</button>
+                    <button type="button" data-zoom="out">Zoom out</button>
+                    <button type="button" data-zoom="span" disabled>Zoom to selected</button>
+                    <button type="button" data-zoom="reset">Reset</button>
+                    <span class="muted" data-flame-range>Showing 0 – {{ trace.durationLabel }}. Drag across the graph to zoom to a range.</span>
+                </div>
+            </div>
+            <ul class="legend-items" data-flame-legend>
+                {% for item in flame.legend %}<li data-legend-service="{{ item.service }}"><span class="chip svc-{{ item.serviceIndex }}">{{ item.service }}</span></li>{% endfor %}
+                <li><span class="flame-swatch flame-wait-swatch"></span> queue wait</li>
+                <li><span class="flame-swatch flame-failed-swatch"></span> failed</li>
+                <li><span class="flame-swatch flame-pending-swatch"></span> pending</li>
+            </ul>
+            {% if flame.skipped > 0 %}<p class="drift" data-flame-skipped>{{ flame.skipped }} step{{ flame.skipped == 1 ? ' has' : 's have' }} no valid time and appear only in the list view.</p>{% endif %}
+            <div class="flame-layout">
+                <div class="flame-scroll">
+                    <div class="flame-canvas">
+                        <div class="flame-plot" data-flame-plot style="--lanes: {{ flame.laneCount }}">
+                            <div class="flame-axis" aria-hidden="true">{% for tick in flame.ticks %}<span class="flame-tick" data-flame-tick style="left: {{ tick.left }}%">{{ tick.label }}</span>{% endfor %}</div>
+                            <div class="flame-lanes" role="group" aria-label="Spans of the trace by time and nesting">
+                                {% for bar in flame.bars %}
+                                    {% set row = bar.row %}
+                                    {% set label = row.service ~ ': ' ~ row.name ~ ', ' ~ row.offsetLabel ~ ', ' ~ row.durationLabel ~ ', ' ~ row.status %}
+                                    {% if row.waitMicro > 0 %}<span class="flame-wait" data-flame-wait data-for="{{ bar.index }}" data-lane="{{ bar.lane }}" data-offset="{{ row.offsetMicro - row.waitMicro }}" data-duration="{{ row.waitMicro }}" title="queue wait {{ row.queueWaitLabel }}" style="--lane: {{ bar.lane }}; left: {{ bar.waitLeft }}%; width: {{ bar.waitWidth }}%"></span>{% endif %}
+                                    <a class="flame-bar svc-{{ row.serviceIndex % 8 }}{{ row.failed ? ' failed' : (row.pending ? ' pending' : '') }}" href="#span-{{ bar.index }}" data-flame-span data-index="{{ bar.index }}" data-lane="{{ bar.lane }}" data-service="{{ row.service }}" data-name="{{ row.name }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}"{% if row.hop %} data-hop{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.pending %} data-pending{% endif %} title="{{ label }}" aria-label="{{ label }}" style="--lane: {{ bar.lane }}; left: {{ bar.left }}%; width: {{ bar.width }}%"><span>{{ row.name }}</span></a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flame-panels" data-flame-panels aria-live="polite">
+                    <p class="muted flame-hint">Select a step in the graph to see its details here.</p>
+                    {% for bar in flame.bars %}
+                        {% set row = bar.row %}
+                        <section class="span-panel" id="span-{{ bar.index }}" data-span-panel="{{ bar.index }}" aria-label="Details of {{ row.name }}">
+                            <h3>{{ row.name }}</h3>
+                            <dl>
+                                <dt>Service</dt><dd data-panel="service">{{ row.service }}</dd>
+                                <dt>Name</dt><dd data-panel="name">{{ row.name }}</dd>
+                                <dt>Kind</dt><dd data-panel="kind">{{ row.kind }}</dd>
+                                {% if row.endpoint %}<dt>Endpoint</dt><dd data-panel="endpoint">{{ row.endpoint }}</dd>{% endif %}
+                                {% if row.channel %}<dt>Channel</dt><dd data-panel="channel">{{ row.channel }}</dd>{% endif %}
+                                <dt>Started (UTC)</dt><dd data-panel="startedAt">{{ row.startedAt }}</dd>
+                                <dt>Offset</dt><dd data-panel="offset">{{ row.offsetLabel }}</dd>
+                                <dt>Duration</dt><dd data-panel="duration">{{ row.durationLabel }}</dd>
+                                {% if row.queueWaitLabel %}<dt>Queue wait</dt><dd data-panel="queueWait">{{ row.queueWaitLabel }}</dd>{% endif %}
+                                <dt>Status</dt><dd data-panel="status">{{ row.status }}</dd>
+                                {% if row.error %}<dt>Error</dt><dd data-panel="error">{{ row.error }}</dd>{% endif %}
+                                {% if row.messageId %}<dt>Message id</dt><dd data-panel="messageId">{{ row.messageId }}</dd>{% endif %}
+                            </dl>
+                            <p class="flame-links">
+                                {% if row.deadLetter %}<a data-panel-dead-letter href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">Dead letter</a> · {% endif %}
+                                <a data-panel-flow-graph href="{{ path('flow_graph', {trace: traceId}) }}">Flow graph</a> ·
+                                <a data-panel-service-traces href="{{ path('traces') }}">Traces of {{ row.service }}</a> ·
+                                <a href="#flame-graph">Back to the graph</a>
+                            </p>
+                            {% if row.attributes %}
+                                <h4>Attributes</h4>
+                                <table data-panel-attributes>{% for name, value in row.attributes %}<tr><th scope="row">{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
+                            {% endif %}
+                            {% if row.events %}
+                                <h4>Events</h4>
+                                <div data-panel-events>
+                                {% for event in row.events %}
+                                    <p><strong>{{ event.name }}</strong> {{ event.at ?? '' }}</p>
+                                    <table>{% for name, value in event.attributes ?? [] %}<tr><th scope="row">{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
+                                {% endfor %}
+                                </div>
+                            {% endif %}
+                        </section>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        <section data-list-view aria-labelledby="list-heading">
+        <h2 id="list-heading">List view</h2>
         <div class="card flush waterfall-card" data-waterfall>
         <table class="waterfall" data-timeline-total="{{ trace.totalMicro }}">
             <thead><tr><th>Service</th><th>Step</th><th class="hide-narrow">Endpoint</th><th class="detail-col">Kind</th><th class="detail-col">Started (UTC)</th><th class="num">Offset</th><th class="num">Queue wait</th><th class="num">Duration</th><th class="timeline-head">Timeline (0 – {{ trace.durationLabel }})</th><th>Status</th><th>Error</th></tr></thead>
@@ -98,5 +180,6 @@
             </tbody>
         </table>
         </div>
+        </section>
     {% endif %}
 {% endblock %}

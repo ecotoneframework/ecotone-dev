@@ -64,8 +64,8 @@ final class DeadLetterOverview
         foreach ($snapshots as $snapshot) {
             $names = [];
             foreach ($snapshot->snapshot['channels'] ?? [] as $channel) {
-                if (is_string($channel['name'] ?? null)) {
-                    $names[] = $channel['name'];
+                if (is_string($channel)) {
+                    $names[] = $channel;
                 }
             }
             sort($names);

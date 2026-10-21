@@ -15,7 +15,6 @@ use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Lite\EcotoneLite;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -29,6 +28,7 @@ trait DeadLetterServicesTrait
     use PulseServicesTrait;
 
     private const WORK_CHANNEL = 'pulse_dead_letter_work';
+    private const AUDIT_CHANNEL = 'pulse_dead_letter_audit';
 
     private object $work;
 
@@ -71,7 +71,8 @@ trait DeadLetterServicesTrait
                 $this->handle('order.cancel', $order, new LogicException('cancel failed for order ' . $order['orderId']));
             }
 
-            #[InternalHandler('order.audited')]
+            #[Asynchronous('pulse_dead_letter_audit')]
+            #[InternalHandler('order.audited', endpointId: 'pulse.order.audited.endpoint')]
             public function audited(array $order): void
             {
                 $this->audited[] = (string) $order['orderId'];
@@ -105,7 +106,7 @@ trait DeadLetterServicesTrait
                 DbalBackedMessageChannelBuilder::create($this->serviceChannels[$service])->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create(self::WORK_CHANNEL)->withReceiveTimeout(1),
                 DbalBackedMessageChannelBuilder::create($this->pulseChannel),
-                SimpleMessageChannelBuilder::createDirectMessageChannel('order.audited'),
+                DbalBackedMessageChannelBuilder::create(self::AUDIT_CHANNEL)->withReceiveTimeout(1),
                 DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: $this->pulseChannel),
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
@@ -138,6 +139,11 @@ trait DeadLetterServicesTrait
         foreach ($this->services as $name => $service) {
             $this->runService($service, $name);
         }
+    }
+
+    private function replayAuditOf(FlowTestSupport $service): void
+    {
+        $service->run(self::AUDIT_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
     }
 
     private function replayWorkOf(FlowTestSupport $service): void

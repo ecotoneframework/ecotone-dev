@@ -51,8 +51,9 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => ['orders' => 'order.audited']]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => ['orders' => 'pulse_dead_letter_audit']]);
         $this->deliver($client);
+        $this->replayAuditOf($this->services['orders']);
 
         self::assertSame(['2'], $this->work->audited);
         self::assertSame([], $this->work->handled);
@@ -64,8 +65,9 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'service' => 'orders', 'messageName' => 'order.cancel', 'targetChannel' => 'order.audited']);
+        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'service' => 'orders', 'messageName' => 'order.cancel', 'targetChannel' => 'pulse_dead_letter_audit']);
         $this->deliver($client);
+        $this->replayAuditOf($this->services['orders']);
 
         self::assertSame(['2'], $this->work->audited);
         self::assertSame(['order.place', 'order.place'], $this->remainingNames($client));
@@ -104,7 +106,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $client = $this->pulseWithFailures();
         $this->freshView($client, '/dead-letters');
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'messageName' => 'order.cancel', 'targetChannel' => 'order.audited']);
+        $this->post($client, ['action' => 'replay', 'scope' => 'filter', 'messageName' => 'order.cancel', 'targetChannel' => 'pulse_dead_letter_audit']);
         $refused = $client->followRedirect();
         $this->deliver($client);
 
@@ -122,10 +124,24 @@ final class DeadLetterActionsTest extends WebTestCase
         self::assertCount(1, $select);
         $options = $select->filter('option')->each(static fn (Crawler $option) => $option->attr('value'));
         self::assertSame('', $options[0]);
-        self::assertContains('order.audited', $options);
+        self::assertContains('pulse_dead_letter_audit', $options);
         self::assertContains('pulse_dead_letter_work', $options);
+        self::assertNotContains($this->pulseChannel, $options);
+        self::assertNotContains($this->serviceChannels['orders'], $options);
         self::assertCount(0, $list->filter('input[name^="targetChannel"]'));
         self::assertCount(0, $list->filter('[data-filter-action-form] select'));
+    }
+
+    public function test_a_replay_target_posted_as_a_single_value_with_a_selection_is_refused_with_a_notice(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')], 'targetChannel' => 'pulse_dead_letter_audit']);
+        $refused = $client->followRedirect();
+
+        self::assertSame(200, $client->getResponse()->getStatusCode());
+        self::assertStringContainsString('own section', $refused->filter('[data-notice-error]')->text());
     }
 
     public function test_the_filter_replay_offers_the_channels_only_once_a_single_service_is_chosen(): void
@@ -136,7 +152,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $client->request('GET', '/dead-letters?service=orders');
 
         $options = $list->filter('[data-filter-action-form] select[name="targetChannel"] option')->each(static fn (Crawler $option) => $option->attr('value'));
-        self::assertContains('order.audited', $options);
+        self::assertContains('pulse_dead_letter_audit', $options);
     }
 
     public function test_a_replay_requests_one_more_snapshot_five_seconds_later_even_within_sixty_seconds_of_the_last_one(): void

@@ -11,6 +11,7 @@
     {% elseif notice.code == 'no_dead_letters_anywhere' %}No service has dead letter configured, so there is nothing to act on.
     {% elseif notice.code == 'unknown_channel' %}Service "{{ notice.parameters.service }}" does not register a channel "{{ notice.parameters.channel }}" in its latest snapshot, so nothing was replayed. Pick one of its channels from the list, or leave it empty to replay to the original channel; refresh if the channel was added recently.
     {% elseif notice.code == 'target_needs_service' %}A replay target channel belongs to one service. Choose a single service in the filter to replay to a channel, or leave the channel empty to replay to each original channel.
+    {% elseif notice.code == 'target_per_service' %}The replay channel is picked per service, in the select inside that service's own section. Pick it there, or leave it empty to replay to the original channel.
     {% elseif notice.code == 'invalid_date' %}"{{ notice.parameters.field == 'failedFrom' ? 'Failed from' : 'Failed to' }}" is not a valid UTC date and time. Enter it as 2026-10-20T12:00:00, or clear it.
     {% endif %}
     </p>

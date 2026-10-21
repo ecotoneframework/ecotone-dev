@@ -50,7 +50,7 @@ final class PulseProjections implements PulseSnapshotSection
     }
 
     /**
-     * @return list<array{name: string, mode: string, partitioned: bool, asyncChannel: string|null, initialization: string|null, eventsBehind: array{events: int, atLeast: bool}|null, partitions: array{total: int, inspected: int, behind: int, atLeast: bool}|null, unavailable: string|null}>
+     * @return list<array{name: string, mode: string, partitioned: bool, asyncChannel: string|null, initialization: string|null, positionDigest: string|null, eventsBehind: array{events: int, atLeast: bool}|null, partitions: array{total: int, inspected: int, behind: int, atLeast: bool}|null, unavailable: string|null}>
      */
     public function snapshot(): array
     {
@@ -63,7 +63,7 @@ final class PulseProjections implements PulseSnapshotSection
     private function describe(string $name): array
     {
         $description = $this->descriptions[$name];
-        $projection = ['name' => $name, ...$description, 'initialization' => null, 'eventsBehind' => null, 'partitions' => null, 'unavailable' => null];
+        $projection = ['name' => $name, ...$description, 'initialization' => null, 'positionDigest' => null, 'eventsBehind' => null, 'partitions' => null, 'unavailable' => null];
 
         try {
             return $description['partitioned'] ? $this->withPartitions($projection) : $this->withEventsBehind($projection);
@@ -81,6 +81,7 @@ final class PulseProjections implements PulseSnapshotSection
         return [
             ...$projection,
             'initialization' => self::initialization($state?->status === ProjectionInitializationStatus::INITIALIZED),
+            'positionDigest' => md5($state?->lastPosition ?? ''),
             'eventsBehind' => ['events' => min(count($events), self::EVENTS_BEHIND_CAP), 'atLeast' => count($events) > self::EVENTS_BEHIND_CAP],
         ];
     }
@@ -96,6 +97,7 @@ final class PulseProjections implements PulseSnapshotSection
         $inspected = 0;
         $behind = 0;
         $allInitialized = true;
+        $positions = [];
         foreach ($this->streamFilters->provide($name) as $streamFilter) {
             $total += $partitionProvider->count($streamFilter);
             $room = self::PARTITIONS_INSPECTED_CAP - $inspected;
@@ -105,6 +107,7 @@ final class PulseProjections implements PulseSnapshotSection
             foreach ($partitionProvider->partitions($streamFilter, $room) as $partitionKey) {
                 $state = $stateStorage->loadPartition($name, $partitionKey, lock: false);
                 $inspected++;
+                $positions[] = $partitionKey . '=' . ($state?->lastPosition ?? '');
                 $allInitialized = $allInitialized && $state?->status === ProjectionInitializationStatus::INITIALIZED;
                 if ($streamSource->load($name, $state?->lastPosition, 1, $partitionKey)->events !== []) {
                     $behind++;
@@ -115,6 +118,7 @@ final class PulseProjections implements PulseSnapshotSection
         return [
             ...$projection,
             'initialization' => self::initialization($inspected > 0 && $allInitialized),
+            'positionDigest' => md5(implode(';', $positions)),
             'partitions' => ['total' => $total, 'inspected' => $inspected, 'behind' => $behind, 'atLeast' => $total > $inspected],
         ];
     }

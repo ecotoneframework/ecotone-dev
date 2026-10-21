@@ -202,6 +202,28 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertNull($behind['eventsBehind']);
     }
 
+    #[DataProvider('storages')]
+    public function test_the_position_digest_changes_only_when_the_projection_moves(string $storage): void
+    {
+        $projection = new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+            }
+        };
+        $this->bootstrap($storage, [$projection]);
+
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'John', 'bug'));
+        $initial = $this->requestSnapshot()['projections'][0]['positionDigest'];
+        $this->orderService->sendCommand(new RegisterTicket('ticket-2', 'Jane', 'bug'));
+        $eventsAppendedProjectionIdle = $this->requestSnapshot()['projections'][0]['positionDigest'];
+        $this->orderService->run('tickets_async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
+        $afterRun = $this->requestSnapshot()['projections'][0]['positionDigest'];
+
+        self::assertSame($initial, $eventsAppendedProjectionIdle);
+        self::assertNotSame($initial, $afterRun);
+    }
+
     public function test_partitions_inspected_are_capped_and_behind_says_at_least_when_more_remain(): void
     {
         $projection = new #[Projection('tickets_partitioned'), Partitioned, Asynchronous('tickets_partitioned_channel'), FromAggregateStream(Ticket::class)] class () {

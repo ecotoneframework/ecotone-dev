@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Settings;
 
+use App\Snapshot\Snapshots;
+
 final readonly class PulseSettings
 {
     /**
@@ -17,6 +19,7 @@ final readonly class PulseSettings
         public array $serviceChannels,
         public int $replyTimeoutSeconds,
         public int $renderWaitSeconds,
+        public int $refreshIntervalSeconds,
         public string $cacheDir,
     ) {
     }
@@ -50,6 +53,11 @@ final readonly class PulseSettings
         $replyTimeout = self::seconds($read('PULSE_REPLY_TIMEOUT', '10'), 'PULSE_REPLY_TIMEOUT', 1);
         $renderWait = self::seconds($read('PULSE_RENDER_WAIT', '2'), 'PULSE_RENDER_WAIT', 0);
 
+        $refreshInterval = self::seconds($read('PULSE_REFRESH_INTERVAL', '20'), 'PULSE_REFRESH_INTERVAL', 1);
+        if ($refreshInterval >= Snapshots::FRESHNESS_SECONDS) {
+            throw new PulseConfigurationException(sprintf('PULSE_REFRESH_INTERVAL "%d" is not shorter than the %d seconds after which a snapshot stops counting as fresh, so pages would open on stale snapshots and the worker would not be refreshing ahead of them. Set it to a whole number of seconds between 1 and %d, for example 20, which is the default.', $refreshInterval, Snapshots::FRESHNESS_SECONDS, Snapshots::FRESHNESS_SECONDS - 1));
+        }
+
         $cacheDir = $read('PULSE_CACHE_DIR', 'var/pulse-cache');
         if (! str_starts_with($cacheDir, '/')) {
             $cacheDir = $projectDir . '/' . $cacheDir;
@@ -58,7 +66,7 @@ final readonly class PulseSettings
         $transport = Transport::fromDsn($dsn);
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $cacheDir);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $cacheDir);
     }
 
     /**

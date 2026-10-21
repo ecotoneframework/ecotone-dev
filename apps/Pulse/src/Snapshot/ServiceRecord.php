@@ -109,6 +109,11 @@ final readonly class ServiceRecord
         return $this->receivedAt === null || self::secondsBetween($this->receivedAt, $now) >= Snapshots::FRESHNESS_SECONDS;
     }
 
+    public function needsRefresh(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
+    {
+        return ! $this->hasOutstandingRequest() || self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds || $this->needsRequest($now);
+    }
+
     public function statusAt(DateTimeImmutable $now, int $replyTimeoutSeconds): ServiceStatus
     {
         if ($this->hasOutstandingRequest()) {

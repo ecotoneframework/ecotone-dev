@@ -91,6 +91,9 @@ final class EnvironmentRefusalTest extends KernelTestCase
         yield 'two services on one channel' => [['PULSE_SERVICES' => 'orders:shared,billing:shared'], 'PULSE_SERVICES maps services "orders" and "billing" to the same channel "shared", so their replies could not be told apart. Give each service the channel it consumes.'];
         yield 'invalid reply timeout' => [['PULSE_REPLY_TIMEOUT' => 'soon'], 'PULSE_REPLY_TIMEOUT "soon" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];
         yield 'invalid render wait' => [['PULSE_RENDER_WAIT' => '-1'], 'PULSE_RENDER_WAIT "-1" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 0 or more.'];
+        yield 'refresh interval that is not a number' => [['PULSE_REFRESH_INTERVAL' => 'often'], 'PULSE_REFRESH_INTERVAL "often" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];
+        yield 'refresh interval of zero' => [['PULSE_REFRESH_INTERVAL' => '0'], 'PULSE_REFRESH_INTERVAL "0" is not a number of seconds, so Pulse cannot tell how long to wait. Set it to a whole number of seconds, 1 or more.'];
+        yield 'refresh interval as long as the freshness window' => [['PULSE_REFRESH_INTERVAL' => '60'], 'PULSE_REFRESH_INTERVAL "60" is not shorter than the 60 seconds after which a snapshot stops counting as fresh, so pages would open on stale snapshots and the worker would not be refreshing ahead of them. Set it to a whole number of seconds between 1 and 59, for example 20, which is the default.'];
         yield 'invalid service name' => [['PULSE_SERVICE_NAME' => 'my pulse'], 'PULSE_SERVICE_NAME "my pulse" is not a valid name, because names are used as broker channel names. Use only letters, digits, "_", "." and "-", for example ecotone_pulse.'];
     }
 }

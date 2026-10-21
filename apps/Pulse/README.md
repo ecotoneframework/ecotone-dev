@@ -28,7 +28,8 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
   The wait observes replies in the cache; it does not depend on the application clock.
 * A replay sends one more snapshot request about 5 seconds later (the replayed message may fail again): the next page view at or after that time sends it even when the last snapshot is younger than 60 seconds, and the page keeps refreshing until it is answered.
 * The **replay target** of a dead letter is a `<select>` of the handler input channels the service reports in its snapshot's `channels` (the explicit routing keys of its `#[CommandHandler]`s, aggregate ones included, and the input channels of its `#[InternalHandler]`s; handlers of the framework's own `Ecotone\` namespace are left out). A command handler routed by its command class has no channel to replay to, so it is not offered, empty meaning the original channel. The message runs that handler; an `#[Asynchronous]` handler runs once its channel is consumed. A filter replay offers the select only when a single service is chosen; a channel the service does not report is refused. Asynchronous queues are not offered: the dead letter refuses to replay to them.
-* **worker** runs `bin/console ecotone:run <PULSE_CHANNEL>`. It consumes the services' replies and writes them to the cache.
+* **worker** runs two processes that stop together: `bin/console ecotone:run <PULSE_CHANNEL>`, which consumes the services' replies and writes them to the cache, and `bin/console pulse:refresh`, which every `PULSE_REFRESH_INTERVAL` seconds (default 20) requests a snapshot from every service, so pages normally open on a snapshot younger than the 60 second freshness limit without a page view triggering a request. A tick skips a service whose request is outstanding and has not yet passed `PULSE_REPLY_TIMEOUT`; it goes through the same locked bookkeeping as page views, so the worker and the web never double-request. A service that never answers is requested again by the first tick after the timeout, so it shows Unreachable for the rest of each interval and Waiting right after a tick.
+  The refresh is a plain console loop and not an Ecotone `#[Scheduled]` endpoint: the interval is a deployment setting and an attribute argument is a constant, the loop needs no extra channel or consumer, and `pulse:refresh --once` is one tick for tests and cron. The entrypoint supervises both processes: when either exits (for example `ecotone:run` reaching its time or memory limit) it stops the other and the container exits, so a restart policy brings both back; SIGTERM stops both cleanly.
 * Web and worker **must share `PULSE_CACHE_DIR`** (a volume).
 
 Service status:
@@ -54,6 +55,7 @@ what is wrong and how to fix it.
 | `PULSE_SERVICE_NAME` | `ecotone_pulse` | Pulse's own service name. Services accept requests only from this name |
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
+| `PULSE_REFRESH_INTERVAL` | `20` | Seconds between the worker's snapshot requests. A whole number from 1 to 59, below the 60 second freshness limit |
 | `PULSE_RENDER_WAIT` | `2` | Seconds a page waits for replies before rendering. `0` renders immediately |
 | `PULSE_CACHE_DIR` | `var/pulse-cache` | Cache directory shared by `web` and `worker` |
 | `APP_SECRET` | required in production | Symfony secret. Generate one with `openssl rand -hex 32` |
@@ -117,7 +119,7 @@ docker run --env-file pulse.env -p 8080:8080 -v pulse-cache:/app/var/pulse-cache
 docker run --env-file pulse.env -v pulse-cache:/app/var/pulse-cache ecotone-pulse worker
 ```
 
-`docker-compose.example.yml` runs both roles with a shared cache volume against RabbitMQ.
+`docker-compose.example.yml` runs both roles (the worker role also runs the periodic refresh) with a shared cache volume against RabbitMQ.
 
 * `web` serves HTTP on port `8080` (`PULSE_HTTP_PORT`).
 * `worker` stops after `PULSE_WORKER_TIME_LIMIT_MS` (default one hour) or when it reaches `PULSE_WORKER_MEMORY_LIMIT`

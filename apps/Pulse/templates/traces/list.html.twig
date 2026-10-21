@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ flowType }} · Traces · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    <h1>Traces of {{ flowType }}</h1>
+    <p><a href="{{ path('traces') }}">← Flow types</a> · service <strong data-detail="service">{{ service }}</strong></p>
+
+    {% if statistics %}
+        <p class="muted" data-statistics>{{ statistics.runs }} runs · {{ statistics.runsWithErrors }} with errors recorded ({{ statistics.errorRate }}) · p50 {{ statistics.p50Ms }} ms · p95 {{ statistics.p95Ms }} ms · max {{ statistics.maxMs }} ms</p>
+    {% endif %}
+
+    {% if not tracing %}
+        <p class="muted" data-tracing-disabled="{{ service }}">flow tracking not enabled in {{ service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
+    {% else %}
+        {% if answer.state.value == 'waiting' and not answer.hasResult %}
+            <p class="muted" data-waiting="{{ service }}">Waiting for {{ service }} to answer…</p>
+        {% elseif answer.state.value == 'not_answering' %}
+            <p class="drift" data-not-answering="{{ service }}">{{ service }} is not answering for this query.{% if answer.failure %} {{ answer.failure }}{% endif %} Check that the service is running and consuming its channel.</p>
+        {% endif %}
+        {% if answer.hasResult %}
+            <table>
+                <thead><tr><th>Trace id</th><th>Started at (UTC)</th><th>Duration</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for trace in traces %}
+                    <tr data-trace data-trace-id="{{ trace.traceId }}">
+                        <td data-column="traceId"><a href="{{ path('traces') ~ '/trace/' ~ trace.traceId }}">{{ trace.traceId }}</a></td>
+                        <td data-column="startedAt">{{ trace.startedAt|date('Y-m-d H:i:s.v', 'UTC') }}</td>
+                        <td data-column="duration">{{ trace.durationMs }} ms</td>
+                        <td data-column="status">{{ trace.status }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="muted" data-no-traces>No trace of this flow type is stored in {{ service }}.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <p data-pagination>Page {{ page }} of {{ pages }}</p>
+            <p>
+                {% if page > 1 %}<a data-page-previous href="{{ path('trace_list', {service: service, flowType: flowType, page: page - 1}) }}">← Newer</a>{% endif %}
+                {% if page < pages %}<a data-page-next href="{{ path('trace_list', {service: service, flowType: flowType, page: page + 1}) }}">Older →</a>{% endif %}
+            </p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

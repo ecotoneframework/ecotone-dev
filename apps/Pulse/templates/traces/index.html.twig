@@ -25,7 +25,7 @@
                     <tbody>
                     {% for flowType in service.flowTypes %}
                         <tr data-flow-type="{{ flowType.flowType }}" data-service="{{ service.service }}">
-                            <td><a href="{{ path('traces') ~ '/' ~ service.service ~ '/' ~ flowType.flowType|url_encode }}">{{ flowType.flowType }}</a></td>
+                            <td><a href="{{ path('trace_list', {service: service.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a></td>
                             <td data-stat="runs">{{ flowType.runs }}</td>
                             <td data-stat="runsWithErrors">{{ flowType.runsWithErrors }}</td>
                             <td data-stat="errorRate">{{ flowType.errorRate }}</td>

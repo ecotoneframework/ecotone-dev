@@ -29,12 +29,34 @@ final class FlowTypeStatistics
     public function __construct(
         public readonly string $flowType,
         public readonly int $runs,
-        public readonly int $failedRuns,
+        public readonly int $windowRuns,
+        public readonly int $runsWithErrors,
         public readonly int $p50Ms,
         public readonly int $p95Ms,
         public readonly int $maxMs,
         public readonly int $lastStartedAtInMicroseconds,
     ) {
+    }
+
+    /**
+     * @param array<array{startedAt: int, durationInMicroseconds: int, status: string}> $newestFirst
+     */
+    public static function overWindow(string $flowType, int $runs, array $newestFirst): self
+    {
+        $durations = array_column($newestFirst, 'durationInMicroseconds');
+        sort($durations);
+        $windowRuns = count($durations);
+
+        return new self(
+            $flowType,
+            $runs,
+            $windowRuns,
+            count(array_filter($newestFirst, fn (array $entry): bool => $entry['status'] === FlowEntries::STATUS_ERROR)),
+            FlowEntries::durationInMilliseconds($durations[self::percentileRankOffset($windowRuns, 0.5)]),
+            FlowEntries::durationInMilliseconds($durations[self::percentileRankOffset($windowRuns, 0.95)]),
+            FlowEntries::durationInMilliseconds($durations[$windowRuns - 1]),
+            $newestFirst[0]['startedAt'],
+        );
     }
 
     public static function percentileRankOffset(int $runs, float $percentile): int

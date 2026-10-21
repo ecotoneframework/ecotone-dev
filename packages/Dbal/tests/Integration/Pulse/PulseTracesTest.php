@@ -111,10 +111,11 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         self::assertSame($implementation === 'dbal' ? 'dbal' : 'in_memory', $tracing['storage']);
         self::assertSame(604800, $tracing['retention']);
+        self::assertSame(1000, $tracing['statsWindow']);
         self::assertSame(
             [
-                ['flowType' => 'create.ticket', 'runs' => 3, 'failedRuns' => 0, 'p50Ms' => 200, 'p95Ms' => 300, 'maxMs' => 300, 'lastStartedAt' => '2026-10-20T12:00:20.300000+00:00'],
-                ['flowType' => 'refund.ticket', 'runs' => 1, 'failedRuns' => 1, 'p50Ms' => 0, 'p95Ms' => 0, 'maxMs' => 0, 'lastStartedAt' => '2026-10-20T12:00:30.600000+00:00'],
+                ['flowType' => 'create.ticket', 'runs' => 3, 'windowRuns' => 3, 'runsWithErrors' => 0, 'p50Ms' => 200, 'p95Ms' => 300, 'maxMs' => 300, 'lastStartedAt' => '2026-10-20T12:00:20.300000+00:00'],
+                ['flowType' => 'refund.ticket', 'runs' => 1, 'windowRuns' => 1, 'runsWithErrors' => 1, 'p50Ms' => 0, 'p95Ms' => 0, 'maxMs' => 0, 'lastStartedAt' => '2026-10-20T12:00:30.600000+00:00'],
             ],
             $tracing['flowTypes'],
         );
@@ -186,14 +187,14 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->sendWithTrace('create.ticket', '100', self::SECOND_TRACE);
 
         self::assertSame(
-            [['flowType' => 'create.ticket', 'runs' => 2, 'failedRuns' => 0]],
-            array_map(fn (array $flowType): array => array_intersect_key($flowType, array_flip(['flowType', 'runs', 'failedRuns'])), $this->requestSnapshot()['tracing']['flowTypes']),
+            [['flowType' => 'create.ticket', 'runs' => 2, 'runsWithErrors' => 0]],
+            array_map(fn (array $flowType): array => array_intersect_key($flowType, array_flip(['flowType', 'runs', 'runsWithErrors'])), $this->requestSnapshot()['tracing']['flowTypes']),
         );
 
         $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $flowType = $this->requestSnapshot()['tracing']['flowTypes'][0];
-        self::assertSame(1, $flowType['failedRuns']);
+        self::assertSame(1, $flowType['runsWithErrors']);
         $statusByTrace = array_column($this->listTraces(['flowType' => 'create.ticket'])['traces'], 'status', 'traceId');
         self::assertSame(['error', 'ok'], [$statusByTrace[self::FIRST_TRACE], $statusByTrace[self::SECOND_TRACE]]);
     }
@@ -264,6 +265,36 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->orderService->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         self::assertSame([self::FIRST_TRACE], array_column($this->requestSnapshot()['deadLetters']['recent'], 'traceId'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_statistics_cover_the_most_recent_thousand_runs_while_runs_counts_all(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->sendWithTrace('create.ticket', '5000', self::FIRST_TRACE);
+        for ($run = 1; $run <= 1000; $run++) {
+            $this->orderService->advanceTimeBy(Duration::seconds(1));
+            $this->orderService->sendCommandWithRouting('create.ticket', '0');
+        }
+
+        $flowType = $this->requestSnapshot()['tracing']['flowTypes'][0];
+
+        self::assertSame(1001, $flowType['runs']);
+        self::assertSame(1000, $flowType['windowRuns']);
+        self::assertSame(0, $flowType['maxMs']);
+        self::assertSame(0, $flowType['p95Ms']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_handler_that_throws_is_not_counted_as_a_run_with_errors(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        try {
+            $this->sendWithTrace('payment.reverse', 'ticket-1', self::FIRST_TRACE);
+        } catch (RuntimeException) {
+        }
+
+        self::assertSame([], $this->requestSnapshot()['tracing']['flowTypes']);
     }
 
     #[DataProvider('implementations')]

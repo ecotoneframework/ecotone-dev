@@ -31,28 +31,31 @@ use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
 final class PulseTracing implements PulseSnapshotSection
 {
     private const FLOW_TYPES_LIMIT = 100;
+    public const STATISTICS_WINDOW = 1000;
 
     public function __construct(private TraceStore $traceStore, private bool $inMemory, private int $retentionInSeconds)
     {
     }
 
     /**
-     * @return array{storage: string, retention: int, flowTypes: array<array{flowType: string, runs: int, failedRuns: int, p50Ms: int, p95Ms: int, maxMs: int, lastStartedAt: string}>}
+     * @return array{storage: string, retention: int, statsWindow: int, flowTypes: array<array{flowType: string, runs: int, windowRuns: int, runsWithErrors: int, p50Ms: int, p95Ms: int, maxMs: int, lastStartedAt: string}>}
      */
     public function snapshot(): array
     {
         return [
             'storage' => $this->inMemory ? 'in_memory' : 'dbal',
             'retention' => $this->retentionInSeconds,
+            'statsWindow' => self::STATISTICS_WINDOW,
             'flowTypes' => array_map(fn (FlowTypeStatistics $statistics): array => [
                 'flowType' => $statistics->flowType,
                 'runs' => $statistics->runs,
-                'failedRuns' => $statistics->failedRuns,
+                'windowRuns' => $statistics->windowRuns,
+                'runsWithErrors' => $statistics->runsWithErrors,
                 'p50Ms' => $statistics->p50Ms,
                 'p95Ms' => $statistics->p95Ms,
                 'maxMs' => $statistics->maxMs,
                 'lastStartedAt' => PulseTime::format($statistics->lastStartedAtInMicroseconds),
-            ], $this->traceStore->flowTypeStatistics(self::FLOW_TYPES_LIMIT)),
+            ], $this->traceStore->flowTypeStatistics(self::FLOW_TYPES_LIMIT, self::STATISTICS_WINDOW)),
         ];
     }
 }

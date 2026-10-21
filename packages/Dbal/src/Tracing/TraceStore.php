@@ -43,7 +43,7 @@ interface TraceStore
     /**
      * @return FlowTypeStatistics[]
      */
-    public function flowTypeStatistics(int $limit): array;
+    public function flowTypeStatistics(int $limit, int $window): array;
 
     public function tracesOf(string $flowType, int $page, int $perPage): TracePage;
 

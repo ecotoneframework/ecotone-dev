@@ -51,32 +51,23 @@ final class InMemoryTraceStore implements TraceStore
         }
     }
 
-    public function flowTypeStatistics(int $limit): array
+    public function flowTypeStatistics(int $limit, int $window): array
     {
-        $durationsByFlowType = [];
-        $failedByFlowType = [];
-        $lastStartedAtByFlowType = [];
+        $entriesByFlowType = [];
         foreach ($this->entriesByTrace as $entry) {
-            $flowType = $entry['flowType'];
             $startedAt = $entry['span']->startedAt->unixTime()->inMicroseconds();
-            $durationsByFlowType[$flowType][] = $entry['span']->endedAt->unixTime()->inMicroseconds() - $startedAt;
-            $failedByFlowType[$flowType] = ($failedByFlowType[$flowType] ?? 0) + ($entry['status'] === FlowEntries::STATUS_ERROR ? 1 : 0);
-            $lastStartedAtByFlowType[$flowType] = max($lastStartedAtByFlowType[$flowType] ?? 0, $startedAt);
+            $entriesByFlowType[$entry['flowType']][] = [
+                'startedAt' => $startedAt,
+                'durationInMicroseconds' => $entry['span']->endedAt->unixTime()->inMicroseconds() - $startedAt,
+                'status' => $entry['status'],
+                'traceId' => $entry['span']->traceId,
+            ];
         }
 
         $statistics = [];
-        foreach ($durationsByFlowType as $flowType => $durations) {
-            sort($durations);
-            $runs = count($durations);
-            $statistics[] = new FlowTypeStatistics(
-                (string) $flowType,
-                $runs,
-                $failedByFlowType[$flowType],
-                FlowEntries::durationInMilliseconds($durations[FlowTypeStatistics::percentileRankOffset($runs, 0.5)]),
-                FlowEntries::durationInMilliseconds($durations[FlowTypeStatistics::percentileRankOffset($runs, 0.95)]),
-                FlowEntries::durationInMilliseconds($durations[$runs - 1]),
-                $lastStartedAtByFlowType[$flowType],
-            );
+        foreach ($entriesByFlowType as $flowType => $entries) {
+            usort($entries, fn (array $first, array $second): int => [$second['startedAt'], $second['traceId']] <=> [$first['startedAt'], $first['traceId']]);
+            $statistics[] = FlowTypeStatistics::overWindow((string) $flowType, count($entries), array_slice($entries, 0, $window));
         }
         usort($statistics, fn (FlowTypeStatistics $first, FlowTypeStatistics $second): int => [$second->runs, $first->flowType] <=> [$first->runs, $second->flowType]);
 

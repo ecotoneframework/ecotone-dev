@@ -66,24 +66,32 @@ final class DbalTraceStore implements TraceStore
         });
     }
 
-    public function flowTypeStatistics(int $limit): array
+    public function flowTypeStatistics(int $limit, int $window): array
     {
-        return $this->onTables(function () use ($limit): array {
+        return $this->onTables(function () use ($limit, $window): array {
             $connection = $this->connection();
             $table = $this->spansTableManager->getTableName();
             $groups = $connection->fetchAllAssociative(
-                "SELECT flow_type, COUNT(*) AS runs, SUM(CASE WHEN flow_status = :failed THEN 1 ELSE 0 END) AS failed_runs, MAX(started_at) AS last_started_at, MAX(ended_at - started_at) AS max_duration FROM {$table} WHERE flow_type IS NOT NULL GROUP BY flow_type ORDER BY runs DESC, flow_type ASC LIMIT {$limit}",
-                ['failed' => FlowEntries::STATUS_ERROR],
+                "SELECT flow_type, COUNT(*) AS runs FROM {$table} WHERE flow_type IS NOT NULL GROUP BY flow_type ORDER BY runs DESC, flow_type ASC LIMIT {$limit}",
             );
 
-            return array_map(fn (array $group): FlowTypeStatistics => new FlowTypeStatistics(
+            return array_map(fn (array $group): FlowTypeStatistics => FlowTypeStatistics::overWindow(
                 $group['flow_type'],
                 (int) $group['runs'],
-                (int) $group['failed_runs'],
-                $this->durationAtPercentile($connection, $group['flow_type'], (int) $group['runs'], 0.5),
-                $this->durationAtPercentile($connection, $group['flow_type'], (int) $group['runs'], 0.95),
-                FlowEntries::durationInMilliseconds((int) $group['max_duration']),
-                (int) $group['last_started_at'],
+                array_map(fn (array $row): array => [
+                    'startedAt' => (int) $row['started_at'],
+                    'durationInMicroseconds' => (int) $row['ended_at'] - (int) $row['started_at'],
+                    'status' => (string) $row['flow_status'],
+                ], $connection->createQueryBuilder()
+                    ->select('started_at', 'ended_at', 'flow_status')
+                    ->from($table)
+                    ->where('flow_type = :flowType')
+                    ->setParameter('flowType', $group['flow_type'])
+                    ->orderBy('started_at', 'DESC')
+                    ->addOrderBy('trace_id', 'DESC')
+                    ->setMaxResults($window)
+                    ->executeQuery()
+                    ->fetchAllAssociative()),
             ), $groups);
         });
     }
@@ -205,22 +213,6 @@ final class DbalTraceStore implements TraceStore
             ->setParameter('status', FlowEntries::STATUS_ERROR)
             ->setParameter('traceIds', $traceIds, ArrayParameterType::STRING)
             ->executeStatement();
-    }
-
-    private function durationAtPercentile(Connection $connection, string $flowType, int $runs, float $percentile): int
-    {
-        $duration = $connection->createQueryBuilder()
-            ->select('ended_at - started_at')
-            ->from($this->spansTableManager->getTableName())
-            ->where('flow_type = :flowType')
-            ->setParameter('flowType', $flowType)
-            ->orderBy('ended_at - started_at')
-            ->setFirstResult(FlowTypeStatistics::percentileRankOffset($runs, $percentile))
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchOne();
-
-        return FlowEntries::durationInMilliseconds((int) $duration);
     }
 
     /**

@@ -116,6 +116,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'payload' => 'tea',
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
+                    'traceId' => null,
                 ],
                 [
                     'messageId' => 'm-1',
@@ -127,6 +128,7 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
                     'payload' => 'coffee',
                     'contentType' => 'text/plain',
                     'channel' => 'order.replayed',
+                    'traceId' => null,
                 ],
             ],
             $recent,

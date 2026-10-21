@@ -11,7 +11,9 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Messaging\ErrorContext;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Tracing\TracingId;
 
 /**
  * licence Enterprise
@@ -80,7 +82,7 @@ final class PulseDeadLetterEntry
     }
 
     /**
-     * @return array{messageId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null}
+     * @return array{messageId: string, messageName: string, failedAt: string, exceptionClass: string, exceptionMessage: string, stackTrace: string, payload: string, contentType: string|null, channel: string|null, traceId: string|null}
      */
     public function toArray(): array
     {
@@ -94,7 +96,20 @@ final class PulseDeadLetterEntry
             'payload' => self::truncated($this->payloadAsText()),
             'contentType' => $this->header(MessageHeaders::CONTENT_TYPE),
             'channel' => $this->header(MessageHeaders::POLLED_CHANNEL_NAME) ?? $this->header(MessageHeaders::INBOUND_REQUEST_CHANNEL),
+            'traceId' => $this->traceId(),
         ];
+    }
+
+    private function traceId(): ?string
+    {
+        $traceparent = SpanContext::fromTraceparent($this->header(MessageHeaders::TRACEPARENT));
+        if ($traceparent !== null) {
+            return $traceparent->traceId;
+        }
+
+        $tracingId = $this->header(MessageHeaders::TRACING_ID);
+
+        return $tracingId === null ? null : TracingId::normalizedOrNull($tracingId);
     }
 
     private function header(string $name): ?string

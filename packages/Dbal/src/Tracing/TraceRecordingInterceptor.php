@@ -7,7 +7,9 @@ namespace Ecotone\Dbal\Tracing;
 use Closure;
 use Ecotone\Api\Dbal\Tracing\FlowStepCompleted;
 use Ecotone\Api\Dbal\Tracing\OnFlowStepCompleted;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Interceptor\MethodInvocation;
+use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Tracing\SpanAttribute;
 use Ecotone\Api\Tracing\SpanKind;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -35,6 +37,8 @@ use Throwable;
  */
 final class TraceRecordingInterceptor implements FlowTrackingScope
 {
+    private const PULSE_ROUTING_PREFIX = 'ecotone.pulse.';
+
     public function __construct(
         private StoringSpanRecorder $recorder,
         private Tracer $tracer,
@@ -51,6 +55,16 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
     public function recordUnitOfWork(MethodInvocation $methodInvocation): mixed
     {
         return $this->storingSpansOf(fn (): mixed => $methodInvocation->proceed());
+    }
+
+    public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation, Message $message): mixed
+    {
+        $headers = $message->getHeaders();
+        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX)) {
+            $this->recorder->excludeScopeFromTracking();
+        }
+
+        return $methodInvocation->proceed();
     }
 
     public function publishingStepsAfterCommit(Closure $work): mixed

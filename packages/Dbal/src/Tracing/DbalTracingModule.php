@@ -26,14 +26,19 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionFlush;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\SpansTableManager;
+use Ecotone\Dbal\Tracing\Pulse\PulseTraceQueries;
+use Ecotone\Dbal\Tracing\Pulse\PulseTracesNotConfigured;
+use Ecotone\Dbal\Tracing\Pulse\PulseTracing;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -53,9 +58,15 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshot;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 use Ecotone\Projecting\ProjectionOperationEndpoint;
 use Ecotone\Tracing\Config\SpanRecorderReference;
 use Ecotone\Tracing\Tracer;
@@ -120,7 +131,12 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             SpansTableManager::class,
             new Definition(SpansTableManager::class, [SpansTableManager::DEFAULT_TABLE, $storesOnDatabase, $consoleInvocationPrefix, $connectionReference])
         );
+        $pulseConfigured = ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== [];
+        $serviceName = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults())->serviceName;
         if ($flowTracking === null) {
+            if ($pulseConfigured) {
+                $this->registerPulseTraceQueries($messagingConfiguration, $interfaceToCallRegistry, PulseTracesNotConfigured::class, new Definition(PulseTracesNotConfigured::class, [$serviceName]), 'refuse', 'refuse');
+            }
             $messagingConfiguration->registerServiceDefinition(FlowTrackingScope::class, new Definition(UntrackedFlowScope::class));
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway needs flow tracking, which records every flow and decides when it is complete. Register FlowTrackingConfiguration::createWithDefaults() from a #[ServiceContext] method.']));
 
@@ -164,6 +180,16 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 ProjectionFlush::class
             )
         );
+        if ($pulseConfigured) {
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    TraceRecordingInterceptor::class,
+                    $interfaceToCallRegistry->getFor(TraceRecordingInterceptor::class, 'keepPulseRequestOutOfFlowTracking'),
+                    Precedence::TRACE_RECORDING_PRECEDENCE,
+                    DistributedMessageHandler::class
+                )
+            );
+        }
         if ($flowTracking->notifications) {
             $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnFlowStepCompleted::CHANNEL));
         }
@@ -180,6 +206,13 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         } else {
             self::registerTracingGateway($messagingConfiguration, UnavailableTracingGateway::class, new Definition(UnavailableTracingGateway::class, ['TracingGateway is turned off by FlowTrackingConfiguration::withTracingGateway(false). Remove that call to ask whether a flow completed.']));
         }
+        if ($pulseConfigured) {
+            $messagingConfiguration->registerServiceDefinition(
+                PulseTracing::class,
+                new Definition(PulseTracing::class, [new Reference(TraceStore::class), $flowTracking->inMemory, intdiv($flowTracking->retention->inMilliseconds(), 1000)])
+            );
+            $this->registerPulseTraceQueries($messagingConfiguration, $interfaceToCallRegistry, PulseTraceQueries::class, new Definition(PulseTraceQueries::class, [new Reference(TraceStore::class), $serviceName]), 'list', 'trace');
+        }
         $messagingConfiguration->registerServiceDefinition(
             ExpiredTraceRemover::class,
             new Definition(ExpiredTraceRemover::class, [new Reference(TraceStore::class), new Reference(EcotoneClockInterface::class), $flowTracking->retention->inMilliseconds(), $flowTracking->removalBatchSize])
@@ -187,6 +220,22 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         $messagingConfiguration
             ->registerMessageHandler(MessageProcessorActivatorBuilder::createForMethod(ExpiredTraceRemover::class, 'removeExpiredTraces')->withInputChannelName(self::REMOVE_EXPIRED_TRACES_CHANNEL))
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(self::REMOVE_EXPIRED_TRACES_CHANNEL, 'ecotone:tracing:remove-expired-traces', [], 'Removes tracked flows older than the configured retention'));
+    }
+
+    private function registerPulseTraceQueries(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, string $serviceClass, Definition $service, string $listMethod, string $traceMethod): void
+    {
+        $messagingConfiguration->registerServiceDefinition($serviceClass, $service);
+        $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
+        $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
+        $queryId = HeaderBuilder::createOptional('queryId', PulseTraceQueries::QUERY_ID_HEADER);
+        $converters = $serviceClass === PulseTracesNotConfigured::class ? [$sourceService, $snapshot] : [PayloadBuilder::create('payload'), $sourceService, $queryId, $snapshot];
+        foreach ([PulseTraceQueries::LIST_ROUTING_KEY => $listMethod, PulseTraceQueries::TRACE_ROUTING_KEY => $traceMethod] as $channel => $method) {
+            $messagingConfiguration->registerMessageHandler(
+                MessageProcessorActivatorBuilder::createForMethod($serviceClass, $interfaceToCallRegistry->getFor($serviceClass, $method))
+                    ->withInputChannelName($channel)
+                    ->withMethodParameterConverters($converters)
+            );
+        }
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -197,6 +246,9 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
         ];
         if (self::flowTrackingOf($serviceExtensions) !== null) {
             $extensions[] = new SpanRecorderReference(StoringSpanRecorder::class);
+            if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'tracing', serviceReference: PulseTracing::class);
+            }
         }
 
         return $extensions;

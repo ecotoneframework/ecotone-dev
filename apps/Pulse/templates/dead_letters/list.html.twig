@@ -54,6 +54,9 @@
                     </label>
                 {% endif %}
             </div>
+            {% if not service.configured and service.status.hasSnapshot %}
+                <p class="muted" style="padding:.75rem" data-enable-dead-letter>{{ service.service }} does not store dead letters, so there is nothing to list or replay. Enable it with <code>DbalConfiguration::createWithDefaults()-&gt;withDeadLetter(true)</code> in a <code>#[ServiceContext]</code> of {{ service.service }}.</p>
+            {% endif %}
             {% if service.configured %}
                 <div style="padding:.75rem">
                 {% for group in service.groups %}
@@ -85,7 +88,7 @@
                     </section>
                     {% endif %}
                 {% else %}
-                    <p class="muted">No dead letters.</p>
+                    <p class="muted" data-empty>No dead letters, dead letter storage is enabled for {{ service.service }}.</p>
                 {% endfor %}
                 </div>
             {% endif %}

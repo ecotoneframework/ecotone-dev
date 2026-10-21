@@ -43,7 +43,7 @@
             {% for service in services %}
                 {% set version = service.ecotoneVersion %}
                 <tr data-service="{{ service.service }}">
-                    <th scope="row">{{ service.service }}
+                    <th scope="row"><a href="{{ path('service_hub', {service: service.service}) }}" data-hub-link>{{ service.service }}</a>
                         {% if service.hasSnapshot and service.snapshot.serviceName|default(service.service) != service.service %}<br><span class="muted mono">{{ service.snapshot.serviceName }}</span>{% endif %}
                         {% if service.requestFailure %}<br><span class="drift" data-request-error>{{ service.requestFailure }}</span>{% endif %}
                         {% if service.replyError %}<br><span class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</span>{% endif %}
@@ -59,22 +59,11 @@
                         <td class="muted" colspan="5">no snapshot yet</td>
                     {% endif %}
                     <td>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted" data-age>{{ service.ageSeconds }}s</span>{% endif %}</td>
-                    <td>{% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ path('services') }}#diagnose-{{ service.service }}" data-diagnose>Diagnose</a>{% endif %}</td>
+                    <td>{% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ path('service_hub', {service: service.service}) }}#diagnose" data-diagnose>Diagnose</a>{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 
-    {% for service in services %}{% if service.status.value in ['unreachable', 'channel_missing'] %}
-        <section class="card" id="diagnose-{{ service.service }}">
-            <h2>Diagnose {{ service.service }}</h2>
-            {% if service.status.value == 'channel_missing' %}<p class="drift" data-channel-missing>{{ service.requestFailure }}</p>{% endif %}
-            <ul>
-                <li>The service must run <code>ecotone:run {{ service.channel }}</code> to consume the channel Pulse writes to.</li>
-                <li><code>PULSE_SERVICES</code> must map <code>{{ service.service }}</code> to that channel, and the service needs an Enterprise licence key.</li>
-                <li>Both must reach the same broker as <code>PULSE_TRANSPORT_DSN</code>.</li>
-            </ul>
-        </section>
-    {% endif %}{% endfor %}
 {% endblock %}

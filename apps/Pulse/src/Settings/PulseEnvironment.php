@@ -15,6 +15,7 @@ final class PulseEnvironment
         'PULSE_REPLY_TIMEOUT',
         'PULSE_AWAIT_TIMEOUT',
         'PULSE_REFRESH_INTERVAL',
+        'PULSE_DOCTOR_BUDGET_SECONDS',
         'PULSE_INTERNAL_DATABASE_PATH',
     ];
 

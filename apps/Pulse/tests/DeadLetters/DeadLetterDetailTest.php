@@ -61,6 +61,19 @@ final class DeadLetterDetailTest extends ReleasingWebTestCase
         self::assertCount(1, $detail->filter('[data-detail="payload"] [data-truncated]'));
     }
 
+    public function test_the_detail_breadcrumbs_lead_back_through_the_service_hub(): void
+    {
+        $client = $this->pulseWithOneFailure();
+
+        $list = $this->freshView($client, '/dead-letters');
+        $detail = $client->click($list->filter('[data-dead-letter] a')->link());
+
+        $crumbs = $detail->filter('nav[aria-label="Breadcrumb"] li');
+        self::assertSame('Services', trim($crumbs->eq(0)->text()));
+        self::assertSame('/services/orders', $crumbs->eq(1)->filter('a')->attr('href'));
+        self::assertSame('/dead-letters?service=orders', $crumbs->eq(2)->filter('a')->attr('href'));
+    }
+
     private function pulseWithOneFailure(): KernelBrowser
     {
         $this->configurePulseWithServices('orders');

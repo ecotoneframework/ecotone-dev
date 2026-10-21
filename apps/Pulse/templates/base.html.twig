@@ -19,6 +19,7 @@
         <a href="{{ path('flow_graph') }}"{% if current == 'flow_graph' %} class="active"{% endif %}>Flow graph</a>
         <a href="{{ path('traces') }}"{% if current starts with 'trace' %} class="active"{% endif %}>Traces</a>
         <a href="{{ path('topology') }}"{% if current == 'topology' %} class="active"{% endif %}>Topology</a>
+        <a href="{{ path('connect') }}"{% if current == 'connect' %} class="active"{% endif %}>Connect</a>
         <a href="{{ path('catalogue') }}"{% if current == 'catalogue' %} class="active"{% endif %}>Catalogue</a>
     </nav>
 </header>

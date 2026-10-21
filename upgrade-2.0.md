@@ -3252,6 +3252,8 @@ refused, naming both.
 
 **How to adapt:** nothing is required. To use it, register `PulseConfiguration` next to the request channel the service already consumes. An existing `DistributedServiceMap` mapping to the Pulse service can stay or be removed.
 
+The snapshot of a service that has the Dbal package carries a `deadLetter` section, `{"enabled": true|false}`, next to `deadLetters` (which is still present only when dead letters are enabled), so a consumer of the snapshot tells "dead letter storage is enabled and empty" from "not configured". The field is additive: a snapshot without it is read by whether `deadLetters` is present, as before.
+
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,
 `failedAt`, exception class and message, stack trace and payload (both cut at 4096 bytes with a `... [truncated]`

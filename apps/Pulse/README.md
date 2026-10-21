@@ -10,6 +10,34 @@ Pulse is an **Ecotone Enterprise** application. It does not start without `ECOTO
 >
 > Every `POST` is refused with `403` when the browser's `Sec-Fetch-Site` is not `same-origin`/`none`, or its `Origin` host differs from the host Pulse is served on, so another site cannot make a visitor's browser replay or delete dead letters; requests carrying neither header (scripts) are served. When `Sec-Fetch-Site` is present it decides alone; `Origin` is compared with the request host only when it is absent. Behind a reverse proxy set `TRUSTED_PROXIES` (comma-separated proxy addresses or CIDRs, or `REMOTE_ADDR`) so Pulse reads `X-Forwarded-Host`/`-Proto`/`-Port`, and optionally `TRUSTED_HOSTS` (a host regular expression such as `^pulse\.example\.com$`; default: any).
 
+## Quick start (2 minutes)
+
+You need Docker and an Ecotone Enterprise licence key (trial: https://ecotone.tech/pricing). From the repository root:
+
+```bash
+ECOTONE_LICENCE_KEY=<your key> docker compose -f apps/Pulse/docker-compose.example.yml --profile demo up --build
+```
+
+Open http://localhost:8080. No file is edited. After about 40 seconds the **Services** page shows `orders` and `billing`
+as **Connected**; the demo services run a few orders in the background, so **Dead letters** holds failed messages you can
+replay or delete, and **Traces** lists the flows of both services (`order.place`, `invoice.create`). Stop it with
+`docker compose -f apps/Pulse/docker-compose.example.yml --profile demo down -v`.
+
+To manage your own services, run Pulse with three settings (the broker of your services and their names):
+
+```bash
+docker build -f apps/Pulse/Dockerfile -t ecotone-pulse .     # from the repository root, once
+docker run -p 8080:8080 --network <the network your broker is on> -e ECOTONE_LICENCE_KEY=<your key> \
+    -e PULSE_TRANSPORT_DSN=amqp://guest:guest@rabbitmq:5672 -e PULSE_SERVICES=orders,billing ecotone-pulse
+```
+
+`rabbitmq` is the broker host as that network sees it; use the DSN your services use. Without `ECOTONE_LICENCE_KEY` the container stops with a message that names it, and `down` of the compose example works without it.
+
+Then open **Connect** in the navigation (`/connect?service=orders`): it generates the `#[ServiceContext]` class for Ecotone Lite, Symfony
+and Laravel with this Pulse's names and the channel builder of your transport, and the `PULSE_SERVICES` entry. A service that
+does not answer shows **Unreachable**; its page (`/services/orders`) lists what `pulse:doctor` found (broker reachable, login,
+channel) and the same snippet.
+
 ## How it works
 
 ```
@@ -64,6 +92,11 @@ trace whether or not the service tracks its own flows.
 * The container entrypoint is a **bash** script (`#!/bin/bash`; the image is Debian based and ships bash) that supervises the three processes with `wait -n`. The reply consumer stops at `PULSE_WORKER_TIME_LIMIT_MS` (default one hour) or `PULSE_WORKER_MEMORY_LIMIT` megabytes (default 256); the supervisor starts it again in the same container, and so it does the refresh loop, so the internal database is not lost at a limit. A process that exits cleanly within `PULSE_RESTART_MIN_UPTIME_SECONDS` (default 10) of starting is restarted after 1, 2, 4 ... up to 30 seconds, and after `PULSE_RESTART_MAX_RAPID` (default 5) such exits in a row the container stops with a log line naming the process. The container also exits when the web server stops or the consumer or the refresh exits with an error (non-zero), with that exit code, so run it with `restart: unless-stopped` or `always`. SIGTERM (`docker stop`) stops all three and exits 0.
 * `GET /healthz` answers `ok` without asking any service: the web server is up. The image `HEALTHCHECK` calls it every 5 seconds (30 second start period), so the container is `healthy` a few seconds after it starts. A consumer or refresh that dies takes the container down through the supervisor.
 * `GET /readyz` answers `200 {"status":"ready"}` or `503 {"status":"not_ready", "checks":[...]}` with one line per failing check and what to do about it: the internal SQLite database is writable, every reply consumer reported within the last `max(3 x PULSE_REFRESH_INTERVAL, 15)` seconds, and the refresh reported within `3 x PULSE_REFRESH_INTERVAL`. `pulse:refresh` records its own heartbeat at every tick and, in the same tick, one for each reply consumer the supervisor started that is still running and not stopped (it reads the process ids the supervisor wrote), both in the internal database; no extra process is started for it. Neither probe depends on the services being Connected. Use `/healthz` for liveness and `/readyz` for readiness (Kubernetes: `livenessProbe` and `readinessProbe`; `Deployment` with `replicas: 1`, `strategy: Recreate`, no volume).
+
+Every service has a page, `/services/{name}`, with breadcrumbs: its health and last seen time, versions, dead letters, flow types
+(linked to their traces) and a link to its slice of the flow graph. A snapshot carries `deadLetter.enabled` (`true` or `false`, from the
+service's `DbalConfiguration`), so Pulse says "dead letter storage is enabled, none stored" for an empty store and "not configured" for a
+service that does not store dead letters; a service older than this field is told apart by whether its snapshot has the `deadLetters` section.
 
 Service status:
 
@@ -132,6 +165,7 @@ docker run -p 8080:8080 \
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_REFRESH_INTERVAL` | `20` | Seconds between the periodic snapshot requests. A whole number from 1 to 59, below the 60 second freshness limit |
+| `PULSE_DOCTOR_BUDGET_SECONDS` | `8` | Seconds the service page (`/services/{name}`) of an Unreachable service spends on broker checks. Probes that do not fit are skipped and the page says so; `0` skips them all. |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |
 | `APP_SECRET` (or `APP_SECRET_FILE`) | generated | Pulse signs nothing with it. When unset the entrypoint generates one for the lifetime of the container and logs one line saying so |
@@ -239,7 +273,7 @@ docker build -f apps/Pulse/Dockerfile -t ecotone-pulse .   # context is the repo
 docker run --env-file pulse.env -p 8080:8080 ecotone-pulse
 ```
 
-`docker-compose.example.yml` runs that single service against RabbitMQ.
+`docker-compose.example.yml` has two profiles: `demo` (Pulse, a PostgreSQL database and two demo services, see the quick start) and `amqp` (Pulse and RabbitMQ, for your own services). `apps/Pulse/docker/demo-smoke.sh` runs the demo profile and checks it.
 
 * HTTP is served on port `8080` (`PULSE_HTTP_PORT`).
 * With a missing or invalid setting the container exits at start with the refusal message.

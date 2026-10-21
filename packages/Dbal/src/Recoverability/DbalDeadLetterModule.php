@@ -19,6 +19,7 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterActions;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetters;
 use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLettersNotConfigured;
+use Ecotone\Dbal\Recoverability\Pulse\PulseDeadLetterStatus;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -92,6 +93,7 @@ final class DbalDeadLetterModule implements AnnotationModule
 
         if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $extensionObjects) !== []) {
             $this->registerPulseActions($messagingConfiguration, $interfaceToCallRegistry, $isDeadLetterEnabled, $serviceConfiguration->serviceName);
+            $messagingConfiguration->registerServiceDefinition(PulseDeadLetterStatus::class, new Definition(PulseDeadLetterStatus::class, [$isDeadLetterEnabled]));
         }
 
         if (! $isDeadLetterEnabled) {
@@ -143,8 +145,11 @@ final class DbalDeadLetterModule implements AnnotationModule
             fn (string $connectionReference): DbalTableManagerReference => new DbalTableManagerReference(DeadLetterTableManager::class, $connectionReference),
             array_values(array_unique($connectionReferences)),
         );
-        if ($dbalConfiguration->deadLetterEnabled && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
-            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class);
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetter', serviceReference: PulseDeadLetterStatus::class);
+            if ($dbalConfiguration->deadLetterEnabled) {
+                $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'deadLetters', serviceReference: PulseDeadLetters::class);
+            }
         }
 
         return $extensions;

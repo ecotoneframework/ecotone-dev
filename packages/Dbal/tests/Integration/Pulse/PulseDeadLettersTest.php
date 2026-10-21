@@ -222,6 +222,21 @@ final class PulseDeadLettersTest extends DbalMessagingTestCase
         self::assertSame(['total' => 0, 'groups' => [], 'recent' => []], $this->requestSnapshot()['deadLetters']);
     }
 
+    #[DataProvider('implementations')]
+    public function test_the_snapshot_says_the_dead_letter_is_enabled_even_when_it_is_empty(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        self::assertSame(['enabled' => true], $this->requestSnapshot()['deadLetter']);
+    }
+
+    public function test_the_snapshot_says_the_dead_letter_is_not_enabled_when_it_is_disabled(): void
+    {
+        $this->bootstrap('in-memory', DbalConfiguration::createWithDefaults()->withDeadLetter(false));
+
+        self::assertSame(['enabled' => false], $this->requestSnapshot()['deadLetter']);
+    }
+
     public function test_the_snapshot_has_no_dead_letters_section_when_the_dead_letter_is_disabled(): void
     {
         $this->bootstrap('in-memory', DbalConfiguration::createWithDefaults()->withDeadLetter(false));

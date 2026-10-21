@@ -15,7 +15,7 @@
         <p class="muted" data-no-projections>{{ service.service }} reports no projections. A class annotated with <code>#[Projection('name')]</code> is reported here with its position, how far it is behind and whether it is stalled.</p>
     {% else %}
         <p class="muted">A projection is stalled when it is behind and its position has not moved across Pulse's snapshots for {{ stalledAfter }} seconds (<code>PULSE_PROJECTION_STALLED_AFTER</code>). It is failed when dead letters are stored for its asynchronous channel.</p>
-        <div class="card flush">
+        <div class="card flush" tabindex="0" role="region" aria-label="Projections of {{ service.service }}">
             <table>
                 <thead>
                 <tr>

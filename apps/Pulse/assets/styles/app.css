@@ -50,6 +50,7 @@ tbody tr:hover td{background:var(--surface-2)}
 .notice{padding:.7rem 1rem;border-left:4px solid var(--brand);background:var(--brand-soft);border-radius:6px;margin-bottom:1rem}
 .toast{position:sticky;top:.5rem;z-index:5;box-shadow:0 4px 14px #0003}
 .chip{font-size:.78rem;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:0 .4rem}
+code{overflow-wrap:anywhere}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:.7rem;margin:.4rem 0}
 pre.mermaid{white-space:pre;overflow-x:auto}
 

@@ -243,21 +243,85 @@ final class PulseSnapshotResponderTest extends TestCase
         );
     }
 
-    public function test_pulse_without_a_service_map_to_the_pulse_service_is_refused_at_bootstrap(): void
+    public function test_the_reply_reaches_pulse_without_a_service_map_when_the_pulse_channel_is_registered(): void
+    {
+        $pulse = $this->pulseReplies();
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse')];
+        $orderService = $this->orderServiceWithoutMap($this->orders(), $channels, PulseConfiguration::createWithDefaults('ecotone_pulse'));
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('ecotone_pulse', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+        self::assertSame('order_service', json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR)['serviceName']);
+    }
+
+    public function test_the_reply_goes_to_the_channel_chosen_with_with_reply_channel(): void
+    {
+        $pulse = $this->pulseReplies();
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('pulse_replies')];
+        $orderService = $this->orderServiceWithoutMap($this->orders(), $channels, PulseConfiguration::createWithDefaults('ecotone_pulse')->withReplyChannel('pulse_replies'));
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_replies', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+    }
+
+    public function test_an_explicit_service_map_agreeing_with_the_reply_channel_is_accepted(): void
+    {
+        $pulse = $this->pulseReplies();
+        $channels = $this->channels();
+        $orderService = $this->orderServiceWithoutMap($this->orders(), $channels, PulseConfiguration::createWithDefaults('ecotone_pulse')->withReplyChannel('pulse_channel'), $this->pulseMap());
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+    }
+
+    public function test_an_explicit_service_map_wins_when_no_reply_channel_was_chosen(): void
+    {
+        $pulse = $this->pulseReplies();
+        $channels = $this->channels();
+        $orderService = $this->orderServiceWithoutMap($this->orders(), $channels, PulseConfiguration::createWithDefaults('ecotone_pulse'), $this->pulseMap());
+        $pulseService = $this->pulseService($pulse, $channels);
+
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertCount(1, $pulse->snapshots);
+    }
+
+    public function test_an_explicit_service_map_contradicting_the_reply_channel_is_refused_at_bootstrap(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("PulseConfiguration answers Pulse service ecotone_pulse, but no DistributedServiceMap maps it to a channel, so the reply could not be routed. Add DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'channel_pulse_consumes') to a #[ServiceContext], or change the Pulse service name in PulseConfiguration::createWithDefaults().");
+        $this->expectExceptionMessage("PulseConfiguration sends the reply to channel 'pulse_replies' (withReplyChannel), but a DistributedServiceMap maps Pulse service ecotone_pulse to channel 'pulse_channel', so the reply could go to only one of them. Make both name the same channel: change withReplyChannel('pulse_replies') to withReplyChannel('pulse_channel'), or remove withReplyChannel to follow the DistributedServiceMap, or remove the command mapping of 'ecotone_pulse' from the DistributedServiceMap.");
 
-        EcotoneLite::bootstrapFlowTesting(
-            extensionObjects: [
-                ...$this->channels(),
-                PulseConfiguration::createWithDefaults('ecotone_pulse'),
-                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'other_service', channelName: 'order_channel'),
-            ],
-            enabledModules: [],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $this->orderServiceWithoutMap($this->orders(), [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('pulse_replies')], PulseConfiguration::createWithDefaults('ecotone_pulse')->withReplyChannel('pulse_replies'), $this->pulseMap());
+    }
+
+    public function test_a_reply_channel_that_cannot_be_derived_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Pulse replies go to channel 'ecotone_pulse', which is not a registered message channel, and it cannot follow the request channel's transport because the request channel 'order_service' is not registered either. Register the channel Pulse sends its requests to, named after the service ('order_service') or chosen with PulseConfiguration::withRequestChannel('...'). Or register 'ecotone_pulse' explicitly, e.g. AmqpBackedMessageChannelBuilder::create('ecotone_pulse') (or the DbalBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder, SqsBackedMessageChannelBuilder or KafkaMessageChannelBuilder::create('ecotone_pulse') your other channels use), or send the replies to another registered channel with PulseConfiguration::withReplyChannel().");
+
+        $this->orderServiceWithoutMap($this->orders(), $this->channels(), PulseConfiguration::createWithDefaults('ecotone_pulse'));
+    }
+
+    public function test_a_request_channel_whose_builder_cannot_be_recreated_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Pulse replies go to channel 'ecotone_pulse', which is not a registered message channel, and the builder of request channel 'order_channel' cannot be re-created for another channel name. Register 'ecotone_pulse' explicitly, e.g. AmqpBackedMessageChannelBuilder::create('ecotone_pulse') (or the DbalBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder, SqsBackedMessageChannelBuilder or KafkaMessageChannelBuilder::create('ecotone_pulse') your other channels use), or send the replies to another registered channel with PulseConfiguration::withReplyChannel().");
+
+        $this->orderServiceWithoutMap($this->orders(), $this->channels(), PulseConfiguration::createWithDefaults('ecotone_pulse')->withRequestChannel('order_channel'));
     }
 
     public function test_pulse_configured_twice_is_refused_at_bootstrap(): void
@@ -321,6 +385,23 @@ final class PulseSnapshotResponderTest extends TestCase
                 $serviceMap ?? $this->pulseMap(),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            ],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+        );
+    }
+
+    private function orderServiceWithoutMap(object $handlers, array $channels, PulseConfiguration $pulseConfiguration, ?DistributedServiceMap $serviceMap = null): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handlers::class],
+            containerOrAvailableServices: [$handlers],
+            extensionObjects: [
+                ...$channels,
+                ...($serviceMap === null ? [] : [$serviceMap]),
+                ServiceConfiguration::createWithDefaults()->withServiceName('order_service'),
+                $pulseConfiguration,
             ],
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,

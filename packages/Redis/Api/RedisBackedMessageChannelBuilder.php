@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\Api\Redis;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
 use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 
 /**
  * licence Apache-2.0
  */
-final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection
 {
-    private function __construct(string $channelName, string $connectionReferenceName)
+    private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(
             RedisInboundChannelAdapterBuilder::createWith(
@@ -47,6 +48,11 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
     protected function supportsBatchMessages(): bool
     {
         return $this->getRedisOutboundChannelAdapter()->isBatchPublishingEnabled();
+    }
+
+    public function forChannelOnSameConnection(string $channelName): self
+    {
+        return self::create($channelName, $this->connectionReferenceName);
     }
 
     private function getRedisOutboundChannelAdapter(): RedisOutboundChannelAdapterBuilder

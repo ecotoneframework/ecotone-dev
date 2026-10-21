@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\Api\Sqs;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Sqs\SqsInboundChannelAdapterBuilder;
 use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
 
 /**
  * licence Apache-2.0
  */
-final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection
 {
-    private function __construct(string $channelName, string $connectionReferenceName)
+    private function __construct(string $channelName, public readonly string $connectionReferenceName)
     {
         parent::__construct(
             SqsInboundChannelAdapterBuilder::createWith(
@@ -47,6 +48,11 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     protected function supportsBatchMessages(): bool
     {
         return $this->getSqsOutboundChannelAdapter()->isBatchPublishingEnabled();
+    }
+
+    public function forChannelOnSameConnection(string $channelName): self
+    {
+        return self::create($channelName, $this->connectionReferenceName);
     }
 
     private function getSqsOutboundChannelAdapter(): SqsOutboundChannelAdapterBuilder

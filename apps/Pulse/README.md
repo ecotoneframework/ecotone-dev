@@ -41,6 +41,32 @@ Service status:
 
 The **Refresh** button on the Services page requests new snapshots regardless of their age.
 
+## Traces
+
+The **Traces** pages need flow tracking in the service (`FlowTrackingConfiguration::createWithDefaults()` returned from a
+`#[ServiceContext]`). A service without it is listed as "flow tracking not enabled" and is never asked for traces.
+
+* `/traces` lists the flow types of every service from the `tracing` section of its snapshot, with runs, runs with errors
+  recorded, error rate, p50/p95/max entry duration over the latest runs, and the last run. A flow type is named by how the
+  flow entered *that service*, so the same business flow has a different flow type in each service. A failed asynchronous
+  step is not counted as an error: it is found among the dead letters.
+* `/traces/{service}/{flowType}?page=N` pages the traces of one flow type, 25 per page, newest first.
+* `/traces/trace/{traceId}` (also reached by the search box and by **View trace** on a dead letter) asks every Connected
+  service with flow tracking for the spans of that trace id and merges them into one waterfall. A receiving service's spans
+  are nested under the sender's `send` span, each row names its service and a hop to another service is marked. The queue
+  wait of an asynchronous step or a hop (send end to consume start) is shown apart from the handler duration. A step sent
+  and not processed yet is *pending*; a pending step whose message is among a service's dead letters is shown as *failed*
+  with the dead letter's exception and a link to it. At most 300 steps are shown, and a service that cut its reply at 1000
+  spans says so.
+* `/flow?trace={traceId}` highlights the trace on the cross-service flow graph: passed nodes (green, with the longest
+  duration of the step), pending steps (amber, dashed), failed steps (red) and the distributed command and event edges
+  between services the trace crossed.
+
+The queries use the Distributed Bus with a query id (`ecotone.pulse.traces.list` and `ecotone.pulse.traces.trace`, replies on
+`ecotone.pulse.query_result_received`). The worker stores each reply in the cache under the service and the query; a reply
+is reused for 60 seconds, while it is awaited the page refreshes itself, and a service that has not replied within
+`PULSE_REPLY_TIMEOUT` is shown as not answering for that query.
+
 ## Configuration
 
 Every setting is an environment variable, read when the container is built at start. **Changing a setting needs a restart** of `web` and `worker`: the entrypoint rebuilds the container from the current environment on every start, and the cache directory of the container is keyed by the settings, so a container built for other settings is never reused. Do not mount `var/cache` as a shared volume. An invalid value is refused when the application boots, with a message naming

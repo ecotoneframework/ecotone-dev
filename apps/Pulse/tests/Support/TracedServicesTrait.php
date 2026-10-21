@@ -138,17 +138,17 @@ trait TracedServicesTrait
         return $this->tracedService('shipping', $shipping, DistributedServiceMap::initialize()->withEventMapping($this->serviceChannels['shipping'], ['order.*']));
     }
 
-    private function tracedService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing = true): FlowTestSupport
+    private function tracedService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing = true, bool $inMemory = true): FlowTestSupport
     {
-        $leftOver = $this->bootstrapService($service, $handler, $serviceMap, false);
+        $leftOver = $this->bootstrapService($service, $handler, $serviceMap, false, true);
         foreach (self::ASYNC_CHANNELS as $channel) {
             $leftOver->run($channel, ExecutionPollingMetadata::createWithTestingSetup(1000, 300, false));
         }
 
-        return $this->tracedServices[$service] = $this->bootstrapService($service, $handler, $serviceMap, $tracing);
+        return $this->tracedServices[$service] = $this->bootstrapService($service, $handler, $serviceMap, $tracing, $inMemory);
     }
 
-    private function bootstrapService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing): FlowTestSupport
+    private function bootstrapService(string $service, object $handler, DistributedServiceMap $serviceMap, bool $tracing, bool $inMemory): FlowTestSupport
     {
         $asyncChannels = self::ASYNC_CHANNELS;
         $application = EcotoneLite::bootstrapFlowTesting(
@@ -162,7 +162,7 @@ trait TracedServicesTrait
                 ServiceConfiguration::createWithDefaults()->withServiceName($service)->withDefaultErrorChannel('dbal_dead_letter'),
                 DbalConfiguration::createWithDefaults()->withDeadLetter(true),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
-                ...($tracing ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage(true)] : []),
+                ...($tracing ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemory)] : []),
             ],
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,

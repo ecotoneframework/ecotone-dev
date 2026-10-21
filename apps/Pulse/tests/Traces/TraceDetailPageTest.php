@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Traces;
 
 use App\Tests\Support\TracedServicesTrait;
-use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Tracing\SpanContext;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;

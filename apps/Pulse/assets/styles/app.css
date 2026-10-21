@@ -166,3 +166,5 @@ progress{width:8rem;height:.6rem;vertical-align:middle;accent-color:var(--brand)
 td details summary{cursor:pointer;color:var(--brand)}
 td details[open]{min-width:16rem;white-space:normal}
 td details form{margin-top:.5rem}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:1rem}.tiles .card{margin:0}.tiles ul{list-style:none;padding:0;margin:0 0 .5rem}.tiles li{margin:.35rem 0}

@@ -39,12 +39,12 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
         $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup());
         $orders = $this->realService('orders');
 
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup());
         $this->runPulseWorker($client->getKernel(), $this->pulseChannel);
         $this->runPulseWorker($client->getKernel(), $this->pulseChannel . '.legacy');
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('connected', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));
         self::assertSame('connected', $crawler->filter('[data-service="billing"] [data-status]')->attr('data-status'));

@@ -32,7 +32,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
     {
         $client = $this->pulseOnAmqp();
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertResponseIsSuccessful();
         self::assertSame('channel_missing', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));
@@ -42,16 +42,16 @@ final class ChannelMissingTest extends ReleasingWebTestCase
     public function test_the_service_becomes_connected_once_it_has_created_its_channel(): void
     {
         $client = $this->pulseOnAmqp();
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runPulseWorker($client->getKernel());
         $orders = $this->amqpService('orders');
         $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->advanceTimeBy(60);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('connected', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));
         self::assertCount(0, $crawler->filter('[data-service="orders"] [data-request-error]'));
@@ -60,16 +60,16 @@ final class ChannelMissingTest extends ReleasingWebTestCase
     public function test_a_missing_channel_is_asked_again_only_once_the_snapshot_freshness_window_has_passed(): void
     {
         $client = $this->pulseOnAmqp();
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runPulseWorker($client->getKernel());
         $orders = $this->amqpService('orders');
         $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
         self::assertSame('channel_missing', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));
 
         $this->advanceTimeBy(60);
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
         self::assertSame('waiting', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));
     }
 

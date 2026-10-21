@@ -102,11 +102,11 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
         }
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
         unlink($file);
     }
 

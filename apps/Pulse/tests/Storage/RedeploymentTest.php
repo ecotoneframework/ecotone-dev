@@ -21,19 +21,19 @@ final class RedeploymentTest extends ReleasingWebTestCase
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
         $orders = $this->realService('orders');
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/services'), 'orders'));
 
         self::ensureKernelShutdown();
         $restarted = $this->pulseClient();
-        self::assertSame('connected', $this->statusOf($restarted->request('GET', '/'), 'orders'));
+        self::assertSame('connected', $this->statusOf($restarted->request('GET', '/services'), 'orders'));
 
         $this->useNewInternalDatabase();
         self::ensureKernelShutdown();
         $redeployed = $this->pulseClient();
-        self::assertSame('waiting', $this->statusOf($redeployed->request('GET', '/'), 'orders'));
+        self::assertSame('waiting', $this->statusOf($redeployed->request('GET', '/services'), 'orders'));
     }
 
     private function useNewInternalDatabase(): void

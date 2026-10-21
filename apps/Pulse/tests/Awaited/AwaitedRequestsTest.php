@@ -31,7 +31,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
         $this->respondInBackground(['orders']);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertCount(0, $crawler->filter('meta[http-equiv="refresh"]'));
@@ -44,7 +44,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
 
         $startedAt = microtime(true);
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
         $waited = microtime(true) - $startedAt;
 
         self::assertGreaterThanOrEqual(2.0, $waited);
@@ -60,7 +60,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $client = $this->pulseClient();
 
         $startedAt = microtime(true);
-        $client->request('GET', '/');
+        $client->request('GET', '/services');
 
         self::assertLessThan(5.0, microtime(true) - $startedAt);
     }
@@ -154,7 +154,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->respondInBackground(['billing'], startAfterSeconds: 6);
 
         $startedAt = microtime(true);
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertGreaterThanOrEqual(6.0, microtime(true) - $startedAt);
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
@@ -169,7 +169,7 @@ final class AwaitedRequestsTest extends ReleasingWebTestCase
         $this->respondInBackground(['orders']);
         $this->respondInBackground(['billing'], startAfterSeconds: 30);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/services');
 
         self::assertSame('connected', $this->statusOf($crawler, 'orders'));
         self::assertSame('waiting', $this->statusOf($crawler, 'billing'));

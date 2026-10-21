@@ -29,7 +29,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $list = $this->freshView($client, '/dead-letters');
 
         self::assertSame('2 failures', $list->filter('nav [data-nav-dead-letters]')->text());
-        self::assertSame('2 failures', $client->request('GET', '/')->filter('nav [data-nav-dead-letters]')->text());
+        self::assertSame('2 failures', $client->request('GET', '/services')->filter('nav [data-nav-dead-letters]')->text());
     }
 
     public function test_the_navigation_has_no_badge_without_dead_letters(): void

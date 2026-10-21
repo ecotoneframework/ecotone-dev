@@ -30,6 +30,7 @@ final readonly class ServiceSnapshot
         public array $tenants,
         public array $unadvertisedTenants,
         public array $projectionMovements,
+        public int $deadLettersGrewBy,
     ) {
     }
 

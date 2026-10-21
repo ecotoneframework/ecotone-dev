@@ -24,6 +24,7 @@ final readonly class ServiceRecord
         public bool $retrying = false,
         public ?string $missingDestination = null,
         public array $projectionMovements = [],
+        public int $deadLettersGrewBy = 0,
     ) {
     }
 
@@ -47,6 +48,7 @@ final readonly class ServiceRecord
             $stored['retrying'] ?? false,
             $stored['missingDestination'] ?? null,
             $stored['projectionMovements'] ?? [],
+            $stored['deadLettersGrewBy'] ?? 0,
         );
     }
 
@@ -65,6 +67,7 @@ final readonly class ServiceRecord
             'retrying' => $this->retrying,
             'missingDestination' => $this->missingDestination,
             'projectionMovements' => $this->projectionMovements,
+            'deadLettersGrewBy' => $this->deadLettersGrewBy,
         ];
     }
 
@@ -105,7 +108,18 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at)]);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot)]);
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     */
+    private function deadLettersGrowthTo(array $snapshot): int
+    {
+        $before = $this->snapshot['deadLetters']['total'] ?? null;
+        $now = $snapshot['deadLetters']['total'] ?? null;
+
+        return is_int($before) && is_int($now) ? max(0, $now - $before) : 0;
     }
 
     /**

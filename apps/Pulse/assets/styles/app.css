@@ -113,3 +113,13 @@ pre.mermaid .tracePassed>*{fill:var(--ok-bg)!important;stroke:var(--ok)!importan
 pre.mermaid .tracePending>*{fill:var(--wait-bg)!important;stroke:var(--wait)!important;stroke-dasharray:4 2!important}
 pre.mermaid .traceFailed>*{fill:var(--bad-bg)!important;stroke:var(--bad)!important}
 pre.mermaid path[style*="stroke-width:3px"],pre.mermaid path[style*="stroke-width: 3px"]{stroke:var(--ok)!important}
+.waterfall{min-width:62rem}
+.waterfall td[data-column=startedAt],.waterfall td[data-column=kind],.waterfall td.num,.waterfall td[data-column=status]{white-space:nowrap}
+.waterfall td[data-column=name]{min-width:12rem}
+.detail-col{display:none}
+.waterfall{min-width:52rem}
+[data-service-section] table{display:block;overflow-x:auto}[data-service-section] code{overflow-wrap:anywhere}
+.service-links{min-width:0;width:100%}
+.service-toggles{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center}
+input[type=search]{width:100%;max-width:32rem}
+@media (max-width:40rem){th,td{padding:.5rem .35rem}th{letter-spacing:0}}

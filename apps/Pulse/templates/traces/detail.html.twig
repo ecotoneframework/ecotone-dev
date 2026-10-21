@@ -59,7 +59,7 @@
         {% set total = max(1, trace.totalMicro) %}
         <div class="card flush waterfall-card" data-waterfall>
         <table class="waterfall" data-timeline-total="{{ trace.totalMicro }}">
-            <thead><tr><th>Service</th><th>Step</th><th class="hide-narrow">Endpoint</th><th class="hide-narrow">Kind</th><th class="hide-narrow">Started (UTC)</th><th class="num">Offset</th><th class="num">Queue wait</th><th class="num">Duration</th><th class="timeline-head">Timeline (0 – {{ trace.durationLabel }})</th><th>Status</th><th>Error</th></tr></thead>
+            <thead><tr><th>Service</th><th>Step</th><th class="hide-narrow">Endpoint</th><th class="detail-col">Kind</th><th class="detail-col">Started (UTC)</th><th class="num">Offset</th><th class="num">Queue wait</th><th class="num">Duration</th><th class="timeline-head">Timeline (0 – {{ trace.durationLabel }})</th><th>Status</th><th>Error</th></tr></thead>
             <tbody>
             {% for row in trace.rows %}
                 {% if row.runSize %}
@@ -69,8 +69,8 @@
                     <td data-column="service"><span class="chip svc-{{ row.serviceIndex % 8 }}">{{ row.service }}</span>{% if row.hop %} <span class="muted">⇢ hop</span>{% endif %}</td>
                     <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em">{{ row.name }}</td>
                     <td data-column="endpoint" class="hide-narrow">{{ row.endpoint }}</td>
-                    <td data-column="kind" class="hide-narrow">{{ row.kind }}</td>
-                    <td data-column="startedAt" class="hide-narrow">{{ row.startedAt }}</td>
+                    <td data-column="kind" class="detail-col">{{ row.kind }}</td>
+                    <td data-column="startedAt" class="detail-col">{{ row.startedAt }}</td>
                     <td data-column="offset" class="num">{{ row.offsetLabel }}</td>
                     <td data-column="queueWait" class="num{% if row.clockSkew %} drift{% endif %}"{% if row.clockSkew %} data-clock-skew{% endif %}>{{ row.queueWaitLabel }}</td>
                     <td data-column="duration" class="num">{{ row.durationLabel }}</td>

@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Connect\ConnectSnippets;
 use App\Doctor\Doctor;
 use App\Doctor\DoctorCheck;
+use App\Projection\ProjectionOverview;
 use App\Settings\PulseSettings;
 use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
@@ -37,6 +38,7 @@ final class ServiceHubController extends AbstractController
 
         $failing = in_array($snapshot->status->value, ['unreachable', 'channel_missing'], true);
         $flowTypes = FlowTypeOverview::of([$snapshot])[0];
+        $projections = ProjectionOverview::of($snapshot, $this->settings->projectionStalledAfterSeconds);
 
         return $this->render('services/hub.html.twig', [
             'service' => $snapshot,
@@ -45,6 +47,7 @@ final class ServiceHubController extends AbstractController
             'snippets' => $failing ? $this->snippets->for($service) : [],
             'servicesEntry' => $this->snippets->pulseServicesEntry($service),
             'channels' => ChannelDepth::of($snapshot, $this->settings->queueThresholds),
+            'projectionCounts' => ProjectionOverview::counts($projections),
             'tracing' => $flowTypes['tracing'],
             'flowTypes' => $flowTypes['flowTypes'],
             'deadLetterEnabled' => $snapshot->snapshot['deadLetter']['enabled'] ?? null,

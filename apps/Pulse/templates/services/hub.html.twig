@@ -87,6 +87,14 @@
             {% endif %}
         </section>
 
+        <section class="card" data-hub-projections>
+            <h2>Projections</h2>
+            {% if projectionCounts.total == 0 %}
+                <p class="muted">{{ service.service }} reports no projections.</p>
+            {% else %}
+                <p><b data-total>{{ projectionCounts.total }}</b> projections · <b data-behind>{{ projectionCounts.behind }}</b> behind · <b data-stalled>{{ projectionCounts.stalled }}</b> stalled · <b data-failed>{{ projectionCounts.failed }}</b> failed · <a href="{{ path('service_projections', {service: service.service}) }}">Open the projections of {{ service.service }}</a></p>
+            {% endif %}
+        </section>
         <section class="card" data-hub-flow-types>
             <h2>Flow types</h2>
             {% if not tracing %}

@@ -6,6 +6,9 @@ role="${1:-web}"
 rebuild_container() {
     rm -rf var/cache/*
     php bin/console cache:warmup
+    if [ "${PULSE_SETUP_DATABASE:-false}" = "true" ]; then
+        php bin/console ecotone:migration:database:setup --feature=message_queue --initialize --missing
+    fi
 }
 
 case "$role" in

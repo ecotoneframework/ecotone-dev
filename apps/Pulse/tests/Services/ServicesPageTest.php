@@ -142,7 +142,7 @@ final class ServicesPageTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'pgsql://ecotone:secret@127.0.0.1:1/ecotone', 'PULSE_SERVICES' => 'orders:orders_channel']);
-        $client = $this->pulseClient();
+        $client = $this->pulseClient(withDatabase: false);
 
         $crawler = $client->request('GET', '/');
 
@@ -339,10 +339,13 @@ final class ServicesPageTest extends WebTestCase
         }
     }
 
-    private function pulseClient(): KernelBrowser
+    private function pulseClient(bool $withDatabase = true): KernelBrowser
     {
         $client = static::createClient();
         $client->disableReboot();
+        if ($withDatabase) {
+            $this->setUpPulseDatabase($client->getKernel());
+        }
 
         return $client;
     }

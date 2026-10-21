@@ -51,6 +51,7 @@ what is wrong and how to fix it.
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
 | `PULSE_RENDER_WAIT` | `2` | Seconds a page waits for replies before rendering. `0` renders immediately |
+| `PULSE_SETUP_DATABASE` | `false` | Only with a database `PULSE_TRANSPORT_DSN`: when `true`, the entrypoint creates the missing message table (`ecotone:migration:database:setup --feature=message_queue --initialize --missing`) before `web` and `worker` start. Ecotone never creates a table while it handles a message, so without this (or your own migration) Pulse cannot send or receive. The services create the tables of their own channels |
 | `PULSE_CACHE_DIR` | `var/pulse-cache` | Cache directory shared by `web` and `worker` |
 | `APP_SECRET` | required in production | Symfony secret. Generate one with `openssl rand -hex 32` |
 

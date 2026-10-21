@@ -83,10 +83,10 @@ final readonly class ServiceRecord
         return $this->requestedAt !== null && ($this->receivedAt === null || $this->requestedAt > $this->receivedAt);
     }
 
-    public function needsRequest(DateTimeImmutable $now, int $replyTimeoutSeconds): bool
+    public function needsRequest(DateTimeImmutable $now): bool
     {
         if ($this->hasOutstandingRequest()) {
-            return self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds;
+            return self::secondsBetween($this->requestedAt, $now) >= Snapshots::FRESHNESS_SECONDS;
         }
 
         return $this->receivedAt === null || self::secondsBetween($this->receivedAt, $now) >= Snapshots::FRESHNESS_SECONDS;

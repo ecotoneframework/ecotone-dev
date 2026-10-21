@@ -58,10 +58,20 @@ jobs:
 
       - name: Install Pulse with fresh path packages
         working-directory: apps/Pulse
+        env:
+          COMPOSER: composer.pinned.json
         run: composer update --prefer-dist --no-interaction
+
+      - name: Install the offline assets the pages render
+        working-directory: apps/Pulse
+        env:
+          COMPOSER: composer.pinned.json
+        run: composer assets:install
 
       - name: Run Pulse tests
         working-directory: apps/Pulse
+        env:
+          COMPOSER: composer.pinned.json
         run: composer tests:ci
 
   docker:

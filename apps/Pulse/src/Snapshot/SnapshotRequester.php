@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Snapshot;
 
-use App\Settings\PulseSettings;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use ReflectionClass;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Throwable;
 
@@ -22,7 +20,6 @@ final readonly class SnapshotRequester
         private DistributedBus $distributedBus,
         private SnapshotStore $store,
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
-        private PulseSettings $settings,
         private LoggerInterface $logger,
     ) {
     }
@@ -32,7 +29,7 @@ final readonly class SnapshotRequester
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
         $claimed = false;
         $this->store->update($service, function (ServiceRecord $record) use ($force, $now, &$claimed): ServiceRecord {
-            $claimed = $force || $record->needsRequest($now, $this->settings->replyTimeoutSeconds);
+            $claimed = $force || $record->needsRequest($now);
 
             return $claimed ? $record->requested($now) : $record;
         });
@@ -44,7 +41,7 @@ final readonly class SnapshotRequester
             $this->distributedBus->sendMessage($service, self::ROUTING_KEY, '{}', MediaType::APPLICATION_JSON, replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
         } catch (Throwable $exception) {
             $this->logger->error('Pulse could not send the snapshot request to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
-            $failure = sprintf('%s: the snapshot request could not be sent. The full error is in the Pulse web log.', (new ReflectionClass($exception))->getShortName());
+            $failure = sprintf('%s: the snapshot request could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
             $this->store->update($service, fn (ServiceRecord $record) => $record->requestFailed($failure));
 
             return RequestResult::Failed;

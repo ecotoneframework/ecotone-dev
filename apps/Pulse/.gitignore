@@ -19,3 +19,5 @@
 ###< symfony/asset-mapper ###
 /composer.lock
 /config/reference.php
+/composer.pinned.json
+/composer.pinned.lock

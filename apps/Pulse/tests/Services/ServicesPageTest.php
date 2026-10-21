@@ -175,7 +175,7 @@ final class ServicesPageTest extends WebTestCase
         self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
     }
 
-    public function test_a_view_after_a_request_timed_out_requests_again_without_waiting_for_sixty_seconds(): void
+    public function test_a_timed_out_request_is_sent_again_only_after_sixty_seconds_and_that_view_shows_waiting(): void
     {
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
@@ -184,12 +184,39 @@ final class ServicesPageTest extends WebTestCase
         $client->request('GET', '/');
         $this->advanceTimeBy(10);
         self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        $this->advanceTimeBy(49);
+        self::assertSame('unreachable', $this->statusOf($client->request('GET', '/'), 'orders'));
+        $this->advanceTimeBy(1);
+        $retry = $client->request('GET', '/');
+
+        self::assertSame('waiting', $this->statusOf($retry, 'orders'));
+        self::assertCount(1, $retry->filter('meta[http-equiv="refresh"]'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
+        self::assertSame(2, $handler->requests);
+        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
+    }
+
+    public function test_a_service_whose_reply_was_rejected_is_requested_again_only_after_sixty_seconds(): void
+    {
+        $this->configurePulseWithServices('orders');
+        $client = $this->pulseClient();
+        [$orders, $handler] = $this->countingService('orders', json_encode(['schemaVersion' => 2, 'serviceName' => 'orders'], JSON_THROW_ON_ERROR));
+
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $this->advanceTimeBy(30);
+        $client->request('GET', '/');
+        $this->advanceTimeBy(29);
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        self::assertSame(1, $handler->requests);
+        $this->advanceTimeBy(1);
+        $client->request('GET', '/');
         $this->runService($orders, 'orders');
 
         self::assertSame(2, $handler->requests);
-        self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
     }
 
     public function test_views_in_a_row_send_a_single_request(): void

@@ -22,14 +22,14 @@ COPY apps/Pulse ./apps/Pulse
 
 WORKDIR /build/apps/Pulse
 
+ENV COMPOSER=composer.pinned.json
+
 RUN php docker/pin-path-package-versions.php --copy \
     && COMPOSER_ALLOW_SUPERUSER=1 composer update --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader \
     && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --classmap-authoritative --no-scripts
 
-RUN export ECOTONE_LICENCE_KEY="$(php -r 'require "vendor/autoload.php"; echo Ecotone\Test\LicenceTesting::VALID_LICENCE;')" \
-    && export PULSE_TRANSPORT_DSN="sqlite:////tmp/build.db" PULSE_SERVICES="build:build_channel" PULSE_CACHE_DIR=/tmp/build-cache APP_SECRET=build \
-    && php bin/console importmap:install \
-    && php bin/console asset-map:compile \
+RUN sh docker/with-build-env.sh php bin/console importmap:install \
+    && sh docker/with-build-env.sh php bin/console asset-map:compile \
     && rm -rf var
 
 FROM base AS runtime

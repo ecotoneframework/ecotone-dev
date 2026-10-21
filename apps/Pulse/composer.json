@@ -68,6 +68,7 @@
         }
     },
     "scripts": {
+        "assets:install": "sh docker/with-build-env.sh php bin/console importmap:install",
         "tests:ci": [
             "vendor/bin/phpstan analyse --no-progress",
             "vendor/bin/phpunit --no-coverage"

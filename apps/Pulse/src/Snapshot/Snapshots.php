@@ -26,15 +26,11 @@ final readonly class Snapshots
      */
     public function viewAndRequestStale(): array
     {
-        $before = $this->all();
-        $failed = [];
         foreach (array_keys($this->settings->serviceChannels) as $service) {
-            if ($this->requester->request($service, force: false) === RequestResult::Failed) {
-                $failed[] = $service;
-            }
+            $this->requester->request($service, force: false);
         }
 
-        return $failed === [] ? $before : $this->all();
+        return $this->all();
     }
 
     public function refresh(): void

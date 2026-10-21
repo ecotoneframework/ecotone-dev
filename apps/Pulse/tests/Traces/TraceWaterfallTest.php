@@ -48,10 +48,37 @@ final class TraceWaterfallTest extends ReleasingWebTestCase
         $bars = $crawler->filter('[data-span] [data-bar]');
         self::assertCount($crawler->filter('[data-span]')->count(), $bars);
         $bars->each(function (Crawler $bar) use ($total): void {
-            self::assertEqualsWithDelta((int) $bar->attr('data-offset') / $total * 100, $this->percentOf($bar, 'left'), 0.01);
-            self::assertEqualsWithDelta(max(0.8, (int) $bar->attr('data-duration') / $total * 100), $this->percentOf($bar, 'width'), 0.01);
+            $width = max(0.8, (int) $bar->attr('data-duration') / $total * 100);
+            self::assertEqualsWithDelta($width, $this->percentOf($bar, 'width'), 0.01);
+            self::assertEqualsWithDelta(min((int) $bar->attr('data-offset') / $total * 100, 100 - $width), $this->percentOf($bar, 'left'), 0.01);
         });
         self::assertSame('0', $bars->first()->attr('data-offset'));
+    }
+
+    public function test_no_bar_leaves_the_track_even_when_the_step_starts_at_the_very_end_of_the_trace(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, self::INVOICED);
+
+        $crawler->filter('[data-span] [data-bar], [data-span] [data-wait-bar]')->each(function (Crawler $bar): void {
+            self::assertLessThanOrEqual(100.0 + 0.001, $this->percentOf($bar, 'left') + $this->percentOf($bar, 'width'));
+        });
+    }
+
+    public function test_step_and_endpoint_names_offer_a_line_break_after_dots_underscores_and_colons_only(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $crawler = $this->traceView($client, self::INVOICED);
+
+        $names = $crawler->filter('[data-span] [data-column="name"], [data-span] [data-column="endpoint"]');
+        self::assertGreaterThan(0, $names->count());
+        $names->each(function (Crawler $cell): void {
+            $html = $cell->html();
+            self::assertDoesNotMatchRegularExpression('/[._:](?!<wbr>)(?=[A-Za-z0-9])/', $html);
+        });
+        self::assertStringContainsString('.<wbr>', $crawler->filter('[data-span] [data-column="endpoint"]')->reduce(fn (Crawler $cell): bool => str_contains($cell->text(), '.'))->first()->html());
     }
 
     public function test_bars_carry_the_colour_of_their_service(): void

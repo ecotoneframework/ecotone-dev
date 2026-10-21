@@ -31,4 +31,15 @@ final class DeadLetterController extends AbstractController
             'waiting' => Snapshots::anyWaiting($snapshots),
         ]);
     }
+
+    #[Route('/dead-letters/{service}/{messageId}', name: 'dead_letter', methods: ['GET'], requirements: ['service' => '[^/]+', 'messageId' => '[^/]+'])]
+    public function detail(string $service, string $messageId): Response
+    {
+        $entry = DeadLetterOverview::entry($this->snapshots->all(), $service, $messageId);
+        if ($entry === null) {
+            throw $this->createNotFoundException(sprintf('Dead letter "%s" of service "%s" is not in the latest 100 of its snapshot. It may have been replayed or deleted, or it is older than the snapshot lists; go back to the dead letters list.', $messageId, $service));
+        }
+
+        return $this->render('dead_letters/detail.html.twig', ['service' => $service, 'entry' => $entry]);
+    }
 }

@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ service.service }} · Ecotone Pulse{% endblock %}
+
+{% block head %}
+    {% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}
+{% endblock %}
+
+{% block body %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service}]} %}
+    <h1>{{ service.service }}</h1>
+
+    <section class="card" data-hub-health>
+        <h2>Health</h2>
+        <p><span class="pill {{ {connected: 'ok', waiting: 'wait'}[service.status.value] ?? 'bad' }}" data-hub-status="{{ service.status.value }}">{{ service.status.value == 'channel_missing' ? 'Channel missing' : service.status.name }}</span>
+            Last seen {{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted">({{ service.ageSeconds }}s ago)</span>{% endif %}</p>
+        {% if service.requestFailure %}<p class="drift" data-request-error>{{ service.requestFailure }}</p>{% endif %}
+        {% if service.replyError %}<p class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</p>{% endif %}
+    </section>
+
+    {% if failing %}
+        <section class="card" id="diagnose" data-diagnose-section>
+            <h2>Diagnose</h2>
+            <ul data-checks>
+                {% for check in checks %}
+                    <li data-check="{{ check.name }}" data-check-status="{{ check.status }}"><b>{{ check.status|upper }}</b> {{ check.name }}: {{ check.message }}{% if check.fix %}<br><span class="muted">{{ check.fix }}</span>{% endif %}</li>
+                {% endfor %}
+            </ul>
+            <ul data-diagnose-list>
+                <li>The service must run <code>ecotone:run {{ service.channel }}</code> to consume the channel Pulse writes to.</li>
+                <li><code>PULSE_SERVICES</code> must map <code>{{ service.service }}</code> to that channel.</li>
+                <li>The service needs an Ecotone Enterprise licence key. A service without one cannot answer, and shows here as Unreachable with no other reason.</li>
+                <li>Both must reach the same broker as <code>PULSE_TRANSPORT_DSN</code>.</li>
+            </ul>
+            <h3>Connect {{ service.service }}</h3>
+            {% include 'connect/_snippets.html.twig' %}
+        </section>
+    {% endif %}
+
+    {% if service.hasSnapshot %}
+        <section class="card" data-hub-versions>
+            <h2>Versions</h2>
+            <dl>
+                <dt>Ecotone</dt><dd>{{ service.ecotoneVersion ?? 'unknown' }}</dd>
+                <dt>PHP</dt><dd>{{ service.snapshot.overview.phpVersion|default('unknown') }}</dd>
+                <dt>Framework</dt><dd>{{ service.snapshot.overview.framework|default('unknown') }}</dd>
+                <dt>Licence expires</dt><dd>{{ service.snapshot.overview.licence.expiresAt|default('never') }}</dd>
+            </dl>
+        </section>
+
+        <section class="card" data-hub-dead-letters>
+            <h2>Dead letters</h2>
+            {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
+                <p><b data-total>{{ service.deadLetterTotal }}</b> stored{% if service.deadLetterTotal > 0 %} · <a href="{{ path('dead_letters', {service: service.service}) }}">Open the dead letters of {{ service.service }}</a>{% else %}, dead letter storage is enabled{% endif %}</p>
+            {% else %}
+                <p class="muted">Dead letters are not configured for {{ service.service }}. Enable them with <code>DbalConfiguration::createWithDefaults()-&gt;withDeadLetter(true)</code> in a <code>#[ServiceContext]</code> of {{ service.service }}.</p>
+            {% endif %}
+        </section>
+
+        <section class="card" data-hub-flow-types>
+            <h2>Flow types</h2>
+            {% if not tracing %}
+                <p class="muted">Flow tracking is not enabled in {{ service.service }}. Enable it with <code>FlowTrackingConfiguration::createWithDefaults()</code> returned from a <code>#[ServiceContext]</code> method of the service.</p>
+            {% elseif flowTypes is empty %}
+                <p class="muted">No flow has been tracked yet.</p>
+            {% else %}
+                <ul>
+                    {% for flowType in flowTypes %}
+                        <li><a href="{{ path('trace_list', {service: service.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        <section class="card" data-hub-graph>
+            <h2>Flow graph</h2>
+            <p><a href="{{ path('flow_graph', {services: [service.service]}) }}">Show only {{ service.service }} on the flow graph</a></p>
+        </section>
+    {% endif %}
+{% endblock %}

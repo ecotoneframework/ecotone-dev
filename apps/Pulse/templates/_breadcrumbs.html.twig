@@ -1,0 +1,7 @@
+<nav aria-label="Breadcrumb" class="crumbs">
+    <ol>
+        {% for crumb in crumbs %}
+            <li>{% if crumb.href is defined and not loop.last %}<a href="{{ crumb.href }}">{{ crumb.label }}</a>{% else %}<span{% if loop.last %} aria-current="page"{% endif %}>{{ crumb.label }}</span>{% endif %}</li>
+        {% endfor %}
+    </ol>
+</nav>

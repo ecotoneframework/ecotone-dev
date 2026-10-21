@@ -331,7 +331,7 @@ final class ServicesPageTest extends ReleasingWebTestCase
         $crawler = $client->request('GET', '/');
         $links = $crawler->filter('nav a')->each(static fn (Crawler $link) => [$link->text(), $link->attr('href')]);
 
-        self::assertSame(['Services', 'Dead letters', 'Flow graph', 'Traces', 'Topology', 'Catalogue'], array_column($links, 0));
+        self::assertSame(['Services', 'Dead letters', 'Flow graph', 'Traces', 'Topology', 'Connect', 'Catalogue'], array_column($links, 0));
         foreach (array_column($links, 1) as $href) {
             $client->request('GET', $href);
             self::assertResponseIsSuccessful();

@@ -117,7 +117,8 @@ final class FlowEntries
         $sends = array_filter($batch, fn (Span $span): bool => $span->parentSpanId === $entry->spanId
             && ($span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null) === SpanAttribute::OPERATION_SEND
             && self::destinationOf($span) !== null);
-        usort($sends, fn (Span $first, Span $second): int => [$first->startedAt->unixTime()->inMicroseconds(), $first->spanId] <=> [$second->startedAt->unixTime()->inMicroseconds(), $second->spanId]);
+        $order = fn (Span $span): array => [$span->kind === SpanKind::Producer ? 1 : 0, $span->startedAt->unixTime()->inMicroseconds(), (string) self::destinationOf($span)];
+        usort($sends, fn (Span $first, Span $second): int => $order($first) <=> $order($second));
 
         return $sends === [] ? null : self::destinationOf($sends[0]);
     }

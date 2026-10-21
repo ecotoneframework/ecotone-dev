@@ -87,6 +87,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
     private FlowTestSupport $ticketService;
+    private FlowTestSupport $auditService;
 
     public static function implementations(): iterable
     {
@@ -336,6 +337,66 @@ final class PulseTracesTest extends DbalMessagingTestCase
 
         self::assertSame(4, $trace['totalSpans']);
         self::assertFalse($trace['truncated']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_distributed_event_is_traced_into_every_subscribing_service(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->bootstrapTicketService();
+        $this->bootstrapAuditService();
+        $this->sendWithTrace('announce.ticket.opened', 'printer', self::FIRST_TRACE);
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->auditService->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $publishing = $this->traceOf(self::FIRST_TRACE)['spans'];
+        $ticketing = $this->traceOf(self::FIRST_TRACE, 'ticket_service');
+        $auditing = $this->traceOf(self::FIRST_TRACE, 'audit_service');
+
+        self::assertSame(self::FIRST_TRACE, $ticketing['traceId']);
+        self::assertSame(self::FIRST_TRACE, $auditing['traceId']);
+        self::assertSame($this->spanIdNamed($publishing, 'send ticket_channel'), $this->entrySpanParent($ticketing['spans']));
+        self::assertSame($this->spanIdNamed($publishing, 'send audit_channel'), $this->entrySpanParent($auditing['spans']));
+        self::assertSame('receive ticket_channel', $ticketing['spans'][0]['name']);
+        self::assertSame('receive audit_channel', $auditing['spans'][0]['name']);
+        self::assertContains('process class@anonymous::whenOpened', array_column($ticketing['spans'], 'name'));
+        self::assertContains('process class@anonymous::whenOpened', array_column($auditing['spans'], 'name'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_distributed_command_handled_asynchronously_stays_in_the_trace_of_the_sender(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->bootstrapTicketService();
+        $this->sendWithTrace('open.ticket.later', 'printer', self::FIRST_TRACE);
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketService->run('ticket_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $sending = $this->traceOf(self::FIRST_TRACE)['spans'];
+        $receiving = $this->traceOf(self::FIRST_TRACE, 'ticket_service')['spans'];
+        $names = array_column($receiving, 'name');
+
+        self::assertSame($this->spanIdNamed($sending, 'send ticket_channel'), $this->entrySpanParent($receiving));
+        self::assertContains('receive ticket_async', $names);
+        self::assertContains('process class@anonymous::openLater', $names);
+        self::assertSame($this->spanIdNamed($receiving, 'send ticket_async'), array_column($receiving, 'parentSpanId', 'name')['receive ticket_async']);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_distributed_event_handled_asynchronously_stays_in_the_trace_of_the_publisher(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->bootstrapTicketService();
+        $this->sendWithTrace('announce.ticket.closed', 'printer', self::FIRST_TRACE);
+        $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->ticketService->run('ticket_async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $publishing = $this->traceOf(self::FIRST_TRACE)['spans'];
+        $receiving = $this->traceOf(self::FIRST_TRACE, 'ticket_service')['spans'];
+
+        self::assertSame($this->spanIdNamed($publishing, 'send ticket_channel'), $this->entrySpanParent($receiving));
+        self::assertContains('process class@anonymous::whenClosed', array_column($receiving, 'name'));
+        self::assertSame([self::FIRST_TRACE], array_column($this->listTraces(['flowType' => 'ticket.closed'], 'ticket_service')['traces'], 'traceId'));
     }
 
     #[DataProvider('implementations')]
@@ -620,6 +681,24 @@ final class PulseTracesTest extends DbalMessagingTestCase
             {
             }
 
+            #[CommandHandler('announce.ticket.opened', endpointId: 'ticket.announce_opened')]
+            public function announceOpened(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->publishEvent('ticket.opened', $subject);
+            }
+
+            #[CommandHandler('announce.ticket.closed', endpointId: 'ticket.announce_closed')]
+            public function announceClosed(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->publishEvent('ticket.closed', $subject);
+            }
+
+            #[CommandHandler('open.ticket.later', endpointId: 'ticket.open_later')]
+            public function openLater(string $subject, DistributedBus $distributedBus): void
+            {
+                $distributedBus->sendCommand('ticket_service', 'ticket.open.later', $subject);
+            }
+
             #[CommandHandler('fan.out', endpointId: 'ticket.fan_out')]
             public function fanOut(string $times, CommandBus $commandBus): void
             {
@@ -669,6 +748,8 @@ final class PulseTracesTest extends DbalMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('order_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('ticket_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('audit_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('ticket_async'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
             classesToResolve: [$this->orders::class],
@@ -676,7 +757,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
             extensionObjects: [
                 ...$channels,
                 ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($implementation === 'in-memory')] : []),
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')->withEventMapping(channelName: 'ticket_channel', subscriptionKeys: ['ticket.*'])->withEventMapping(channelName: 'audit_channel', subscriptionKeys: ['ticket.opened']),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel($deadLetter ? 'dbal_dead_letter' : 'errorChannel'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
                 ...($deadLetter ? [DbalConfiguration::createWithDefaults()->withDeadLetter(true, inMemory: $implementation === 'in-memory')] : []),
@@ -690,7 +771,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
             containerOrAvailableServices: [$this->pulse],
             extensionObjects: [
                 ...$channels,
-                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel'),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'order_service', channelName: 'order_channel')->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'ticket_channel')->withCommandMapping(targetServiceName: 'audit_service', channelName: 'audit_channel'),
                 ServiceConfiguration::createWithDefaults()->withServiceName('ecotone_pulse'),
             ],
             enabledModules: [],
@@ -726,11 +807,11 @@ final class PulseTracesTest extends DbalMessagingTestCase
     {
         $queryId = 'query-' . (count($this->pulse->queryResults) + 1);
         $this->pulseService->getDistributedBus()->sendMessage($service, $routingKey, $payload, MediaType::APPLICATION_JSON, metadata: ['ecotone_pulse_query_id' => $queryId], replyRoutingKey: 'ecotone.pulse.query_result_received');
-        if ($service === 'order_service') {
-            $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        } else {
-            $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup());
-        }
+        match ($service) {
+            'order_service' => $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup()),
+            'ticket_service' => $this->ticketService->run('ticket_channel', ExecutionPollingMetadata::createWithTestingSetup()),
+            'audit_service' => $this->auditService->run('audit_channel', ExecutionPollingMetadata::createWithTestingSetup()),
+        };
         $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
         self::assertArrayHasKey($queryId, $this->pulse->queryResults);
 
@@ -743,6 +824,26 @@ final class PulseTracesTest extends DbalMessagingTestCase
             #[Distributed]
             #[CommandHandler('ticket.open', endpointId: 'ticket.opening')]
             public function open(string $subject): void
+            {
+            }
+
+            #[Distributed]
+            #[Asynchronous('ticket_async')]
+            #[CommandHandler('ticket.open.later', endpointId: 'ticket.opening_later')]
+            public function openLater(string $subject): void
+            {
+            }
+
+            #[Distributed]
+            #[EventHandler('ticket.opened', endpointId: 'ticket.opened_listener')]
+            public function whenOpened(string $subject): void
+            {
+            }
+
+            #[Distributed]
+            #[Asynchronous('ticket_async')]
+            #[EventHandler('ticket.closed', endpointId: 'ticket.closed_listener')]
+            public function whenClosed(string $subject): void
             {
             }
         };
@@ -760,6 +861,41 @@ final class PulseTracesTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
             testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
         );
+    }
+
+    private function bootstrapAuditService(): void
+    {
+        $audits = new class () {
+            #[Distributed]
+            #[EventHandler('ticket.opened', endpointId: 'audit.ticket_opened')]
+            public function whenOpened(string $subject): void
+            {
+            }
+        };
+        $this->auditService = $this->bootstrapFlowTesting(
+            classesToResolve: [$audits::class],
+            containerOrAvailableServices: [$audits],
+            extensionObjects: [
+                ...$this->channels,
+                FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage(true),
+                DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ecotone_pulse', channelName: 'pulse_channel'),
+                ServiceConfiguration::createWithDefaults()->withServiceName('audit_service'),
+                PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            ],
+            enabledModules: [ModulePackageList::DBAL_PACKAGE],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withTimeAt(new DateTimeImmutable('2026-10-20 12:00:00', new DateTimeZone('UTC'))),
+        );
+    }
+
+    private function entrySpanParent(array $receivingSpans): string
+    {
+        return $receivingSpans[0]['parentSpanId'];
+    }
+
+    private function spanIdNamed(array $spans, string $name): string
+    {
+        return array_column($spans, 'spanId', 'name')[$name];
     }
 
     private function connectionOfABetaSpansTable(): DbalConnectionFactory

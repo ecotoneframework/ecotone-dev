@@ -40,7 +40,7 @@ abstract class ConnectionTestCase extends TestCase
     {
         $context = ConnectionTestCase::getConnection()->createContext();
 
-        foreach (['async', 'sqs'] as $queue) {
+        foreach (['async', 'sqs', 'order_service'] as $queue) {
             try {
                 $context->deleteQueue($context->createQueue($queue));
             } catch (Exception $e) {

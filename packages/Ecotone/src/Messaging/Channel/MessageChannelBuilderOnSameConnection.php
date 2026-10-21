@@ -13,5 +13,5 @@ use Ecotone\Api\ExtensionObject\MessageChannelBuilder;
  */
 interface MessageChannelBuilderOnSameConnection extends MessageChannelBuilder
 {
-    public function forChannelOnSameConnection(string $channelName): MessageChannelBuilder;
+    public function forSendOnlyChannelOnSameConnection(string $channelName): MessageChannelBuilder;
 }

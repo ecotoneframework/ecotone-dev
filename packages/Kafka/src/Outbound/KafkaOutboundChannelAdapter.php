@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Outbound;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Api\Messaging\BatchMessage;
+use Ecotone\Api\Messaging\DestinationDoesNotExistException;
 use Ecotone\Api\Messaging\Message;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
@@ -17,9 +18,11 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
+use RdKafka\Exception as RdKafkaException;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
 use Throwable;
@@ -45,6 +48,7 @@ use Throwable;
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
     private const POLL_EVERY_PRODUCED_MESSAGES = 100;
+    private const METADATA_TIMEOUT_IN_MILLISECONDS = 10000;
 
     public function __construct(
         private string $referenceName,
@@ -53,6 +57,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         private OutboundMessageConverter $outboundMessageConverter,
         private PendingDeliveryRegistry $pendingDeliveryRegistry,
         private MessageBuilder $messageBuilder,
+        private bool $requireExistingDestination = false,
     ) {
     }
 
@@ -66,6 +71,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         }
 
         $producer = $this->kafkaAdmin->getProducer($this->referenceName);
+        $this->verifyDestinationExists($producer);
         $topic = $this->kafkaAdmin->getTopicForProducer($this->referenceName);
 
         if ($message->getPayload() instanceof BatchMessage) {
@@ -84,6 +90,45 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         }
 
         $this->flushSynchronously($producer, [$deliveryId]);
+    }
+
+    private function verifyDestinationExists(Producer $producer): void
+    {
+        if (! $this->requireExistingDestination) {
+            return;
+        }
+
+        $topicName = $this->kafkaAdmin->getTopicNameForProducer($this->referenceName);
+        $brokerConfigurationReference = $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->brokerConfigurationReference;
+
+        try {
+            $topics = $producer->getMetadata(true, null, self::METADATA_TIMEOUT_IN_MILLISECONDS)->getTopics();
+        } catch (RdKafkaException $exception) {
+            throw MessagingException::createFromPreviousException(
+                sprintf(
+                    "Channel '%s' requires its destination to exist, but Ecotone could not check topic '%s' on Kafka broker configuration '%s' before sending (%s), so nothing was sent. Check that the bootstrap servers of the broker configuration are reachable, or remove withRequiredExistingDestination() to send without the check.",
+                    $this->referenceName,
+                    $topicName,
+                    $brokerConfigurationReference,
+                    $exception->getMessage(),
+                ),
+                $exception,
+            );
+        }
+
+        foreach ($topics as $existingTopic) {
+            if ($existingTopic->getTopic() === $topicName) {
+                return;
+            }
+        }
+
+        throw DestinationDoesNotExistException::forChannel(
+            $this->referenceName,
+            'topic',
+            $topicName,
+            sprintf("Kafka broker configuration '%s'", $brokerConfigurationReference),
+            sprintf("KafkaMessageChannelBuilder::create('%s', topicName: ...)", $this->referenceName),
+        );
     }
 
     public function isBatchPublishingEnabled(): bool
@@ -157,7 +202,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
                     $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
 
                     break;
-                } catch (\RdKafka\Exception $exception) {
+                } catch (RdKafkaException $exception) {
                     if ($exception->getCode() !== RD_KAFKA_RESP_ERR__QUEUE_FULL || microtime(true) >= $retryDeadline) {
                         throw $exception;
                     }

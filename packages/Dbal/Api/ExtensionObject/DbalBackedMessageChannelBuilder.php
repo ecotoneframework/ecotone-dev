@@ -48,7 +48,7 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder imple
         return $this->getDbalOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
-    public function forChannelOnSameConnection(string $channelName): self
+    public function forSendOnlyChannelOnSameConnection(string $channelName): self
     {
         return self::create($channelName, $this->connectionReferenceName);
     }

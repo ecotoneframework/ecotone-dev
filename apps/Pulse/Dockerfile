@@ -3,11 +3,10 @@
 
 FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
-RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql sockets pcntl intl opcache zip
+RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql pdo_sqlite sockets pcntl intl opcache zip
 
 ENV APP_ENV=prod \
     APP_DEBUG=0 \
-    PULSE_CACHE_DIR=/app/var/pulse-cache \
     PULSE_HTTP_PORT=8080 \
     XDG_DATA_HOME=/app/var/xdg/data \
     XDG_CONFIG_HOME=/app/var/xdg/config
@@ -40,7 +39,7 @@ COPY --from=build /build/apps/Pulse /app
 COPY apps/Pulse/docker/Caddyfile /etc/caddy/Caddyfile
 COPY apps/Pulse/docker/entrypoint.sh /usr/local/bin/pulse-entrypoint
 
-RUN mkdir -p var/cache var/log var/pulse-cache var/xdg/data var/xdg/config \
+RUN mkdir -p var/cache var/log var/internal var/xdg/data var/xdg/config \
     && chown -R www-data:www-data var \
     && chmod +x /usr/local/bin/pulse-entrypoint \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
@@ -50,5 +49,8 @@ USER www-data
 
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD php -r 'exit(@file_get_contents("http://127.0.0.1:" . (getenv("PULSE_HTTP_PORT") ?: "8080") . "/healthz") === "ok" ? 0 : 1);'
+
 ENTRYPOINT ["pulse-entrypoint"]
-CMD ["web"]
+CMD ["run"]

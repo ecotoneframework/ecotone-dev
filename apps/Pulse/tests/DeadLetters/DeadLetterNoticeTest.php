@@ -18,6 +18,7 @@ final class DeadLetterNoticeTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
 
         $crawler = $client->request('GET', '/dead-letters?actionError=Your+session+expired,+call+support&notice=made_up&actionSent=hello');
 
@@ -30,6 +31,7 @@ final class DeadLetterNoticeTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
 
         $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=delete&services=ghost');
 
@@ -40,6 +42,7 @@ final class DeadLetterNoticeTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
 
         $crawler = $client->request('GET', '/dead-letters?notice=action_sent&action=delete&services=orders');
 
@@ -50,6 +53,7 @@ final class DeadLetterNoticeTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
 
         $crawler = $client->request('GET', '/dead-letters');
 
@@ -87,6 +91,7 @@ final class DeadLetterNoticeTest extends WebTestCase
     {
         $this->configurePulseWithServices('orders');
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
 
         $crawler = $client->request('GET', '/dead-letters?failedFrom=garbage');
 

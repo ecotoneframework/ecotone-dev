@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace App\Trace;
 
+use App\Storage\InternalDatabase;
+use App\Storage\InternalTables;
 use Closure;
-use Psr\Cache\CacheItemPoolInterface;
+use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Lock\LockFactory;
 
 final readonly class QueryStore
 {
     private const LIFETIME_SECONDS = 86400;
 
     public function __construct(
-        #[Autowire(service: 'pulse.cache')] private CacheItemPoolInterface $pool,
-        #[Autowire(service: 'pulse.lock_factory')] private LockFactory $locks,
+        private InternalDatabase $database,
+        #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
     ) {
     }
 
     public function read(string $service, string $queryKey): QueryRecord
     {
-        $item = $this->pool->getItem($this->recordKey($service, $queryKey));
-
-        return $item->isHit() ? QueryRecord::fromArray($item->get()) : QueryRecord::empty();
+        return $this->readFrom($this->database->connection(), $service, $queryKey);
     }
 
     /**
@@ -31,24 +31,26 @@ final readonly class QueryStore
      */
     public function update(string $service, string $queryKey, Closure $change): QueryRecord
     {
-        $lock = $this->locks->createLock('pulse.query.' . $this->recordKey($service, $queryKey));
-        $lock->acquire(true);
+        return $this->database->inTransaction(function (Connection $connection) use ($service, $queryKey, $change): QueryRecord {
+            $now = $this->clock->now()->getTimestamp();
+            $expiresAt = $now + self::LIFETIME_SECONDS;
+            $connection->executeStatement('DELETE FROM ' . InternalTables::QUERY_RECORD . ' WHERE expires_at < ?', [$now]);
+            $connection->executeStatement('DELETE FROM ' . InternalTables::QUERY_POINTER . ' WHERE expires_at < ?', [$now]);
 
-        try {
-            $record = $change($this->read($service, $queryKey));
-            $item = $this->pool->getItem($this->recordKey($service, $queryKey));
-            $item->set($record->toArray())->expiresAfter(self::LIFETIME_SECONDS);
-            $this->pool->save($item);
+            $record = $change($this->readFrom($connection, $service, $queryKey));
+            $connection->executeStatement(
+                'INSERT INTO ' . InternalTables::QUERY_RECORD . ' (service, query_key, record, expires_at) VALUES (?, ?, ?, ?) ON CONFLICT(service, query_key) DO UPDATE SET record = excluded.record, expires_at = excluded.expires_at',
+                [$service, $queryKey, json_encode($record->toArray(), JSON_THROW_ON_ERROR), $expiresAt]
+            );
             if ($record->queryId !== null) {
-                $pointer = $this->pool->getItem('query_id.' . $record->queryId);
-                $pointer->set([$service, $queryKey])->expiresAfter(self::LIFETIME_SECONDS);
-                $this->pool->save($pointer);
+                $connection->executeStatement(
+                    'INSERT INTO ' . InternalTables::QUERY_POINTER . ' (query_id, service, query_key, expires_at) VALUES (?, ?, ?, ?) ON CONFLICT(query_id) DO UPDATE SET expires_at = excluded.expires_at',
+                    [$record->queryId, $service, $queryKey, $expiresAt]
+                );
             }
 
             return $record;
-        } finally {
-            $lock->release();
-        }
+        });
     }
 
     /**
@@ -56,13 +58,15 @@ final readonly class QueryStore
      */
     public function whoAskedWith(string $queryId): ?array
     {
-        $item = $this->pool->getItem('query_id.' . $queryId);
+        $row = $this->database->connection()->fetchAssociative('SELECT service, query_key FROM ' . InternalTables::QUERY_POINTER . ' WHERE query_id = ?', [$queryId]);
 
-        return $item->isHit() ? $item->get() : null;
+        return $row === false ? null : [$row['service'], $row['query_key']];
     }
 
-    private function recordKey(string $service, string $queryKey): string
+    private function readFrom(Connection $connection, string $service, string $queryKey): QueryRecord
     {
-        return 'query.' . sha1($service) . '.' . $queryKey;
+        $stored = $connection->fetchOne('SELECT record FROM ' . InternalTables::QUERY_RECORD . ' WHERE service = ? AND query_key = ?', [$service, $queryKey]);
+
+        return is_string($stored) ? QueryRecord::fromArray(json_decode($stored, true, 512, JSON_THROW_ON_ERROR)) : QueryRecord::empty();
     }
 }

@@ -344,6 +344,8 @@ final class ServicesPageTest extends WebTestCase
         $client->disableReboot();
         if ($withDatabase) {
             $this->setUpPulseDatabase($client->getKernel());
+        } else {
+            $this->setUpPulseInternalStorage($client->getKernel());
         }
 
         return $client;

@@ -104,9 +104,17 @@ trait PulseServicesTrait
         $service->run($this->serviceChannels[$serviceName], ExecutionPollingMetadata::createWithTestingSetup());
     }
 
+    private function setUpPulseInternalStorage(KernelInterface $kernel): void
+    {
+        $application = new Application($kernel);
+        (new CommandTester($application->find('pulse:setup')))->execute([]);
+        (new CommandTester($application->find('ecotone:migration:database:setup')))->execute(['--initialize' => true, '--connection' => DbalConnectionFactory::class]);
+    }
+
     private function setUpPulseDatabase(KernelInterface $kernel): void
     {
         $application = new Application($kernel);
+        (new CommandTester($application->find('pulse:setup')))->execute([]);
         $command = new CommandTester($application->find('ecotone:migration:database:setup'));
         $command->execute(['--initialize' => true]);
     }

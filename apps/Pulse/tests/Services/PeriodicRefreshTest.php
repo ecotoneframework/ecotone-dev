@@ -167,6 +167,7 @@ final class PeriodicRefreshTest extends WebTestCase
         $this->configurePulseWithServices('orders');
         $this->configurePulse(['PULSE_TRANSPORT_DSN' => 'pgsql://ecotone:secret@127.0.0.1:1/ecotone', 'PULSE_SERVICES' => 'orders:orders_channel']);
         $client = static::createClient();
+        $this->setUpPulseInternalStorage($client->getKernel());
         $client->disableReboot();
 
         $this->refreshTick($client, ticks: 3);

@@ -9,13 +9,7 @@ use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Redis\RedisConnectionFactory;
 use Ecotone\Api\Sqs\SqsConnectionFactory;
-use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
-
-use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Lock\Store\FlockStore;
 
 return static function (ContainerConfigurator $container): void {
     $settings = PulseSettings::fromEnvironment(PulseEnvironment::read(), dirname(__DIR__));
@@ -36,16 +30,10 @@ return static function (ContainerConfigurator $container): void {
         '$replyTimeoutSeconds' => $settings->replyTimeoutSeconds,
         '$renderWaitSeconds' => $settings->renderWaitSeconds,
         '$refreshIntervalSeconds' => $settings->refreshIntervalSeconds,
-        '$cacheDir' => $settings->cacheDir,
         '$internalDatabasePath' => $settings->internalDatabasePath,
     ]);
 
     $services->alias('pulse.clock', 'clock');
-    $services->set('pulse.cache', FilesystemAdapter::class)->args(['pulse', 0, $settings->cacheDir]);
-
-    $services->set('pulse.lock_store', FlockStore::class)->args([$settings->cacheDir . '/locks']);
-    $services->set('pulse.lock_factory', LockFactory::class)->args([service('pulse.lock_store')]);
-
     $services->set(DbalConnectionFactory::class)->args([$settings->internalDatabaseDsn()]);
 
     $connectionFactory = match ($settings->transport) {

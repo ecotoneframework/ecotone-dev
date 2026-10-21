@@ -22,7 +22,6 @@ trait PulseEnvironmentTrait
             'PULSE_SERVICES' => 'orders:orders_channel,billing:billing_channel',
             'PULSE_REPLY_TIMEOUT' => '10',
             'PULSE_RENDER_WAIT' => '0',
-            'PULSE_CACHE_DIR' => sys_get_temp_dir() . '/pulse-cache-' . uniqid(),
             'PULSE_INTERNAL_DATABASE_PATH' => sys_get_temp_dir() . '/pulse-internal-' . uniqid() . '.sqlite',
             ...$overrides,
         ];

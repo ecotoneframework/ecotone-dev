@@ -22,7 +22,6 @@ final readonly class PulseSettings
         public int $replyTimeoutSeconds,
         public int $renderWaitSeconds,
         public int $refreshIntervalSeconds,
-        public string $cacheDir,
         public string $internalDatabasePath,
     ) {
     }
@@ -61,11 +60,6 @@ final readonly class PulseSettings
             throw new PulseConfigurationException(sprintf('PULSE_REFRESH_INTERVAL "%d" is not shorter than the %d seconds after which a snapshot stops counting as fresh, so pages would open on stale snapshots and the worker would not be refreshing ahead of them. Set it to a whole number of seconds between 1 and %d, for example 20, which is the default.', $refreshInterval, Snapshots::FRESHNESS_SECONDS, Snapshots::FRESHNESS_SECONDS - 1));
         }
 
-        $cacheDir = $read('PULSE_CACHE_DIR', 'var/pulse-cache');
-        if (! str_starts_with($cacheDir, '/')) {
-            $cacheDir = $projectDir . '/' . $cacheDir;
-        }
-
         $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
         if (! str_starts_with($internalDatabasePath, '/')) {
             $internalDatabasePath = $projectDir . '/' . $internalDatabasePath;
@@ -74,7 +68,7 @@ final readonly class PulseSettings
         $transport = Transport::fromDsn($dsn);
         $serviceChannels = self::serviceChannels($read('PULSE_SERVICES'), $serviceName, $channel);
 
-        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $cacheDir, $internalDatabasePath);
+        return new self($serviceName, $channel, $dsn, $transport, $serviceChannels, $replyTimeout, $renderWait, $refreshInterval, $internalDatabasePath);
     }
 
     public function internalDatabaseDsn(): string

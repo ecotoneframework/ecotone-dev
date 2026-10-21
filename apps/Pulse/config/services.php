@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Settings\Connection;
 use App\Settings\PulseEnvironment;
 use App\Settings\PulseSettings;
 use App\Settings\Transport;
@@ -36,5 +37,10 @@ return static function (ContainerConfigurator $container): void {
             Transport::Dbal => $services->set($connection->referenceName(), DbalConnectionFactory::class)->args([$dsn]),
             Transport::Kafka => $services->set(KafkaBrokerConfiguration::class)->args([$connection->kafkaBootstrapServers()]),
         };
+    }
+
+    $brokers = array_values(array_filter($settings->connections, static fn (Connection $connection) => $connection->transport === Transport::Amqp));
+    if ($brokers !== [] && $settings->defaultConnection()->transport !== Transport::Amqp) {
+        $services->alias(AmqpExtConnectionFactory::class, $brokers[0]->referenceName());
     }
 };

@@ -111,6 +111,16 @@ final class TraceOnFlowGraphTest extends ReleasingWebTestCase
         self::assertSame([], $graph->nodesOf('traceFailed'));
     }
 
+    public function test_the_highlight_carries_no_fixed_colours_so_the_design_tokens_colour_it_in_both_schemes(): void
+    {
+        $client = $this->pulseWithAllServices();
+
+        $source = (new HighlightedDiagram($this->traceView($client, '/flow?trace=' . self::EXPLODED)))->diagram->source;
+
+        self::assertStringContainsString('classDef traceFailed stroke-width:3px', $source);
+        self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}|var\(|fill:|stroke:/i', $source);
+    }
+
     public function test_highlighted_nodes_carry_the_duration_of_the_step(): void
     {
         $client = $this->pulseWithAllServices();

@@ -58,6 +58,15 @@ final class DiagramSyntaxTest extends ReleasingWebTestCase
         self::assertStringContainsString('tracePassed', $diagram);
     }
 
+    public function test_the_service_overview_diagram_connects_every_service_without_subgraphs(): void
+    {
+        $diagram = $this->diagramOf('/flow?view=overview', 'flow-overview');
+
+        self::assertStringNotContainsString('subgraph', $diagram);
+        self::assertSame(3, preg_match_all('/^    s\d+\["[^"]*"\]$/m', $diagram));
+        self::assertMatchesRegularExpression('/^    s\d+ ==>\|"2 commands"\| s\d+$/m', $diagram);
+    }
+
     public function test_topology_diagram_connects_the_services_that_send_commands(): void
     {
         $diagram = $this->diagramOf('/topology', 'topology');

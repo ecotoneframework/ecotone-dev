@@ -14,10 +14,75 @@ final class StitchedFlowGraph
     /**
      * @param list<ServiceFlow> $flows
      * @param list<string> $shownServices
+     * @return array<string, array{title: string, service: string}>
+     */
+    public static function nodeDetails(array $flows, array $shownServices): array
+    {
+        $details = [];
+        foreach (self::shownOf($flows, $shownServices) as $serviceIndex => $flow) {
+            $details[sprintf('s%d', $serviceIndex)] = ['title' => $flow->name, 'service' => $flow->name];
+            foreach ($flow->graph->nodes() as $nodeIndex => $node) {
+                $details[sprintf('s%dn%d', $serviceIndex, $nodeIndex)] = ['title' => $node->label, 'service' => $flow->name];
+            }
+        }
+
+        return $details;
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @return array<string, array{title: string, service: string}>
+     */
+    public static function overviewDetails(array $flows): array
+    {
+        $details = [];
+        foreach ($flows as $index => $flow) {
+            $details[sprintf('s%d', $index)] = ['title' => sprintf('%s: %d nodes', $flow->name, count($flow->graph->nodes())), 'service' => $flow->name];
+        }
+
+        return $details;
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     */
+    public static function overview(array $flows): string
+    {
+        $indexes = array_flip(array_map(fn (ServiceFlow $flow) => $flow->name, $flows));
+        $lines = ['flowchart LR'];
+        foreach ($flows as $index => $flow) {
+            $lines[] = sprintf('    s%d["%s"]', $index, MermaidText::escape(ShortLabel::of($flow->name)));
+        }
+        $counts = [];
+        foreach (DistributedLinks::between($flows) as $link) {
+            $key = sprintf('s%d|%s|s%d', $indexes[$link->fromService], $link->kind, $indexes[$link->toService]);
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+        foreach ($counts as $key => $count) {
+            [$from, $kind, $to] = explode('|', $key);
+            $lines[] = sprintf('    %s %s|"%d %s"| %s', $from, $kind === 'reply' ? '-.->' : '==>', $count, $kind === 'reply' ? ($count === 1 ? 'reply' : 'replies') : $kind . ($count === 1 ? '' : 's'), $to);
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @param list<string> $shownServices
+     * @return list<ServiceFlow>
+     */
+    private static function shownOf(array $flows, array $shownServices): array
+    {
+        return array_values(array_filter($flows, fn (ServiceFlow $flow) => in_array($flow->name, $shownServices, true)));
+    }
+
+    /**
+     * @param list<ServiceFlow> $flows
+     * @param list<string> $shownServices
      */
     public static function toMermaid(array $flows, array $shownServices, ?TraceHighlight $highlight = null): string
     {
-        $shown = array_values(array_filter($flows, fn (ServiceFlow $flow) => in_array($flow->name, $shownServices, true)));
+        $shown = self::shownOf($flows, $shownServices);
         $ids = [];
         $lines = ['flowchart LR'];
         foreach ($shown as $serviceIndex => $flow) {
@@ -59,9 +124,9 @@ final class StitchedFlowGraph
             return [];
         }
         $lines = [
-            '    classDef ' . TraceHighlight::PASSED . ' fill:#d1fae5,stroke:#047857,stroke-width:3px',
-            '    classDef ' . TraceHighlight::PENDING . ' fill:#fef3c7,stroke:#b45309,stroke-width:3px,stroke-dasharray:4 2',
-            '    classDef ' . TraceHighlight::FAILED . ' fill:#fee2e2,stroke:#b91c1c,stroke-width:3px',
+            '    classDef ' . TraceHighlight::PASSED . ' stroke-width:3px',
+            '    classDef ' . TraceHighlight::PENDING . ' stroke-width:3px',
+            '    classDef ' . TraceHighlight::FAILED . ' stroke-width:3px',
         ];
         foreach ([TraceHighlight::PASSED, TraceHighlight::PENDING, TraceHighlight::FAILED] as $state) {
             $nodeIds = [];
@@ -78,7 +143,7 @@ final class StitchedFlowGraph
         }
         $edgeIndexes = array_keys(array_filter($highlightedEdges));
         if ($edgeIndexes !== []) {
-            $lines[] = sprintf('    linkStyle %s stroke:#047857,stroke-width:3px', implode(',', $edgeIndexes));
+            $lines[] = sprintf('    linkStyle %s stroke-width:3px', implode(',', $edgeIndexes));
         }
 
         return $lines;
@@ -86,7 +151,7 @@ final class StitchedFlowGraph
 
     private static function shape(FlowNode $node, ?string $duration = null): string
     {
-        $label = ($node->kind->isHandler() ? ucfirst($node->kind->value) . '<br/>' : '') . MermaidText::escape($node->label) . ($duration === null ? '' : '<br/>' . MermaidText::escape($duration));
+        $label = ($node->kind->isHandler() ? ucfirst($node->kind->value) . '<br/>' : '') . MermaidText::escape(ShortLabel::of($node->label)) . ($duration === null ? '' : '<br/>' . MermaidText::escape($duration));
 
         return match ($node->kind) {
             FlowNodeKind::COMMAND => sprintf('>"%s"]', $label),

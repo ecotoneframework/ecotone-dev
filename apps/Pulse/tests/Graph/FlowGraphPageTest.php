@@ -174,7 +174,7 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
         self::assertTrue(MermaidDiagram::fromPage($client->request('GET', '/flow'))->hasEdge('billing', 'invoice.created', 'distributed event', 'orders', 'invoice.created'));
     }
 
-    public function test_services_beyond_the_node_limit_default_to_the_first_service_with_a_message(): void
+    public function test_services_beyond_the_node_limit_open_as_the_service_overview(): void
     {
         $names = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'];
         $this->configurePulseWithServices(...$names);
@@ -183,10 +183,8 @@ final class FlowGraphPageTest extends ReleasingWebTestCase
 
         $crawler = $client->request('GET', '/flow');
 
-        self::assertStringContainsString('only s1 is shown', $crawler->filter('[data-notice="narrowed"]')->text());
-        $diagram = MermaidDiagram::fromPage($crawler);
-        self::assertGreaterThan(0, $diagram->nodesOf('s1'));
-        self::assertSame(0, $diagram->nodesOf('s2'));
+        self::assertCount(1, $crawler->filter('[data-flow-overview]'));
+        self::assertSame(0, MermaidDiagram::fromPage($crawler)->nodesOf('s1'));
         $chosen = MermaidDiagram::fromPage($client->request('GET', '/flow?services[]=s2&services[]=s3'));
         self::assertGreaterThan(0, $chosen->nodesOf('s2'));
         self::assertGreaterThan(0, $chosen->nodesOf('s3'));

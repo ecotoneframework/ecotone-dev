@@ -18,7 +18,7 @@
     {% if searchError %}<p class="notice" data-search-error>{{ searchError }}</p>{% endif %}
 
     {% for service in services %}
-        <section class="card" data-service-section="{{ service.service }}">
+        <section class="card" id="service-{{ service.service }}" data-service-section="{{ service.service }}">
             <h2>{{ service.service }}</h2>
             {% if not service.status.hasSnapshot %}
                 <p class="muted" data-no-snapshot="{{ service.service }}">no snapshot yet ({{ service.status.status.name|lower }})</p>

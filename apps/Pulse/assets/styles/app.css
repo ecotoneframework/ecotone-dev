@@ -109,3 +109,7 @@ pre.mermaid a{cursor:pointer}pre.mermaid a:hover rect,pre.mermaid a:hover polygo
 .legend summary{cursor:pointer;font-weight:600}
 .service-links{width:auto;min-width:24rem}
 b.ok{background:none}
+pre.mermaid .tracePassed>*{fill:var(--ok-bg)!important;stroke:var(--ok)!important}
+pre.mermaid .tracePending>*{fill:var(--wait-bg)!important;stroke:var(--wait)!important;stroke-dasharray:4 2!important}
+pre.mermaid .traceFailed>*{fill:var(--bad-bg)!important;stroke:var(--bad)!important}
+pre.mermaid path[style*="stroke-width:3px"],pre.mermaid path[style*="stroke-width: 3px"]{stroke:var(--ok)!important}

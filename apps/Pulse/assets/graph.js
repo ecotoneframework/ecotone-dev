@@ -8,8 +8,8 @@ mermaid.initialize({
     theme: 'base',
     themeVariables: {
         fontFamily: token('--font'), background: token('--bg'), primaryColor: token('--surface-2'), primaryTextColor: token('--fg'),
-        primaryBorderColor: token('--line'), secondaryColor: token('--surface'), tertiaryColor: token('--surface'), lineColor: token('--muted'),
-        textColor: token('--fg'), clusterBkg: token('--surface'), clusterBorder: token('--line'), edgeLabelBackground: token('--surface'),
+        primaryBorderColor: token('--accent'), secondaryColor: token('--surface'), tertiaryColor: token('--surface'), lineColor: token('--muted'),
+        textColor: token('--fg'), clusterBkg: token('--surface'), clusterBorder: token('--line'), edgeLabelBackground: token('--bg'),
         titleColor: token('--fg'), nodeBorder: token('--line'),
     },
 });
@@ -25,6 +25,10 @@ const link = (element, href, title) => {
 
 const decorate = (graph, svg) => {
     const nodes = JSON.parse(graph.dataset.graphNodes || '{}');
+    svg.querySelectorAll('g.cluster').forEach((cluster, index) => {
+        const service = /^s(\d+)$/.exec(cluster.id)?.[1];
+        cluster.classList.add('svc-' + ((service === undefined ? index : Number(service)) % 8));
+    });
     svg.querySelectorAll('g.node, g.cluster').forEach((element) => {
         const id = /(?:flowchart-)?(s\d+(?:n\d+)?)(?:-\d+)?$/.exec(element.id)?.[1];
         if (id && nodes[id]) {

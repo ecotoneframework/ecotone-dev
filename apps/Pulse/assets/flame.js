@@ -103,8 +103,18 @@ ready(() => {
         const box = target.getBoundingClientRect();
         tip.textContent = target.dataset.tip;
         tip.hidden = false;
-        tip.style.left = Math.max(4, Math.min(box.left, window.innerWidth - tip.offsetWidth - 4)) + 'px';
-        tip.style.top = (box.bottom + 6) + 'px';
+        let left = Math.max(4, Math.min(box.left, window.innerWidth - tip.offsetWidth - 4));
+        let top = box.bottom + 6;
+        const selected = document.querySelector('[data-flame-panels] .span-panel.open');
+        const panel = selected === null ? null : selected.getBoundingClientRect();
+        if (panel !== null && left + tip.offsetWidth > panel.left && left < panel.right && top + tip.offsetHeight > panel.top && top < panel.bottom) {
+            left = Math.max(4, panel.left - tip.offsetWidth - 4);
+            if (left + tip.offsetWidth > panel.left) {
+                top = Math.max(4, box.top - tip.offsetHeight - 6);
+            }
+        }
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
     };
     const hideTip = () => { tip.hidden = true; };
     lanes.addEventListener('mouseover', showTip);

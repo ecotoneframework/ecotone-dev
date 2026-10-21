@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Ecotone Pulse{% endblock %}</title>
+    <script>try{var t=localStorage.getItem('pulse-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}</script>
     {% block head %}{% endblock %}
     {% block importmap %}{{ importmap('app') }}{% endblock %}
 </head>
@@ -23,6 +24,7 @@
         <a href="{{ path('connect') }}"{% if current == 'connect' %} class="active"{% endif %}>Connect</a>
         <a href="{{ path('catalogue') }}"{% if current == 'catalogue' %} class="active"{% endif %}>Catalogue</a>
     </nav>
+    <button type="button" class="theme-toggle" data-theme-toggle>Theme</button>
 </header>
 <main id="content">{% block body %}{% endblock %}</main>
 </body>

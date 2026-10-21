@@ -4,6 +4,21 @@ const ready = (fn) => (document.readyState === 'loading' ? document.addEventList
 
 ready(() => {
     document.documentElement.classList.add('js');
+    const themeToggle = document.querySelector('[data-theme-toggle]');
+    if (themeToggle) {
+        const current = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        const label = () => { themeToggle.textContent = current() === 'dark' ? 'Light theme' : 'Dark theme'; };
+        label();
+        themeToggle.addEventListener('click', () => {
+            const next = current() === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = next;
+            try { localStorage.setItem('pulse-theme', next); } catch (error) {}
+            if (document.querySelector('pre.mermaid.graph-ready')) {
+                location.reload();
+            }
+            label();
+        });
+    }
     document.querySelectorAll('[data-toggle-run]').forEach((button) => {
         button.addEventListener('click', () => {
             const open = button.getAttribute('aria-expanded') !== 'true';

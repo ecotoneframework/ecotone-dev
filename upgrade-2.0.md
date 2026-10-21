@@ -3236,12 +3236,19 @@ message flow, or how it is wired to other services.
 `DistributedServiceMap`s and the `channels` the service consumes: a list of `{name, kind}` with kind `async` for a
 pollable channel an `#[Asynchronous]` handler consumes and `queue` for a pollable channel no handler is bound to (the
 channels a Service Map only sends to are left out), which is what Pulse offers as a dead letter replay target. Only requests from the configured Pulse service are served; any other source fails the
-handler with a message naming the expected service. The application needs an Enterprise licence, a service name, and a
-`DistributedServiceMap` command mapping from the Pulse service to the channel the Pulse service consumes, otherwise
-bootstrap is refused; registering `PulseConfiguration` twice is refused as well.
+handler with a message naming the expected service. The application needs an Enterprise licence and a service name, otherwise
+bootstrap is refused; registering `PulseConfiguration` twice is refused as well. The reply mapping to the Pulse service
+is implied: replies go to a channel named after the Pulse service, or to the one chosen with
+`PulseConfiguration::createWithDefaults(...)->withReplyChannel('pulse_replies')`, and no `DistributedServiceMap` is
+needed for it. The reply channel is registered for you with the builder class and connection of the request channel (the
+channel named after the service, or `->withRequestChannel('...')`), for Amqp, Dbal, Redis and Sqs channels; queue names,
+topics and tables are not copied. A reply channel you register yourself wins. When the request channel is not registered,
+or is a Kafka channel, bootstrap is refused with a message naming `withRequestChannel` and the builder to register
+(for example `AmqpBackedMessageChannelBuilder::create('ecotone_pulse')`). A `DistributedServiceMap`
+that maps the Pulse service still works and wins; one that maps it to a different channel than `withReplyChannel` is
+refused, naming both.
 
-**How to adapt:** nothing is required. To use it, register `PulseConfiguration` and the command mapping to the Pulse
-service.
+**How to adapt:** nothing is required. To use it, register `PulseConfiguration` next to the request channel the service already consumes. An existing `DistributedServiceMap` mapping to the Pulse service can stay or be removed.
 
 With the DBAL dead letter enabled, the snapshot gains a `deadLetters` section: the `total`, the `groups` by message name
 and exception class, and the 100 `recent` dead letters newest first. Each recent dead letter has its message id, name,

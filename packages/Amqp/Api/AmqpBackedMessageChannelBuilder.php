@@ -5,13 +5,15 @@ namespace Ecotone\Api\Amqp;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 
 /**
  * licence Apache-2.0
  */
-class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder implements MessageChannelBuilderOnSameConnection
 {
     private string $channelName;
+    private string $amqpConnectionReferenceName;
 
     private function __construct(
         string $channelName,
@@ -19,6 +21,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         string $queueName
     ) {
         $this->channelName = $channelName;
+        $this->amqpConnectionReferenceName = $amqpConnectionReferenceName;
 
         parent::__construct(
             AmqpInboundChannelAdapterBuilder::createWith($channelName, $queueName, null, $amqpConnectionReferenceName),
@@ -43,6 +46,11 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
             $amqpConnectionReferenceName,
             $queueName ?? $channelName
         );
+    }
+
+    public function forChannelOnSameConnection(string $channelName): self
+    {
+        return self::create($channelName, $this->amqpConnectionReferenceName);
     }
 
     private function getAmqpOutboundChannelAdapter(): AmqpOutboundChannelAdapterBuilder

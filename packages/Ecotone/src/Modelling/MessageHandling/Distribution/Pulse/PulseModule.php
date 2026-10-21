@@ -15,6 +15,7 @@ use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Messaging\Channel\MessageChannelBuilderOnSameConnection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -54,6 +55,8 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class PulseModule implements AnnotationModule
 {
+    private const IMPLIED_SERVICE_MAP_REFERENCE = 'ecotone.pulse.distributed_bus';
+
     /**
      * @param string[] $asynchronousHandlerChannels
      */
@@ -96,9 +99,7 @@ final class PulseModule implements AnnotationModule
         }
 
         $serviceMaps = ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects);
-        if (! self::anyMapReaches($serviceMaps, $pulseServiceName)) {
-            throw ConfigurationException::create("PulseConfiguration answers Pulse service {$pulseServiceName}, but no DistributedServiceMap maps it to a channel, so the reply could not be routed. Add DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: '{$pulseServiceName}', channelName: 'channel_pulse_consumes') to a #[ServiceContext], or change the Pulse service name in PulseConfiguration::createWithDefaults().");
-        }
+        self::guardReplyChannel($pulseConfigurations[0], $serviceConfiguration->serviceName, $serviceMaps, $extensionObjects);
 
         $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
         $sections = self::sectionReferences(ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects));
@@ -156,7 +157,30 @@ final class PulseModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        $pulseConfigurations = ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions);
+        $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $serviceExtensions, BootstrapConfiguration::createWithDefaults());
+        $serviceName = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $serviceExtensions, $serviceConfiguration)->serviceName;
+        if (count($pulseConfigurations) !== 1 || $bootstrapConfiguration->licenceKey === null || $serviceName === ServiceConfiguration::DEFAULT_SERVICE_NAME) {
+            return [];
+        }
+
+        $serviceMaps = ExtensionObjectResolver::resolve(DistributedServiceMap::class, $serviceExtensions);
+        $impliedServiceMap = self::impliedServiceMap($pulseConfigurations[0], $serviceMaps);
+        if ($impliedServiceMap === null) {
+            return [];
+        }
+
+        $replyChannel = $pulseConfigurations[0]->replyChannel ?? $pulseConfigurations[0]->pulseServiceName;
+        if (self::channelBuilderNamed($replyChannel, $serviceExtensions) !== null) {
+            return [$impliedServiceMap];
+        }
+
+        $requestBuilder = self::channelBuilderNamed($pulseConfigurations[0]->requestChannel ?? $serviceName, $serviceExtensions);
+        if (! $requestBuilder instanceof MessageChannelBuilderOnSameConnection) {
+            return [];
+        }
+
+        return [$requestBuilder->forChannelOnSameConnection($replyChannel), $impliedServiceMap];
     }
 
     public function getModulePackageName(): string
@@ -186,16 +210,76 @@ final class PulseModule implements AnnotationModule
 
     /**
      * @param DistributedServiceMap[] $serviceMaps
+     * @param object[] $extensionObjects
      */
-    private static function anyMapReaches(array $serviceMaps, string $serviceName): bool
+    private static function guardReplyChannel(PulseConfiguration $configuration, string $serviceName, array $serviceMaps, array $extensionObjects): void
     {
-        foreach ($serviceMaps as $serviceMap) {
-            if (array_key_exists($serviceName, $serviceMap->commandMapping)) {
-                return true;
+        $mappedChannel = self::mappedChannelOf($serviceMaps, $configuration->pulseServiceName);
+        if ($mappedChannel !== null && $configuration->replyChannel !== null && $mappedChannel !== $configuration->replyChannel) {
+            throw ConfigurationException::create("PulseConfiguration sends the reply to channel '{$configuration->replyChannel}' (withReplyChannel), but a DistributedServiceMap maps Pulse service {$configuration->pulseServiceName} to channel '{$mappedChannel}', so the reply could go to only one of them. Make both name the same channel: change withReplyChannel('{$configuration->replyChannel}') to withReplyChannel('{$mappedChannel}'), or remove withReplyChannel to follow the DistributedServiceMap, or remove the command mapping of '{$configuration->pulseServiceName}' from the DistributedServiceMap.");
+        }
+
+        $replyChannel = $mappedChannel ?? $configuration->replyChannel ?? $configuration->pulseServiceName;
+        $requestChannel = $configuration->requestChannel ?? $serviceName;
+        if ($replyChannel === $requestChannel) {
+            throw ConfigurationException::create("Pulse replies would go to channel '{$replyChannel}', which is also the channel Pulse sends its requests to, so the service would consume its own replies. Choose another reply channel with PulseConfiguration::withReplyChannel(), or another request channel with PulseConfiguration::withRequestChannel().");
+        }
+
+        if ($mappedChannel !== null) {
+            return;
+        }
+
+        if (self::channelBuilderNamed($replyChannel, $extensionObjects) !== null) {
+            return;
+        }
+
+        $registerExplicitly = "register '{$replyChannel}' explicitly, e.g. AmqpBackedMessageChannelBuilder::create('{$replyChannel}') (or the DbalBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder, SqsBackedMessageChannelBuilder or KafkaMessageChannelBuilder::create('{$replyChannel}') your other channels use)";
+        if (self::channelBuilderNamed($requestChannel, $extensionObjects) === null) {
+            throw ConfigurationException::create("Pulse replies go to channel '{$replyChannel}', which is not a registered message channel, and it cannot follow the request channel's transport because the request channel '{$requestChannel}' is not registered either. Register the channel Pulse sends its requests to, named after the service ('{$serviceName}') or chosen with PulseConfiguration::withRequestChannel('...'). Or {$registerExplicitly}, or send the replies to another registered channel with PulseConfiguration::withReplyChannel().");
+        }
+
+        throw ConfigurationException::create("Pulse replies go to channel '{$replyChannel}', which is not a registered message channel, and the builder of request channel '{$requestChannel}' cannot be re-created for another channel name. " . ucfirst($registerExplicitly) . ', or send the replies to another registered channel with PulseConfiguration::withReplyChannel().');
+    }
+
+    /**
+     * @param object[] $extensionObjects
+     */
+    private static function channelBuilderNamed(string $channelName, array $extensionObjects): ?MessageChannelBuilder
+    {
+        foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channelBuilder) {
+            if ($channelBuilder->getMessageChannelName() === $channelName) {
+                return $channelBuilder;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    /**
+     * @param DistributedServiceMap[] $serviceMaps
+     */
+    private static function impliedServiceMap(PulseConfiguration $configuration, array $serviceMaps): ?DistributedServiceMap
+    {
+        if (self::mappedChannelOf($serviceMaps, $configuration->pulseServiceName) !== null) {
+            return null;
+        }
+
+        return DistributedServiceMap::initialize(self::IMPLIED_SERVICE_MAP_REFERENCE)
+            ->withCommandMapping($configuration->pulseServiceName, $configuration->replyChannel ?? $configuration->pulseServiceName);
+    }
+
+    /**
+     * @param DistributedServiceMap[] $serviceMaps
+     */
+    private static function mappedChannelOf(array $serviceMaps, string $serviceName): ?string
+    {
+        foreach ($serviceMaps as $serviceMap) {
+            if (array_key_exists($serviceName, $serviceMap->commandMapping)) {
+                return $serviceMap->commandMapping[$serviceName];
+            }
+        }
+
+        return null;
     }
 
     /**

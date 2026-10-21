@@ -89,8 +89,8 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   or `publishWithRouting()` (for an event, the published name, not the handler's pattern), or the class-based name for a
   class-routed message. Read it with `#[Header]`. It is informational: routing on consume is unchanged, it is not passed
   on to messages the handler sends or publishes, and it stays on the stored message (outbox, dead letter) and when that
-  message is replayed to another channel. A message reaching the handler by its channel name (a `#[BusinessMethod]`,
-  `#[MessageGateway]` or a message sent straight to the handler's input channel) does not carry it. **How to adapt:**
+  message is replayed to another channel. A message sent to the handler by a `#[BusinessMethod]` or `#[MessageGateway]`
+  routing key carries that routing key. **How to adapt:**
   nothing is required; tests asserting the exact header set of an asynchronous message see one more header.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise

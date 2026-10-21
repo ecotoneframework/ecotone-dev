@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
+use DateTimeZone;
+use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Result;
-use Doctrine\DBAL\Cache\QueryCacheProfile;
-use Interop\Queue\ConnectionFactory;
-use Ecotone\Messaging\Config\ConfigurationException;
-use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
@@ -33,12 +31,14 @@ use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Messaging\MessageHeaders;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
+use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -71,15 +71,15 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private const CALLER_SPAN = 'b7ad6b7169203331';
 
     private const UPGRADE_INSTRUCTIONS = <<<'TEXT'
-The 'ecotone_tracing' table required by the 'tracing' feature has no 'flow_type' and 'flow_status' columns, which flow tracking writes and Ecotone Pulse reads since the 2.0 release. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.
+        The 'ecotone_tracing' table required by the 'tracing' feature has no 'flow_type' and 'flow_status' columns, which flow tracking writes and Ecotone Pulse reads since the 2.0 release. The table was created by an earlier 2.0 beta. Ecotone never alters a table while it handles a message.
 
-Add the columns with the statement for your database:
-  PostgreSQL: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
-  MySQL and MariaDB: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
-  SQLite: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+        Add the columns with the statement for your database:
+          PostgreSQL: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
+          MySQL and MariaDB: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL, ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL, ADD INDEX ecotone_tracing_flow_type_started_at_idx (flow_type, started_at);
+          SQLite: ALTER TABLE ecotone_tracing ADD COLUMN flow_type VARCHAR(255) DEFAULT NULL; ALTER TABLE ecotone_tracing ADD COLUMN flow_status VARCHAR(16) DEFAULT NULL; CREATE INDEX ecotone_tracing_flow_type_started_at_idx ON ecotone_tracing (flow_type, started_at);
 
-Or, as tracked flows are only kept for the configured retention, drop the 'ecotone_tracing' table and create it again with $messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('tracing').
-TEXT;
+        Or, as tracked flows are only kept for the configured retention, drop the 'ecotone_tracing' table and create it again with $messagingSystem->getServiceFromContainer(\Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager::class)->initialize('tracing').
+        TEXT;
 
     private array $channels;
     private object $pulse;

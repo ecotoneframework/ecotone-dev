@@ -22,7 +22,7 @@ final class DeadLetterActionsTest extends WebTestCase
         $list = $this->freshView($client, '/dead-letters');
         $this->work->failing = false;
 
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
         $this->deliver($client);
         $this->replayWorkOf($this->services['orders']);
 
@@ -173,7 +173,7 @@ final class DeadLetterActionsTest extends WebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $this->deliver($client);
 
         $this->advanceTimeBy(4);
@@ -196,7 +196,7 @@ final class DeadLetterActionsTest extends WebTestCase
     {
         $client = $this->pulseWithFailures();
         $list = $this->freshView($client, '/dead-letters');
-        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'confirm' => '1', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.cancel')]]);
         $this->deliver($client);
 
         self::assertCount(1, $client->request('GET', '/dead-letters')->filter('meta[http-equiv="refresh"]'));

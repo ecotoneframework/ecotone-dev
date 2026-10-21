@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catalogue · Ecotone Pulse{% endblock %}
+
+{% block body %}
+    <h1>Message catalogue</h1>
+    <form method="get">
+        <input type="search" name="q" value="{{ query }}" placeholder="Class name, routing key, handler or service">
+        <button type="submit">Search</button>
+    </form>
+    <table>
+        <thead>
+        <tr><th>Service</th><th>Kind</th><th>Message</th><th>Handled by</th><th>Emitted by</th></tr>
+        </thead>
+        <tbody>
+        {% for entry in entries %}
+            <tr data-service="{{ entry.service }}" data-message="{{ entry.routingKey }}">
+                <td>{{ entry.service }}</td>
+                <td>{{ entry.kind }}</td>
+                <td>{{ entry.name }}{% if entry.name != entry.routingKey %} <span class="muted">{{ entry.routingKey }}</span>{% endif %}</td>
+                <td>
+                    {% for handler in entry.handlers %}
+                        <div>{{ handler.label }}{% if handler.endpointId %} <span class="muted">{{ handler.endpointId }}</span>{% endif %}{% if handler.channel %} · async on {{ handler.channel }}{% endif %}</div>
+                    {% else %}
+                        <span class="muted">not handled in this service</span>
+                    {% endfor %}
+                </td>
+                <td>{{ entry.emittedBy|join(', ') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="muted">Nothing matches.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

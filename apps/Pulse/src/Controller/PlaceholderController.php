@@ -16,12 +16,6 @@ final class PlaceholderController extends AbstractController
         return $this->placeholder('Dead letters');
     }
 
-    #[Route('/catalogue', name: 'catalogue', methods: ['GET'])]
-    public function catalogue(): Response
-    {
-        return $this->placeholder('Catalogue');
-    }
-
     private function placeholder(string $title): Response
     {
         return $this->render('placeholder.html.twig', ['title' => $title]);

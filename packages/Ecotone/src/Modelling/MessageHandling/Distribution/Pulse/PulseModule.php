@@ -100,11 +100,6 @@ final class PulseModule implements AnnotationModule
 
         $serviceMaps = ExtensionObjectResolver::resolve(DistributedServiceMap::class, $extensionObjects);
         self::guardReplyChannel($pulseConfigurations[0], $serviceConfiguration->serviceName, $serviceMaps, $extensionObjects);
-        $impliedServiceMap = self::impliedServiceMap($pulseConfigurations[0], $serviceMaps);
-        if ($impliedServiceMap !== null) {
-            $serviceMaps = array_values(array_filter($serviceMaps, static fn (DistributedServiceMap $serviceMap) => $serviceMap !== $impliedServiceMap));
-            $serviceMaps[] = $impliedServiceMap;
-        }
 
         $bootstrapConfiguration = ExtensionObjectResolver::resolveUnique(BootstrapConfiguration::class, $extensionObjects, BootstrapConfiguration::createWithDefaults());
         $sections = self::sectionReferences(ExtensionObjectResolver::resolve(PulseSnapshotSectionRegistration::class, $extensionObjects));
@@ -224,16 +219,20 @@ final class PulseModule implements AnnotationModule
             throw ConfigurationException::create("PulseConfiguration sends the reply to channel '{$configuration->replyChannel}' (withReplyChannel), but a DistributedServiceMap maps Pulse service {$configuration->pulseServiceName} to channel '{$mappedChannel}', so the reply could go to only one of them. Make both name the same channel: change withReplyChannel('{$configuration->replyChannel}') to withReplyChannel('{$mappedChannel}'), or remove withReplyChannel to follow the DistributedServiceMap, or remove the command mapping of '{$configuration->pulseServiceName}' from the DistributedServiceMap.");
         }
 
+        $replyChannel = $mappedChannel ?? $configuration->replyChannel ?? $configuration->pulseServiceName;
+        $requestChannel = $configuration->requestChannel ?? $serviceName;
+        if ($replyChannel === $requestChannel) {
+            throw ConfigurationException::create("Pulse replies would go to channel '{$replyChannel}', which is also the channel Pulse sends its requests to, so the service would consume its own replies. Choose another reply channel with PulseConfiguration::withReplyChannel(), or another request channel with PulseConfiguration::withRequestChannel().");
+        }
+
         if ($mappedChannel !== null) {
             return;
         }
 
-        $replyChannel = $configuration->replyChannel ?? $configuration->pulseServiceName;
         if (self::channelBuilderNamed($replyChannel, $extensionObjects) !== null) {
             return;
         }
 
-        $requestChannel = $configuration->requestChannel ?? $serviceName;
         $registerExplicitly = "register '{$replyChannel}' explicitly, e.g. AmqpBackedMessageChannelBuilder::create('{$replyChannel}') (or the DbalBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder, SqsBackedMessageChannelBuilder or KafkaMessageChannelBuilder::create('{$replyChannel}') your other channels use)";
         if (self::channelBuilderNamed($requestChannel, $extensionObjects) === null) {
             throw ConfigurationException::create("Pulse replies go to channel '{$replyChannel}', which is not a registered message channel, and it cannot follow the request channel's transport because the request channel '{$requestChannel}' is not registered either. Register the channel Pulse sends its requests to, named after the service ('{$serviceName}') or chosen with PulseConfiguration::withRequestChannel('...'). Or {$registerExplicitly}, or send the replies to another registered channel with PulseConfiguration::withReplyChannel().");

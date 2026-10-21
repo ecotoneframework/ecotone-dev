@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Api\Attribute\Payload;
@@ -322,6 +323,78 @@ final class PulseSnapshotResponderTest extends TestCase
         $this->expectExceptionMessage("Pulse replies go to channel 'ecotone_pulse', which is not a registered message channel, and the builder of request channel 'order_channel' cannot be re-created for another channel name. Register 'ecotone_pulse' explicitly, e.g. AmqpBackedMessageChannelBuilder::create('ecotone_pulse') (or the DbalBackedMessageChannelBuilder, RedisBackedMessageChannelBuilder, SqsBackedMessageChannelBuilder or KafkaMessageChannelBuilder::create('ecotone_pulse') your other channels use), or send the replies to another registered channel with PulseConfiguration::withReplyChannel().");
 
         $this->orderServiceWithoutMap($this->orders(), $this->channels(), PulseConfiguration::createWithDefaults('ecotone_pulse')->withRequestChannel('order_channel'));
+    }
+
+    public function test_a_missing_reply_channel_is_refused_even_when_the_service_maps_other_services(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Pulse replies go to channel 'ecotone_pulse', which is not a registered message channel");
+
+        $this->orderServiceWithoutMap(
+            $this->orders(),
+            [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('billing_channel')],
+            PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'billing', channelName: 'billing_channel'),
+        );
+    }
+
+    public function test_a_service_mapping_other_services_still_routes_to_them_and_replies_to_pulse_through_the_implied_mapping(): void
+    {
+        $pulse = $this->pulseReplies();
+        $billing = new class () {
+            public array $received = [];
+
+            #[Distributed]
+            #[CommandHandler('billing.charge')]
+            public function charge(string $orderId): void
+            {
+                $this->received[] = $orderId;
+            }
+        };
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('ecotone_pulse'), SimpleMessageChannelBuilder::createQueueChannel('billing_channel')];
+        $orderService = $this->orderServiceWithoutMap(
+            $this->orders(),
+            $channels,
+            PulseConfiguration::createWithDefaults('ecotone_pulse'),
+            DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'billing', channelName: 'billing_channel'),
+        );
+        $pulseService = $this->pulseService($pulse, $channels);
+        $billingService = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$billing::class],
+            containerOrAvailableServices: [$billing],
+            extensionObjects: [...$channels, ServiceConfiguration::createWithDefaults()->withServiceName('billing')],
+            enabledModules: [],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $orderService->getDistributedBus()->sendCommand('billing', 'billing.charge', 'order-1');
+        $billingService->run('billing_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->getDistributedBus()->sendMessage('order_service', 'ecotone.pulse.snapshot', '{}', MediaType::APPLICATION_JSON, replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $pulseService->run('ecotone_pulse', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['order-1'], $billing->received);
+        self::assertCount(1, $pulse->snapshots);
+        $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
+        $mappedServices = array_merge(...array_map(static fn (array $map) => array_keys($map['commandMapping']), $snapshot['topology']['serviceMaps']));
+        sort($mappedServices);
+        self::assertSame(['billing', 'ecotone_pulse'], $mappedServices);
+    }
+
+    public function test_an_explicit_mapping_to_a_channel_that_is_not_registered_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('not available in message channels');
+
+        $this->orderServiceWithoutMap($this->orders(), [SimpleMessageChannelBuilder::createQueueChannel('order_channel')], PulseConfiguration::createWithDefaults('ecotone_pulse'), $this->pulseMap());
+    }
+
+    public function test_a_reply_channel_equal_to_the_request_channel_is_refused_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("Pulse replies would go to channel 'order_channel', which is also the channel Pulse sends its requests to, so the service would consume its own replies. Choose another reply channel with PulseConfiguration::withReplyChannel(), or another request channel with PulseConfiguration::withRequestChannel().");
+
+        $this->orderServiceWithoutMap($this->orders(), $this->channels(), PulseConfiguration::createWithDefaults('ecotone_pulse')->withRequestChannel('order_channel')->withReplyChannel('order_channel'));
     }
 
     public function test_pulse_configured_twice_is_refused_at_bootstrap(): void

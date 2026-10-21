@@ -120,6 +120,9 @@ pre.mermaid path[style*="stroke-width:3px"],pre.mermaid path[style*="stroke-widt
 .waterfall td[data-column=name]{min-width:12rem}
 .detail-col{display:none}
 .waterfall{min-width:52rem}
+.waterfall td{overflow-wrap:normal}
+.waterfall td[data-column=error]{min-width:12rem}
+.track{overflow:hidden}
 [data-service-section] table{display:block;overflow-x:auto}[data-service-section] code{overflow-wrap:anywhere}
 .service-links{min-width:0;width:100%}
 .service-toggles{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center}
@@ -153,7 +156,7 @@ input[type=search]{width:100%;max-width:32rem}
 .span-panel:target,.span-panel.open{display:block}
 .js .span-panel:target{display:none}.js .span-panel.open{display:block}
 .span-panel h3{margin:.2rem 0;overflow-wrap:anywhere}.span-panel h4{margin:.6rem 0 .2rem}
-.span-panel dl{display:grid;grid-template-columns:auto 1fr;gap:.15rem .8rem;margin:.4rem 0}
+.span-panel dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.15rem .8rem;margin:.4rem 0}
 .span-panel table{display:block;overflow-x:auto}
 .flame-hint{margin:0}
 .flame-panels.has-selection .flame-hint{display:none}
@@ -162,3 +165,4 @@ input[type=search]{width:100%;max-width:32rem}
 .span-panel table{width:100%}.span-panel tr{display:block;border-bottom:1px solid var(--line);padding:.2rem 0}
 .span-panel th,.span-panel td{display:block;padding:0;border:0;text-transform:none;letter-spacing:0;font-size:.8rem}
 .span-panel th{color:var(--muted)}
+.span-panel dd,.span-panel td{min-width:0;overflow-wrap:anywhere}

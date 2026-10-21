@@ -100,18 +100,18 @@
                         <section class="span-panel" id="span-{{ bar.index }}" data-span-panel="{{ bar.index }}" aria-label="Details of {{ row.name }}">
                             <h3>{{ row.name }}</h3>
                             <dl>
-                                <dt>Service</dt><dd data-panel="service">{{ row.service }}</dd>
-                                <dt>Name</dt><dd data-panel="name">{{ row.name }}</dd>
+                                <dt>Service</dt><dd data-panel="service">{{ row.service|breakable }}</dd>
+                                <dt>Name</dt><dd data-panel="name">{{ row.name|breakable }}</dd>
                                 <dt>Kind</dt><dd data-panel="kind">{{ row.kind }}</dd>
-                                {% if row.endpoint %}<dt>Endpoint</dt><dd data-panel="endpoint">{{ row.endpoint }}</dd>{% endif %}
-                                {% if row.channel %}<dt>Channel</dt><dd data-panel="channel">{{ row.channel }}</dd>{% endif %}
+                                {% if row.endpoint %}<dt>Endpoint</dt><dd data-panel="endpoint">{{ row.endpoint|breakable }}</dd>{% endif %}
+                                {% if row.channel %}<dt>Channel</dt><dd data-panel="channel">{{ row.channel|breakable }}</dd>{% endif %}
                                 <dt>Started (UTC)</dt><dd data-panel="startedAt">{{ row.startedAt }}</dd>
                                 <dt>Offset</dt><dd data-panel="offset">{{ row.offsetLabel }}</dd>
                                 <dt>Duration</dt><dd data-panel="duration">{{ row.durationLabel }}</dd>
                                 {% if row.queueWaitLabel %}<dt>Queue wait</dt><dd data-panel="queueWait">{{ row.queueWaitLabel }}</dd>{% endif %}
                                 <dt>Status</dt><dd data-panel="status">{{ row.status }}</dd>
-                                {% if row.error %}<dt>Error</dt><dd data-panel="error">{{ row.error }}</dd>{% endif %}
-                                {% if row.messageId %}<dt>Message id</dt><dd data-panel="messageId">{{ row.messageId }}</dd>{% endif %}
+                                {% if row.error %}<dt>Error</dt><dd data-panel="error">{{ row.error|breakable }}</dd>{% endif %}
+                                {% if row.messageId %}<dt>Message id</dt><dd data-panel="messageId">{{ row.messageId|breakable }}</dd>{% endif %}
                             </dl>
                             <p class="flame-links">
                                 {% if row.deadLetter %}<a data-panel-dead-letter href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">Dead letter</a> · {% endif %}
@@ -121,14 +121,14 @@
                             </p>
                             {% if row.attributes %}
                                 <h4>Attributes</h4>
-                                <table data-panel-attributes>{% for name, value in row.attributes %}<tr><th scope="row">{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
+                                <table data-panel-attributes>{% for name, value in row.attributes %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
                             {% endif %}
                             {% if row.events %}
                                 <h4>Events</h4>
                                 <div data-panel-events>
                                 {% for event in row.events %}
                                     <p><strong>{{ event.name }}</strong> {{ event.at ?? '' }}</p>
-                                    <table>{% for name, value in event.attributes ?? [] %}<tr><th scope="row">{{ name }}</th><td>{{ value is iterable ? value|json_encode : value }}</td></tr>{% endfor %}</table>
+                                    <table>{% for name, value in event.attributes ?? [] %}<tr><th scope="row">{{ name|breakable }}</th><td>{{ (value is iterable ? value|json_encode : value)|breakable }}</td></tr>{% endfor %}</table>
                                 {% endfor %}
                                 </div>
                             {% endif %}
@@ -149,8 +149,8 @@
                 {% endif %}
                 <tr data-span data-service="{{ row.service }}" data-depth="{{ row.depth }}"{% if row.hop %} data-hop{% endif %}{% if row.pending %} data-pending{% endif %}{% if row.failed %} data-failed{% endif %}{% if row.boilerplate %} data-boilerplate data-run="{{ row.run }}"{% endif %} class="status-{{ row.status }}">
                     <td data-column="service"><span class="chip svc-{{ row.serviceIndex % 8 }}">{{ row.service }}</span>{% if row.hop %} <span class="muted">⇢ hop</span>{% endif %}</td>
-                    <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em">{{ row.name }}{% if row.timeInvalid %} <span class="drift" data-time-invalid>time is missing or invalid, shown at the start of the trace</span>{% endif %}</td>
-                    <td data-column="endpoint" class="hide-narrow">{{ row.endpoint }}</td>
+                    <td data-column="name" style="padding-left: {{ 0.5 + row.depth * 1.2 }}em">{{ row.name|breakable }}{% if row.timeInvalid %} <span class="drift" data-time-invalid>time is missing or invalid, shown at the start of the trace</span>{% endif %}</td>
+                    <td data-column="endpoint" class="hide-narrow">{{ row.endpoint|breakable }}</td>
                     <td data-column="kind" class="detail-col">{{ row.kind }}</td>
                     <td data-column="startedAt" class="detail-col">{{ row.startedAt }}</td>
                     <td data-column="offset" class="num">{{ row.offsetLabel }}</td>
@@ -158,10 +158,11 @@
                     <td data-column="duration" class="num">{{ row.durationLabel }}</td>
                     <td data-column="timeline" class="timeline"><div class="track">
                         {% if row.waitMicro > 0 %}<span class="wait-bar" data-wait-bar title="queue wait {{ row.queueWaitLabel }}" style="left: {{ ((row.offsetMicro - row.waitMicro) / total * 100)|round(3) }}%; width: {{ (row.waitMicro / total * 100)|round(3) }}%"></span>{% endif %}
-                        {% if not row.timeInvalid %}<span class="bar {{ row.failed ? 'failed' : (row.pending ? 'pending' : 'svc-' ~ (row.serviceIndex % 8)) }}" data-bar data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" style="left: {{ (row.offsetMicro / total * 100)|round(3) }}%; width: {{ max(0.8, (row.durationMicro / total * 100)|round(3)) }}%"></span>{% endif %}
+                        {% set barWidth = max(0.8, (row.durationMicro / total * 100)|round(3)) %}{% set barLeft = min((row.offsetMicro / total * 100)|round(3), 100 - barWidth) %}
+                        {% if not row.timeInvalid %}<span class="bar {{ row.failed ? 'failed' : (row.pending ? 'pending' : 'svc-' ~ (row.serviceIndex % 8)) }}" data-bar data-offset="{{ row.offsetMicro }}" data-duration="{{ row.durationMicro }}" data-service-colour="svc-{{ row.serviceIndex % 8 }}" style="left: {{ barLeft }}%; width: {{ barWidth }}%"></span>{% endif %}
                     </div></td>
                     <td data-column="status">{{ row.status }}</td>
-                    <td data-column="error">{{ row.error }}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">dead letter</a>{% endif %}</td>
+                    <td data-column="error">{{ row.error|breakable }}{% if row.deadLetter %} <a data-dead-letter-link href="{{ path('dead_letter', {service: row.deadLetter.service, messageId: row.deadLetter.messageId}) }}">dead letter</a>{% endif %}</td>
                 </tr>
                 {% if row.attributes or row.events %}
                 <tr data-span-details{% if row.boilerplate %} data-boilerplate data-run="{{ row.run }}"{% endif %}><td colspan="11">

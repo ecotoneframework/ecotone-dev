@@ -15,12 +15,13 @@ final readonly class ProblemBoard
 
     /**
      * @param list<ServiceSnapshot> $scopes
+     * @param list<ServiceSnapshot> $everyScope
      * @return list<Tile>
      */
-    public function tiles(array $scopes): array
+    public function tiles(array $scopes, array $everyScope): array
     {
         $newest = null;
-        $versions = Snapshots::ecotoneVersions($scopes);
+        $versions = Snapshots::ecotoneVersions($everyScope);
         if ($versions !== []) {
             $newest = $versions[array_key_last($versions)];
         }

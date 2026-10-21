@@ -41,8 +41,8 @@ final class ServiceHubPageTest extends ReleasingWebTestCase
         $crawler = $this->freshView($client, '/services/orders');
 
         $crumbs = $crawler->filter('nav[aria-label="Breadcrumb"] li');
-        self::assertSame(['Services', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
-        self::assertSame('/services', $crumbs->first()->filter('a')->attr('href'));
+        self::assertSame(['Home', 'orders'], $crumbs->each(static fn (Crawler $crumb) => trim($crumb->text())));
+        self::assertSame('/', $crumbs->first()->filter('a')->attr('href'));
     }
 
     public function test_the_services_table_links_every_service_to_its_hub(): void

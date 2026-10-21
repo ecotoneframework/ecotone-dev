@@ -39,7 +39,8 @@ final class TracesController extends AbstractController
         $snapshots = $this->snapshots->viewScopesAndRequestStale();
 
         return $this->render('traces/index.html.twig', [
-            'services' => FlowTypeOverview::of($snapshots),
+            'services' => FlowTypeOverview::of($snapshots, $request->query->getString('service')),
+            'serviceFilter' => $request->query->getString('service'),
             'searchError' => $searchError,
             'waiting' => Snapshots::needsAutoRefresh($snapshots),
         ]);

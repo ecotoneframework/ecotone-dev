@@ -21,7 +21,7 @@ final class HomeController extends AbstractController
     public function home(): Response
     {
         $scopes = $this->snapshots->viewScopesAndRequestStale();
-        $tiles = $this->board->tiles($scopes);
+        $tiles = $this->board->tiles($scopes, $scopes);
         $ages = array_filter(array_map(static fn (ServiceSnapshot $scope): ?int => $scope->ageSeconds, $scopes), static fn (?int $age): bool => $age !== null);
 
         return $this->render('home/index.html.twig', [

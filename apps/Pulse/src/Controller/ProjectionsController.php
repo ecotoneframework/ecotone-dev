@@ -8,6 +8,7 @@ use App\Projection\ProjectionOverview;
 use App\Projection\RebuildNotice;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,6 +40,7 @@ final class ProjectionsController extends AbstractController
 
         return $this->render('services/projections.html.twig', [
             'service' => $rows[0],
+            'tenant' => ServiceScope::fromKey($service)->tenant,
             'sections' => $sections,
             'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
             'trackingDays' => $this->settings->trackingDays,

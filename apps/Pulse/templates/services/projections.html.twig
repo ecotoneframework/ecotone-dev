@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block body %}
-    {% include '_breadcrumbs.html.twig' with {crumbs: [{label: 'Services', href: path('services')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: 'Projections'}]} %}
+    {% include '_breadcrumbs.html.twig' with {crumbs: tenant ? [{label: 'Home', href: path('home')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: tenant, href: path('service_hub', {service: service.service, tenant: tenant})}, {label: 'Projections'}] : [{label: 'Home', href: path('home')}, {label: service.service, href: path('service_hub', {service: service.service})}, {label: 'Projections'}]} %}
     <h1>Projections of {{ service.service }}</h1>
     {% if notice %}
         {% if notice.error %}

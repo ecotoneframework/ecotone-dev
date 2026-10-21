@@ -14,6 +14,17 @@ final class CataloguePageTest extends WebTestCase
 {
     use DistributedServicesTrait;
 
+    public function test_catalogue_search_field_has_an_accessible_name(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = $this->pulseWebClient();
+        $this->pulseHavingHeardFrom($client, ['orders' => $this->ordersSendingInvoiceCommandToBilling(), 'billing' => $this->billingCreatingInvoices()]);
+
+        $crawler = $client->request('GET', '/catalogue');
+
+        self::assertNotSame('', trim((string) $crawler->filter('input[name="q"]')->attr('aria-label')));
+    }
+
     public function test_catalogue_finds_the_service_handling_a_command_ignoring_case(): void
     {
         $this->configurePulseWithServices('orders', 'billing');

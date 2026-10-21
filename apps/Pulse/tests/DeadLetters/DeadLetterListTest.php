@@ -33,6 +33,22 @@ final class DeadLetterListTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-dead-letter][data-service="invoices"]'));
     }
 
+    public function test_every_row_checkbox_has_an_accessible_name_and_no_table_header_is_empty(): void
+    {
+        $client = $this->pulseWithFailures();
+
+        $crawler = $this->freshView($client, '/dead-letters');
+
+        $boxes = $crawler->filter('[data-dead-letter] input[type="checkbox"]');
+        self::assertCount(4, $boxes);
+        foreach ($boxes as $box) {
+            self::assertNotSame('', trim((string) $box->getAttribute('aria-label')));
+        }
+        foreach ($crawler->filter('th') as $header) {
+            self::assertNotSame('', trim($header->textContent));
+        }
+    }
+
     public function test_totals_and_groups_are_shown_per_service(): void
     {
         $client = $this->pulseWithFailures();

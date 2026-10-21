@@ -48,11 +48,11 @@
                     {% endfor %}
                 </ul>
                 <table>
-                    <thead><tr><th></th><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
+                    <thead><tr><th><span class="visually-hidden">Select</span></th><th>Message</th><th>Exception</th><th>Failed at</th></tr></thead>
                     <tbody>
                     {% for entry in service.entries %}
                         <tr data-dead-letter data-service="{{ service.service }}" data-message-id="{{ entry.messageId }}" data-message-name="{{ entry.messageName }}">
-                            <td><input type="checkbox" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}"></td>
+                            <td><input type="checkbox" name="selected[{{ service.service }}][]" value="{{ entry.messageId }}" aria-label="Select {{ entry.messageName ?: '(unnamed)' }} {{ entry.messageId }}"></td>
                             <td><a href="{{ path('dead_letter', {service: service.service, messageId: entry.messageId}) }}">{{ entry.messageName ?: '(unnamed)' }}</a></td>
                             <td>{{ entry.exceptionClass }}: {{ entry.exceptionMessage }}</td>
                             <td>{{ entry.failedAt|date('Y-m-d H:i:s', 'UTC') }}{% if entry.traceId is defined and entry.traceId %} <a data-view-trace href="{{ path('trace_detail', {traceId: entry.traceId}) }}">View trace</a>{% endif %}</td>

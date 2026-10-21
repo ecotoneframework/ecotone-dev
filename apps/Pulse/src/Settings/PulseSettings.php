@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Settings;
 
 use App\Snapshot\Snapshots;
-use PDO;
 
 final readonly class PulseSettings
 {
@@ -79,17 +78,6 @@ final readonly class PulseSettings
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
         return new self($serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $internalDatabasePath);
-    }
-
-    /**
-     * @return array{dsn: string, connection: array{driverOptions: array<int, int>}}
-     */
-    public function internalDatabaseConfiguration(): array
-    {
-        return [
-            'dsn' => 'sqlite:///' . $this->internalDatabasePath,
-            'connection' => ['driverOptions' => [PDO::ATTR_TIMEOUT => self::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]],
-        ];
     }
 
     public function transportConnectionReference(): string

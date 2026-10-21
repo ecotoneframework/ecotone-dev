@@ -32,6 +32,26 @@ final readonly class Heartbeats
         ));
     }
 
+    public function recordRunningConsumers(string $runDirectory): void
+    {
+        foreach (array_keys($this->settings->replyChannels()) as $index => $channel) {
+            $pid = @file_get_contents(sprintf('%s/consumer.%d.pid', $runDirectory, $index));
+            if ($pid !== false && self::isRunning((int) $pid)) {
+                $this->record(self::CONSUMER_PREFIX . $channel);
+            }
+        }
+    }
+
+    private static function isRunning(int $pid): bool
+    {
+        $stat = @file_get_contents('/proc/' . $pid . '/stat');
+        if ($stat === false) {
+            return false;
+        }
+
+        return ! in_array(substr($stat, (int) strrpos($stat, ')') + 2, 1), ['T', 't', 'Z'], true);
+    }
+
     /**
      * @return list<ReadinessCheck>
      */
@@ -71,8 +91,8 @@ final readonly class Heartbeats
     {
         try {
             $beatAt = $this->database->connection()->fetchOne('SELECT beat_at FROM ' . InternalTables::HEARTBEAT . ' WHERE process = ?', [$process]);
-        } catch (Throwable) {
-            $beatAt = false;
+        } catch (Throwable $exception) {
+            return new ReadinessCheck($name, false, sprintf('The heartbeat of %s cannot be read: %s. Run "bin/console pulse:setup" or check the internal database.', $name, $exception->getMessage()));
         }
 
         if ($beatAt === false) {

@@ -44,6 +44,7 @@ final class RefreshSnapshotsCommand extends Command implements SignalableCommand
         do {
             $this->snapshots->refreshIdleServices();
             $this->heartbeats->record(Heartbeats::REFRESH);
+            $this->heartbeats->recordRunningConsumers((string) (getenv('PULSE_RUN_DIR') ?: '/tmp/pulse-run'));
             $done++;
             $output->writeln('Pulse requested snapshots from the services that were not waiting for one.', OutputInterface::VERBOSITY_VERBOSE);
             $nextTickAt = $nextTickAt->modify(sprintf('+%d seconds', $this->settings->refreshIntervalSeconds));

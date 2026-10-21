@@ -85,30 +85,6 @@ keep_running() {
     done
 }
 
-process_is_running() {
-    [ -r "/proc/$1/stat" ] || return 1
-    state="$(sed -e 's/^.*) //' -e 's/ .*$//' "/proc/$1/stat")"
-    [ "$state" != "T" ] && [ "$state" != "Z" ] && [ "$state" != "t" ]
-}
-
-report_heartbeats() {
-    while true; do
-        running=()
-        for entry in "${reply_channels[@]}"; do
-            label="${entry%%=*}"
-            channel="${entry#*=}"
-            pid="$(cat "$PULSE_RUN_DIR/$label.pid" 2>/dev/null || true)"
-            if [ -n "$pid" ] && process_is_running "$pid"; then
-                running+=("consumer:$channel")
-            fi
-        done
-        if [ "${#running[@]}" -gt 0 ]; then
-            php bin/console pulse:heartbeat "${running[@]}" > /dev/null 2>&1 || true
-        fi
-        sleep 5
-    done
-}
-
 run_pulse() {
     stopping=0
     pids=()
@@ -136,12 +112,10 @@ run_pulse() {
     done < <(php bin/console pulse:reply-channels)
     keep_running refresh php bin/console pulse:refresh &
     pids+=($!)
-    report_heartbeats &
-    heartbeats=$!
     php bin/console pulse:doctor >&2 || echo "Pulse: pulse:doctor found problems, see above. Pulse keeps running, because a service that is down is what it exists to show." >&2
     status=0
     wait -n "${pids[@]}" || status=$?
-    kill -TERM "${pids[@]}" "$heartbeats" 2>/dev/null || true
+    kill -TERM "${pids[@]}" 2>/dev/null || true
     wait || true
     if [ "$stopping" = 1 ]; then
         exit 0

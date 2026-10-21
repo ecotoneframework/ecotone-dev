@@ -36,7 +36,7 @@ final class ReadinessTest extends ReleasingWebTestCase
     {
         $client = $this->pulseClient();
 
-        $this->consoleCommand($client, 'pulse:heartbeat', ['processes' => ['consumer:' . $this->pulseChannel]]);
+        $this->consumerRunningAs(getmypid());
         $this->consoleCommand($client, 'pulse:refresh', ['--ticks' => 1]);
         $client->request('GET', '/readyz');
 
@@ -47,10 +47,11 @@ final class ReadinessTest extends ReleasingWebTestCase
     public function test_pulse_stops_being_ready_when_the_consumer_stops_reporting(): void
     {
         $client = $this->pulseClient();
-        $this->consoleCommand($client, 'pulse:heartbeat', ['processes' => ['consumer:' . $this->pulseChannel]]);
+        $this->consumerRunningAs(getmypid());
         $this->consoleCommand($client, 'pulse:refresh', ['--ticks' => 1]);
 
         $this->advanceTimeBy(70);
+        $this->consumerRunningAs(PHP_INT_MAX);
         $this->consoleCommand($client, 'pulse:refresh', ['--ticks' => 1]);
         $client->request('GET', '/readyz');
 
@@ -68,6 +69,15 @@ final class ReadinessTest extends ReleasingWebTestCase
         $client->request('GET', '/healthz');
 
         self::assertResponseIsSuccessful();
+    }
+
+    private function consumerRunningAs(int $processId): void
+    {
+        $directory = sys_get_temp_dir() . '/pulse-run-' . $this->pulseChannel;
+        is_dir($directory) || mkdir($directory);
+        file_put_contents($directory . '/consumer.0.pid', (string) $processId);
+        $_SERVER['PULSE_RUN_DIR'] = $directory;
+        putenv('PULSE_RUN_DIR=' . $directory);
     }
 
     private function pulseClient(): KernelBrowser

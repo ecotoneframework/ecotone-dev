@@ -6,6 +6,7 @@ use App\Settings\Connection;
 use App\Settings\PulseEnvironment;
 use App\Settings\PulseSettings;
 use App\Settings\Transport;
+use App\Storage\InternalDatabaseConnectionFactory;
 use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
 use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
@@ -26,7 +27,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set(PulseSettings::class)->factory([PulseSettings::class, 'fromProcessEnvironment'])->args([dirname(__DIR__)]);
 
     $services->alias('pulse.clock', 'clock');
-    $services->set(DbalConnectionFactory::class)->args([$settings->internalDatabaseConfiguration()]);
+    $services->set(DbalConnectionFactory::class, InternalDatabaseConnectionFactory::class)->args([$settings->internalDatabasePath, PulseSettings::INTERNAL_DATABASE_BUSY_TIMEOUT_SECONDS]);
 
     foreach ($settings->connections as $connection) {
         $dsn = '%env(' . $connection->environmentVariable . ')%';

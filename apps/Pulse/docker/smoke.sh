@@ -81,7 +81,7 @@ if docker logs "$container" 2>&1 | grep -qi 'Deprecated\|was not found in defini
     fail "the log contains deprecation or missing-definition lines"
 fi
 locked="$(docker logs "$container" 2>&1 | grep -c 'database is locked')"
-[ "$locked" = "0" ] || echo "[$name] warning: $locked 'database is locked' lines in the Pulse log (SQLite writer contention)"
+[ "$locked" = "0" ] || fail "$locked 'database is locked' lines in the Pulse log"
 
 
 if [ "${SMOKE_STOP_CONSUMER:-}" = "1" ]; then

@@ -108,9 +108,8 @@ final readonly class Doctor
     private function internalDatabase(): DoctorCheck
     {
         try {
-            $connection = $this->internalDatabase->connection();
-            $connection->fetchOne('SELECT COUNT(*) FROM ' . InternalTables::SERVICE_RECORD);
-            $connection->executeStatement('INSERT INTO ' . InternalTables::HEARTBEAT . " (process, beat_at) VALUES ('doctor', 0) ON CONFLICT(process) DO UPDATE SET beat_at = 0");
+            $this->internalDatabase->connection()->fetchOne('SELECT COUNT(*) FROM ' . InternalTables::HEARTBEAT);
+            $this->internalDatabase->inTransaction(static fn (): null => null);
         } catch (Throwable $exception) {
             return DoctorCheck::fail('internal database', $exception->getMessage(), sprintf('Run "bin/console pulse:setup", and make %s writable by the user Pulse runs as.', dirname($this->settings->internalDatabasePath)));
         }

@@ -35,6 +35,7 @@ return static function (ContainerConfigurator $container): void {
         '$serviceChannels' => $settings->serviceChannels,
         '$replyTimeoutSeconds' => $settings->replyTimeoutSeconds,
         '$renderWaitSeconds' => $settings->renderWaitSeconds,
+        '$refreshIntervalSeconds' => $settings->refreshIntervalSeconds,
         '$cacheDir' => $settings->cacheDir,
     ]);
 

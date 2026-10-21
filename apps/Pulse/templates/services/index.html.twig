@@ -21,7 +21,7 @@
             {% set version = service.ecotoneVersion %}
             <section class="card status-{{ service.status.value }}" data-service="{{ service.service }}">
                 <h2>{{ service.service }}</h2>
-                <p class="status" data-status="{{ service.status.value }}">{{ service.status.name }}</p>
+                <p class="status" data-status="{{ service.status.value }}">{{ service.status.name }}{% if service.retrying and service.status.value == 'unreachable' %} — retrying{% endif %}</p>
                 {% if service.requestFailure %}<p class="drift" data-request-error>{{ service.requestFailure }}</p>{% endif %}
                 {% if service.replyError %}<p class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</p>{% endif %}
                 <dl>

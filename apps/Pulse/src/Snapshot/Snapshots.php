@@ -40,6 +40,13 @@ final readonly class Snapshots
         }
     }
 
+    public function refreshIdleServices(): void
+    {
+        foreach (array_keys($this->settings->serviceChannels) as $service) {
+            $this->requester->refresh($service);
+        }
+    }
+
     /**
      * @param list<ServiceSnapshot> $snapshots
      * @return list<ServiceSnapshot>
@@ -74,6 +81,7 @@ final readonly class Snapshots
                 $record->requestFailure,
                 $record->replyError,
                 $record->hasPendingFollowUp(),
+                $record->retrying,
             );
         }, array_keys($this->settings->serviceChannels));
     }

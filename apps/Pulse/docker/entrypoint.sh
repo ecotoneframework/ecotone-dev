@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 role="${1:-web}"
@@ -35,9 +35,22 @@ case "$role" in
         ;;
     worker)
         rebuild_container
-        exec php bin/console ecotone:run "${PULSE_CHANNEL:-ecotone_pulse}" \
+        php bin/console ecotone:run "${PULSE_CHANNEL:-ecotone_pulse}" \
             --memoryLimit="${PULSE_WORKER_MEMORY_LIMIT:-256}" \
-            --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}"
+            --executionTimeLimit="${PULSE_WORKER_TIME_LIMIT_MS:-3600000}" &
+        consumer=$!
+        php bin/console pulse:refresh &
+        refresher=$!
+        stopping=0
+        trap 'stopping=1; kill -TERM "$consumer" "$refresher" 2>/dev/null' TERM INT
+        status=0
+        wait -n || status=$?
+        kill -TERM "$consumer" "$refresher" 2>/dev/null || true
+        wait || true
+        if [ "$stopping" = 1 ]; then
+            exit 0
+        fi
+        exit "$status"
         ;;
     *)
         exec "$@"

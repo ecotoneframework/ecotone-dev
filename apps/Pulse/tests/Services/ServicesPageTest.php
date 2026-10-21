@@ -175,7 +175,7 @@ final class ServicesPageTest extends WebTestCase
         self::assertSame('connected', $this->statusOf($client->request('GET', '/'), 'orders'));
     }
 
-    public function test_a_timed_out_request_is_sent_again_only_after_sixty_seconds_and_that_view_shows_waiting(): void
+    public function test_a_timed_out_request_is_sent_again_only_after_sixty_seconds_and_that_view_stays_unreachable(): void
     {
         $this->configurePulseWithServices('orders');
         $client = $this->pulseClient();
@@ -189,8 +189,7 @@ final class ServicesPageTest extends WebTestCase
         $this->advanceTimeBy(1);
         $retry = $client->request('GET', '/');
 
-        self::assertSame('waiting', $this->statusOf($retry, 'orders'));
-        self::assertCount(1, $retry->filter('meta[http-equiv="refresh"]'));
+        self::assertSame('unreachable', $this->statusOf($retry, 'orders'));
         $this->runService($orders, 'orders');
         $this->runPulseWorker($client->getKernel());
         self::assertSame(2, $handler->requests);

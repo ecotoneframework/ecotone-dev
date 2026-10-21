@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Snapshot;
 
+use App\Settings\PulseSettings;
+use Closure;
 use DateTimeImmutable;
 use Ecotone\Api\ExtensionObject\MediaType;
 use Ecotone\Api\Gateway\DistributedBus;
@@ -19,6 +21,7 @@ final readonly class SnapshotRequester
     public function __construct(
         private DistributedBus $distributedBus,
         private SnapshotStore $store,
+        private PulseSettings $settings,
         #[Autowire(service: 'pulse.clock')] private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -26,12 +29,25 @@ final readonly class SnapshotRequester
 
     public function request(string $service, bool $force): RequestResult
     {
+        return $this->send($service, static fn (ServiceRecord $record, DateTimeImmutable $now): bool => $force || $record->needsRequest($now));
+    }
+
+    public function refresh(string $service): RequestResult
+    {
+        return $this->send($service, fn (ServiceRecord $record, DateTimeImmutable $now): bool => $record->needsRefresh($now, $this->settings->replyTimeoutSeconds));
+    }
+
+    /**
+     * @param Closure(ServiceRecord, DateTimeImmutable): bool $shouldRequest
+     */
+    private function send(string $service, Closure $shouldRequest): RequestResult
+    {
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
         $claimed = false;
-        $this->store->update($service, function (ServiceRecord $record) use ($force, $now, &$claimed): ServiceRecord {
-            $claimed = $force || $record->needsRequest($now);
+        $this->store->update($service, function (ServiceRecord $record) use ($shouldRequest, $now, &$claimed): ServiceRecord {
+            $claimed = $shouldRequest($record, $now);
 
-            return $claimed ? $record->requested($now) : $record;
+            return $claimed ? $record->requested($now, $this->settings->replyTimeoutSeconds) : $record;
         });
         if (! $claimed) {
             return RequestResult::NotNeeded;

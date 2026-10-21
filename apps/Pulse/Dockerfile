@@ -3,7 +3,7 @@
 
 FROM dunglas/frankenphp:1-php8.5-bookworm AS base
 
-RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql sockets intl opcache zip
+RUN install-php-extensions amqp rdkafka redis pdo_pgsql pdo_mysql sockets pcntl intl opcache zip
 
 ENV APP_ENV=prod \
     APP_DEBUG=0 \

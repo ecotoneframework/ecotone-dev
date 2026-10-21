@@ -31,14 +31,29 @@ use Throwable;
  */
 final class MissingColumnFailure
 {
+    private const OWN_COLUMNS = ['flow_type', 'flow_status'];
+    private const SQLITE_MESSAGES = ['no such column', 'has no column named'];
+
     public static function explained(Throwable $failure, SpansTableManager $tableManager): Throwable
     {
         for ($cause = $failure; $cause !== null; $cause = $cause->getPrevious()) {
-            if ($cause instanceof InvalidFieldNameException || ($cause instanceof DriverException && str_contains($cause->getMessage(), 'no such column'))) {
-                return ConfigurationException::create($tableManager->getMissingColumnsInstructions());
+            if (self::isAboutAFlowColumnMissing($cause)) {
+                return new ConfigurationException($tableManager->getMissingColumnsInstructions(), ConfigurationException::CONFIGURATION_EXCEPTION, $failure);
             }
         }
 
         return $failure;
+    }
+
+    private static function isAboutAFlowColumnMissing(Throwable $cause): bool
+    {
+        if (! $cause instanceof DriverException) {
+            return false;
+        }
+
+        $namesOneOfOurColumns = array_filter(self::OWN_COLUMNS, fn (string $column): bool => str_contains($cause->getMessage(), $column)) !== [];
+        $isMissingColumn = $cause instanceof InvalidFieldNameException || array_filter(self::SQLITE_MESSAGES, fn (string $message): bool => str_contains($cause->getMessage(), $message)) !== [];
+
+        return $namesOneOfOurColumns && $isMissingColumn;
     }
 }

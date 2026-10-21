@@ -210,6 +210,21 @@ final class PulseTracesTest extends DbalMessagingTestCase
         $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
     }
 
+    public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_insert_chaining_the_database_failure(): void
+    {
+        $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
+        BetaSpansTableConnection::$tableLacksFlowColumns = true;
+        BetaSpansTableConnection::$onlyInserts = true;
+
+        try {
+            $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
+            self::fail('The write to a spans table without flow columns was not refused');
+        } catch (ConfigurationException $exception) {
+            self::assertSame(self::UPGRADE_INSTRUCTIONS, $exception->getMessage());
+            self::assertNotNull($exception->getPrevious());
+        }
+    }
+
     public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_snapshot_naming_how_to_upgrade_it(): void
     {
         $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
@@ -917,6 +932,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
     private function connectionOfABetaSpansTable(): DbalConnectionFactory
     {
         BetaSpansTableConnection::$tableLacksFlowColumns = false;
+        BetaSpansTableConnection::$onlyInserts = false;
 
         return new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => BetaSpansTableConnection::class]]);
     }
@@ -934,6 +950,7 @@ final class PulseTracesTest extends DbalMessagingTestCase
 final class BetaSpansTableConnection extends Connection
 {
     public static bool $tableLacksFlowColumns = false;
+    public static bool $onlyInserts = false;
 
     public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
     {
@@ -947,6 +964,6 @@ final class BetaSpansTableConnection extends Connection
 
     private static function asTheBetaTableKnewIt(string $sql): string
     {
-        return self::$tableLacksFlowColumns && ! str_starts_with($sql, 'CREATE') ? str_replace('flow_type', 'flow_type_of_the_final_release', $sql) : $sql;
+        return self::$tableLacksFlowColumns && ! str_starts_with($sql, 'CREATE') && (! self::$onlyInserts || str_starts_with($sql, 'INSERT')) ? preg_replace('/\\bflow_type\\b/', 'flow_type_of_the_final_release', $sql) : $sql;
     }
 }

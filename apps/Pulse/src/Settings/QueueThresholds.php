@@ -71,12 +71,12 @@ final readonly class QueueThresholds
 
     private function warningOf(?string $key): int
     {
-        return $this->warningOverrides[$key] ?? $this->warning;
+        return $key === null ? $this->warning : $this->warningOverrides[$key] ?? $this->warning;
     }
 
     private function criticalOf(?string $key): int
     {
-        return $this->criticalOverrides[$key] ?? $this->critical;
+        return $key === null ? $this->critical : $this->criticalOverrides[$key] ?? $this->critical;
     }
 
     /**

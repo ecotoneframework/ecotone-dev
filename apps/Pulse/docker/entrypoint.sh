@@ -41,11 +41,15 @@ case "$role" in
         consumer=$!
         php bin/console pulse:refresh &
         refresher=$!
-        trap 'kill -TERM "$consumer" "$refresher" 2>/dev/null' TERM INT
+        stopping=0
+        trap 'stopping=1; kill -TERM "$consumer" "$refresher" 2>/dev/null' TERM INT
         status=0
         wait -n || status=$?
         kill -TERM "$consumer" "$refresher" 2>/dev/null || true
         wait || true
+        if [ "$stopping" = 1 ]; then
+            exit 0
+        fi
         exit "$status"
         ;;
     *)

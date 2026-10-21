@@ -28,6 +28,7 @@ use Ecotone\Enqueue\EnqueueMessageChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
@@ -37,7 +38,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Test\ChannelTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\StaticMessageBuilder;
 use Exception;
 use RuntimeException;
@@ -74,7 +74,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $amqpConnectionReferenceName = AmqpConnectionFactory::class;
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Requiring an existing destination checks the queue named by the default routing key on the default exchange, so it cannot be combined with a custom exchange, an exchange from a header or a routing key from a header. Remove withRequiredExistingDestination(), or send with a fixed routing key to the default exchange.");
+        $this->expectExceptionMessage('Requiring an existing destination checks the queue named by the default routing key on the default exchange, so it cannot be combined with a custom exchange, an exchange from a header or a routing key from a header. Remove withRequiredExistingDestination(), or send with a fixed routing key to the default exchange.');
 
         $this->send(
             $this->prepareMessaging($amqpConnectionReferenceName, [], [], [], []),

@@ -202,7 +202,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
                     $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
 
                     break;
-                } catch (\RdKafka\Exception $exception) {
+                } catch (RdKafkaException $exception) {
                     if ($exception->getCode() !== RD_KAFKA_RESP_ERR__QUEUE_FULL || microtime(true) >= $retryDeadline) {
                         throw $exception;
                     }

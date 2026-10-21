@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Pulse;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\MessageGateway;
@@ -83,10 +84,22 @@ final class PulseSnapshotResponderTest extends TestCase
         );
     }
 
-    public function test_the_snapshot_lists_the_channels_the_service_registers_and_whether_they_are_pollable(): void
+    public function test_the_snapshot_lists_only_the_channels_the_service_consumes(): void
     {
-        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createDirectMessageChannel('orders_direct')];
-        $orderService = $this->orderService($this->orders(), $channels);
+        $handlers = new class () {
+            #[Asynchronous('orders_async')]
+            #[CommandHandler('order.place_later', endpointId: 'order.place_later.endpoint')]
+            public function placeLater(string $orderId): void
+            {
+            }
+
+            #[CommandHandler('order.place')]
+            public function place(string $orderId): void
+            {
+            }
+        };
+        $channels = [...$this->channels(), SimpleMessageChannelBuilder::createQueueChannel('orders_async'), SimpleMessageChannelBuilder::createQueueChannel('unused_queue'), SimpleMessageChannelBuilder::createDirectMessageChannel('orders_direct')];
+        $orderService = $this->orderService($handlers, $channels);
         $pulse = $this->pulseReplies();
         $pulseService = $this->pulseService($pulse, $channels);
 
@@ -96,14 +109,7 @@ final class PulseSnapshotResponderTest extends TestCase
 
         $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(1, $snapshot['schemaVersion']);
-        self::assertSame(
-            [
-                ['name' => 'order_channel', 'pollable' => true],
-                ['name' => 'pulse_channel', 'pollable' => true],
-                ['name' => 'orders_direct', 'pollable' => false],
-            ],
-            $snapshot['channels'],
-        );
+        self::assertSame(['orders_async'], $snapshot['channels']);
     }
 
     public function test_an_asynchronous_service_map_is_reported_in_the_topology(): void

@@ -16,6 +16,7 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\BootstrapConfiguration;
 use Ecotone\Messaging\Config\Configuration;
@@ -93,7 +94,7 @@ final class PulseModule implements AnnotationModule
                 $pulseServiceName,
                 PulseFrameworkResolver::resolve($bootstrapConfiguration),
                 array_map(self::topologyOf(...), $serviceMaps),
-                self::channelsOf($extensionObjects),
+                self::consumedChannelsOf($extensionObjects),
                 $sections,
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
@@ -140,14 +141,23 @@ final class PulseModule implements AnnotationModule
 
     /**
      * @param object[] $extensionObjects
-     * @return array<array{name: string, pollable: bool}>
+     * @return string[]
      */
-    private static function channelsOf(array $extensionObjects): array
+    private static function consumedChannelsOf(array $extensionObjects): array
     {
-        return array_map(
-            static fn (MessageChannelBuilder $channel) => ['name' => $channel->getMessageChannelName(), 'pollable' => $channel->isPollable()],
-            ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects)
-        );
+        $consumed = [];
+        foreach (ExtensionObjectResolver::resolve(AsynchronousModule::class, $extensionObjects) as $asynchronousModule) {
+            $consumed = array_merge($consumed, $asynchronousModule->consumedChannelNames($extensionObjects));
+        }
+
+        $channels = [];
+        foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $channel) {
+            if ($channel->isPollable() && in_array($channel->getMessageChannelName(), $consumed, true)) {
+                $channels[] = $channel->getMessageChannelName();
+            }
+        }
+
+        return $channels;
     }
 
     /**

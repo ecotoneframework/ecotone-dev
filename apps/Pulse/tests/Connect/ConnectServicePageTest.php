@@ -56,7 +56,7 @@ final class ConnectServicePageTest extends ReleasingWebTestCase
 
         self::assertStringContainsString('licenceKey: getenv', $crawler->filter('[data-snippet="lite"] [data-wiring]')->text());
         self::assertStringContainsString('licenceKey', $crawler->filter('[data-snippet="symfony"] [data-wiring]')->text());
-        self::assertStringContainsString("%env(ECOTONE_LICENCE_KEY)%", $crawler->filter('[data-snippet="symfony"] [data-wiring]')->text());
+        self::assertStringContainsString('%env(ECOTONE_LICENCE_KEY)%', $crawler->filter('[data-snippet="symfony"] [data-wiring]')->text());
         self::assertStringContainsString('bin/console ecotone:run ' . $this->serviceChannels['orders'], $crawler->filter('[data-snippet="symfony"] [data-wiring]')->text());
         self::assertStringContainsString("env('ECOTONE_LICENCE_KEY')", $crawler->filter('[data-snippet="laravel"] [data-wiring]')->text());
         self::assertStringContainsString('php artisan ecotone:run ' . $this->serviceChannels['orders'], $crawler->filter('[data-snippet="laravel"] [data-wiring]')->text());

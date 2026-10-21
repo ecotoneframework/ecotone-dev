@@ -91,35 +91,35 @@ final readonly class ConnectSnippets
         $uses = implode("\n", array_map(static fn (string $class) => 'use ' . $class . ';', $imports));
 
         return <<<PHP
-<?php
+            <?php
 
-declare(strict_types=1);
+            declare(strict_types=1);
 
-{$uses}
+            {$uses}
 
-final class PulseSetup
-{
-    #[ServiceContext]
-    public function serviceName(): ServiceConfiguration
-    {
-        return ServiceConfiguration::createWithDefaults()->withServiceName('{$service}');
-    }
+            final class PulseSetup
+            {
+                #[ServiceContext]
+                public function serviceName(): ServiceConfiguration
+                {
+                    return ServiceConfiguration::createWithDefaults()->withServiceName('{$service}');
+                }
 
-    #[ServiceContext]
-    public function pulse(): PulseConfiguration
-    {
-        return {$pulse};
-    }
+                #[ServiceContext]
+                public function pulse(): PulseConfiguration
+                {
+                    return {$pulse};
+                }
 
-    #[ServiceContext]
-    public function channels(): array
-    {
-        return [
-            {$builderName}::create('{$channel}'),
-            {$builderName}::create('{$replyChannel}'),
-        ];
-    }
-}
-PHP;
+                #[ServiceContext]
+                public function channels(): array
+                {
+                    return [
+                        {$builderName}::create('{$channel}'),
+                        {$builderName}::create('{$replyChannel}'),
+                    ];
+                }
+            }
+            PHP;
     }
 }

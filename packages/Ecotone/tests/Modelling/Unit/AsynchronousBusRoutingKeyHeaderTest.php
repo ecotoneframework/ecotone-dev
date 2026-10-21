@@ -6,6 +6,7 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\BusinessMethod;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Headers;
@@ -81,6 +82,31 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
         self::assertSame(['basket.create', 'basket.add'], $ecotone->sendQueryWithRouting('basket.routingKeys', metadata: ['aggregate.id' => '1']));
     }
 
+    public function test_an_asynchronous_handler_reached_through_a_business_interface_sees_the_routing_key_of_the_method(): void
+    {
+        $handlers = new class () {
+            public array $routingKeys = [];
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.invoice', endpointId: 'order.invoice.endpoint')]
+            public function invoice(array $order, #[Headers] array $headers): void
+            {
+                $this->routingKeys[] = $headers['ecotone_modelling_bus_routing_key'] ?? null;
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handlers::class, PulseOrderGateway::class],
+            containerOrAvailableServices: [$handlers],
+            extensionObjects: [SimpleMessageChannelBuilder::createQueueChannel('orders')],
+            enabledModules: [],
+        );
+
+        $ecotone->getGateway(PulseOrderGateway::class)->invoice(['orderId' => 1]);
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
+        self::assertSame(['order.invoice'], $handlers->routingKeys);
+    }
+
     private function bootstrap(): FlowTestSupport
     {
         $handlers = new class () {
@@ -127,6 +153,12 @@ final class AsynchronousBusRoutingKeyHeaderTest extends TestCase
             enabledModules: [],
         );
     }
+}
+
+interface PulseOrderGateway
+{
+    #[BusinessMethod('order.invoice')]
+    public function invoice(array $order): void;
 }
 
 #[Aggregate]

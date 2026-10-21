@@ -8,6 +8,7 @@ use App\Settings\PulseSettings;
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Throwable;
 
 final readonly class Snapshots
 {
@@ -27,20 +28,33 @@ final readonly class Snapshots
      */
     public function viewAndRequestStale(): array
     {
-        $this->awaiter->await(array_map(fn (string $service) => $this->requester->request($service, force: false), array_keys($this->settings->serviceChannels)));
+        $this->requestEveryScope(force: false);
 
         return $this->all();
     }
 
+    /**
+     * @return list<ServiceSnapshot>
+     */
+    public function viewScopesAndRequestStale(): array
+    {
+        $this->requestEveryScope(force: false);
+
+        return $this->scopes();
+    }
+
     public function refresh(): void
     {
-        $this->awaiter->await(array_map(fn (string $service) => $this->requester->request($service, force: true), array_keys($this->settings->serviceChannels)));
+        $this->requestEveryScope(force: true);
     }
 
     public function refreshIdleServices(): void
     {
         foreach (array_keys($this->settings->serviceChannels) as $service) {
-            $this->requester->refresh($service);
+            $this->requester->refresh(ServiceScope::ofService($service));
+        }
+        foreach ($this->tenantScopes() as $scope) {
+            $this->requester->refresh($scope);
         }
     }
 
@@ -51,22 +65,95 @@ final readonly class Snapshots
     {
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
 
-        return array_map(function (string $service) use ($now): ServiceSnapshot {
-            $record = $this->store->read($service);
+        return array_map(fn (string $service): ServiceSnapshot => $this->snapshotOf(ServiceScope::ofService($service), $now), array_keys($this->settings->serviceChannels));
+    }
 
-            return new ServiceSnapshot(
-                $service,
-                $this->settings->serviceChannels[$service],
-                $record->statusAt($now, $this->settings->replyTimeoutSeconds),
-                $record->receivedAt,
-                $record->ageAt($now),
-                $record->snapshot,
-                $record->requestFailure,
-                $record->replyError,
-                $record->hasPendingFollowUp(),
-                $record->retrying,
-            );
-        }, array_keys($this->settings->serviceChannels));
+    /**
+     * @return list<ServiceSnapshot>
+     */
+    public function scopes(): array
+    {
+        $now = DateTimeImmutable::createFromInterface($this->clock->now());
+        $scopes = [];
+        foreach ($this->all() as $service) {
+            if (! $service->isMultiTenant()) {
+                $scopes[] = $service;
+                continue;
+            }
+
+            foreach ($service->tenants as $tenant) {
+                $scopes[] = $this->snapshotOf(ServiceScope::ofTenant($service->service, $tenant), $now, $service);
+            }
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public function discoveredTenants(): array
+    {
+        $tenants = [];
+        try {
+            foreach ($this->all() as $service) {
+                if ($service->tenants !== []) {
+                    $tenants[$service->service] = $service->tenants;
+                }
+            }
+        } catch (Throwable) {
+            return [];
+        }
+
+        return $tenants;
+    }
+
+    private function requestEveryScope(bool $force): void
+    {
+        $this->awaiter->await(array_map(fn (string $service) => $this->requester->request(ServiceScope::ofService($service), $force), array_keys($this->settings->serviceChannels)));
+        $this->awaiter->await(array_map(fn (ServiceScope $scope) => $this->requester->request($scope, $force), $this->tenantScopes()));
+    }
+
+    /**
+     * @return list<ServiceScope>
+     */
+    private function tenantScopes(): array
+    {
+        $scopes = [];
+        foreach ($this->all() as $service) {
+            foreach ($service->tenants as $tenant) {
+                $scopes[] = ServiceScope::ofTenant($service->service, $tenant);
+            }
+        }
+
+        return $scopes;
+    }
+
+    private function snapshotOf(ServiceScope $scope, DateTimeImmutable $now, ?ServiceSnapshot $service = null): ServiceSnapshot
+    {
+        $record = $this->store->read($scope);
+        $tenancy = $service === null ? $record->snapshot['tenancy'] ?? null : null;
+        $advertised = is_array($tenancy) && is_array($tenancy['tenants'] ?? null) ? array_values(array_filter($tenancy['tenants'], is_string(...))) : [];
+        $narrowing = $this->settings->routes[$scope->service]->tenants;
+        $tenants = $narrowing === null ? $advertised : array_values(array_filter($narrowing, static fn (string $tenant): bool => in_array($tenant, $advertised, true)));
+        $unadvertised = $service !== null || ! is_array($tenancy) && $record->receivedAt === null ? [] : array_values(array_diff($narrowing ?? [], $advertised));
+
+        return new ServiceSnapshot(
+            $scope->service,
+            $this->settings->serviceChannels[$scope->service],
+            $record->statusAt($now, $this->settings->replyTimeoutSeconds),
+            $record->receivedAt,
+            $record->ageAt($now),
+            $service === null ? $record->snapshot : array_replace_recursive($service->snapshot, $record->snapshot),
+            $record->requestFailure,
+            $record->replyError,
+            $record->hasPendingFollowUp(),
+            $record->retrying,
+            $scope->tenant,
+            is_array($tenancy) && is_string($tenancy['header'] ?? null) ? $tenancy['header'] : $service?->tenantHeader,
+            $service === null ? $tenants : [],
+            $unadvertised,
+        );
     }
 
     /**

@@ -49,6 +49,25 @@
             </dl>
         </section>
 
+        {% if service.isMultiTenant or service.unadvertisedTenants %}
+        <section class="card" data-hub-tenants>
+            <h2>Tenants</h2>
+            {% if service.isMultiTenant %}<p class="muted">{{ service.service }} advertises its tenants in header <code>{{ service.tenantHeader }}</code>. Pulse asks for each tenant separately.</p>{% endif %}
+            {% include '_tenants.html.twig' %}
+            {% for row in tenantFlowTypes %}
+                {% if row.flowTypes %}
+                    <h3>Flow types of {{ row.tenant }}</h3>
+                    <ul data-tenant-flow-types="{{ row.tenant }}">
+                        {% for flowType in row.flowTypes %}
+                            <li><a href="{{ path('trace_list', {service: row.service, flowType: flowType.flowType}) }}">{{ flowType.flowType }}</a> <span class="muted">{{ flowType.runs }} runs, {{ flowType.errorRate }} errors, p95 {{ flowType.p95Ms }} ms</span></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if not service.isMultiTenant %}
         <section class="card" data-hub-dead-letters>
             <h2>Dead letters</h2>
             {% if service.deadLetterTotal is not null and deadLetterEnabled is not same as(false) %}
@@ -72,6 +91,7 @@
                 </ul>
             {% endif %}
         </section>
+        {% endif %}
 
         <section class="card" data-hub-graph>
             <h2>Flow graph</h2>

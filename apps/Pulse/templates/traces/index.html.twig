@@ -19,7 +19,7 @@
 
     {% for service in services %}
         <section class="card" id="service-{{ service.service }}" data-service-section="{{ service.service }}">
-            <h2>{{ service.service }}</h2>
+            <h2>{{ service.name }}{% if service.tenant %} <span class="chip" data-tenant="{{ service.tenant }}">tenant {{ service.tenant }}</span>{% endif %}</h2>
             {% if not service.status.hasSnapshot %}
                 <p class="muted" data-no-snapshot="{{ service.service }}">no snapshot yet ({{ service.status.status.name|lower }})</p>
             {% elseif not service.tracing %}

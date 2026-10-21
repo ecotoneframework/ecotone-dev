@@ -10,19 +10,21 @@ final class DeadLetterOverview
 {
     /**
      * @param list<ServiceSnapshot> $snapshots
-     * @return list<array{service: string, status: ServiceSnapshot, configured: bool, total: int, groups: list<array<string, mixed>>, entries: list<array<string, mixed>>}>
+     * @return list<array{service: string, name: string, tenant: ?string, status: ServiceSnapshot, configured: bool, total: int, groups: list<array<string, mixed>>, entries: list<array<string, mixed>>}>
      */
     public static function of(array $snapshots, DeadLetterFilter $filter): array
     {
         $services = [];
         foreach ($snapshots as $snapshot) {
-            if (! $filter->selectsService($snapshot->service)) {
+            if (! $filter->selectsService($snapshot->scope())) {
                 continue;
             }
             $deadLetters = $snapshot->snapshot['deadLetters'] ?? null;
             $configured = is_array($deadLetters) && ($snapshot->snapshot['deadLetter']['enabled'] ?? true) === true;
             $services[] = [
-                'service' => $snapshot->service,
+                'service' => $snapshot->scope(),
+                'name' => $snapshot->service,
+                'tenant' => $snapshot->tenant,
                 'status' => $snapshot,
                 'configured' => $configured,
                 'total' => $configured ? (int) ($deadLetters['total'] ?? 0) : 0,
@@ -39,9 +41,9 @@ final class DeadLetterOverview
      */
     public static function total(array $snapshots): int
     {
-        $names = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->service, $snapshots));
+        $names = self::withoutServicesSharingAnEarlierStore($snapshots, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->scope(), $snapshots));
 
-        return array_sum(array_map(static fn (ServiceSnapshot $snapshot) => in_array($snapshot->service, $names, true) ? (int) $snapshot->deadLetterTotal() : 0, $snapshots));
+        return array_sum(array_map(static fn (ServiceSnapshot $snapshot) => in_array($snapshot->scope(), $names, true) ? (int) $snapshot->deadLetterTotal() : 0, $snapshots));
     }
 
     /**
@@ -51,7 +53,7 @@ final class DeadLetterOverview
     public static function similar(array $snapshots, string $service, array $entry): int
     {
         foreach ($snapshots as $snapshot) {
-            if ($snapshot->service !== $service) {
+            if ($snapshot->scope() !== $service) {
                 continue;
             }
             foreach ($snapshot->snapshot['deadLetters']['groups'] ?? [] as $group) {
@@ -72,7 +74,7 @@ final class DeadLetterOverview
     {
         $ids = [];
         foreach ($snapshots as $snapshot) {
-            if ($snapshot->service !== $service) {
+            if ($snapshot->scope() !== $service) {
                 continue;
             }
             foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
@@ -92,7 +94,7 @@ final class DeadLetterOverview
     public static function entry(array $snapshots, string $service, string $messageId): ?array
     {
         foreach ($snapshots as $snapshot) {
-            if ($snapshot->service !== $service) {
+            if ($snapshot->scope() !== $service) {
                 continue;
             }
             foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
@@ -120,7 +122,7 @@ final class DeadLetterOverview
                 }
             }
             sort($names);
-            $channels[$snapshot->service] = array_values(array_unique($names));
+            $channels[$snapshot->scope()] = array_values(array_unique($names));
         }
 
         return $channels;
@@ -144,11 +146,11 @@ final class DeadLetterOverview
             }
             foreach ($snapshot->snapshot['deadLetters']['recent'] ?? [] as $entry) {
                 if (is_string($entry['messageId'] ?? null)) {
-                    $firstServiceOfId[$entry['messageId']] ??= $snapshot->service;
+                    $firstServiceOfId[$entry['messageId']] ??= $snapshot->scope();
                 }
             }
             foreach (array_keys($owners) as $owner) {
-                $groups[$owner][] = $snapshot->service;
+                $groups[$owner][] = $snapshot->scope();
             }
         }
 

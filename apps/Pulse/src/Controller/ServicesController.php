@@ -27,18 +27,29 @@ final class ServicesController extends AbstractController
         $newest = $versions === [] ? null : $versions[array_key_last($versions)];
         $ages = array_filter(array_map(static fn (ServiceSnapshot $service) => $service->ageSeconds, $services), static fn (?int $age) => $age !== null);
 
+        $tenantRows = [];
+        $deadLetterTotals = [];
+        foreach ($this->snapshots->scopes() as $row) {
+            if ($row->tenant !== null) {
+                $tenantRows[$row->service][] = $row;
+                $deadLetterTotals[$row->service] = ($deadLetterTotals[$row->service] ?? 0) + (int) $row->deadLetterTotal();
+            }
+        }
+
         return $this->render('services/index.html.twig', [
             'services' => $services,
+            'tenantRows' => $tenantRows,
+            'deadLetterTotals' => $deadLetterTotals,
             'versions' => $versions,
             'newest' => $newest,
             'summary' => [
                 'connected' => count(array_filter($services, static fn (ServiceSnapshot $service) => $service->status === ServiceStatus::Connected)),
                 'unreachable' => count(array_filter($services, static fn (ServiceSnapshot $service) => in_array($service->status->value, ['unreachable', 'channel_missing'], true))),
-                'deadLetters' => DeadLetterOverview::total($services),
+                'deadLetters' => DeadLetterOverview::total($this->snapshots->scopes()),
                 'drift' => count(array_filter($services, static fn (ServiceSnapshot $service) => $newest !== null && $service->ecotoneVersion() !== null && $service->ecotoneVersion() !== $newest)),
             ],
             'updatedAgo' => $ages === [] ? null : min($ages),
-            'waiting' => Snapshots::needsAutoRefresh($services),
+            'waiting' => Snapshots::needsAutoRefresh($this->snapshots->scopes()),
         ]);
     }
 

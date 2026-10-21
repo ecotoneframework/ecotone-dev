@@ -8,6 +8,7 @@ use App\Settings\Connection;
 use App\Settings\PulseSettings;
 use App\Settings\ServiceRoute;
 use App\Settings\Transport;
+use App\Snapshot\Snapshots;
 use App\Storage\InternalDatabase;
 use App\Storage\InternalTables;
 use Throwable;
@@ -18,6 +19,7 @@ final readonly class Doctor
         private PulseSettings $settings,
         private BrokerProbe $probe,
         private InternalDatabase $internalDatabase,
+        private Snapshots $snapshots,
     ) {
     }
 
@@ -40,6 +42,7 @@ final readonly class Doctor
         $checks[] = $this->internalDatabase();
         $checks[] = DoctorCheck::ok('licence', 'accepted, Pulse started with an Ecotone Enterprise licence');
         $checks[] = DoctorCheck::info('reply channels', $this->replyChannels());
+        $checks[] = $this->tenants();
 
         return $checks;
     }
@@ -140,6 +143,20 @@ final readonly class Doctor
         }
 
         return DoctorCheck::ok('internal database', 'writable at ' . $this->settings->internalDatabasePath);
+    }
+
+    private function tenants(): DoctorCheck
+    {
+        $discovered = $this->snapshots->discoveredTenants();
+        $lines = [];
+        foreach ($this->settings->routes as $route) {
+            $narrowed = $route->tenants === null ? '' : ' (narrowed to ' . implode(', ', $route->tenants) . ')';
+            $lines[] = isset($discovered[$route->service])
+                ? sprintf('%s advertises %s%s', $route->service, implode(', ', $discovered[$route->service]), $narrowed)
+                : sprintf('%s advertises no tenants yet%s', $route->service, $narrowed);
+        }
+
+        return DoctorCheck::info('tenants', implode('; ', $lines) . '. A multi-tenant service advertises its tenants in its snapshot; Pulse needs no tenant configuration.');
     }
 
     private function replyChannels(): string

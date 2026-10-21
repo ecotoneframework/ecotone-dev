@@ -36,6 +36,7 @@ final class ServiceHubController extends AbstractController
 
         $failing = in_array($snapshot->status->value, ['unreachable', 'channel_missing'], true);
         $flowTypes = FlowTypeOverview::of([$snapshot])[0];
+        $tenantRows = array_values(array_filter($this->snapshots->scopes(), static fn (ServiceSnapshot $row): bool => $row->service === $service && $row->tenant !== null));
 
         return $this->render('services/hub.html.twig', [
             'service' => $snapshot,
@@ -43,10 +44,12 @@ final class ServiceHubController extends AbstractController
             'diagnosis' => $failing ? $this->checksOf($service) : ['checks' => [], 'skipped' => false],
             'snippets' => $failing ? $this->snippets->for($service) : [],
             'servicesEntry' => $this->snippets->pulseServicesEntry($service),
+            'tenantRows' => $tenantRows,
+            'tenantFlowTypes' => FlowTypeOverview::of($tenantRows),
             'tracing' => $flowTypes['tracing'],
             'flowTypes' => $flowTypes['flowTypes'],
             'deadLetterEnabled' => $snapshot->snapshot['deadLetter']['enabled'] ?? null,
-            'waiting' => Snapshots::needsAutoRefresh([$snapshot]),
+            'waiting' => Snapshots::needsAutoRefresh([$snapshot, ...$tenantRows]),
         ]);
     }
 

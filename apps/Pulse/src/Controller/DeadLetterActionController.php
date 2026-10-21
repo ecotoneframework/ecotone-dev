@@ -10,6 +10,7 @@ use App\DeadLetter\DeadLetterFilter;
 use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
 use App\Snapshot\ReplyAwaiter;
+use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -57,7 +58,7 @@ final class DeadLetterActionController extends AbstractController
         $failed = [];
         $results = [];
         foreach ($actions as $service => $action) {
-            $result = $this->requester->send($service, $action);
+            $result = $this->requester->send(ServiceScope::fromKey($service), $action);
             $results[] = $result;
             if ($result->failed) {
                 $failed[] = $service;
@@ -92,7 +93,7 @@ final class DeadLetterActionController extends AbstractController
             return [$service => DeadLetterAction::replayMatching(['messageName' => $messageName, 'exceptionClass' => $exceptionClass], $targetChannel)];
         }
 
-        $ids = DeadLetterOverview::unnamedMessageIds($this->snapshots->all(), $service, $exceptionClass);
+        $ids = DeadLetterOverview::unnamedMessageIds($this->snapshots->scopes(), $service, $exceptionClass);
 
         return $ids === [] ? DeadLetterNotice::nothingSelected() : [$service => DeadLetterAction::replayIds($ids, $targetChannel)];
     }
@@ -121,7 +122,7 @@ final class DeadLetterActionController extends AbstractController
                 return DeadLetterNotice::unknownChannel($filter->service, $targetChannel);
             }
         }
-        $services = DeadLetterOverview::withoutServicesSharingAnEarlierStore($this->snapshots->all(), $services);
+        $services = DeadLetterOverview::withoutServicesSharingAnEarlierStore($this->snapshots->scopes(), $services);
         $conditions = $filter->storedConditions();
         $action = $replay ? DeadLetterAction::replayMatching($conditions, $targetChannel) : DeadLetterAction::deleteMatching($conditions);
 
@@ -181,15 +182,15 @@ final class DeadLetterActionController extends AbstractController
      */
     private function servicesWithDeadLetters(?string $onlyService): array|DeadLetterNotice
     {
-        $snapshots = $this->snapshots->all();
-        if ($onlyService !== null && $onlyService !== '' && ! in_array($onlyService, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->service, $snapshots), true)) {
+        $snapshots = $this->snapshots->scopes();
+        if ($onlyService !== null && $onlyService !== '' && ! in_array($onlyService, array_map(static fn (ServiceSnapshot $snapshot) => $snapshot->scope(), $snapshots), true)) {
             return DeadLetterNotice::unknownService();
         }
 
         $services = [];
         foreach ($snapshots as $snapshot) {
-            if (($onlyService === null || $onlyService === '' || $onlyService === $snapshot->service) && is_array($snapshot->snapshot['deadLetters'] ?? null)) {
-                $services[] = $snapshot->service;
+            if (($onlyService === null || $onlyService === '' || $onlyService === $snapshot->scope() || $onlyService === $snapshot->service) && is_array($snapshot->snapshot['deadLetters'] ?? null)) {
+                $services[] = $snapshot->scope();
             }
         }
         if ($services === []) {
@@ -201,7 +202,7 @@ final class DeadLetterActionController extends AbstractController
 
     private function registersChannel(string $service, string $channel): bool
     {
-        return in_array($channel, DeadLetterOverview::channelsByService($this->snapshots->all())[$service] ?? [], true);
+        return in_array($channel, DeadLetterOverview::channelsByService($this->snapshots->scopes())[$service] ?? [], true);
     }
 
     private function back(DeadLetterFilter $filter, DeadLetterNotice $notice): RedirectResponse

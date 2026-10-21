@@ -1,0 +1,15 @@
+{% if tenantRows or service.unadvertisedTenants %}
+    <ul class="tenants" data-tenants="{{ service.service }}">
+        {% for row in tenantRows %}
+            <li data-tenant="{{ row.tenant }}" data-tenant-status="{{ row.status.value }}">
+                <span class="mono">{{ row.tenant }}</span>
+                <span class="pill {{ {connected: 'ok', waiting: 'wait'}[row.status.value] ?? 'bad' }}">{{ row.status.value == 'channel_missing' ? 'Channel missing' : row.status.name }}</span>
+                {% if row.deadLetterTotal is not null %}<a href="{{ path('dead_letters', {service: row.scope}) }}" data-tenant-dead-letters>{{ row.deadLetterTotal }} dead letters</a>{% endif %}
+                {% if row.requestFailure %}<span class="drift" data-request-error>{{ row.requestFailure }}</span>{% endif %}
+            </li>
+        {% endfor %}
+        {% for tenant in service.unadvertisedTenants %}
+            <li data-tenant="{{ tenant }}" data-tenant-unadvertised><span class="mono">{{ tenant }}</span> <span class="muted">not advertised by the service, so Pulse does not ask for it. Remove it from <code>PULSE_SERVICES</code>, or add the tenant to the service's <code>MultiTenantConfiguration</code>.</span></li>
+        {% endfor %}
+    </ul>
+{% endif %}

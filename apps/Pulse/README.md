@@ -184,7 +184,7 @@ A file variable (`ECOTONE_LICENCE_KEY_FILE`, `PULSE_TRANSPORT_DSN_FILE`, `PULSE_
 
 ### Services and connections
 
-Every entry of `PULSE_SERVICES` is `service[:channel][#destination][@connection]`:
+Every entry of `PULSE_SERVICES` is `service[:channel][#destination][@connection][{tenants=a,b}]`:
 
 | Part | Meaning | Default |
 |---|---|---|
@@ -192,6 +192,7 @@ Every entry of `PULSE_SERVICES` is `service[:channel][#destination][@connection]
 | `:channel` | The Ecotone channel name Pulse sends the request to | the service name |
 | `#destination` | The actual queue (AMQP) or topic (Kafka) when it differs from the channel name | the channel name |
 | `@connection` | A connection defined with `PULSE_CONNECTION_<NAME>_DSN` | the default connection, `PULSE_TRANSPORT_DSN` |
+| `{tenants=a,b}` | Narrows a multi-tenant service to these tenants. Pulse needs no tenant configuration: the service advertises its tenants. A tenant named here that the service does not advertise is shown as *not advertised by the service* and never asked for | every tenant the service advertises |
 
 ```
 PULSE_SERVICES=orders,billing:billing_channel@legacy,shipping:shipping#shipping_queue
@@ -199,6 +200,8 @@ PULSE_CONNECTION_LEGACY_DSN=pgsql://user:secret@legacy-db:5432/db
 ```
 
 `orders` is channel `orders` on the default connection; `billing` is channel `billing_channel` on the `legacy` connection; `shipping` is channel `shipping` whose AMQP queue is `shipping_queue`. A destination takes the characters the broker allows, so `legacy:orders/high` and `orders.v1-new` work; put it in double quotes when it contains a comma or an `@` (`orders#"a,b@c"`). A Kafka topic must use only letters, digits, `.`, `_` and `-` (up to 249 characters) and an AMQP queue name is at most 255 bytes; anything else is refused at start. A destination can only be named on a transport that has one apart from the channel name (AMQP, Kafka); on Redis, SQS and the database the channel is the queue, so name it `shipping:shipping_queue`.
+
+A multi-tenant service (one with a `MultiTenantConfiguration`) is monitored per tenant: Pulse asks it for its tenants first, then for each tenant separately, and the dead letters, traces and every replay, delete or trace query reach the database of that tenant. The service must keep the Pulse channels off its multi-tenant connection: a DBAL Pulse channel on a dedicated connection reference, or a broker transport. A single-tenant service shows no tenant interface.
 
 Pulse sends requests only to a destination that already exists, and it never creates one: a service that has not started its consumer is shown as *channel missing* with the destination it looked for. On Kafka the topic has to exist before Pulse asks (the broker creates it when the service, or anything else, produces to it or a topic administrator creates it); a consumer alone does not create it.
 

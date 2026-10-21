@@ -46,6 +46,7 @@
                     <th scope="row"><a href="{{ path('service_hub', {service: service.service}) }}" data-hub-link>{{ service.service }}</a>
                         {% if service.hasSnapshot and service.snapshot.serviceName|default(service.service) != service.service %}<br><span class="muted mono">{{ service.snapshot.serviceName }}</span>{% endif %}
                         {% if service.requestFailure %}<br><span class="drift" data-request-error>{{ service.requestFailure }}</span>{% endif %}
+                        {% include '_tenants.html.twig' with {service: service, tenantRows: tenantRows[service.service] ?? []} %}
                         {% if service.replyError %}<br><span class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</span>{% endif %}
                     </th>
                     <td>{{ _self.pill(service.status, service.retrying) }}</td>
@@ -54,7 +55,7 @@
                         <td class="hide-narrow">{{ service.snapshot.overview.phpVersion|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.framework|default('unknown') }}</td>
                         <td class="hide-narrow">{{ service.snapshot.overview.licence.expiresAt|default('never') }}</td>
-                        <td class="num">{% if service.deadLetterTotal is not null %}<span data-dead-letters>{% if service.deadLetterTotal > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.deadLetterTotal }}</a>{% else %}{{ service.deadLetterTotal }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+                        <td class="num">{% if service.isMultiTenant %}<span data-dead-letters>{{ deadLetterTotals[service.service] ?? 0 }}</span>{% elseif service.deadLetterTotal is not null %}<span data-dead-letters>{% if service.deadLetterTotal > 0 %}<a href="{{ path('dead_letters', {service: service.service}) }}">{{ service.deadLetterTotal }}</a>{% else %}{{ service.deadLetterTotal }}{% endif %}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
                     {% else %}
                         <td class="muted" colspan="5">no snapshot yet</td>
                     {% endif %}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DeadLetter;
 
+use App\Snapshot\ServiceScope;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -68,7 +69,7 @@ final readonly class DeadLetterFilter
 
     public function selectsService(string $service): bool
     {
-        return $this->service === '' || $this->service === $service;
+        return $this->service === '' || $this->service === $service || ServiceScope::fromKey($service)->service === $this->service;
     }
 
     /**

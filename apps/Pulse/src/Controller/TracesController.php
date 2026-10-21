@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Snapshot\ServiceScope;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
 use App\Trace\FlameGraph;
@@ -35,7 +36,7 @@ final class TracesController extends AbstractController
             return new RedirectResponse($this->generateUrl('trace_detail', ['traceId' => $traceId]));
         }
 
-        $snapshots = $this->snapshots->viewAndRequestStale();
+        $snapshots = $this->snapshots->viewScopesAndRequestStale();
 
         return $this->render('traces/index.html.twig', [
             'services' => FlowTypeOverview::of($snapshots),
@@ -47,7 +48,7 @@ final class TracesController extends AbstractController
     #[Route('/traces/trace/{traceId}', name: 'trace_detail', methods: ['GET'], requirements: ['traceId' => '[^/]+'])]
     public function detail(string $traceId): Response
     {
-        $view = $this->traces->load($traceId, $this->snapshots->viewAndRequestStale());
+        $view = $this->traces->load($traceId, $this->snapshots->viewScopesAndRequestStale());
 
         return $this->render('traces/detail.html.twig', ['traceId' => $traceId, 'trace' => $view->trace, 'flame' => FlameGraph::of($view->trace), 'states' => $view->states, 'waiting' => $view->waiting]);
     }
@@ -55,7 +56,7 @@ final class TracesController extends AbstractController
     #[Route('/traces/{service}/{flowType}', name: 'trace_list', methods: ['GET'], requirements: ['service' => '[^/]+', 'flowType' => '.+'])]
     public function list(Request $request, string $service, string $flowType): Response
     {
-        $snapshots = $this->snapshots->viewAndRequestStale();
+        $snapshots = $this->snapshots->viewScopesAndRequestStale();
         $snapshot = $this->snapshotOf($snapshots, $service);
         if ($snapshot === null) {
             throw $this->createNotFoundException(sprintf('Service "%s" is not configured in Pulse. Add it to PULSE_SERVICES.', $service));
@@ -63,11 +64,12 @@ final class TracesController extends AbstractController
 
         $page = max(1, $request->query->getInt('page', 1));
         $tracing = is_array($snapshot->snapshot['tracing'] ?? null);
-        $answer = $tracing ? $this->queries->askAll([$service], TraceQuery::list($flowType, $page))[0] : null;
+        $answer = $tracing ? $this->queries->askAll([ServiceScope::fromKey($service)], TraceQuery::list($flowType, $page))[0] : null;
         $total = (int) ($answer?->result['total'] ?? 0);
 
         return $this->render('traces/list.html.twig', [
             'service' => $service,
+            'scope' => ServiceScope::fromKey($service),
             'flowType' => $flowType,
             'tracing' => $tracing,
             'answer' => $answer,
@@ -85,7 +87,7 @@ final class TracesController extends AbstractController
     private function snapshotOf(array $snapshots, string $service): ?ServiceSnapshot
     {
         foreach ($snapshots as $snapshot) {
-            if ($snapshot->service === $service) {
+            if ($snapshot->scope() === $service) {
                 return $snapshot;
             }
         }

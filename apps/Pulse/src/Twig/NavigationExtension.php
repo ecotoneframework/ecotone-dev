@@ -22,6 +22,6 @@ final class NavigationExtension extends AbstractExtension
 
     public function deadLetterTotal(): int
     {
-        return DeadLetterOverview::total($this->snapshots->all());
+        return DeadLetterOverview::total($this->snapshots->scopes());
     }
 }

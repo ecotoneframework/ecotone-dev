@@ -14,8 +14,8 @@
 
     <ul class="service-states">
         {% for state in states %}
-            <li data-service-state="{{ state.service }}" data-state="{{ state.state }}">
-                <strong>{{ state.service }}</strong>:
+            <li data-service-state="{{ state.service }}{{ state.tenant ? '@' ~ state.tenant : '' }}" data-state="{{ state.state }}">
+                <strong>{{ state.service }}</strong>{% if state.tenant %} <span class="chip" data-tenant="{{ state.tenant }}">tenant {{ state.tenant }}</span>{% endif %}:
                 {% if state.state == 'answered' %}answered{% if state.totalSpans %} ({{ state.totalSpans }} spans){% endif %}
                 {% elseif state.state == 'waiting' %}pending, waiting for the answer…
                 {% elseif state.state == 'not_answering' %}not answering for this query.{% if state.failure %} {{ state.failure }}{% endif %}

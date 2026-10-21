@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Services;
 
 use App\Tests\Support\PulseServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Amqp\AmqpExtConnectionFactory;
 use Ecotone\Api\Amqp\AmqpLibConnectionFactory;
@@ -17,12 +18,11 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * @internal
  */
-final class ChannelMissingTest extends WebTestCase
+final class ChannelMissingTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
 

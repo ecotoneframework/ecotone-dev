@@ -70,4 +70,30 @@ final class ServicesTableTest extends WebTestCase
         self::assertCount(1, $crawler->filter('tr[data-service="orders"] [data-diagnose]'));
         self::assertSame('1', $crawler->filter('[data-summary="unreachable"] b')->text());
     }
+
+    public function test_the_service_behind_in_ecotone_version_is_highlighted_and_counted(): void
+    {
+        $this->configurePulseWithServices('orders', 'billing');
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->setUpPulseDatabase($client->getKernel());
+        $orders = $this->serviceAnsweringWith('orders', $this->versionSnapshot('orders', '2.0.0'));
+        $billing = $this->serviceAnsweringWith('billing', $this->versionSnapshot('billing', '2.1.0'));
+        $client->request('GET', '/');
+        $this->runService($orders, 'orders');
+        $this->runService($billing, 'billing');
+        $this->runPulseWorker($client->getKernel());
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertCount(1, $crawler->filter('tr[data-service="orders"] [data-drifted]'));
+        self::assertCount(0, $crawler->filter('tr[data-service="billing"] [data-drifted]'));
+        self::assertSame('1', $crawler->filter('[data-summary="drift"] b')->text());
+        self::assertStringContainsString('2.0.0, 2.1.0', $crawler->filter('[data-version-drift]')->text());
+    }
+
+    private function versionSnapshot(string $service, string $version): string
+    {
+        return json_encode(['schemaVersion' => 1, 'serviceName' => $service, 'takenAt' => '2026-10-20T12:00:00+00:00', 'overview' => ['ecotoneVersion' => $version, 'phpVersion' => '8.5.3', 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]], 'flowGraph' => ['nodes' => [], 'edges' => []], 'topology' => ['serviceMaps' => []]], JSON_THROW_ON_ERROR);
+    }
 }

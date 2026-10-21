@@ -7,8 +7,8 @@
 {% endblock %}
 
 {% macro pill(status, retrying) %}
-    {% set tone = {connected: 'ok', waiting: 'wait', unreachable: 'bad'}[status.value] ?? 'off' %}
-    <span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-status="{{ status.value }}">{{ status.name }}{% if retrying and status.value == 'unreachable' %} — retrying{% endif %}</span>
+    {% set tone = {connected: 'ok', waiting: 'wait', unreachable: 'bad', channel_missing: 'bad'}[status.value] ?? 'off' %}
+    <span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-status="{{ status.value }}">{{ status.value == 'channel_missing' ? 'Channel missing' : status.name }}{% if retrying and status.value == 'unreachable' %} — retrying{% endif %}</span>
 {% endmacro %}
 
 {% block body %}
@@ -22,7 +22,7 @@
 
     <div class="strip">
         <p class="card stat" data-summary="connected"><b>{{ summary.connected }}</b><span>Connected of {{ services|length }}</span></p>
-        <p class="card stat{{ summary.unreachable > 0 ? ' bad' : '' }}" data-summary="unreachable"><b>{{ summary.unreachable }}</b><span>Unreachable</span></p>
+        <p class="card stat{{ summary.unreachable > 0 ? ' bad' : '' }}" data-summary="unreachable"><b>{{ summary.unreachable }}</b><span>Unreachable or channel missing</span></p>
         <p class="card stat{{ summary.deadLetters > 0 ? ' bad' : '' }}" data-summary="dead-letters"><b>{{ summary.deadLetters }}</b><span>Dead letters</span></p>
         <p class="card stat{{ summary.drift > 0 ? ' warn' : '' }}" data-summary="drift"><b>{{ summary.drift }}</b><span>Behind on Ecotone version</span></p>
     </div>
@@ -59,16 +59,17 @@
                         <td class="muted" colspan="5">no snapshot yet</td>
                     {% endif %}
                     <td>{{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted" data-age>{{ service.ageSeconds }}s</span>{% endif %}</td>
-                    <td>{% if service.status.value == 'unreachable' %}<a href="{{ path('services') }}#diagnose-{{ service.service }}" data-diagnose>Diagnose</a>{% endif %}</td>
+                    <td>{% if service.status.value in ['unreachable', 'channel_missing'] %}<a href="{{ path('services') }}#diagnose-{{ service.service }}" data-diagnose>Diagnose</a>{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 
-    {% for service in services %}{% if service.status.value == 'unreachable' %}
+    {% for service in services %}{% if service.status.value in ['unreachable', 'channel_missing'] %}
         <section class="card" id="diagnose-{{ service.service }}">
             <h2>Diagnose {{ service.service }}</h2>
+            {% if service.status.value == 'channel_missing' %}<p class="drift" data-channel-missing>{{ service.requestFailure }}</p>{% endif %}
             <ul>
                 <li>The service must run <code>ecotone:run {{ service.channel }}</code> to consume the channel Pulse writes to.</li>
                 <li><code>PULSE_SERVICES</code> must map <code>{{ service.service }}</code> to that channel, and the service needs an Enterprise licence key.</li>

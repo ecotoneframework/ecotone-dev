@@ -19,7 +19,8 @@ final readonly class ChannelDepth
         public ?string $probeError,
         public string $level,
         public bool $perTenant,
-        public array $expectedConsumers = [],
+        public ?string $consumerToRun = null,
+        public array $handlers = [],
         public ?bool $setUp = null,
         public ?int $notConsumingSeconds = null,
     ) {
@@ -51,13 +52,19 @@ final readonly class ChannelDepth
                 is_string($channel['probeError'] ?? null) ? $channel['probeError'] : null,
                 $thresholds->levelOf($snapshot->service, $channel['name'], $ready),
                 ($channel['perTenant'] ?? false) === true,
-                is_array($channel['expectedConsumers'] ?? null) ? array_values(array_filter($channel['expectedConsumers'], is_string(...))) : [],
+                is_string($channel['consumerToRun'] ?? null) ? $channel['consumerToRun'] : null,
+                is_array($channel['handlers'] ?? null) ? array_values(array_filter($channel['handlers'], is_string(...))) : [],
                 is_bool($channel['setUp'] ?? null) ? $channel['setUp'] : null,
                 self::notConsumingSeconds($snapshot, $channel['name'], $ready, $stalledAfterSeconds),
             );
         }
 
         return $depths;
+    }
+
+    public function runCommand(): ?string
+    {
+        return $this->consumerToRun === null ? null : 'ecotone:run ' . $this->consumerToRun;
     }
 
     /**

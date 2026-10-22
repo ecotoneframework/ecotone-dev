@@ -36,7 +36,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         $pastLimit = $this->observeBoard($client);
 
         self::assertSame([], $this->notConsumingOf($atLimit));
-        self::assertSame([['text' => 'invoices: 50 ready, no progress for 5 min, expected consumer: invoices', 'href' => '/services/orders#channels', 'severity' => 'warning', 'kind' => 'channel-not-consuming']], $this->notConsumingOf($pastLimit));
+        self::assertSame([['text' => 'invoices: 50 ready, no progress for 5 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)', 'href' => '/services/orders#channels', 'severity' => 'warning', 'kind' => 'channel-not-consuming']], $this->notConsumingOf($pastLimit));
     }
 
     public function test_a_ready_count_that_goes_down_resets_the_clock(): void
@@ -66,7 +66,7 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame(['invoices: 80 ready, no progress for 6 min, expected consumer: invoices'], array_column($this->notConsumingOf($crawler), 'text'));
+        self::assertSame(['invoices: 80 ready, no progress for 6 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)'], array_column($this->notConsumingOf($crawler), 'text'));
     }
 
     public function test_a_channel_with_nothing_ready_is_never_flagged_and_starts_a_new_clock_when_messages_return(): void
@@ -82,16 +82,16 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         self::assertSame([], $this->notConsumingOf($crawler));
     }
 
-    public function test_a_channel_nobody_is_expected_to_consume_says_so(): void
+    public function test_a_channel_without_a_polling_consumer_says_so(): void
     {
         $client = $this->boardWith(['orders' => null]);
-        $this->boardState['orders']->channels = [[...$this->channel('invoices', 50), 'expectedConsumers' => []]];
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 50), 'consumerToRun' => null, 'handlers' => []]];
         $this->settleBoard($client);
         $this->advanceTimeBy(301);
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame(['invoices: 50 ready, no progress for 5 min, expected consumer: none'], array_column($this->notConsumingOf($crawler), 'text'));
+        self::assertSame(['invoices: 50 ready, no progress for 5 min. No polling consumer runs this channel'], array_column($this->notConsumingOf($crawler), 'text'));
     }
 
     public function test_the_stalled_limit_follows_the_environment(): void
@@ -103,23 +103,46 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame(['invoices: 50 ready, no progress for 1 min, expected consumer: invoices'], array_column($this->notConsumingOf($crawler), 'text'));
+        self::assertSame(['invoices: 50 ready, no progress for 1 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)'], array_column($this->notConsumingOf($crawler), 'text'));
     }
 
-    public function test_the_service_page_lists_the_expected_consumers_and_marks_the_channel_not_consuming(): void
+    public function test_the_service_page_lists_the_consumer_to_run_and_the_handlers_and_marks_the_channel_not_consuming(): void
     {
         $client = $this->boardWith(['orders' => null]);
-        $this->boardState['orders']->channels = [$this->channel('invoices', 50), [...$this->channel('emails', 0), 'expectedConsumers' => []]];
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50), [...$this->channel('emails', 0), 'consumerToRun' => null, 'handlers' => []]];
         $this->settleBoard($client);
         $this->advanceTimeBy(301);
         $this->observeBoard($client);
 
         $crawler = $client->request('GET', '/services/orders');
 
-        self::assertSame('invoices', $crawler->filter('tr[data-channel="invoices"] [data-expected-consumers]')->text());
-        self::assertSame('none', $crawler->filter('tr[data-channel="emails"] [data-expected-consumers]')->text());
+        self::assertSame('ecotone:run invoices', $crawler->filter('tr[data-channel="invoices"] [data-run-command]')->text());
+        self::assertSame(['OrderPlaced → notifyCustomer'], $crawler->filter('tr[data-channel="invoices"] [data-channel-handlers] li')->extract(['_text']));
+        self::assertSame('No polling consumer', $crawler->filter('tr[data-channel="emails"] [data-run-command]')->text());
         self::assertSame('Not consuming for 5 min', trim($crawler->filter('tr[data-channel="invoices"] [data-not-consuming]')->text()));
         self::assertCount(0, $crawler->filter('tr[data-channel="emails"] [data-not-consuming]'));
+    }
+
+    public function test_a_channel_whose_setup_is_unknown_is_not_reported_as_not_set_up(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'setUp' => null, 'probeError' => 'Socket error: could not connect to host']];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame([], array_values(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'channel-not-set-up')));
+        self::assertCount(0, $client->request('GET', '/services/orders')->filter('[data-channel-not-set-up]'));
+    }
+
+    public function test_a_channel_the_broker_does_not_have_is_marked_not_set_up_on_its_row_and_on_the_board(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'setUp' => false]];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame(['Channel invoices not set up'], array_column(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'channel-not-set-up'), 'text'));
+        self::assertCount(1, $client->request('GET', '/services/orders')->filter('tr[data-channel="invoices"] [data-channel-not-set-up]'));
     }
 
     /**

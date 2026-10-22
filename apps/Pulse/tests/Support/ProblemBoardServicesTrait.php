@@ -140,7 +140,7 @@ trait ProblemBoardServicesTrait
 
     private function channel(string $name, int $ready): array
     {
-        return ['name' => $name, 'kind' => 'async', 'ready' => $ready, 'delayed' => 0, 'inFlight' => 0, 'consumers' => null, 'probeError' => null, 'expectedConsumers' => [$name], 'setUp' => null];
+        return ['name' => $name, 'kind' => 'async', 'ready' => $ready, 'delayed' => 0, 'inFlight' => 0, 'consumers' => null, 'probeError' => null, 'consumerToRun' => $name, 'handlers' => ['OrderPlaced → notifyCustomer'], 'setUp' => null];
     }
 
     private function failureGroup(string $messageName, int $count, string $failureId = 'failure-1'): array

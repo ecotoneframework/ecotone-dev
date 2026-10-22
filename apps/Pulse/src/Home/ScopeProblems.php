@@ -99,7 +99,7 @@ final readonly class ScopeProblems
                 $problems[] = new Problem(
                     Severity::Warning,
                     'channel-not-consuming',
-                    sprintf('%s: %s ready, no progress for %d min, expected consumer: %s', $depth->name, self::number((int) $depth->ready), intdiv($depth->notConsumingSeconds, 60), $depth->expectedConsumers === [] ? 'none' : implode(', ', $depth->expectedConsumers)),
+                    sprintf('%s: %s ready, no progress for %d min. %s%s', $depth->name, self::number((int) $depth->ready), intdiv($depth->notConsumingSeconds, 60), $depth->runCommand() === null ? 'No polling consumer runs this channel' : sprintf('Start `%s`', $depth->runCommand()), $depth->handlers === [] ? '' : sprintf(' (handles %s)', implode(', ', $depth->handlers))),
                     $this->hub($scope) . '#channels',
                 );
             }

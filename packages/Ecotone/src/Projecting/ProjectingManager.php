@@ -149,6 +149,11 @@ class ProjectingManager
         return $this->rebuildAsyncChannelName !== null;
     }
 
+    public function backfillsAsynchronously(): bool
+    {
+        return $this->backfillAsyncChannelName !== null;
+    }
+
     public function isPartitioned(): bool
     {
         return $this->partitioned;

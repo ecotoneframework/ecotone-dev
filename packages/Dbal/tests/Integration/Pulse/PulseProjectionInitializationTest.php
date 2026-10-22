@@ -26,6 +26,7 @@ use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -94,7 +95,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [kickoff_orders, partitioned_orders]');
+        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]');
 
         $this->act('ecotone.pulse.projections.initialize', 'missing', self::FIRST_TRACE);
     }
@@ -120,6 +121,60 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->expectExceptionMessage('Pulse asked to initialize projection partitioned_orders, but it is partitioned and every partition initializes itself on its first event, so there is no single initialization to run. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.');
 
         $this->act('ecotone.pulse.projections.initialize', 'partitioned_orders', self::FIRST_TRACE);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_backfill_through_the_backfill_channel_is_running_until_its_batch_is_handled(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'async_backfill_orders', self::FIRST_TRACE);
+
+        self::assertSame(['tracingId' => self::FIRST_TRACE, 'projection' => 'async_backfill_orders', 'mode' => 'asynchronous'], $reply['backfillAction']);
+        $running = $this->trackings()['trackings'][0];
+        self::assertSame(['projection-backfill', 'async_backfill_orders', 'running', 0], [$running['type'], $running['reference'], $running['state'], $running['batchesDone']]);
+
+        $this->orderService->advanceTimeBy(Duration::seconds(5));
+        $this->orderService->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $done = $this->trackings()['trackings'][0];
+        self::assertSame(['done', 1, 1, 5000], [$done['state'], $done['batchesDone'], $done['batchCount'], $done['durationMs']]);
+        self::assertSame(2, $this->orderService->sendQueryWithRouting('async_backfill_orders.count'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_backfill_without_a_backfill_channel_runs_inside_the_request_and_is_done_when_the_reply_arrives(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $reply = $this->act('ecotone.pulse.projections.backfill', 'kickoff_orders', self::FIRST_TRACE);
+
+        self::assertSame('synchronous', $reply['backfillAction']['mode']);
+        $tracking = $this->trackings()['trackings'][0];
+        self::assertSame(['projection-backfill', 'done'], [$tracking['type'], $tracking['state']]);
+        self::assertSame(2, $this->orderService->sendQueryWithRouting('kickoff_orders.count'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_backfilling_an_unknown_projection_is_refused_with_the_known_projections(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]');
+
+        $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_backfilling_a_streaming_projection_is_refused_because_it_keeps_no_position(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
+
+        $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
     }
 
     private function initializationOf(string $projection): ?string
@@ -175,6 +230,27 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
                 return $this->count;
             }
         };
+        $asyncBackfillOrders = new #[Projection('async_backfill_orders'), FromStream('orders_stream'), ProjectionBackfill(asyncChannelName: 'backfill_channel')] class () {
+            public int $count = 0;
+
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+                $this->count++;
+            }
+
+            #[QueryHandler('async_backfill_orders.count')]
+            public function count(): int
+            {
+                return $this->count;
+            }
+        };
+        $streamingOrders = new #[Projection('streaming_orders'), Streaming('orders_feed')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
         $partitionedOrders = new #[Projection('partitioned_orders'), FromStream('orders_stream'), Partitioned('orderId')] class () {
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void
@@ -200,10 +276,12 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $channels = [
             SimpleMessageChannelBuilder::createQueueChannel('order_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('orders_feed'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$kickoffOrders::class, $partitionedOrders::class],
-            containerOrAvailableServices: [$kickoffOrders, $partitionedOrders, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            classesToResolve: [$kickoffOrders::class, $asyncBackfillOrders::class, $partitionedOrders::class, $streamingOrders::class],
+            containerOrAvailableServices: [$kickoffOrders, $asyncBackfillOrders, $partitionedOrders, $streamingOrders, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
                 FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemory),

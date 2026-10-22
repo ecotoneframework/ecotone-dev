@@ -61,7 +61,7 @@ final class TraceRecordingInterceptor implements FlowTrackingScope
     public function keepPulseRequestOutOfFlowTracking(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $headers = $message->getHeaders();
-        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX) && $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) !== PulseProjectionActions::ROUTING_KEY && $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) !== PulseProjectionActions::INITIALIZE_ROUTING_KEY) {
+        if ($headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY) && str_starts_with((string) $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), self::PULSE_ROUTING_PREFIX) && ! in_array($headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY), PulseProjectionActions::TRACKED_ROUTING_KEYS, true)) {
             $this->recorder->excludeScopeFromTracking();
         }
 

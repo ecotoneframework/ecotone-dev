@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Pulse\Tracking;
 
+use Closure;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -38,6 +39,8 @@ final class PulseProjectionActions
 {
     public const ROUTING_KEY = 'ecotone.pulse.projections.rebuild';
     public const INITIALIZE_ROUTING_KEY = 'ecotone.pulse.projections.initialize';
+    public const BACKFILL_ROUTING_KEY = 'ecotone.pulse.projections.backfill';
+    public const TRACKED_ROUTING_KEYS = [self::ROUTING_KEY, self::INITIALIZE_ROUTING_KEY, self::BACKFILL_ROUTING_KEY];
     private const EXAMPLE = '{"projection": "orders"}';
     private const TRACING_EXAMPLE = "sendMessage('service', 'ecotone.pulse.projections.rebuild', '{\"projection\": \"orders\"}', metadata: ['tracingId' => '0af7651916cd43dd8448eb211c80319c'])";
 
@@ -54,27 +57,43 @@ final class PulseProjectionActions
      */
     public function rebuild(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
     {
+        return $this->batched('rebuild', 'rebuildAction', Tracking::PROJECTION_REBUILD_TYPE, $payload, $sourceService, $headers, $snapshot, fn (string $projection): bool => $this->projections->get($projection)->rebuildsAsynchronously(), $this->projectionOperations->rebuildTrackedBy(...));
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    public function backfill(string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot): string
+    {
+        return $this->batched('backfill', 'backfillAction', Tracking::PROJECTION_BACKFILL_TYPE, $payload, $sourceService, $headers, $snapshot, fn (string $projection): bool => $this->projections->get($projection)->backfillsAsynchronously(), $this->projectionOperations->backfillTrackedBy(...));
+    }
+
+    /**
+     * @param array<string, mixed> $headers
+     */
+    private function batched(string $verb, string $replyKey, string $type, string $payload, ?string $sourceService, array $headers, PulseSnapshot $snapshot, Closure $isAsynchronous, Closure $run): string
+    {
         $snapshot->authorizeRequestFrom($sourceService);
         $snapshot->tenantOfScopedRequest($headers);
-        $projection = $this->knownProjectionOf($this->requestOf($payload, 'rebuild'), 'rebuild');
-        $tracingId = $this->tracingIdOf(isset($headers[MessageHeaders::TRACING_ID]) ? (string) $headers[MessageHeaders::TRACING_ID] : null, 'rebuild');
-        $mode = $this->projections->get($projection)->rebuildsAsynchronously() ? 'asynchronous' : 'synchronous';
+        $projection = $this->knownProjectionOf($this->requestOf($payload, $verb), $verb);
+        $tracingId = $this->tracingIdOf(isset($headers[MessageHeaders::TRACING_ID]) ? (string) $headers[MessageHeaders::TRACING_ID] : null, $verb);
+        $mode = $isAsynchronous($projection) ? 'asynchronous' : 'synchronous';
 
-        $this->trackings->withinTransaction(function () use ($projection, $tracingId): void {
+        $this->trackings->withinTransaction(function () use ($projection, $tracingId, $type, $run): void {
             $this->trackings->record(new Tracking(
                 $tracingId,
                 Tracking::PULSE_CATEGORY,
-                Tracking::PROJECTION_REBUILD_TYPE,
+                $type,
                 $projection,
                 $this->trackings->activeTenant(),
                 $this->clock->now()->unixTime()->inMicroseconds(),
             ));
-            $this->projectionOperations->rebuildTrackedBy($projection, $tracingId);
+            $run($projection, $tracingId);
         });
 
         return json_encode([
             ...json_decode($snapshot->snapshotJson($sourceService, $headers), true, flags: JSON_THROW_ON_ERROR),
-            'rebuildAction' => ['tracingId' => $tracingId, 'projection' => $projection, 'mode' => $mode],
+            $replyKey => ['tracingId' => $tracingId, 'projection' => $projection, 'mode' => $mode],
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
@@ -144,7 +163,7 @@ final class PulseProjectionActions
             $known = [...$this->projections->projectionNames()];
             sort($known);
 
-            throw InvalidArgumentException::create("Pulse asked to {$verb} projection {$projection}, but there is no such projection. Registered projections: [" . implode(', ', $known) . ']. Send the name given in #[Projection] of the projection to ' . $verb . '.');
+            throw InvalidArgumentException::create("Pulse asked to {$verb} projection {$projection}, but there is no such projection. Registered projections: [" . implode(', ', $known) . ']. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again. For any other projection, send the name given in #[Projection] of the projection to ' . $verb . '.');
         }
 
         return $projection;

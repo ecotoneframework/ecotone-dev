@@ -14,6 +14,7 @@ use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -21,6 +22,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\Api\Projecting\Partitioned;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -289,6 +291,76 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertSame(['events' => 0, 'atLeast' => false], $ofTenantB['projections'][0]['eventsBehind']);
     }
 
+    public function test_initializing_and_backfilling_from_pulse_set_up_a_projection_on_the_event_store_of_the_service(): void
+    {
+        $initialized = new #[Projection('tickets_kick_off_initialized'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
+            public int $handled = 0;
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->handled++;
+            }
+        };
+        $backfilled = new #[Projection('tickets_kick_off_backfilled'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
+            public int $handled = 0;
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->handled++;
+            }
+        };
+        $this->bootstrap('dbal', [$initialized, $backfilled]);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
+        self::assertSame(['tickets_kick_off_backfilled' => 'uninitialized', 'tickets_kick_off_initialized' => 'uninitialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
+
+        $this->act('ecotone.pulse.projections.initialize', 'tickets_kick_off_initialized', '0af7651916cd43dd8448eb211c80319c');
+        $this->act('ecotone.pulse.projections.backfill', 'tickets_kick_off_backfilled', '1af7651916cd43dd8448eb211c80319c');
+
+        self::assertSame(['tickets_kick_off_backfilled' => 'initialized', 'tickets_kick_off_initialized' => 'initialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
+        self::assertSame(1, $initialized->handled);
+        self::assertSame(1, $backfilled->handled);
+    }
+
+    public function test_initializing_a_projection_in_one_tenant_leaves_it_uninitialized_in_the_other(): void
+    {
+        $this->bootstrap('dbal', [new #[Projection('tickets_kick_off'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
+            public int $handled = 0;
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->handled++;
+            }
+        }], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_a']);
+
+        $this->act('ecotone.pulse.projections.initialize', 'tickets_kick_off', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
+
+        self::assertSame('initialized', $this->requestSnapshot('tenant_a')['projections'][0]['initialization']);
+        self::assertSame('uninitialized', $this->requestSnapshot('tenant_b')['projections'][0]['initialization']);
+    }
+
+    public function test_backfilling_a_projection_in_one_tenant_leaves_it_uninitialized_in_the_other(): void
+    {
+        $this->bootstrap('dbal', [new #[Projection('tickets_kick_off'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
+            public int $handled = 0;
+
+            #[EventHandler]
+            public function when(TicketWasRegistered $event): void
+            {
+                $this->handled++;
+            }
+        }], multiTenant: true);
+        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_b']);
+
+        $this->act('ecotone.pulse.projections.backfill', 'tickets_kick_off', '0af7651916cd43dd8448eb211c80319c', 'tenant_b');
+
+        self::assertSame('initialized', $this->requestSnapshot('tenant_b')['projections'][0]['initialization']);
+        self::assertSame('uninitialized', $this->requestSnapshot('tenant_a')['projections'][0]['initialization']);
+    }
+
     private function asynchronousProjection(): object
     {
         return new #[Projection('tickets_async'), Asynchronous('tickets_async_channel'), FromAggregateStream(Ticket::class)] class () {
@@ -348,6 +420,13 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
             enabledModules: [],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function act(string $routingKey, string $projection, string $tracingId, ?string $tenant = null): void
+    {
+        $this->pulseService->getDistributedBus()->sendMessage('order_service', $routingKey, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...($tenant === null ? [] : ['tenant' => $tenant])], replyRoutingKey: 'ecotone.pulse.snapshot_received');
+        $this->orderService->run('order_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->pulseService->run('pulse_channel', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     private function requestSnapshot(?string $tenant = null): array

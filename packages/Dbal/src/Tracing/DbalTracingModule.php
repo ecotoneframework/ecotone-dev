@@ -286,6 +286,11 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
                 ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
         $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'backfill'))
+                ->withInputChannelName(PulseProjectionActions::BACKFILL_ROUTING_KEY)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+        );
+        $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseTrackings::class, $interfaceToCallRegistry->getFor(PulseTrackings::class, 'list'))
                 ->withInputChannelName(PulseTrackings::ROUTING_KEY)
                 ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), HeaderBuilder::createOptional('queryId', PulseTrackings::QUERY_ID_HEADER), $snapshot])

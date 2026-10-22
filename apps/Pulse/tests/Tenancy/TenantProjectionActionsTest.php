@@ -7,6 +7,7 @@ namespace App\Tests\Tenancy;
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Ecotone\Api\EventSourcing\Event;
+use Throwable;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -104,9 +105,33 @@ final class TenantProjectionActionsTest extends ReleasingWebTestCase
         self::assertStringContainsString('in tenant tenant_b was not confirmed', $client->followRedirect()->filter('[data-notice-error]')->text());
     }
 
+    public function test_initializing_a_projection_in_an_unknown_tenant_is_refused(): void
+    {
+        $this->pulseWithTenants();
+
+        try {
+            $this->initializeInTenant('tenant_orders', 'tenant_unknown');
+            self::fail('initialization in an unknown tenant was accepted');
+        } catch (Throwable $exception) {
+            self::assertSame('Lack of mapping for tenant `tenant_unknown`. Please provide mapping for this tenant or default connection name.', $exception->getMessage());
+        }
+    }
+
+    public function test_initializing_a_projection_without_a_tenant_header_is_refused(): void
+    {
+        $this->pulseWithTenants();
+
+        try {
+            $this->services['orders']->initializeProjection('tenant_orders');
+            self::fail('initialization without a tenant was accepted');
+        } catch (Throwable $exception) {
+            self::assertSame('Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.', $exception->getMessage());
+        }
+    }
+
     private function initializeInTenant(string $projection, string $tenant): void
     {
-        $this->services['orders']->sendCommandWithRouting('projection.initialize', $projection, metadata: ['tenant' => $tenant]);
+        $this->services['orders']->initializeProjection($projection, ['tenant' => $tenant]);
     }
 
     private function pulseWithOrderPlaced(): KernelBrowser

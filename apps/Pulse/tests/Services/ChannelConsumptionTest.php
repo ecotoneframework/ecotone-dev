@@ -54,6 +54,22 @@ final class ChannelConsumptionTest extends ReleasingWebTestCase
         self::assertSame([], $this->notDrainingOf($crawler));
     }
 
+    public function test_a_failed_depth_probe_does_not_reset_the_not_falling_clock(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 50), 'ready' => null, 'probeError' => 'Socket error: could not connect to host']];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame(['invoices: 50 ready, count not falling for 6 min. Start `ecotone:run invoices` (handles OrderPlaced → notifyCustomer)'], array_column($this->notDrainingOf($crawler), 'text'));
+    }
+
     public function test_a_ready_count_that_keeps_growing_is_still_not_draining(): void
     {
         $client = $this->boardWith(['orders' => null]);

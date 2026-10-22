@@ -91,6 +91,9 @@ final class PulseTrackings
      */
     private function progressOf(Tracking $tracking, array $spans): array
     {
+        if ($tracking->type === Tracking::PROJECTION_INITIALIZATION_TYPE) {
+            return ['state' => 'done', 'batchesDone' => 0, 'batchCount' => null, 'finishedAt' => $tracking->startedAtInMicroseconds];
+        }
         $batches = [];
         $batchCount = null;
         $finishedAt = null;

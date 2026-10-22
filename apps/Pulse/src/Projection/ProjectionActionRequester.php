@@ -20,9 +20,9 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Throwable;
 
-final readonly class RebuildRequester
+final readonly class ProjectionActionRequester
 {
-    public const ROUTING_KEY = 'ecotone.pulse.projections.rebuild';
+    public const ROUTING_KEYS = [Rebuild::REBUILD => 'ecotone.pulse.projections.rebuild', Rebuild::INITIALIZATION => 'ecotone.pulse.projections.initialize', Rebuild::BACKFILL => 'ecotone.pulse.projections.backfill'];
 
     public function __construct(
         private DistributedBus $distributedBus,
@@ -34,7 +34,7 @@ final readonly class RebuildRequester
     ) {
     }
 
-    public function send(ServiceScope $scope, string $projection): RequestResult
+    public function send(ServiceScope $scope, string $action, string $projection): RequestResult
     {
         $service = $scope->service;
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
@@ -42,10 +42,10 @@ final readonly class RebuildRequester
 
         $tracingId = ReplyAwaiter::newTracingId();
         try {
-            $this->distributedBus->sendMessage($service, self::ROUTING_KEY, json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
+            $this->distributedBus->sendMessage($service, self::ROUTING_KEYS[$action], json_encode(['projection' => $projection], JSON_THROW_ON_ERROR), MediaType::APPLICATION_JSON, metadata: [MessageHeaders::TRACING_ID => $tracingId, ...$this->tenantMetadata->of($scope)], replyRoutingKey: SnapshotReceiver::ROUTING_KEY);
         } catch (Throwable $exception) {
-            $this->logger->error('Pulse could not send the projection rebuild to service "{service}": {message}', ['service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
-            $failure = sprintf('%s: the projection rebuild could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1));
+            $this->logger->error('Pulse could not send the projection {action} to service "{service}": {message}', ['action' => $action, 'service' => $service, 'message' => $exception->getMessage(), 'exception' => $exception]);
+            $failure = sprintf('%s: the projection %s could not be sent. The full error is in the Pulse web log.', substr(strrchr('\\' . $exception::class, '\\'), 1), $action);
             $this->store->update($scope, fn ($record) => $record->requestFailed($failure));
 
             return RequestResult::failed();

@@ -142,14 +142,14 @@ trait ProblemBoardServicesTrait
         return ['failureId' => $failureId, 'messageName' => $messageName, 'exceptionClass' => 'RuntimeException', 'exceptionFile' => 'a.php', 'exceptionLine' => 1, 'exceptionMessage' => 'boom', 'count' => $count, 'firstFailedAt' => gmdate('c'), 'lastFailedAt' => gmdate('c')];
     }
 
-    private function projectionReport(string $name, int $eventsBehind = 0, string $digest = 'digest', ?string $asyncChannel = 'projection_channel'): array
+    private function projectionReport(string $name, int $eventsBehind = 0, string $digest = 'digest', ?string $asyncChannel = 'projection_channel', string $initialization = 'initialized'): array
     {
-        return ['name' => $name, 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => $asyncChannel, 'rebuildAsyncChannel' => 'rebuild_channel', 'initialization' => 'initialized', 'positionDigest' => $digest, 'eventsBehind' => ['events' => $eventsBehind, 'atLeast' => false], 'partitions' => null, 'unavailable' => null];
+        return ['name' => $name, 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => $asyncChannel, 'rebuildAsyncChannel' => 'rebuild_channel', 'initialization' => $initialization, 'positionDigest' => $digest, 'eventsBehind' => ['events' => $eventsBehind, 'atLeast' => false], 'partitions' => null, 'unavailable' => null];
     }
 
-    private function tracking(string $projection, string $state, ?int $elapsedMs = null): array
+    private function tracking(string $projection, string $state, ?int $elapsedMs = null, string $type = 'projection-rebuild'): array
     {
-        return ['tracingId' => 'trace-' . $projection, 'category' => 'ecotone-pulse', 'type' => 'projection-rebuild', 'reference' => $projection, 'tenant' => null, 'startedAt' => gmdate('Y-m-d\TH:i:s.000000+00:00'), 'state' => $state, 'batchesDone' => 0, 'batchCount' => null, ...($state === 'running' ? ['elapsedMs' => $elapsedMs] : ($state === 'done' ? ['durationMs' => 1000] : ['deadLetterMessageId' => 'dead-1']))];
+        return ['tracingId' => 'trace-' . $projection, 'category' => 'ecotone-pulse', 'type' => $type, 'reference' => $projection, 'tenant' => null, 'startedAt' => gmdate('Y-m-d\TH:i:s.000000+00:00'), 'state' => $state, 'batchesDone' => 0, 'batchCount' => null, ...($state === 'running' ? ['elapsedMs' => $elapsedMs] : ($state === 'done' ? ['durationMs' => 1000] : ['deadLetterMessageId' => 'dead-1']))];
     }
 
     /**

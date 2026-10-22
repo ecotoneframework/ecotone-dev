@@ -28,6 +28,8 @@ final class Tracking
 {
     public const PULSE_CATEGORY = 'ecotone-pulse';
     public const PROJECTION_REBUILD_TYPE = 'projection-rebuild';
+    public const PROJECTION_INITIALIZATION_TYPE = 'projection-initialization';
+    public const PROJECTION_BACKFILL_TYPE = 'projection-backfill';
 
     public function __construct(
         public readonly string $tracingId,

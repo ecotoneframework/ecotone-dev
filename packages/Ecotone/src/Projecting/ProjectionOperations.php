@@ -59,6 +59,11 @@ final class ProjectionOperations
         $this->run($projectionName, ProjectionOperationEndpoint::REBUILD, [MessageHeaders::TRACING_ID => $tracingId]);
     }
 
+    public function backfillTrackedBy(string $projectionName, string $tracingId): void
+    {
+        $this->run($projectionName, ProjectionOperationEndpoint::BACKFILL, [MessageHeaders::TRACING_ID => $tracingId]);
+    }
+
     public function delete(string $projectionName): void
     {
         $this->run($projectionName, ProjectionOperationEndpoint::DELETE);

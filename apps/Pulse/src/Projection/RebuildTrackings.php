@@ -31,7 +31,7 @@ final readonly class RebuildTrackings
         }
 
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
-        $query = TraceQuery::projectionRebuilds($now->modify('-' . $this->settings->trackingDays . ' days'), $this->settings->trackingDays);
+        $query = TraceQuery::projectionOperations($now->modify('-' . $this->settings->trackingDays . ' days'), $this->settings->trackingDays);
         [$answer] = $this->queries->askAll([ServiceScope::fromKey($service->scope())], $query);
         $tracked = is_array($answer->result['trackings'] ?? null) ? $answer->result['trackings'] : [];
         $rebuilds = array_values(array_filter(array_map(static fn (mixed $tracking): ?Rebuild => is_array($tracking) ? Rebuild::fromTracking($tracking) : null, $tracked)));

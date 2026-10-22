@@ -42,6 +42,94 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('/services/orders/projections/totals/rebuild', $crawler->filter('[data-rebuild-confirm="totals"] form')->attr('action'));
     }
 
+    public function test_a_projection_that_is_not_initialized_says_so_and_offers_to_initialize_it(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting', initialization: 'uninitialized'), $this->projection('ready'), $this->projection('per_ticket', partitioned: true, initialization: 'uninitialized'), $this->projection('feed', mode: 'streaming', initialization: null)];
+
+        $crawler = $this->observe($client);
+
+        self::assertSame('not_initialized', $this->statusOf($crawler, 'waiting'));
+        self::assertSame('Not initialized', trim($crawler->filter('tr[data-projection="waiting"] [data-projection-status]')->text()));
+        self::assertSame('/services/orders/projections/waiting/initialize', $crawler->filter('[data-initialize-confirm="waiting"] form')->attr('action'));
+        self::assertStringContainsString('kick', $crawler->filter('[data-initialize-confirm="waiting"] [data-initialize-explanation]')->text());
+        self::assertCount(0, $crawler->filter('[data-initialize-confirm="ready"]'));
+        self::assertCount(0, $crawler->filter('[data-initialize-confirm="per_ticket"]'));
+        self::assertNotSame('not_initialized', $this->statusOf($crawler, 'per_ticket'));
+        self::assertCount(0, $crawler->filter('[data-initialize-confirm="feed"]'));
+    }
+
+    public function test_every_projection_that_keeps_a_position_offers_a_backfill_whose_confirmation_says_how_it_runs(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals', backfillChannel: 'backfill_channel'), $this->projection('inline', backfillChannel: null), $this->projection('feed', mode: 'streaming', initialization: null)];
+
+        $crawler = $this->observe($client);
+
+        self::assertStringContainsString('"backfill_channel"', $crawler->filter('[data-backfill-confirm="totals"] [data-backfill-explanation]')->text());
+        self::assertStringContainsString('inside the request', $crawler->filter('[data-backfill-confirm="inline"] [data-backfill-explanation]')->text());
+        self::assertSame('/services/orders/projections/totals/backfill', $crawler->filter('[data-backfill-confirm="totals"] form')->attr('action'));
+        self::assertCount(0, $crawler->filter('[data-backfill-confirm="feed"]'));
+    }
+
+    public function test_a_confirmed_initialization_and_a_confirmed_backfill_are_sent_to_the_service_under_new_tracing_ids(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting', initialization: 'uninitialized')];
+        $this->observe($client);
+
+        $client->request('POST', '/services/orders/projections/waiting/initialize', ['confirm' => '1']);
+        $this->runService($this->services['orders'], 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $afterInitialize = $client->followRedirect();
+        $client->request('POST', '/services/orders/projections/waiting/backfill', ['confirm' => '1']);
+        $this->runService($this->services['orders'], 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $afterBackfill = $client->followRedirect();
+
+        self::assertSame(['initialize', 'backfill'], array_column($this->orders->actionRequests, 'action'));
+        self::assertSame(['waiting', 'waiting'], array_column($this->orders->actionRequests, 'projection'));
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $this->orders->actionRequests[0]['tracingId']);
+        self::assertNotSame($this->orders->actionRequests[0]['tracingId'], $this->orders->actionRequests[1]['tracingId']);
+        self::assertStringContainsString('Initialization of waiting requested', $afterInitialize->filter('[data-notice]')->text());
+        self::assertStringContainsString('Backfill of waiting requested', $afterBackfill->filter('[data-notice]')->text());
+    }
+
+    public function test_an_initialization_and_a_backfill_that_were_not_confirmed_or_name_an_unknown_projection_send_nothing(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting', initialization: 'uninitialized')];
+        $this->observe($client);
+
+        $client->request('POST', '/services/orders/projections/waiting/initialize');
+        $notConfirmed = $client->followRedirect();
+        $client->request('POST', '/services/orders/projections/missing/backfill', ['confirm' => '1']);
+        $unknown = $client->followRedirect();
+        $this->runService($this->services['orders'], 'orders');
+
+        self::assertSame([], $this->orders->actionRequests);
+        self::assertStringContainsString('initialization of "waiting" was not confirmed', $notConfirmed->filter('[data-notice-error]')->text());
+        self::assertStringContainsString('does not report a projection "missing"', $unknown->filter('[data-notice-error]')->text());
+    }
+
+    public function test_recent_operations_name_the_kind_of_each_and_a_running_initialization_or_backfill_shows_in_the_projection_row(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting'), $this->projection('totals')];
+        $this->orders->trackings = [
+            $this->tracking('waiting', 'done', durationMs: 1500, type: 'projection-initialization'),
+            $this->tracking('totals', 'running', elapsedMs: 3000, type: 'projection-backfill', tracingId: self::OTHER_TRACE),
+        ];
+
+        $crawler = $this->observe($client);
+
+        $rows = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild]');
+        self::assertSame(['Initialization', 'Backfill'], $rows->each(fn (Crawler $row): string => trim($row->filter('[data-operation-type]')->text())));
+        self::assertSame('Initialized', trim($crawler->filter('tr[data-projection="waiting"] [data-rebuild-state] .pill')->text()));
+        self::assertSame('running', $crawler->filter('tr[data-projection="totals"] [data-rebuild-state]')->attr('data-rebuild-state'));
+        self::assertSame('backfilling', $this->statusOf($crawler, 'totals'));
+    }
+
     public function test_a_confirmed_rebuild_is_sent_to_the_service_under_a_new_tracing_id(): void
     {
         $client = $this->pulseWithOrders();
@@ -215,6 +303,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             public array $projections = [];
             public array $trackings = [];
             public array $rebuildRequests = [];
+            public array $actionRequests = [];
             public ?string $trackingsSince = null;
 
             #[Distributed]
@@ -242,6 +331,24 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
                 return $this->snapshotJson();
             }
 
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.projections.initialize', endpointId: 'orders.initialize')]
+            public function initialize(string $request, #[Header(MessageHeaders::TRACING_ID)] string $tracingId): string
+            {
+                $this->actionRequests[] = ['action' => 'initialize', 'projection' => json_decode($request, true)['projection'], 'tracingId' => $tracingId];
+
+                return $this->snapshotJson();
+            }
+
+            #[Distributed]
+            #[CommandHandler('ecotone.pulse.projections.backfill', endpointId: 'orders.backfill')]
+            public function backfill(string $request, #[Header(MessageHeaders::TRACING_ID)] string $tracingId): string
+            {
+                $this->actionRequests[] = ['action' => 'backfill', 'projection' => json_decode($request, true)['projection'], 'tracingId' => $tracingId];
+
+                return $this->snapshotJson();
+            }
+
             private function snapshotJson(): string
             {
                 return json_encode([
@@ -264,15 +371,16 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 
     private array $services = [];
 
-    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel'): array
+    private function projection(string $name, bool $partitioned = false, int $events = 0, ?string $rebuildChannel = 'rebuild_channel', ?string $initialization = 'initialized', string $mode = 'synchronous', ?string $backfillChannel = null): array
     {
         return [
             'name' => $name,
-            'mode' => 'synchronous',
+            'mode' => $mode,
             'partitioned' => $partitioned,
             'asyncChannel' => null,
             'rebuildAsyncChannel' => $rebuildChannel,
-            'initialization' => 'initialized',
+            'backfillAsyncChannel' => $backfillChannel,
+            'initialization' => $initialization,
             'positionDigest' => 'digest',
             'eventsBehind' => $partitioned ? null : ['events' => $events, 'atLeast' => false],
             'partitions' => $partitioned ? ['total' => 5, 'inspected' => 5, 'behind' => 0, 'atLeast' => false] : null,
@@ -280,12 +388,12 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         ];
     }
 
-    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, string $tracingId = self::TRACE): array
+    private function tracking(string $projection, string $state, int $batchesDone = 0, ?int $batchCount = null, ?int $elapsedMs = null, ?int $durationMs = null, ?string $deadLetterMessageId = null, string $tracingId = self::TRACE, string $type = 'projection-rebuild'): array
     {
         return [
             'tracingId' => $tracingId,
             'category' => 'ecotone-pulse',
-            'type' => 'projection-rebuild',
+            'type' => $type,
             'reference' => $projection,
             'tenant' => null,
             'startedAt' => gmdate('Y-m-d\TH:i:s.000000+00:00'),

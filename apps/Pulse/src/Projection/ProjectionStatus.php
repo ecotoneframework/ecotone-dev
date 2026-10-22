@@ -17,8 +17,19 @@ final readonly class ProjectionStatus
         public ?int $changedSecondsAgo,
         public ?string $unavailable,
         public ?string $rebuildAsyncChannel,
+        public ?string $backfillAsyncChannel,
         public ?Rebuild $latestRebuild,
     ) {
+    }
+
+    public function canBeInitialized(): bool
+    {
+        return $this->state === ProjectionState::NotInitialized;
+    }
+
+    public function canBeBackfilled(): bool
+    {
+        return $this->mode !== 'streaming' && $this->unavailable === null;
     }
 
     public function changedAgo(): ?string

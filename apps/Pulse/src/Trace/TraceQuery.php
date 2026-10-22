@@ -27,9 +27,9 @@ final readonly class TraceQuery
         return new self(self::LIST_ROUTING_KEY, ['flowType' => $flowType, 'page' => $page, 'perPage' => self::PER_PAGE]);
     }
 
-    public static function projectionRebuilds(DateTimeImmutable $since, int $days): self
+    public static function projectionOperations(DateTimeImmutable $since, int $days): self
     {
-        return new self(self::TRACKINGS_ROUTING_KEY, ['since' => $since->format(DateTimeInterface::ATOM), 'category' => 'ecotone-pulse', 'type' => 'projection-rebuild'], self::TRACKINGS_FRESHNESS_SECONDS, ['days' => $days]);
+        return new self(self::TRACKINGS_ROUTING_KEY, ['since' => $since->format(DateTimeInterface::ATOM), 'category' => 'ecotone-pulse'], self::TRACKINGS_FRESHNESS_SECONDS, ['days' => $days]);
     }
 
     public static function trace(string $traceId): self

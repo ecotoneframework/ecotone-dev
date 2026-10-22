@@ -115,6 +115,52 @@ final class SetupStatusTest extends ReleasingWebTestCase
         self::assertSame('Set up', $this->statusOf($ofTenantA, 'table:dead_letter'));
     }
 
+    public function test_an_unavailable_setup_connection_is_unknown_on_the_service_page_and_a_warning_on_the_home_board(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->setup = ['tables' => [$this->table('message_queue', true), $this->unknownTable('document_store', 'reporting', 'connection refused')]];
+
+        $home = $this->observeBoard($client);
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertSame([['text' => 'Setup of reporting could not be checked: connection refused', 'href' => '/services/orders#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders'));
+        self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-ok]'));
+        self::assertSame('Unknown', $this->statusOf($crawler, 'table:document_store'));
+        self::assertStringContainsString('connection refused', $crawler->filter('[data-setup-item="table:document_store"] [data-setup-error]')->text());
+    }
+
+    public function test_a_channel_whose_probe_failed_does_not_support_the_everything_exists_claim(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 0), 'probeError' => 'connection refused', 'setUp' => null]];
+
+        $home = $this->observeBoard($client);
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertSame(['setup-unknown'], array_column($this->problemsOf($home, 'orders'), 'kind'));
+        self::assertCount(0, $crawler->filter('[data-hub-setup] [data-setup-ok]'));
+        self::assertSame('Unknown', $this->statusOf($crawler, 'channel:invoices'));
+    }
+
+    public function test_an_unavailable_tenant_connection_is_unknown_for_that_tenant_only(): void
+    {
+        $client = $this->boardWith(['orders' => ['tenant_a', 'tenant_b']]);
+        $this->boardState['orders']->tenantSections = [
+            'tenant_a' => ['channels' => [], 'setup' => ['tenantTables' => [$this->unknownTable('message_queue', 'tenant_a_connection', 'connection refused')]]],
+            'tenant_b' => ['channels' => [], 'setup' => ['tenantTables' => [$this->table('message_queue', true)]]],
+        ];
+
+        $home = $this->observeBoard($client);
+        $ofTenantA = $client->request('GET', '/services/orders?tenant=tenant_a');
+        $ofTenantB = $client->request('GET', '/services/orders?tenant=tenant_b');
+
+        self::assertSame([['text' => 'Setup of tenant_a_connection could not be checked: connection refused', 'href' => '/services/orders?tenant=tenant_a#setup', 'severity' => 'warning', 'kind' => 'setup-unknown']], $this->problemsOf($home, 'orders@tenant_a'));
+        self::assertSame([], $this->problemsOf($home, 'orders@tenant_b'));
+        self::assertCount(0, $ofTenantA->filter('[data-setup-ok]'));
+        self::assertSame('Unknown', $this->statusOf($ofTenantA, 'table:message_queue'));
+        self::assertCount(1, $ofTenantB->filter('[data-setup-ok]'));
+    }
+
     private function statusOf(Crawler $crawler, string $item): string
     {
         return trim($crawler->filter(sprintf('[data-setup-item="%s"] [data-setup-status]', $item))->text());
@@ -126,5 +172,13 @@ final class SetupStatusTest extends ReleasingWebTestCase
     private function table(string $feature, bool $initialized): array
     {
         return ['feature' => $feature, 'connection' => self::CONNECTION, 'initialized' => $initialized, 'error' => null];
+    }
+
+    /**
+     * @return array{feature: string, connection: string, initialized: null, error: string}
+     */
+    private function unknownTable(string $feature, string $connection, string $error): array
+    {
+        return ['feature' => $feature, 'connection' => $connection, 'initialized' => null, 'error' => $error];
     }
 }

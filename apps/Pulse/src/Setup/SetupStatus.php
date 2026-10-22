@@ -31,7 +31,9 @@ final readonly class SetupStatus
             }
         }
         foreach (is_array($service->snapshot['channels'] ?? null) ? $service->snapshot['channels'] : [] as $channel) {
-            if (is_array($channel) && is_string($channel['name'] ?? null) && is_bool($channel['setUp'] ?? null)) {
+            if (is_array($channel) && is_string($channel['name'] ?? null) && ! is_bool($channel['setUp'] ?? null) && is_string($channel['probeError'] ?? null)) {
+                $items[] = new SetupItem('channel', $channel['name'], null, null, $channel['probeError'], null);
+            } elseif (is_array($channel) && is_string($channel['name'] ?? null) && is_bool($channel['setUp'] ?? null)) {
                 $items[] = new SetupItem('channel', $channel['name'], null, $channel['setUp'], null, $channel['setUp'] ? null : self::command($framework, self::CHANNEL_SETUP, ['initialize' => true, 'channel' => [$channel['name']]]));
             }
         }
@@ -48,9 +50,17 @@ final readonly class SetupStatus
         return array_values(array_filter($this->items, static fn (SetupItem $item): bool => $item->isMissing()));
     }
 
+    /**
+     * @return list<SetupItem>
+     */
+    public function unknown(): array
+    {
+        return array_values(array_filter($this->items, static fn (SetupItem $item): bool => $item->isUnknown()));
+    }
+
     public function isAllClear(): bool
     {
-        return $this->missing() === [] && $this->sectionErrors === [];
+        return $this->missing() === [] && $this->unknown() === [] && $this->sectionErrors === [];
     }
 
     private static function tableFix(string $framework, string $feature, string $connection): string

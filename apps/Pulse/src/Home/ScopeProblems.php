@@ -81,6 +81,9 @@ final readonly class ScopeProblems
         foreach ($status->missing() as $item) {
             $problems[] = new Problem(Severity::Critical, $item->kind === 'table' ? 'table-missing' : 'channel-not-set-up', $item->kind === 'table' ? sprintf('Table for %s missing on %s', $item->key, $item->connection) : sprintf('Channel %s not set up', $item->key), $href);
         }
+        foreach ($status->unknown() as $item) {
+            $problems[] = new Problem(Severity::Warning, 'setup-unknown', sprintf('Setup of %s could not be checked: %s', $item->connection ?? 'channel ' . $item->key, strtok((string) $item->error, "\n")), $href);
+        }
         foreach ($status->sectionErrors as $section => $reason) {
             $problems[] = new Problem(Severity::Warning, 'section-failed', sprintf('%s could not be read: %s', $section, strtok($reason, "\n")), $href);
         }

@@ -62,6 +62,7 @@ final class PulseSnapshot
         private array $tenancy,
         private ConfiguredMessagingSystem $messagingSystem,
         private EcotoneClockInterface $clock,
+        private PulseSectionIsolation $sectionIsolation,
     ) {
     }
 
@@ -177,7 +178,7 @@ final class PulseSnapshot
     private function addSection(array &$snapshot, array &$sectionErrors, string $sectionName, PulseSnapshotSection $section): void
     {
         try {
-            $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+            $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$this->sectionIsolation->readOnly($section->snapshot(...))];
         } catch (Throwable $exception) {
             $sectionErrors[$sectionName] = $exception->getMessage();
         }

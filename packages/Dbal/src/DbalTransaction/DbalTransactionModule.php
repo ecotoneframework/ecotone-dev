@@ -15,6 +15,9 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
+use Ecotone\Api\Pulse\PulseConfiguration;
+use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -71,6 +74,11 @@ final class DbalTransactionModule implements AnnotationModule
         [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->transactionOnCommandBus
             ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
             : [[], []];
+
+        $messagingConfiguration->registerServiceDefinition(PulseSavepointIsolation::class, [
+            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            new Reference(EcotoneClockInterface::class),
+        ]);
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
@@ -131,7 +139,10 @@ final class DbalTransactionModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
+        $opensTransactions = $dbalConfiguration->transactionOnAsynchronousEndpoints || $dbalConfiguration->transactionOnCommandBus || $dbalConfiguration->transactionOnConsoleCommands;
+
+        return $opensTransactions && ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== [] ? [new PulseSectionIsolationRegistration(PulseSavepointIsolation::class)] : [];
     }
 
     public function getModulePackageName(): string

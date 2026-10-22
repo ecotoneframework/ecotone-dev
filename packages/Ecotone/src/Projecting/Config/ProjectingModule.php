@@ -134,6 +134,7 @@ final class ProjectingModule implements AnnotationModule
                 'partitioned' => $projectionBuilder->isPartitioned(),
                 'asyncChannel' => $projectionBuilder->asyncChannelName(),
                 'rebuildAsyncChannel' => $projectionBuilder->rebuildAsyncChannelName(),
+                'backfillAsyncChannel' => $projectionBuilder->backfillAsyncChannelName(),
             ];
 
             $handlerBuilder = MessageProcessorActivatorBuilder::create()
@@ -218,7 +219,7 @@ final class ProjectingModule implements AnnotationModule
         }
 
         foreach (ExtensionObjectResolver::resolve(StreamingProjectionDescription::class, $extensionObjects) as $streaming) {
-            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null];
+            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null];
         }
 
         // Register ProjectionRegistry

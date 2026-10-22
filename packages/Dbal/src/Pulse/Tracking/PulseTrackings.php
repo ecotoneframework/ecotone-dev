@@ -92,7 +92,9 @@ final class PulseTrackings
     private function progressOf(Tracking $tracking, array $spans): array
     {
         if ($tracking->type === Tracking::PROJECTION_INITIALIZATION_TYPE) {
-            return ['state' => 'done', 'batchesDone' => 0, 'batchCount' => null, 'finishedAt' => $tracking->startedAtInMicroseconds];
+            $endings = array_map(fn (Span $span): int => $span->endedAt->unixTime()->inMicroseconds(), $spans);
+
+            return ['state' => 'done', 'batchesDone' => 0, 'batchCount' => null, 'finishedAt' => $endings === [] ? null : max($endings)];
         }
         $batches = [];
         $batchCount = null;
@@ -103,7 +105,10 @@ final class PulseTrackings
             if (! isset($span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]) || ($span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null) !== SpanAttribute::OPERATION_PROCESS) {
                 continue;
             }
-            $batches[(int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]] = true;
+            $batchNumber = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER];
+            if ($batchNumber > 0) {
+                $batches[$batchNumber] = true;
+            }
             $batchCount = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_COUNT];
             $finishedAt = max($finishedAt ?? 0, $span->endedAt->unixTime()->inMicroseconds());
         }
@@ -156,10 +161,19 @@ final class PulseTrackings
         ];
 
         return match ($state) {
-            'done' => [...$described, 'durationMs' => intdiv(max(0, ($progress['finishedAt'] ?? $now) - $tracking->startedAtInMicroseconds), 1000)],
+            'done' => [...$described, 'durationMs' => $this->durationOf($tracking, $progress['finishedAt'], $now)],
             'failed' => [...$described, 'deadLetterMessageId' => $deadLetterMessageId],
             default => [...$described, 'elapsedMs' => intdiv(max(0, $now - $tracking->startedAtInMicroseconds), 1000)],
         };
+    }
+
+    private function durationOf(Tracking $tracking, ?int $finishedAt, int $now): ?int
+    {
+        if ($finishedAt === null) {
+            return $tracking->type === Tracking::PROJECTION_INITIALIZATION_TYPE ? null : intdiv(max(0, $now - $tracking->startedAtInMicroseconds), 1000);
+        }
+
+        return intdiv(max(0, $finishedAt - $tracking->startedAtInMicroseconds), 1000);
     }
 
     private function queryIdOf(?string $queryId): string

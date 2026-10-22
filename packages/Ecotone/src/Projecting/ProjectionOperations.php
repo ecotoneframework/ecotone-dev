@@ -39,6 +39,16 @@ final class ProjectionOperations
         $this->run($projectionName, ProjectionOperationEndpoint::TRIGGER);
     }
 
+    public function initializeTrackedBy(string $projectionName, string $tracingId): void
+    {
+        $this->run($projectionName, ProjectionOperationEndpoint::INITIALIZE, [MessageHeaders::TRACING_ID => $tracingId]);
+    }
+
+    public function triggerTrackedBy(string $projectionName, string $tracingId): void
+    {
+        $this->run($projectionName, ProjectionOperationEndpoint::TRIGGER, [MessageHeaders::TRACING_ID => $tracingId]);
+    }
+
     public function reset(string $projectionName): void
     {
         $this->run($projectionName, ProjectionOperationEndpoint::RESET);

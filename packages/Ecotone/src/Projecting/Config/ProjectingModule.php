@@ -262,6 +262,7 @@ final class ProjectingModule implements AnnotationModule
                             HeaderBuilder::createOptional('aggregateType', 'partitionBatch.aggregateType'),
                             HeaderBuilder::createOptional('eventStoreReferenceName', 'partitionBatch.eventStoreReferenceName'),
                             HeaderBuilder::createOptional('shouldReset', 'partitionBatch.shouldReset'),
+                            HeaderBuilder::createOptional('batchCount', ProjectingHeaders::REBUILD_BATCH_COUNT),
                         ],
                     )
                 )

@@ -117,8 +117,8 @@ final class PulseProjectionActions
                 $this->trackings->activeTenant(),
                 $this->clock->now()->unixTime()->inMicroseconds(),
             ));
-            $this->projectionOperations->initialize($projection);
-            $this->projectionOperations->trigger($projection);
+            $this->projectionOperations->initializeTrackedBy($projection, $tracingId);
+            $this->projectionOperations->triggerTrackedBy($projection, $tracingId);
         });
 
         return json_encode([

@@ -17,7 +17,6 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Interceptor\Precedence;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Dbal\Pulse\PulseSavepointIsolation;
-use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -28,6 +27,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolationRegistration;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 
 #[ModuleAnnotation]

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Result;
-use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Database\TimeBoxedSchemaRead;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\TimeBoxedSchemaRead;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;

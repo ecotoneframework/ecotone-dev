@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Pulse;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSectionIsolation;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Interop\Queue\ConnectionFactory;
 
 /**

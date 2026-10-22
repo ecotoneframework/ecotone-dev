@@ -14,6 +14,7 @@ trait PulseEnvironmentTrait
      */
     private function configurePulse(array $overrides = []): void
     {
+        $this->resetSharedState();
         $environment = [
             'ECOTONE_LICENCE_KEY' => LicenceTesting::VALID_LICENCE,
             'PULSE_SERVICE_NAME' => 'ecotone_pulse',
@@ -22,7 +23,7 @@ trait PulseEnvironmentTrait
             'PULSE_SERVICES' => 'orders:orders_channel,billing:billing_channel',
             'PULSE_REPLY_TIMEOUT' => '10',
             'PULSE_AWAIT_TIMEOUT' => '0',
-            'PULSE_INTERNAL_DATABASE_PATH' => sys_get_temp_dir() . '/pulse-internal-' . uniqid() . '.sqlite',
+            'PULSE_INTERNAL_DATABASE_PATH' => sys_get_temp_dir() . '/pulse-internal-' . getmypid() . '.sqlite',
             ...$overrides,
         ];
 
@@ -40,6 +41,19 @@ trait PulseEnvironmentTrait
             }
             $_SERVER[$name] = $_ENV[$name] = $value;
             putenv($name . '=' . $value);
+        }
+    }
+
+    private function resetSharedState(): void
+    {
+        $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16';
+        $connection = OpenedConnections::factory($dsn)->createContext()->getDbalConnection();
+        $connection->executeStatement('DROP SCHEMA public CASCADE');
+        $connection->executeStatement('CREATE SCHEMA public');
+        OpenedConnections::closeAll();
+
+        foreach (glob(sys_get_temp_dir() . '/pulse-internal-' . getmypid() . '.sqlite*') ?: [] as $file) {
+            unlink($file);
         }
     }
 }

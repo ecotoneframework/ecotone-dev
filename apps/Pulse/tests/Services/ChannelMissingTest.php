@@ -57,7 +57,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
         $client->request('GET', '/services');
         $this->runPulseWorker($client->getKernel());
         $orders = $this->amqpService('orders');
-        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->advanceTimeBy(60);
         $client->request('GET', '/services');
@@ -75,7 +75,7 @@ final class ChannelMissingTest extends ReleasingWebTestCase
         $client->request('GET', '/services');
         $this->runPulseWorker($client->getKernel());
         $orders = $this->amqpService('orders');
-        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $orders->run($this->serviceChannels['orders'], ExecutionPollingMetadata::createWithTestingSetup());
 
         $crawler = $client->request('GET', '/services');
         self::assertSame('channel_missing', $crawler->filter('[data-service="orders"] [data-status]')->attr('data-status'));

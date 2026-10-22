@@ -61,7 +61,7 @@ final class FlowTypesPageTest extends ReleasingWebTestCase
         $billing = $this->tracedBilling();
         $orders->sendCommandWithRouting('order.invoice', ['orderId' => 1]);
         $this->pulseHavingHeardFrom($client, ['orders' => $orders]);
-        $billing->run($this->serviceChannels['billing'], \Ecotone\Api\ExtensionObject\ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $billing->run($this->serviceChannels['billing'], \Ecotone\Api\ExtensionObject\ExecutionPollingMetadata::createWithTestingSetup());
         $this->pulseHavingHeardFrom($client, ['billing' => $billing]);
 
         $crawler = $client->request('GET', '/traces');

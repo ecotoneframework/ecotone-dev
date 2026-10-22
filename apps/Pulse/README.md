@@ -307,7 +307,7 @@ composer tests:ci        # phpstan + phpunit
 ```
 
 The tests boot Pulse as a Symfony application next to real Ecotone services, over a shared database channel, and read the
-pages Pulse renders. Inside the repository's `app` container the `DATABASE_DSN` of the compose file is used.
+pages Pulse renders. Inside the repository's `app` container the `DATABASE_DSN` of the compose file is used. The tests need PostgreSQL: they reset a dedicated database per test, so `DATABASE_DSN` must be a `pgsql://` DSN such as `pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16`.
 
 The Mermaid library for the diagram views is installed with `bin/console importmap:install` (the Docker build does it), so
 the running application never reaches out to a CDN.

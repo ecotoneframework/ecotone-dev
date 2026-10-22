@@ -237,9 +237,16 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame('tenant_b', $inTenantB['tenant']);
     }
 
-    public function test_a_rebuild_of_one_tenant_records_its_tracking_and_replays_in_that_tenant_only(): void
+    public static function trackingStores(): iterable
     {
-        $this->bootstrap();
+        yield 'in-memory' => [true];
+        yield 'dbal' => [false];
+    }
+
+    #[DataProvider('trackingStores')]
+    public function test_a_rebuild_of_one_tenant_records_its_tracking_and_replays_in_that_tenant_only(bool $inMemoryTrackings): void
+    {
+        $this->bootstrap(inMemoryTrackings: $inMemoryTrackings);
         $this->initializeProjectionIn('tenant_a', 'tenant_orders');
 
         $reply = $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), 'tenant_a', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
@@ -253,9 +260,10 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame(['1'], $this->projection->replayedFor);
     }
 
-    public function test_a_backfill_of_one_tenant_is_tracked_in_that_tenant_only(): void
+    #[DataProvider('trackingStores')]
+    public function test_a_backfill_of_one_tenant_is_tracked_in_that_tenant_only(bool $inMemoryTrackings): void
     {
-        $this->bootstrap();
+        $this->bootstrap(inMemoryTrackings: $inMemoryTrackings);
         $this->initializeProjectionIn('tenant_b', 'tenant_kickoff_orders');
 
         $reply = $this->ask('ecotone.pulse.projections.backfill', json_encode(['projection' => 'tenant_kickoff_orders']), 'tenant_b', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_B]);
@@ -412,7 +420,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return json_decode($this->pulse->replies[$queryId], true, flags: JSON_THROW_ON_ERROR);
     }
 
-    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?MultiTenantConfiguration $additionalMultiTenantConfiguration = null, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null): void
+    private function bootstrap(?string $pulseChannelsConnection = null, bool $withDefaultConnection = false, ?MultiTenantConfiguration $additionalMultiTenantConfiguration = null, ?DbalConfiguration $dbalConfiguration = null, bool $flowTracking = true, ?ConnectionFactory $unpreparedTenantB = null, bool $inMemoryTrackings = false): void
     {
         $this->orders = new class () {
             public array $replayed = [];
@@ -492,7 +500,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
                     : MultiTenantConfiguration::create('tenant', ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection']),
                 ...($additionalMultiTenantConfiguration === null ? [] : [$additionalMultiTenantConfiguration]),
                 $dbalConfiguration ?? DbalConfiguration::createWithDefaults()->withDeadLetter(true),
-                ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()] : []),
+                ...($flowTracking ? [FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemoryTrackings)] : []),
                 ServiceConfiguration::createWithDefaults()->withServiceName('order_service')->withDefaultErrorChannel('dbal_dead_letter'),
                 PulseConfiguration::createWithDefaults('ecotone_pulse'),
             ],

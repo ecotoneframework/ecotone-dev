@@ -253,7 +253,7 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             TrackingStore::class,
             $storesOnDatabase
                 ? new Definition(DbalTrackingStore::class, [new Reference($connectionReference), new Reference(PulseTrackingTableManager::class), new Reference(EcotoneClockInterface::class)])
-                : new Definition(InMemoryTrackingStore::class)
+                : new Definition(InMemoryTrackingStore::class, [new Reference($connectionReference)])
         );
         $untracedSpans = PulseTrackings::class . '.untraced_spans';
         $messagingConfiguration->registerServiceDefinition($untracedSpans, new Definition(InMemoryTraceStore::class));

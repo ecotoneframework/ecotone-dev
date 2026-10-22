@@ -228,7 +228,7 @@ A mistake in these entries (an unknown connection, a malformed entry, a service 
 
 The service page lists, for each database connection a service uses, which Ecotone tables exist and which broker channels are set up, with the command that creates what is missing. A service reads this inside a fixed 2 second budget per snapshot: every schema read runs under a statement timeout (PostgreSQL `statement_timeout`, MySQL `max_execution_time`, MariaDB `max_statement_time`; SQLite has no network), set only for that read. A table the service could not check in time shows as Unknown with "not checked within the budget" and a warning on the home board, and never as "All set up".
 
-The budget cannot interrupt opening a connection that hangs on a database it cannot reach, because that connection belongs to the application. Set `connect_timeout` in the DSN of every secondary connection, for example `pgsql://user:secret@reporting:5432/app?connect_timeout=2`, so a dead host fails fast.
+The budget cannot interrupt opening a connection that hangs on a database it cannot reach, because that connection belongs to the application. Give every secondary connection a connect timeout in its own configuration (PostgreSQL `connect_timeout`, MySQL `PDO::ATTR_TIMEOUT`), so a dead host fails fast.
 
 ### Doctor
 

@@ -1,0 +1,21 @@
+<svg class="logo{% if class is defined %} {{ class }}{% endif %}" role="img" aria-label="Ecotone" viewBox="0 0 544 705" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="ecotone-logo-green-{{ id|default('a') }}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#c8e07e"/><stop offset="1" stop-color="#a6ce39"/></linearGradient>
+        <linearGradient id="ecotone-logo-blue-{{ id|default('a') }}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0066b3"/><stop offset="1" stop-color="#00a9e6"/></linearGradient>
+    </defs>
+    <path d="M272 0C180 100 40 260 2 415C-8 520 50 610 130 660C175 685 215 700 272 705Z" fill="url(#ecotone-logo-green-{{ id|default('a') }})"/>
+    <path d="M272 0C380 110 520 300 543 455C548 560 470 650 380 685C340 700 310 705 272 705Z" fill="url(#ecotone-logo-blue-{{ id|default('a') }})"/>
+    <g fill="none" stroke="#fff" stroke-width="22" stroke-linejoin="miter">
+        <path d="M272 0V705"/>
+        <path d="M272 640L107 545L74 422"/>
+        <path d="M272 445L172 365L167 295"/>
+        <path d="M272 315L332 265L347 185"/>
+        <path d="M272 580L402 495L440 385"/>
+    </g>
+    <g fill="none" stroke="#fff" stroke-width="14">
+        <circle cx="74" cy="422" r="25"/>
+        <circle cx="172" cy="273" r="25"/>
+        <circle cx="347" cy="162" r="25"/>
+        <circle cx="440" cy="383" r="25"/>
+    </g>
+</svg>

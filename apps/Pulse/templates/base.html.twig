@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-pulse-version="{{ pulse.version }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Ecotone Pulse{% endblock %}</title>
     <script>try{var t=localStorage.getItem('pulse-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}</script>
+    <script>try{var v=document.documentElement.dataset.pulseVersion;localStorage.setItem('ecotone-pulse.probe','1');localStorage.removeItem('ecotone-pulse.probe');if(localStorage.getItem('ecotone-pulse.intro-seen')!==v){document.documentElement.classList.add('intro-pending')}}catch(e){}</script>
     {% block head %}{% endblock %}
     {% block importmap %}{{ importmap('app') }}{% endblock %}
 </head>
 <body>
+<div class="intro" data-intro aria-hidden="true">
+    {% include '_logo.html.twig' with {class: 'intro-logo', id: 'intro'} %}
+    <svg class="intro-heart" data-intro-heart viewBox="0 0 32 29" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M16 28C3 18 0 12 0 8a8 8 0 0 1 16-2 8 8 0 0 1 16 2c0 4-3 10-16 20Z" fill="currentColor"/></svg>
+</div>
 <a class="skip" href="#content">Skip to content</a>
 <header class="topbar">
-    <span class="brand">Ecotone Pulse</span>
+    <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand'} %}<span class="brand-title">Ecotone Pulse</span></a>
     <nav>
         {% set current = app.request.attributes.get('_route') %}
         <a href="{{ path('home') }}"{% if current == 'home' %} class="active"{% endif %}>Home</a>

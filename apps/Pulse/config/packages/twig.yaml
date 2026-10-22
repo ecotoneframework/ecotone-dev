@@ -1,5 +1,7 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        pulse: '@App\Settings\PulseSettings'
 
 when@test:
     twig:

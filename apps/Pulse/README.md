@@ -161,6 +161,7 @@ docker run -p 8080:8080 \
 |---|---|---|
 | `PULSE_CONNECTION_<NAME>_DSN` | | Another broker for some services, see below (also `_FILE`) |
 | `PULSE_CONNECTION_<NAME>_REPLY_CHANNEL` | `PULSE_CHANNEL` | The destination Pulse reads that connection's replies from |
+| `PULSE_VERSION` | `dev` (set by the Docker image's `PULSE_VERSION` build argument) | The version of this Pulse. Shown in the page markup, and the first time a browser opens Pulse for a version it sees a short splash, the Ecotone logo with a beating heart, before the dashboard (any click or key skips it; reduced motion shortens it). Required: Pulse refuses to start without it when run outside the image |
 | `PULSE_SERVICE_NAME` | `ecotone_pulse` | Pulse's own service name. Services accept requests only from this name |
 | `PULSE_CHANNEL` | `ecotone_pulse` | The channel Pulse consumes replies from |
 | `PULSE_REPLY_TIMEOUT` | `10` | Seconds after which a request without reply is Unreachable |
@@ -311,4 +312,6 @@ Two checks need a browser engine, so they run on the host (Node 22 in CI; 20 or 
   "Syntax error in text", which is why it is parsed rather than matched.
 * `tests/Accessibility` crawls a running Pulse from its navigation, then runs axe-core on every page (two per page kind), in light
   and dark, at 1440px and 390px, and fails on a serious or critical violation or a horizontal page scroll:
-  `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary).
+  `cd tests/Accessibility && npm ci && node axe.mjs http://localhost:8080` (`CHROME_PATH` selects the Chrome binary). It also audits the
+  first-visit splash. `PULSE_EXPECTED_VERSION=<the running PULSE_VERSION> node intro.mjs http://localhost:8080` checks the splash itself:
+  shown on the first visit, gone on reload, shown again for a new version, skippable, reduced motion and unavailable storage respected.

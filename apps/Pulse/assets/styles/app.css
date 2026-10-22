@@ -23,8 +23,18 @@ main{max-width:76rem;margin:0 auto;padding:1.5rem 1.25rem;min-width:0}
 .skip{position:absolute;left:-9999px}.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.4rem .8rem;z-index:10}
 
 .topbar{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;padding:.6rem 1.25rem;background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:6}
-.brand{font-weight:700;letter-spacing:.01em;display:flex;gap:.5rem;align-items:center}
-.brand:before{content:"";width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--violet) 55%,var(--magenta));box-shadow:0 0 14px var(--glow)}
+.brand{font-weight:700;letter-spacing:.01em;display:flex;gap:.5rem;align-items:center;color:var(--fg);text-decoration:none}
+.brand-logo{height:28px;width:auto;flex:none}
+.intro{display:none}
+.intro-pending .intro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--magenta);transition:opacity .5s;cursor:pointer}
+.intro-pending .intro.intro-leaving{opacity:0}
+.intro-logo{height:min(38vh,260px);width:auto}
+.intro-heart{width:44px;height:auto;opacity:0}
+.intro.intro-beating .intro-heart{opacity:1}
+@media (prefers-reduced-motion:no-preference){.intro-logo{animation:intro-in .5s ease-out both}.intro.intro-beating .intro-heart{animation:intro-beat .6s ease-in-out 3}}
+@media (prefers-reduced-motion:reduce){.intro.intro-beating .intro-heart{opacity:1}.intro{transition:none}}
+@keyframes intro-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes intro-beat{0%,100%{transform:scale(1)}25%{transform:scale(1.35)}50%{transform:scale(1)}65%{transform:scale(1.2)}}
 nav{display:flex;flex-wrap:wrap;gap:.25rem;flex:1}
 nav a{color:var(--muted);text-decoration:none;padding:.35rem .7rem;border-radius:8px;border:1px solid transparent}
 nav a:hover{color:var(--fg);background:var(--surface-2)}

@@ -69,6 +69,7 @@ for (const scheme of schemes) {
         const page = await (await browser.newContext({viewport, colorScheme: scheme})).newPage();
         for (const path of pages) {
             await page.goto(base + path, {waitUntil: 'networkidle'});
+            await page.waitForSelector('[data-intro]', {state: 'detached', timeout: 6000}).catch(() => {});
             for (let attempt = 0; attempt < 15 && (await page.$('meta[http-equiv="refresh"]')) !== null; attempt++) {
                 await page.waitForTimeout(1000);
                 await page.reload({waitUntil: 'networkidle'});
@@ -89,6 +90,23 @@ for (const scheme of schemes) {
             }
             rows.push(`${label}: ${serious.length} serious/critical, overflow ${Math.max(overflow, 0)}px`);
         }
+    }
+}
+
+for (const scheme of schemes) {
+    for (const viewport of viewports) {
+        const page = await (await browser.newContext({viewport, colorScheme: scheme})).newPage();
+        await page.goto(base + '/', {waitUntil: 'networkidle'});
+        await page.waitForSelector('html.intro-pending [data-intro-heart]', {timeout: 3000});
+        await page.waitForTimeout(800);
+        await page.evaluate(axeSource);
+        const result = await page.evaluate(() => window.axe.run(document, {resultTypes: ['violations']}));
+        const serious = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
+        for (const violation of serious) {
+            problems++;
+            console.error(`${scheme}/${viewport.name} splash: ${violation.impact} ${violation.id} (${violation.nodes.length} nodes) ${violation.nodes[0].target.join(' ')}`);
+        }
+        rows.push(`${scheme}/${viewport.name} splash: ${serious.length} serious/critical`);
     }
 }
 

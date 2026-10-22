@@ -148,27 +148,26 @@ final class HomeProblemsTest extends ReleasingWebTestCase
         ], $this->problemsOf($crawler, 'orders'));
     }
 
-    public function test_a_projection_that_is_not_initialized_is_a_warning_pointing_to_the_projections_page(): void
+    public function test_a_projection_that_is_not_initialized_is_not_a_problem_of_the_home_board(): void
     {
         $client = $this->boardWith(['orders' => null]);
         $this->boardState['orders']->projections = [$this->projectionReport('waiting', initialization: 'uninitialized'), $this->projectionReport('ready')];
 
         $crawler = $this->observeBoard($client);
 
-        self::assertSame([['text' => 'waiting not initialized', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'projection-not-initialized']], $this->problemsOf($crawler, 'orders'));
+        self::assertSame([], $this->problemsOf($crawler, 'orders'));
     }
 
-    public function test_a_running_initialization_or_backfill_is_info_and_a_failed_one_is_a_warning(): void
+    public function test_a_running_backfill_is_info_and_a_failed_one_is_a_warning(): void
     {
         $client = $this->boardWith(['orders' => null]);
-        $this->boardState['orders']->projections = [$this->projectionReport('waiting'), $this->projectionReport('totals'), $this->projectionReport('broken')];
-        $this->boardState['orders']->trackings = [$this->tracking('waiting', 'running', 3000, 'projection-initialization'), $this->tracking('totals', 'running', 65000, 'projection-backfill'), $this->tracking('broken', 'failed', null, 'projection-backfill')];
+        $this->boardState['orders']->projections = [$this->projectionReport('totals'), $this->projectionReport('broken')];
+        $this->boardState['orders']->trackings = [$this->tracking('totals', 'running', 65000, 'projection-backfill'), $this->tracking('broken', 'failed', null, 'projection-backfill')];
 
         $crawler = $this->observeBoard($client);
 
         self::assertSame([
             ['text' => 'broken backfill failed in the last 7 days', 'href' => '/services/orders/projections', 'severity' => 'warning', 'kind' => 'backfill-failed'],
-            ['text' => 'waiting initializing for 3s', 'href' => '/services/orders/projections', 'severity' => 'info', 'kind' => 'initialization-running'],
             ['text' => 'totals backfilling for 1m 5s', 'href' => '/services/orders/projections', 'severity' => 'info', 'kind' => 'backfill-running'],
         ], $this->problemsOf($crawler, 'orders'));
     }

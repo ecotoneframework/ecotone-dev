@@ -7,9 +7,8 @@ namespace App\Projection;
 final readonly class Rebuild
 {
     public const REBUILD = 'rebuild';
-    public const INITIALIZATION = 'initialization';
     public const BACKFILL = 'backfill';
-    private const KINDS = ['projection-rebuild' => self::REBUILD, 'projection-initialization' => self::INITIALIZATION, 'projection-backfill' => self::BACKFILL];
+    private const KINDS = ['projection-rebuild' => self::REBUILD, 'projection-backfill' => self::BACKFILL];
 
     public function __construct(
         public string $tracingId,
@@ -50,7 +49,6 @@ final readonly class Rebuild
     public function label(): string
     {
         return match ($this->kind) {
-            self::INITIALIZATION => 'Initialization',
             self::BACKFILL => 'Backfill',
             default => 'Rebuild',
         };
@@ -64,7 +62,6 @@ final readonly class Rebuild
     public function gerund(): string
     {
         return match ($this->kind) {
-            self::INITIALIZATION => 'initializing',
             self::BACKFILL => 'backfilling',
             default => 'rebuilding',
         };
@@ -73,7 +70,6 @@ final readonly class Rebuild
     public function doneLabel(): string
     {
         return match ($this->kind) {
-            self::INITIALIZATION => 'Initialized',
             self::BACKFILL => 'Backfilled',
             default => 'Rebuilt',
         };
@@ -82,7 +78,6 @@ final readonly class Rebuild
     public function runningState(): ProjectionState
     {
         return match ($this->kind) {
-            self::INITIALIZATION => ProjectionState::Initializing,
             self::BACKFILL => ProjectionState::Backfilling,
             default => ProjectionState::Rebuilding,
         };

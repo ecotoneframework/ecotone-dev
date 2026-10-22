@@ -19,17 +19,34 @@ final readonly class ProjectionStatus
         public ?string $rebuildAsyncChannel,
         public ?string $backfillAsyncChannel,
         public ?Rebuild $latestRebuild,
+        public bool $manualKickOff,
+        public ?string $initializeCommand,
     ) {
     }
 
-    public function canBeInitialized(): bool
+    public function isSetUp(): bool
     {
-        return $this->state === ProjectionState::NotInitialized;
+        return $this->state !== ProjectionState::NotInitialized && $this->state !== ProjectionState::WaitingForFirstEvent;
     }
 
     public function canBeBackfilled(): bool
     {
-        return $this->mode !== 'streaming' && $this->unavailable === null;
+        return $this->mode !== 'streaming' && $this->unavailable === null && $this->isSetUp();
+    }
+
+    public function canBeRebuilt(): bool
+    {
+        return $this->isSetUp();
+    }
+
+    public function initializationLabel(): string
+    {
+        return match ($this->initialization) {
+            'initialized' => 'Initialized',
+            'prepared' => 'Kicked off, not run yet',
+            'uninitialized' => 'Not initialized yet',
+            default => '–',
+        };
     }
 
     public function changedAgo(): ?string

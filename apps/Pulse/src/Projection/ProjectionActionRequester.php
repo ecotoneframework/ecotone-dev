@@ -22,7 +22,7 @@ use Throwable;
 
 final readonly class ProjectionActionRequester
 {
-    public const ROUTING_KEYS = [Rebuild::REBUILD => 'ecotone.pulse.projections.rebuild', Rebuild::INITIALIZATION => 'ecotone.pulse.projections.initialize', Rebuild::BACKFILL => 'ecotone.pulse.projections.backfill'];
+    public const ROUTING_KEYS = [Rebuild::REBUILD => 'ecotone.pulse.projections.rebuild', Rebuild::BACKFILL => 'ecotone.pulse.projections.backfill'];
 
     public function __construct(
         private DistributedBus $distributedBus,

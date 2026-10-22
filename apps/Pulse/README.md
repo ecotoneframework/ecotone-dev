@@ -113,14 +113,19 @@ The **Refresh** button on the Services page requests new snapshots regardless of
 The **Traces** pages need flow tracking in the service (`FlowTrackingConfiguration::createWithDefaults()` returned from a
 `#[ServiceContext]`). A service without it is listed as "flow tracking not enabled" and is never asked for traces.
 
-The **Projections** page (`/services/{name}/projections`, per tenant) starts three operations after a confirmation: **Rebuild**
-(reset and replay), **Backfill** (catch up from where the projection stopped, `ecotone:projection:backfill`) and **Initialize**,
-offered for a projection that reports `uninitialized` (for example one waiting for a `manualKickOff`), which sets it up and
-catches it up on the stored events, as `ecotone:projection:trigger` does. A partitioned projection initializes each partition on
-its first event, and a streaming projection keeps no position, so neither is offered Initialize; a streaming projection is not offered Backfill either.
-Each operation is one row in the service's own tracking table (category `ecotone-pulse`, type `projection-rebuild`,
-`projection-initialization` or `projection-backfill`), so its progress and outcome survive a restart of Pulse. The home board
-shows `<projection> not initialized` as a warning and a running initialization or backfill as info.
+The **Projections** page (`/services/{name}/projections`, per tenant) starts two operations after a confirmation: **Rebuild**
+(reset and replay) and **Backfill** (catch up from where the projection stopped, `ecotone:projection:backfill`). It never
+initializes a projection, because initialization can create tables and a request to the service runs inside a transaction:
+the page shows "Initialized" or "Not initialized yet", and for a projection with `manualKickOff` the command to run,
+`ecotone:projection:init <name>`, in the syntax of the service's framework. A projection without a state row is not offered
+Rebuild or Backfill, and the service refuses them with the same instruction; one kicked off from the console and not run yet
+is offered both. A projection without `manualKickOff` reads "Waiting for its first event". A streaming projection keeps no
+position, so it is not offered Backfill. Hint boxes on the page explain these states and that a Rebuild or Backfill of a
+projection that is not partitioned runs as one transaction with no live progress, so the service may show as Waiting or
+Unreachable until it ends.
+Each operation is one row in the service's own tracking table (category `ecotone-pulse`, type `projection-rebuild` or
+`projection-backfill`), so its progress and outcome survive a restart of Pulse; rows of any other type are ignored. A running
+rebuild or backfill shows as info on the home board.
 
 * `/traces` lists the flow types of every service from the `tracing` section of its snapshot, with runs, runs with errors
   recorded, error rate, p50/p95/max entry duration over the latest runs, and the last run. A flow type is named by how the

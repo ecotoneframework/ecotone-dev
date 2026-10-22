@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Projection;
 
+use App\Setup\SetupStatus;
 use App\Snapshot\ServiceSnapshot;
 use DateTimeImmutable;
 
@@ -53,13 +54,18 @@ final class ProjectionOverview
         $since = isset($service->projectionMovements[$name]['since']) ? new DateTimeImmutable($service->projectionMovements[$name]['since']) : null;
         $unmovedSeconds = $since !== null && $service->lastSeenAt !== null ? $service->lastSeenAt->getTimestamp() - $since->getTimestamp() : 0;
         [$gap, $behind] = self::gapOf($projection);
-        $notInitialized = ($projection['initialization'] ?? null) === 'uninitialized' && ($projection['partitioned'] ?? false) !== true && ($projection['mode'] ?? null) !== 'streaming';
+        $keepsOneState = ($projection['partitioned'] ?? false) !== true && ($projection['mode'] ?? null) !== 'streaming';
+        $notInitialized = ($projection['initialization'] ?? null) === 'uninitialized' && $keepsOneState;
+        $prepared = ($projection['initialization'] ?? null) === 'prepared' && $keepsOneState;
+        $manualKickOff = ($projection['manualKickOff'] ?? false) === true;
 
         $state = match (true) {
             $rebuilds->isRunning($name) => $rebuilds->latestOf($name)->runningState(),
             $unavailable !== null => ProjectionState::Unknown,
             $asyncChannel !== null && in_array($asyncChannel, $deadLetterChannels, true) => ProjectionState::Failed,
-            $notInitialized => ProjectionState::NotInitialized,
+            $notInitialized && $manualKickOff => ProjectionState::NotInitialized,
+            $notInitialized => ProjectionState::WaitingForFirstEvent,
+            $prepared => ProjectionState::Prepared,
             $behind && $unmovedSeconds >= $stalledAfterSeconds => ProjectionState::Stalled,
             $behind => ProjectionState::CatchingUp,
             default => ProjectionState::UpToDate,
@@ -78,7 +84,14 @@ final class ProjectionOverview
             is_string($projection['rebuildAsyncChannel'] ?? null) ? $projection['rebuildAsyncChannel'] : null,
             is_string($projection['backfillAsyncChannel'] ?? null) ? $projection['backfillAsyncChannel'] : null,
             $rebuilds->latestOf($name),
+            $manualKickOff,
+            $notInitialized && $manualKickOff ? SetupStatus::projectionInit(self::frameworkOf($service), $name) : null,
         );
+    }
+
+    private static function frameworkOf(ServiceSnapshot $service): string
+    {
+        return is_string($service->snapshot['overview']['framework'] ?? null) ? $service->snapshot['overview']['framework'] : 'lite';
     }
 
     /**

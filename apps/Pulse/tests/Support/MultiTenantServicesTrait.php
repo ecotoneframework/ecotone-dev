@@ -24,6 +24,7 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
+use Ecotone\Projecting\ProjectionOperations;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\SpanContext;
@@ -75,6 +76,12 @@ trait MultiTenantServicesTrait
             public function queue(array $order, #[Header('tenant')] string $tenant): void
             {
                 $this->queued[] = $tenant . ':' . $order['orderId'];
+            }
+
+            #[CommandHandler('projection.initialize', endpointId: 'pulse.tenant.projection.initialize.endpoint')]
+            public function initializeProjection(string $projection, ProjectionOperations $operations): void
+            {
+                $operations->initialize($projection);
             }
 
             #[CommandHandler('order.audit', endpointId: 'pulse.tenant.order.audit.endpoint')]

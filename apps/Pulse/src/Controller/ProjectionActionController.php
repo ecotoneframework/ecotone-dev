@@ -30,12 +30,6 @@ final class ProjectionActionController extends AbstractController
         return $this->act(Rebuild::REBUILD, $service, $projection, $request);
     }
 
-    #[Route('/services/{service}/projections/{projection}/initialize', name: 'service_projection_initialize', methods: ['POST'], requirements: ['service' => '[^/]+', 'projection' => '[^/]+'])]
-    public function initialize(string $service, string $projection, Request $request): RedirectResponse
-    {
-        return $this->act(Rebuild::INITIALIZATION, $service, $projection, $request);
-    }
-
     #[Route('/services/{service}/projections/{projection}/backfill', name: 'service_projection_backfill', methods: ['POST'], requirements: ['service' => '[^/]+', 'projection' => '[^/]+'])]
     public function backfill(string $service, string $projection, Request $request): RedirectResponse
     {
@@ -56,20 +50,20 @@ final class ProjectionActionController extends AbstractController
             }
         }
         if (! $known) {
-            return $this->back($service, ProjectionActionNotice::of($action, ProjectionActionNotice::UNKNOWN_PROJECTION, $projection));
+            return $this->back(ServiceScope::ofService($service), ProjectionActionNotice::of($action, ProjectionActionNotice::UNKNOWN_PROJECTION, $projection));
         }
         if ($request->request->get('confirm') !== '1') {
-            return $this->back($service, ProjectionActionNotice::of($action, ProjectionActionNotice::NOT_CONFIRMED, $projection));
+            return $this->back($scope, ProjectionActionNotice::of($action, ProjectionActionNotice::NOT_CONFIRMED, $projection));
         }
 
         $result = $this->requester->send($scope, $action, $projection);
         $this->awaiter->await([$result]);
 
-        return $this->back($service, ProjectionActionNotice::of($action, $result->failed ? ProjectionActionNotice::SEND_FAILED : ProjectionActionNotice::REQUESTED, $projection));
+        return $this->back($scope, ProjectionActionNotice::of($action, $result->failed ? ProjectionActionNotice::SEND_FAILED : ProjectionActionNotice::REQUESTED, $projection));
     }
 
-    private function back(string $service, ProjectionActionNotice $notice): RedirectResponse
+    private function back(ServiceScope $scope, ProjectionActionNotice $notice): RedirectResponse
     {
-        return new RedirectResponse($this->generateUrl('service_projections', ['service' => $service] + $notice->toQuery()));
+        return new RedirectResponse($this->generateUrl('service_projections', ['service' => $scope->key()] + $notice->toQuery()));
     }
 }

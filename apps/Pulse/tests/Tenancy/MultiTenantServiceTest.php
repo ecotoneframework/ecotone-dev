@@ -7,7 +7,6 @@ namespace App\Tests\Tenancy;
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -113,7 +112,7 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         $hub = $this->refreshedView($client, '/services/orders');
         $list = $client->request('GET', '/dead-letters');
 
-        self::assertSame(['tenant_a'], $hub->filter('[data-tenant]:not([data-tenant-unadvertised])')->each(static fn (Crawler $tenant) => $tenant->attr('data-tenant')));
+        self::assertSame(['tenant_a'], $hub->filter('[data-tenants] [data-tenant]:not([data-tenant-unadvertised])')->each(static fn (Crawler $tenant) => $tenant->attr('data-tenant')));
         self::assertStringContainsString('not advertised by the service', $hub->filter('[data-tenant="tenant_x"][data-tenant-unadvertised]')->text());
         self::assertCount(0, $list->filter('[data-service-section="orders@tenant_b"]'));
         self::assertCount(1, $list->filter('[data-service-section="orders@tenant_a"]'));
@@ -144,40 +143,6 @@ final class MultiTenantServiceTest extends ReleasingWebTestCase
         self::assertCount(0, $list->filter('[data-service-section="billing"] [data-tenant]'));
         self::assertCount(1, $list->filter('[data-service-section="billing"]'));
         self::assertCount(0, $traces->filter('[data-service-section="billing"] [data-tenant]'));
-    }
-
-    private function pulseWithTenants(string $narrowing = ''): KernelBrowser
-    {
-        $suffix = uniqid();
-        $this->pulseChannel = 'pulse_' . $suffix;
-        $this->serviceChannels = ['orders' => 'orders_' . $suffix, 'billing' => 'billing_' . $suffix];
-        $this->configurePulse([
-            'PULSE_CHANNEL' => $this->pulseChannel,
-            'PULSE_SERVICES' => 'orders:' . $this->serviceChannels['orders'] . $narrowing . ',billing:' . $this->serviceChannels['billing'],
-        ]);
-        $client = static::createClient();
-        $client->disableReboot();
-        $this->setUpPulseDatabase($client->getKernel());
-        $this->services = ['orders' => $this->multiTenantService('orders')];
-        $this->services['billing'] = $this->serviceWithoutDeadLetters('billing');
-
-        return $client;
-    }
-
-    private function refreshedView(KernelBrowser $client, string $uri): Crawler
-    {
-        $client->request('POST', '/refresh');
-        $this->deliver($client);
-        $client->request('POST', '/refresh');
-        $this->deliver($client);
-
-        return $client->request('GET', $uri);
-    }
-
-    private function deliver(KernelBrowser $client): void
-    {
-        $this->runAllServices();
-        $this->runPulseWorker($client->getKernel());
     }
 
     /**

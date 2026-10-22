@@ -8,6 +8,7 @@ use Composer\InstalledVersions;
 use DateTimeInterface;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Channel\Manager\ChannelSetupManager;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 
@@ -57,6 +58,7 @@ final class PulseSnapshot
         private array $tenantScopedSections,
         private array $tenancy,
         private ConfiguredMessagingSystem $messagingSystem,
+        private ChannelSetupManager $channelSetupManager,
         private EcotoneClockInterface $clock,
     ) {
     }
@@ -129,7 +131,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null}>,
+     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, expectedConsumers: list<string>, setUp: bool|null}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -207,16 +209,32 @@ final class PulseSnapshot
             $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
         }
 
+        $setUp = $forTenant ? [] : $this->channelSetUp();
+        $consumers = $this->messagingSystem->list();
         $listed = $forTenant ? array_filter($this->channels, static fn (array $channel): bool => $channel['tenantScoped']) : $this->channels;
 
         return array_values(array_map(
             fn (array $channel): array => [
                 'name' => $channel['name'],
                 'kind' => $channel['kind'],
+                'expectedConsumers' => array_values(array_intersect([$channel['name']], $consumers)),
+                'setUp' => $setUp[$channel['name']] ?? null,
                 ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
             ],
             $listed
         ));
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function channelSetUp(): array
+    {
+        try {
+            return array_filter($this->channelSetupManager->getInitializationStatus(), is_bool(...));
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**

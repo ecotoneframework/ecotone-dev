@@ -23,7 +23,7 @@
                     <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
                     <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
                     <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
-                    <td>{% if channel.setUp is same as(false) %}<span class="pill bad sq" data-channel-not-set-up>Not set up</span> {% endif %}{% if channel.runCommand %}<code data-run-command>{{ channel.runCommand }}</code>{% else %}<span data-run-command>No polling consumer</span>{% endif %}{% if channel.handlers %}<ul data-channel-handlers>{% for handler in channel.handlers %}<li>{{ handler }}</li>{% endfor %}</ul>{% endif %}{% if channel.notConsumingSeconds is not null %} <span class="pill wait" data-not-consuming>Not consuming for {{ (channel.notConsumingSeconds // 60) }} min</span>{% endif %}</td>
+                    <td>{% if channel.setUp is same as(false) %}<span class="pill bad sq" data-channel-not-set-up>Not set up</span> {% endif %}{% if channel.runCommand %}<code data-run-command>{{ channel.runCommand }}</code>{% else %}<span data-run-command>No polling consumer</span>{% endif %}{% if channel.handlers %}<ul data-channel-handlers>{% for handler in channel.handlers %}<li>{{ handler }}</li>{% endfor %}</ul>{% endif %}{% if channel.notDrainingSeconds is not null %} <span class="pill wait" data-not-draining>Not draining for {{ (channel.notDrainingSeconds // 60) }} min</span>{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>

@@ -37,7 +37,7 @@ final class TenantViewsTest extends ReleasingWebTestCase
         self::assertSame('1', $hub->filter('[data-hub-tenants] tr[data-channel="' . self::QUEUE . '"][data-tenant="tenant_b"] [data-ready]')->text());
     }
 
-    public function test_a_channel_is_not_consuming_in_the_tenant_whose_ready_count_stopped_going_down_only(): void
+    public function test_a_channel_is_not_draining_in_the_tenant_whose_ready_count_stopped_going_down_only(): void
     {
         $client = $this->pulseWithTenants();
         $this->queueOrders('tenant_a', 3);
@@ -51,8 +51,8 @@ final class TenantViewsTest extends ReleasingWebTestCase
 
         $home = $this->refreshedView($client, '/');
 
-        self::assertSame(['/services/orders?tenant=' . $idle . '#channels'], $this->problemsOf($home, 'orders@' . $idle, 'channel-not-consuming', self::QUEUE));
-        self::assertSame([], $this->problemsOf($home, 'orders@' . $consumed, 'channel-not-consuming', self::QUEUE));
+        self::assertSame(['/services/orders?tenant=' . $idle . '#channels'], $this->problemsOf($home, 'orders@' . $idle, 'channel-not-draining', self::QUEUE));
+        self::assertSame([], $this->problemsOf($home, 'orders@' . $consumed, 'channel-not-draining', self::QUEUE));
     }
 
     public function test_tables_missing_in_one_tenant_are_reported_for_that_tenant_only(): void

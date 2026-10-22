@@ -125,6 +125,7 @@ final class PulseModule implements AnnotationModule
                 $tenancy === null ? [] : ['header' => $tenancy->tenantHeaderName, 'tenants' => $tenancy->tenants],
                 new Reference(ConfiguredMessagingSystem::class),
                 new Reference(EcotoneClockInterface::class),
+                new Reference(ExtensionObjectResolver::resolve(PulseSectionIsolationRegistration::class, $extensionObjects)[0]->serviceReference ?? NoPulseSectionIsolation::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(
@@ -135,6 +136,7 @@ final class PulseModule implements AnnotationModule
                 new Reference(LoggingGateway::class),
             ])
         );
+        $messagingConfiguration->registerServiceDefinition(NoPulseSectionIsolation::class, Definition::createFor(NoPulseSectionIsolation::class, []));
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::createForMethod(PulseSnapshot::class, $interfaceToCallRegistry->getFor(PulseSnapshot::class, 'snapshotJson'))
                 ->withInputChannelName(PulseSnapshot::ROUTING_KEY)

@@ -175,7 +175,7 @@ final class DeadLetterTriageTest extends ReleasingWebTestCase
         $this->setUpPulseDatabase($client->getKernel());
         $orders = $this->serviceWithDeadLetters('orders');
         $orders->sendCommandWithRouting('order.cancel', '{"orderId":2}', 'application/json');
-        $orders->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false)->withMemoryLimitInMegabytes(4096));
+        $orders->run(self::WORK_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(10, 100, false));
         $list = $this->freshView($client, '/dead-letters');
 
         $detail = $client->click($list->filter('[data-dead-letter] a')->link());

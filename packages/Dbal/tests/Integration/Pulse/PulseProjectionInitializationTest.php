@@ -34,7 +34,6 @@ use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;

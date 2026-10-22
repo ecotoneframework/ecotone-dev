@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Projection\ProjectionActionNotice;
-use App\Projection\ProjectionOverview;
 use App\Projection\ProjectionActionRequester;
+use App\Projection\ProjectionOverview;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
 use App\Snapshot\Refusals;

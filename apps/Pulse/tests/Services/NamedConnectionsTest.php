@@ -36,12 +36,12 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
     {
         $client = $this->pulseOnDatabaseAndBroker();
         $billing = $this->billingOnBroker();
-        $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup());
         $orders = $this->realService('orders');
 
         $client->request('GET', '/services');
         $this->runService($orders, 'orders');
-        $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup()->withMemoryLimitInMegabytes(4096));
+        $billing->run('billing_' . $this->suffix, ExecutionPollingMetadata::createWithTestingSetup());
         $this->runPulseWorker($client->getKernel(), $this->pulseChannel);
         $this->runPulseWorker($client->getKernel(), $this->pulseChannel . '.legacy');
         $crawler = $client->request('GET', '/services');
@@ -99,6 +99,6 @@ final class NamedConnectionsTest extends ReleasingWebTestCase
     private function runPulseWorker(\Symfony\Component\HttpKernel\KernelInterface $kernel, string $channel): void
     {
         $command = new CommandTester((new Application($kernel))->find('ecotone:run'));
-        $command->execute(['consumerName' => $channel, '--finishWhenNoMessages' => true, '--memoryLimit' => 4096, '--executionTimeLimit' => 2000]);
+        $command->execute(['consumerName' => $channel, '--finishWhenNoMessages' => true, '--executionTimeLimit' => 2000]);
     }
 }

@@ -22,7 +22,7 @@ final readonly class ChannelDepth
         public ?string $consumerToRun = null,
         public array $handlers = [],
         public ?bool $setUp = null,
-        public ?int $notConsumingSeconds = null,
+        public ?int $notDrainingSeconds = null,
     ) {
     }
 
@@ -55,7 +55,7 @@ final readonly class ChannelDepth
                 is_string($channel['consumerToRun'] ?? null) ? $channel['consumerToRun'] : null,
                 is_array($channel['handlers'] ?? null) ? array_values(array_filter($channel['handlers'], is_string(...))) : [],
                 is_bool($channel['setUp'] ?? null) ? $channel['setUp'] : null,
-                self::notConsumingSeconds($snapshot, $channel['name'], $ready, $stalledAfterSeconds),
+                self::notDrainingSeconds($snapshot, $channel['name'], $ready, $stalledAfterSeconds),
             );
         }
 
@@ -75,7 +75,7 @@ final readonly class ChannelDepth
         return count(array_filter($depths, static fn (self $depth) => in_array($depth->level, ['warning', 'critical'], true)));
     }
 
-    private static function notConsumingSeconds(ServiceSnapshot $snapshot, string $name, ?int $ready, int $stalledAfterSeconds): ?int
+    private static function notDrainingSeconds(ServiceSnapshot $snapshot, string $name, ?int $ready, int $stalledAfterSeconds): ?int
     {
         $since = $snapshot->channelMovements[$name]['since'] ?? null;
         if ($ready === null || $ready <= 0 || $since === null || $snapshot->lastSeenAt === null) {

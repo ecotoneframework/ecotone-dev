@@ -149,6 +149,16 @@ class ProjectingManager
         return $this->rebuildAsyncChannelName !== null;
     }
 
+    public function isPartitioned(): bool
+    {
+        return $this->partitioned;
+    }
+
+    public function isInitialized(): bool
+    {
+        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, null, lock: false)?->status === ProjectionInitializationStatus::INITIALIZED;
+    }
+
     public function getProjectionName(): string
     {
         return $this->projectionName;

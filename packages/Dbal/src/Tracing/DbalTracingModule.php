@@ -41,7 +41,7 @@ use Ecotone\Dbal\Database\PulseTrackingTableManager;
 use Ecotone\Dbal\Database\SpansTableManager;
 use Ecotone\Dbal\Pulse\Tracking\DbalTrackingStore;
 use Ecotone\Dbal\Pulse\Tracking\InMemoryTrackingStore;
-use Ecotone\Dbal\Pulse\Tracking\PulseRebuildActions;
+use Ecotone\Dbal\Pulse\Tracking\PulseProjectionActions;
 use Ecotone\Dbal\Pulse\Tracking\PulseTrackings;
 use Ecotone\Dbal\Pulse\Tracking\TrackingStore;
 use Ecotone\Dbal\Recoverability\InMemoryDeadLetterStore;
@@ -270,14 +270,19 @@ final class DbalTracingModule extends NoExternalConfigurationModule implements A
             new Definition(PulseTrackings::class, [new Reference(TrackingStore::class), new Reference($flowTracking === null ? $untracedSpans : TraceStore::class), new Reference($deadLettersReference), new Reference(EcotoneClockInterface::class), $serviceName])
         );
         $messagingConfiguration->registerServiceDefinition(
-            PulseRebuildActions::class,
-            new Definition(PulseRebuildActions::class, [new Reference(TrackingStore::class), new Reference(ProjectionRegistry::class), new Reference(ProjectionOperations::class), new Reference(EcotoneClockInterface::class)])
+            PulseProjectionActions::class,
+            new Definition(PulseProjectionActions::class, [new Reference(TrackingStore::class), new Reference(ProjectionRegistry::class), new Reference(ProjectionOperations::class), new Reference(EcotoneClockInterface::class)])
         );
         $sourceService = HeaderBuilder::createOptional('sourceService', DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME);
         $snapshot = ReferenceBuilder::create('snapshot', PulseSnapshot::class);
         $messagingConfiguration->registerMessageHandler(
-            MessageProcessorActivatorBuilder::createForMethod(PulseRebuildActions::class, $interfaceToCallRegistry->getFor(PulseRebuildActions::class, 'rebuild'))
-                ->withInputChannelName(PulseRebuildActions::ROUTING_KEY)
+            MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'rebuild'))
+                ->withInputChannelName(PulseProjectionActions::ROUTING_KEY)
+                ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
+        );
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::createForMethod(PulseProjectionActions::class, $interfaceToCallRegistry->getFor(PulseProjectionActions::class, 'initialize'))
+                ->withInputChannelName(PulseProjectionActions::INITIALIZE_ROUTING_KEY)
                 ->withMethodParameterConverters([PayloadBuilder::create('payload'), $sourceService, AllHeadersBuilder::createWith('headers'), $snapshot])
         );
         $messagingConfiguration->registerMessageHandler(

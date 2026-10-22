@@ -104,12 +104,12 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
 
         self::assertSame(
             [
-                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel'],
-                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
-                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
+                ['name' => 'tickets_async', 'mode' => 'asynchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => 'tickets_async_channel', 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
+                ['name' => 'tickets_partitioned', 'mode' => 'synchronous', 'partitioned' => true, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => 'tickets_rebuild_channel', 'backfillAsyncChannel' => 'tickets_backfill_channel'],
+                ['name' => 'tickets_polling', 'mode' => 'polling', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
+                ['name' => 'tickets_sync', 'mode' => 'synchronous', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => null, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null],
             ],
-            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel'])), $before),
+            array_map(fn (array $projection): array => array_intersect_key($projection, array_flip(['name', 'mode', 'partitioned', 'manualKickOff', 'asyncChannel', 'rebuildAsyncChannel', 'backfillAsyncChannel'])), $before),
         );
         self::assertSame(
             ['tickets_async' => 'uninitialized', 'tickets_partitioned' => 'uninitialized', 'tickets_polling' => 'uninitialized', 'tickets_sync' => 'uninitialized'],
@@ -292,17 +292,8 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
         self::assertSame(['events' => 0, 'atLeast' => false], $ofTenantB['projections'][0]['eventsBehind']);
     }
 
-    public function test_initializing_and_backfilling_from_pulse_set_up_a_projection_on_the_event_store_of_the_service(): void
+    public function test_backfilling_from_pulse_a_projection_initialized_from_the_console_projects_its_events(): void
     {
-        $initialized = new #[Projection('tickets_kick_off_initialized'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
-            public int $handled = 0;
-
-            #[EventHandler]
-            public function when(TicketWasRegistered $event): void
-            {
-                $this->handled++;
-            }
-        };
         $backfilled = new #[Projection('tickets_kick_off_backfilled'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
             public int $handled = 0;
 
@@ -312,54 +303,17 @@ final class PulseProjectionsTest extends EventSourcingMessagingTestCase
                 $this->handled++;
             }
         };
-        $this->bootstrap('dbal', [$initialized, $backfilled]);
+        $this->bootstrap('dbal', [$backfilled]);
         $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'));
-        self::assertSame(['tickets_kick_off_backfilled' => 'uninitialized', 'tickets_kick_off_initialized' => 'uninitialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
+        self::assertSame(['tickets_kick_off_backfilled' => 'uninitialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
+        self::assertSame(['tickets_kick_off_backfilled' => true], array_column($this->requestSnapshot()['projections'], 'manualKickOff', 'name'));
+        $this->orderService->runConsoleCommand('ecotone:projection:init', ['name' => 'tickets_kick_off_backfilled']);
+        self::assertSame(['tickets_kick_off_backfilled' => 'prepared'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
 
-        $this->act('ecotone.pulse.projections.initialize', 'tickets_kick_off_initialized', '0af7651916cd43dd8448eb211c80319c');
         $this->act('ecotone.pulse.projections.backfill', 'tickets_kick_off_backfilled', '1af7651916cd43dd8448eb211c80319c');
 
-        self::assertSame(['tickets_kick_off_backfilled' => 'initialized', 'tickets_kick_off_initialized' => 'initialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
-        self::assertSame(1, $initialized->handled);
+        self::assertSame(['tickets_kick_off_backfilled' => 'initialized'], array_column($this->requestSnapshot()['projections'], 'initialization', 'name'));
         self::assertSame(1, $backfilled->handled);
-    }
-
-    public function test_initializing_a_projection_in_one_tenant_leaves_it_uninitialized_in_the_other(): void
-    {
-        $this->bootstrap('dbal', [new #[Projection('tickets_kick_off'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
-            public int $handled = 0;
-
-            #[EventHandler]
-            public function when(TicketWasRegistered $event): void
-            {
-                $this->handled++;
-            }
-        }], multiTenant: true);
-        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_a']);
-
-        $this->act('ecotone.pulse.projections.initialize', 'tickets_kick_off', '0af7651916cd43dd8448eb211c80319c', 'tenant_a');
-
-        self::assertSame('initialized', $this->requestSnapshot('tenant_a')['projections'][0]['initialization']);
-        self::assertSame('uninitialized', $this->requestSnapshot('tenant_b')['projections'][0]['initialization']);
-    }
-
-    public function test_backfilling_a_projection_in_one_tenant_leaves_it_uninitialized_in_the_other(): void
-    {
-        $this->bootstrap('dbal', [new #[Projection('tickets_kick_off'), ProjectionDeployment(manualKickOff: true), FromAggregateStream(Ticket::class)] class () {
-            public int $handled = 0;
-
-            #[EventHandler]
-            public function when(TicketWasRegistered $event): void
-            {
-                $this->handled++;
-            }
-        }], multiTenant: true);
-        $this->orderService->sendCommand(new RegisterTicket('ticket-1', 'Johny', 'alert'), metadata: ['tenant' => 'tenant_b']);
-
-        $this->act('ecotone.pulse.projections.backfill', 'tickets_kick_off', '0af7651916cd43dd8448eb211c80319c', 'tenant_b');
-
-        self::assertSame('initialized', $this->requestSnapshot('tenant_b')['projections'][0]['initialization']);
-        self::assertSame('uninitialized', $this->requestSnapshot('tenant_a')['projections'][0]['initialization']);
     }
 
     private function asynchronousProjection(): object

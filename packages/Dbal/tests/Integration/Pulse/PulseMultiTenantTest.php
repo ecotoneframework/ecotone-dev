@@ -34,6 +34,7 @@ use Ecotone\Api\Tracing\SpanContext;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Projecting\ProjectionOperations;
 use Ecotone\Test\LicenceTesting;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -239,6 +240,7 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
     public function test_a_rebuild_of_one_tenant_records_its_tracking_and_replays_in_that_tenant_only(): void
     {
         $this->bootstrap();
+        $this->initializeProjectionIn('tenant_a', 'tenant_orders');
 
         $reply = $this->ask('ecotone.pulse.projections.rebuild', json_encode(['projection' => 'tenant_orders']), 'tenant_a', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
 
@@ -251,22 +253,10 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame(['1'], $this->projection->replayedFor);
     }
 
-    public function test_an_initialization_of_one_tenant_is_tracked_in_that_tenant_only(): void
-    {
-        $this->bootstrap();
-
-        $reply = $this->ask('ecotone.pulse.projections.initialize', json_encode(['projection' => 'tenant_kickoff_orders']), 'tenant_a', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
-
-        self::assertSame('tenant_kickoff_orders', $reply['initializeAction']['projection']);
-        $inTenantA = $this->ask('ecotone.pulse.trackings.list', json_encode(['since' => '2026-10-01T00:00:00+00:00']), 'tenant_a');
-        $inTenantB = $this->ask('ecotone.pulse.trackings.list', json_encode(['since' => '2026-10-01T00:00:00+00:00']), 'tenant_b');
-        self::assertSame([['projection-initialization', 'tenant_a']], array_map(fn (array $tracking): array => [$tracking['type'], $tracking['tenant']], $inTenantA['trackings']));
-        self::assertSame([], $inTenantB['trackings']);
-    }
-
     public function test_a_backfill_of_one_tenant_is_tracked_in_that_tenant_only(): void
     {
         $this->bootstrap();
+        $this->initializeProjectionIn('tenant_b', 'tenant_kickoff_orders');
 
         $reply = $this->ask('ecotone.pulse.projections.backfill', json_encode(['projection' => 'tenant_kickoff_orders']), 'tenant_b', [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_B]);
 
@@ -277,11 +267,11 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         self::assertSame([], $inTenantA['trackings']);
     }
 
-    public function test_initializing_and_backfilling_without_a_tenant_are_refused(): void
+    public function test_backfilling_without_a_tenant_is_refused(): void
     {
         $this->bootstrap();
 
-        foreach (['initialize', 'backfill'] as $operation) {
+        foreach (['backfill'] as $operation) {
             try {
                 $this->ask("ecotone.pulse.projections.{$operation}", json_encode(['projection' => 'tenant_kickoff_orders']), null, [MessageHeaders::TRACING_ID => self::TRACE_OF_TENANT_A]);
                 self::fail("A {$operation} request without a tenant must be refused");
@@ -406,6 +396,11 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         return $this->ask('ecotone.pulse.snapshot', '{}', $tenant);
     }
 
+    private function initializeProjectionIn(string $tenant, string $projection): void
+    {
+        $this->orderService->sendCommandWithRouting('projection.initialize', $projection, metadata: ['tenant' => $tenant]);
+    }
+
     private function ask(string $routingKey, string $payload, ?string $tenant = null, array $metadata = []): array
     {
         $queryId = 'query-' . (count($this->pulse->replies) + 1);
@@ -444,6 +439,12 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             #[CommandHandler('order.untenanted', endpointId: 'order.untenanting')]
             public function untenanted(string $order): void
             {
+            }
+
+            #[CommandHandler('projection.initialize', endpointId: 'projection.initializing')]
+            public function initializeProjection(string $projection, ProjectionOperations $operations): void
+            {
+                $operations->initialize($projection);
             }
 
             #[CommandHandler('ticket.create', endpointId: 'ticket.creating')]

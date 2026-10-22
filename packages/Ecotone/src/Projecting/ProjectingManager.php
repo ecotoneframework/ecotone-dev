@@ -159,9 +159,9 @@ class ProjectingManager
         return $this->partitioned;
     }
 
-    public function isInitialized(): bool
+    public function isSetUp(): bool
     {
-        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, null, lock: false)?->status === ProjectionInitializationStatus::INITIALIZED;
+        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, null, lock: false) !== null;
     }
 
     public function getProjectionName(): string

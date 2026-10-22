@@ -30,6 +30,7 @@ use Ecotone\Api\Projecting\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
@@ -77,60 +78,59 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         yield 'dbal' => ['dbal'];
     }
 
-    #[DataProvider('implementations')]
-    public function test_initializing_a_projection_waiting_for_a_kick_off_records_one_tracking_and_reports_it_initialized(string $implementation): void
+    public static function operationsOnImplementations(): iterable
+    {
+        foreach (['in-memory', 'dbal'] as $implementation) {
+            foreach (['backfill', 'rebuild'] as $operation) {
+                yield "{$implementation} {$operation}" => [$implementation, $operation];
+            }
+        }
+    }
+
+    #[DataProvider('operationsOnImplementations')]
+    public function test_an_operation_on_a_projection_that_is_not_initialized_is_refused_pointing_to_the_console_command(string $implementation, string $operation): void
     {
         $this->bootstrap($implementation);
         self::assertSame('uninitialized', $this->initializationOf('kickoff_orders'));
 
-        $reply = $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::FIRST_TRACE);
+        try {
+            $this->act("ecotone.pulse.projections.{$operation}", 'kickoff_orders', self::FIRST_TRACE);
+            self::fail("The {$operation} of an uninitialized projection was not refused.");
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame("Pulse asked to {$operation} projection kickoff_orders, but it is not initialized yet, and a request never initializes a projection, because setting it up can run DDL that a transaction cannot hold. Initialize it from the console with `ecotone:projection:init kickoff_orders` (bin/console in Symfony, php artisan in Laravel, ./tempest in Tempest), then ask again.", $exception->getMessage());
+        }
+        self::assertSame(0, $this->orderService->sendQueryWithRouting('kickoff_orders.count'));
+        self::assertSame(0, $this->orderService->sendQueryWithRouting('kickoff_orders.initializations'));
+    }
 
-        self::assertSame(['tracingId' => self::FIRST_TRACE, 'projection' => 'kickoff_orders'], $reply['initializeAction']);
-        self::assertSame('initialized', $this->initializationOf('kickoff_orders'));
-        $trackings = $this->trackings()['trackings'];
-        self::assertCount(1, $trackings);
-        self::assertSame(['projection-initialization', 'kickoff_orders', 'ecotone-pulse', null, 'done'], [$trackings[0]['type'], $trackings[0]['reference'], $trackings[0]['category'], $trackings[0]['tenant'], $trackings[0]['state']]);
+    #[DataProvider('implementations')]
+    public function test_the_snapshot_tells_which_projections_wait_for_a_manual_kick_off(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+
+        $snapshot = $this->snapshot();
+
+        self::assertSame(['async_backfill_orders' => false, 'empty_async_orders' => false, 'empty_sync_orders' => false, 'kickoff_orders' => true, 'partitioned_orders' => false, 'streaming_orders' => false], array_column($snapshot['projections'], 'manualKickOff', 'name'));
+    }
+
+    #[DataProvider('implementations')]
+    public function test_a_projection_initialized_from_the_console_is_reported_prepared_and_can_be_rebuilt_without_running_its_initialization_again(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->orderService->runConsoleCommand('ecotone:projection:init', ['name' => 'kickoff_orders']);
+        self::assertSame('prepared', $this->initializationOf('kickoff_orders'));
+
+        $this->act('ecotone.pulse.projections.rebuild', 'kickoff_orders', self::FIRST_TRACE);
+
+        self::assertSame(1, $this->orderService->sendQueryWithRouting('kickoff_orders.initializations'));
         self::assertSame(2, $this->orderService->sendQueryWithRouting('kickoff_orders.count'));
-    }
-
-    #[DataProvider('implementations')]
-    public function test_initializing_an_unknown_projection_is_refused_with_the_known_projections(string $implementation): void
-    {
-        $this->bootstrap($implementation);
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
-
-        $this->act('ecotone.pulse.projections.initialize', 'missing', self::FIRST_TRACE);
-    }
-
-    #[DataProvider('implementations')]
-    public function test_initializing_an_initialized_projection_is_refused_pointing_to_rebuild_and_backfill(string $implementation): void
-    {
-        $this->bootstrap($implementation);
-        $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::FIRST_TRACE);
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection kickoff_orders, but it is already initialized, so there is nothing left to set up. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.');
-
-        $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::SECOND_TRACE);
-    }
-
-    #[DataProvider('implementations')]
-    public function test_initializing_a_partitioned_projection_is_refused_because_each_partition_initializes_itself(string $implementation): void
-    {
-        $this->bootstrap($implementation);
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection partitioned_orders, but it is partitioned and every partition initializes itself on its first event, so there is no single initialization to run. Use Rebuild to run it again from the first event, or Backfill to project the events it has not seen.');
-
-        $this->act('ecotone.pulse.projections.initialize', 'partitioned_orders', self::FIRST_TRACE);
     }
 
     #[DataProvider('implementations')]
     public function test_a_backfill_through_the_backfill_channel_is_running_until_its_batch_is_handled(string $implementation): void
     {
         $this->bootstrap($implementation);
+        $this->orderService->initializeProjection('async_backfill_orders');
 
         $reply = $this->act('ecotone.pulse.projections.backfill', 'async_backfill_orders', self::FIRST_TRACE);
 
@@ -150,6 +150,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     public function test_a_backfill_without_a_backfill_channel_runs_inside_the_request_and_is_done_when_the_reply_arrives(string $implementation): void
     {
         $this->bootstrap($implementation);
+        $this->orderService->initializeProjection('kickoff_orders');
 
         $reply = $this->act('ecotone.pulse.projections.backfill', 'kickoff_orders', self::FIRST_TRACE);
 
@@ -176,21 +177,9 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
+        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
 
         $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
-    }
-
-    #[DataProvider('implementations')]
-    public function test_initialization_duration_includes_its_catch_up(string $implementation): void
-    {
-        $this->bootstrap($implementation);
-        $this->clockAdvance->advanceBy = fn () => $this->orderService->advanceTimeBy(Duration::seconds(5));
-
-        $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::FIRST_TRACE);
-
-        $tracking = $this->trackings()['trackings'][0];
-        self::assertSame(['done', 5000], [$tracking['state'], $tracking['durationMs']]);
     }
 
     public static function emptyOperations(): iterable
@@ -265,6 +254,19 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
             }
 
             public int $count = 0;
+            public int $initializations = 0;
+
+            #[ProjectionInitialization]
+            public function initialize(): void
+            {
+                $this->initializations++;
+            }
+
+            #[QueryHandler('kickoff_orders.initializations')]
+            public function initializations(): int
+            {
+                return $this->initializations;
+            }
 
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void

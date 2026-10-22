@@ -248,6 +248,14 @@ class ProjectingManager
         $totalBatches = array_sum(array_map(fn (array $counted): int => (int) ceil($counted[1] / $partitionBatchSize), $partitionsPerStreamFilter));
         $batchNumber = 0;
 
+        if ($totalBatches === 0) {
+            $this->sendPartitionBatchMessage([
+                ProjectingHeaders::REBUILD_BATCH_NUMBER => 0,
+                ProjectingHeaders::REBUILD_BATCH_COUNT => 0,
+                ProjectingHeaders::REBUILD_PARTITION_COUNT => 0,
+            ], null);
+        }
+
         foreach ($partitionsPerStreamFilter as [$streamFilter, $partitionsOfFilter]) {
             $numberOfBatches = (int) ceil($partitionsOfFilter / $partitionBatchSize);
 

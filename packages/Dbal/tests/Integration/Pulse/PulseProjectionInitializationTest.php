@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
+use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\Api\Attribute\EventHandler;
@@ -25,13 +26,17 @@ use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
 use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionRebuild;
 use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Projecting\PartitionProvider;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -64,6 +69,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     private object $pulse;
     private FlowTestSupport $orderService;
     private FlowTestSupport $pulseService;
+    private object $clockAdvance;
 
     public static function implementations(): iterable
     {
@@ -93,7 +99,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]');
+        $this->expectExceptionMessage('Pulse asked to initialize projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
 
         $this->act('ecotone.pulse.projections.initialize', 'missing', self::FIRST_TRACE);
     }
@@ -159,7 +165,7 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]');
+        $this->expectExceptionMessage('Pulse asked to backfill projection missing, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]');
 
         $this->act('ecotone.pulse.projections.backfill', 'missing', self::FIRST_TRACE);
     }
@@ -170,9 +176,46 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
         $this->bootstrap($implementation);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
+        $this->expectExceptionMessage('Pulse asked to backfill projection streaming_orders, but there is no such projection. Registered projections: [async_backfill_orders, empty_async_orders, empty_sync_orders, kickoff_orders, partitioned_orders]. A streaming projection is not among them: it keeps no position and reads no stored events, so it cannot be initialized, backfilled or rebuilt from Pulse. Publish the missing events to its channel again.');
 
         $this->act('ecotone.pulse.projections.backfill', 'streaming_orders', self::FIRST_TRACE);
+    }
+
+    #[DataProvider('implementations')]
+    public function test_initialization_duration_includes_its_catch_up(string $implementation): void
+    {
+        $this->bootstrap($implementation);
+        $this->clockAdvance->advanceBy = fn () => $this->orderService->advanceTimeBy(Duration::seconds(5));
+
+        $this->act('ecotone.pulse.projections.initialize', 'kickoff_orders', self::FIRST_TRACE);
+
+        $tracking = $this->trackings()['trackings'][0];
+        self::assertSame(['done', 5000], [$tracking['state'], $tracking['durationMs']]);
+    }
+
+    public static function emptyOperations(): iterable
+    {
+        foreach (['in-memory', 'dbal'] as $implementation) {
+            foreach (['backfill', 'rebuild'] as $operation) {
+                foreach (['empty_sync_orders' => 'synchronous', 'empty_async_orders' => 'asynchronous'] as $projection => $mode) {
+                    yield "{$implementation} {$operation} {$mode}" => [$implementation, $operation, $projection];
+                }
+            }
+        }
+    }
+
+    #[DataProvider('emptyOperations')]
+    public function test_an_operation_on_a_partitioned_projection_without_partitions_finishes_without_batches(string $implementation, string $operation, string $projection): void
+    {
+        $this->bootstrap($implementation);
+
+        $this->act("ecotone.pulse.projections.{$operation}", $projection, self::FIRST_TRACE);
+        $this->orderService->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->orderService->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $trackings = $this->trackings()['trackings'];
+        self::assertCount(1, $trackings);
+        self::assertSame(["projection-{$operation}", 'done', 0, 0], [$trackings[0]['type'], $trackings[0]['state'], $trackings[0]['batchesDone'], $trackings[0]['batchCount']]);
     }
 
     private function initializationOf(string $projection): ?string
@@ -213,13 +256,24 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
     private function bootstrap(string $implementation): void
     {
         $inMemory = $implementation === 'in-memory';
-        $kickoffOrders = new #[Projection('kickoff_orders'), FromStream('orders_stream'), ProjectionDeployment(manualKickOff: true)] class () {
+        $this->clockAdvance = $clockAdvance = new class () {
+            public ?Closure $advanceBy = null;
+        };
+        $kickoffOrders = new #[Projection('kickoff_orders'), FromStream('orders_stream'), ProjectionDeployment(manualKickOff: true)] class ($clockAdvance) {
+            public function __construct(private object $clockAdvance)
+            {
+            }
+
             public int $count = 0;
 
             #[EventHandler('order.placed')]
             public function whenPlaced(array $event): void
             {
                 $this->count++;
+                if ($this->clockAdvance->advanceBy !== null) {
+                    ($this->clockAdvance->advanceBy)();
+                    $this->clockAdvance->advanceBy = null;
+                }
             }
 
             #[QueryHandler('kickoff_orders.count')]
@@ -255,6 +309,34 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
             {
             }
         };
+        $emptySyncOrders = new #[Projection('empty_sync_orders'), FromStream('empty_stream'), Partitioned('orderId')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $emptyAsyncOrders = new #[Projection('empty_async_orders'), FromStream('empty_stream'), Partitioned('orderId'), ProjectionBackfill(asyncChannelName: 'backfill_channel'), ProjectionRebuild(asyncChannelName: 'rebuild_channel')] class () {
+            #[EventHandler('order.placed')]
+            public function whenPlaced(array $event): void
+            {
+            }
+        };
+        $withoutPartitions = new #[PartitionProviderAttribute] class () implements PartitionProvider {
+            public function canHandle(string $projectionName): bool
+            {
+                return in_array($projectionName, ['empty_sync_orders', 'empty_async_orders'], true);
+            }
+
+            public function count(StreamFilter $filter): int
+            {
+                return 0;
+            }
+
+            public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
+            {
+                return [];
+            }
+        };
         $this->pulse = new class () {
             public array $snapshots = [];
             public array $queryResults = [];
@@ -275,11 +357,12 @@ final class PulseProjectionInitializationTest extends DbalMessagingTestCase
             SimpleMessageChannelBuilder::createQueueChannel('order_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('pulse_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('backfill_channel'),
+            SimpleMessageChannelBuilder::createQueueChannel('rebuild_channel'),
             SimpleMessageChannelBuilder::createQueueChannel('orders_feed'),
         ];
         $this->orderService = $this->bootstrapFlowTesting(
-            classesToResolve: [$kickoffOrders::class, $asyncBackfillOrders::class, $partitionedOrders::class, $streamingOrders::class],
-            containerOrAvailableServices: [$kickoffOrders, $asyncBackfillOrders, $partitionedOrders, $streamingOrders, DbalConnectionFactory::class => $this->getConnectionFactory()],
+            classesToResolve: [$kickoffOrders::class, $asyncBackfillOrders::class, $partitionedOrders::class, $streamingOrders::class, $emptySyncOrders::class, $emptyAsyncOrders::class, $withoutPartitions::class],
+            containerOrAvailableServices: [$kickoffOrders, $asyncBackfillOrders, $partitionedOrders, $streamingOrders, $emptySyncOrders, $emptyAsyncOrders, $withoutPartitions, DbalConnectionFactory::class => $this->getConnectionFactory()],
             extensionObjects: [
                 ...$channels,
                 FlowTrackingConfiguration::createWithDefaults()->withInMemoryStorage($inMemory),

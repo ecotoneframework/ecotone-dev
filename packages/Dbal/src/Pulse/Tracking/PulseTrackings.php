@@ -103,7 +103,10 @@ final class PulseTrackings
             if (! isset($span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]) || ($span->attributes[SpanAttribute::MESSAGING_OPERATION_TYPE] ?? null) !== SpanAttribute::OPERATION_PROCESS) {
                 continue;
             }
-            $batches[(int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER]] = true;
+            $batchNumber = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_NUMBER];
+            if ($batchNumber > 0) {
+                $batches[$batchNumber] = true;
+            }
             $batchCount = (int) $span->attributes[ProjectingHeaders::REBUILD_BATCH_COUNT];
             $finishedAt = max($finishedAt ?? 0, $span->endedAt->unixTime()->inMicroseconds());
         }

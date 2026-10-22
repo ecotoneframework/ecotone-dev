@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Pulse\Tracking;
 
 use Closure;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Interop\Queue\ConnectionFactory;
 use Throwable;
 
 /**
@@ -33,6 +35,10 @@ final class InMemoryTrackingStore implements TrackingStore
     /** @var array<string, Tracking> */
     private array $trackings = [];
 
+    public function __construct(private ConnectionFactory $connectionFactory)
+    {
+    }
+
     public function record(Tracking $tracking): void
     {
         if (isset($this->trackings[$tracking->tracingId])) {
@@ -44,7 +50,9 @@ final class InMemoryTrackingStore implements TrackingStore
 
     public function startedSince(int $sinceInMicroseconds, ?string $category, ?string $type, ?string $reference, int $limit): array
     {
+        $tenant = $this->activeTenant();
         $matching = array_filter($this->trackings, fn (Tracking $tracking): bool => $tracking->startedAtInMicroseconds >= $sinceInMicroseconds
+            && $tracking->tenant === $tenant
             && ($category === null || $tracking->category === $category)
             && ($type === null || $tracking->type === $type)
             && ($reference === null || $tracking->reference === $reference));
@@ -55,7 +63,7 @@ final class InMemoryTrackingStore implements TrackingStore
 
     public function activeTenant(): ?string
     {
-        return null;
+        return $this->connectionFactory instanceof MultiTenantConnectionFactory && $this->connectionFactory->hasActiveTenant() ? $this->connectionFactory->currentActiveTenant() : null;
     }
 
     public function withinTransaction(Closure $work): mixed

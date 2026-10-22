@@ -69,6 +69,7 @@ tbody tr:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 .muted{color:var(--muted)}
 .drift,.drifted{color:var(--bad);font-weight:600}
 .drifted:before{content:"≠ "}
+.hint{margin:0 0 1rem;border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--surface-2);border-radius:8px;color:var(--fg)}.hint summary{cursor:pointer;padding:.55rem 1rem;font-weight:600}.hint-body{padding:0 1rem .7rem}.hint-body p{margin:.35rem 0}
 .notice{padding:.7rem 1rem;border:1px solid var(--line);border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface));border-radius:8px;margin-bottom:1rem}
 .toast{position:sticky;top:3.5rem;z-index:5;box-shadow:0 8px 24px -8px var(--shadow),0 0 16px var(--glow)}
 .chip{font-size:.78rem;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:0 .45rem}

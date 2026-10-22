@@ -7,6 +7,7 @@ namespace Ecotone\Projecting\Pulse;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
 use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\ProjectionInitializationStatus;
+use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorageRegistry;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceRegistry;
@@ -36,9 +37,12 @@ final class PulseProjections implements PulseSnapshotSection
 {
     public const EVENTS_BEHIND_CAP = 1000;
     public const PARTITIONS_INSPECTED_CAP = 100;
+    public const INITIALIZED = 'initialized';
+    public const PREPARED = 'prepared';
+    public const UNINITIALIZED = 'uninitialized';
 
     /**
-     * @param array<string, array{mode: string, partitioned: bool, asyncChannel: string|null, rebuildAsyncChannel: string|null, backfillAsyncChannel: string|null}> $descriptions
+     * @param array<string, array{mode: string, partitioned: bool, manualKickOff: bool, asyncChannel: string|null, rebuildAsyncChannel: string|null, backfillAsyncChannel: string|null}> $descriptions
      */
     public function __construct(
         private array $descriptions,
@@ -50,7 +54,7 @@ final class PulseProjections implements PulseSnapshotSection
     }
 
     /**
-     * @return list<array{name: string, mode: string, partitioned: bool, asyncChannel: string|null, rebuildAsyncChannel: string|null, backfillAsyncChannel: string|null, initialization: string|null, positionDigest: string|null, eventsBehind: array{events: int, atLeast: bool}|null, partitions: array{total: int, inspected: int, behind: int, atLeast: bool}|null, unavailable: string|null}>
+     * @return list<array{name: string, mode: string, partitioned: bool, manualKickOff: bool, asyncChannel: string|null, rebuildAsyncChannel: string|null, backfillAsyncChannel: string|null, initialization: string|null, positionDigest: string|null, eventsBehind: array{events: int, atLeast: bool}|null, partitions: array{total: int, inspected: int, behind: int, atLeast: bool}|null, unavailable: string|null}>
      */
     public function snapshot(): array
     {
@@ -84,7 +88,7 @@ final class PulseProjections implements PulseSnapshotSection
 
         return [
             ...$projection,
-            'initialization' => self::initialization($state?->status === ProjectionInitializationStatus::INITIALIZED),
+            'initialization' => self::initializationOf($state),
             'positionDigest' => md5($state?->lastPosition ?? ''),
             'eventsBehind' => ['events' => min(count($events), self::EVENTS_BEHIND_CAP), 'atLeast' => count($events) > self::EVENTS_BEHIND_CAP],
         ];
@@ -121,14 +125,18 @@ final class PulseProjections implements PulseSnapshotSection
 
         return [
             ...$projection,
-            'initialization' => self::initialization($inspected > 0 && $allInitialized),
+            'initialization' => $inspected > 0 && $allInitialized ? self::INITIALIZED : self::UNINITIALIZED,
             'positionDigest' => md5(implode(';', $positions)),
             'partitions' => ['total' => $total, 'inspected' => $inspected, 'behind' => $behind, 'atLeast' => $total > $inspected],
         ];
     }
 
-    private static function initialization(bool $initialized): string
+    private static function initializationOf(?ProjectionPartitionState $state): string
     {
-        return $initialized ? ProjectionInitializationStatus::INITIALIZED->value : ProjectionInitializationStatus::UNINITIALIZED->value;
+        return match (true) {
+            $state === null => self::UNINITIALIZED,
+            $state->status === ProjectionInitializationStatus::INITIALIZED => self::INITIALIZED,
+            default => self::PREPARED,
+        };
     }
 }

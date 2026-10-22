@@ -12,13 +12,13 @@
     {% if notice %}
         {% if notice.error %}
             <p class="notice toast drift" role="alert" data-notice-error>
-            {% if notice.code == 'not_confirmed' %}The {{ notice.noun }} of "{{ notice.projection }}" was not confirmed, so nothing was sent. Open "{{ notice.noun|capitalize }}" on the projection and confirm it.
-            {% elseif notice.code == 'unknown_projection' %}{{ service.service }} does not report a projection "{{ notice.projection }}" in its latest snapshot, so nothing was sent. Pick one of the listed projections, or refresh if it was added recently.
-            {% else %}The {{ notice.noun }} of "{{ notice.projection }}" could not be sent to {{ service.service }}; the service shows the reason.
+            {% if notice.code == 'not_confirmed' %}The {{ notice.noun }} of "{{ notice.projection }}"{% if tenant %} in tenant {{ tenant }}{% endif %} was not confirmed, so nothing was sent. Open "{{ notice.noun|capitalize }}" on the projection and confirm it.
+            {% elseif notice.code == 'unknown_projection' %}{{ service.service }} does not report a projection "{{ notice.projection }}"{% if tenant %} for tenant {{ tenant }}{% endif %} in its latest snapshot, so nothing was sent. Pick one of the listed projections, or refresh if it was added recently.
+            {% else %}The {{ notice.noun }} of "{{ notice.projection }}"{% if tenant %} in tenant {{ tenant }}{% endif %} could not be sent to {{ service.service }}; the service shows the reason.
             {% endif %}
             </p>
         {% else %}
-            <p class="notice toast" role="status" data-notice>{{ notice.noun|capitalize }} of {{ notice.projection }} requested. The service records it in its own database, so the progress below survives a restart of Pulse; it refreshes every few seconds while it runs.</p>
+            <p class="notice toast" role="status" data-notice>{{ notice.noun|capitalize }} of {{ notice.projection }} requested{% if tenant %} in tenant {{ tenant }}{% endif %}. The service records it in its own database, so the progress below survives a restart of Pulse; it refreshes every few seconds while it runs.</p>
         {% endif %}
     {% endif %}
     {% for section in sections %}
@@ -30,6 +30,32 @@
         <p class="muted" data-no-projections>{{ service.service }} reports no projections. A class annotated with <code>#[Projection('name')]</code> is reported here with its position, how far it is behind and whether it is stalled.</p>
     {% else %}
         <p class="muted">A projection is stalled when it is behind and its position has not moved across Pulse's snapshots for {{ stalledAfter }} seconds (<code>PULSE_PROJECTION_STALLED_AFTER</code>). It is failed when dead letters are stored for its asynchronous channel.</p>
+        {% set notInitialized = section.projections|filter(p => p.state.value == 'not_initialized') %}
+        {% set waitingForFirstEvent = section.projections|filter(p => p.state.value == 'waiting_for_first_event') %}
+        {% set singleStream = section.projections|filter(p => p.isSetUp and not p.partitioned and p.mode != 'streaming') %}
+        {% if notInitialized %}
+            {% embed '_hint.html.twig' with {name: 'not-initialized', title: 'Not initialized: initialize it from the console'} %}
+                {% block body %}
+                    <p>A projection that waits for a manual kick-off projects nothing until it is initialized, and its initialization can create tables. Pulse never runs it: a request to the service runs inside a transaction, and a database that commits on every schema change (MySQL, MariaDB) would lose the reply.</p>
+                    <p>Run the console command once, for example at deploy time; Backfill and Rebuild are offered once it has run.</p>
+                {% endblock %}
+            {% endembed %}
+        {% endif %}
+        {% if waitingForFirstEvent %}
+            {% embed '_hint.html.twig' with {name: 'waiting-for-first-event', title: 'Waiting for its first event'} %}
+                {% block body %}
+                    <p>A projection without a manual kick-off sets itself up when its first event arrives, so there is nothing to start here. Backfill and Rebuild are offered after that.</p>
+                {% endblock %}
+            {% endembed %}
+        {% endif %}
+        {% if singleStream %}
+            {% embed '_hint.html.twig' with {name: 'single-stream-operation', title: 'Rebuild and Backfill of a projection that is not partitioned'} %}
+                {% block body %}
+                    <p>It runs as one transaction: there is no live progress, it commits or rolls back as a whole, and Pulse shows it as running with the time elapsed.</p>
+                    <p>A long one can keep the service from answering Pulse until it ends, so the service may show as Waiting or Unreachable meanwhile. A partitioned projection runs in batches and shows their progress.</p>
+                {% endblock %}
+            {% endembed %}
+        {% endif %}
         <div class="card flush" tabindex="0" role="region" aria-label="Projections of {{ service.service }}{% if section.snapshot.tenant %} for tenant {{ section.snapshot.tenant }}{% endif %}">
             <table>
                 <thead>
@@ -40,14 +66,14 @@
                 </thead>
                 <tbody>
                 {% for projection in section.projections %}
-                    {% set tone = {up_to_date: 'ok', catching_up: 'wait', rebuilding: 'wait', initializing: 'wait', backfilling: 'wait', not_initialized: 'wait', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
+                    {% set tone = {up_to_date: 'ok', catching_up: 'wait', rebuilding: 'wait', backfilling: 'wait', not_initialized: 'wait', prepared: 'wait', waiting_for_first_event: 'off', stalled: 'bad', failed: 'bad'}[projection.state.value] ?? 'off' %}
                     <tr data-projection="{{ projection.name }}">
-                        <th scope="row">{{ projection.name }}{% if projection.unavailable %}<br><span class="drift" data-unavailable>{{ projection.unavailable }}</span>{% endif %}</th>
+                        <th scope="row">{{ projection.name }}{% if projection.unavailable %}<br><span class="drift" data-unavailable>{{ projection.unavailable }}</span>{% endif %}{% if projection.initializeCommand %}<br><span class="muted">Not initialized: run <code data-initialize-command>{{ projection.initializeCommand }}</code></span>{% endif %}</th>
                         <td><span class="pill {{ tone }}{{ tone == 'bad' ? ' sq' : '' }}" data-projection-status="{{ projection.state.value }}">{{ projection.state.label }}</span></td>
                         <td class="num" data-gap>{{ projection.gap }}</td>
                         <td data-mode>{{ projection.mode }}</td>
                         <td class="hide-narrow" data-partitioned>{{ projection.partitioned ? 'yes' : 'no' }}</td>
-                        <td class="hide-narrow" data-initialization>{{ projection.initialization ?? '–' }}</td>
+                        <td class="hide-narrow" data-initialization>{{ projection.initializationLabel }}</td>
                         <td data-last-change>{{ projection.changedAgo ?? '–' }}</td>
                         <td>
                             {% set rebuild = projection.latestRebuild %}
@@ -71,19 +97,6 @@
                                     <a href="{{ path('trace_detail', {traceId: rebuild.tracingId}) }}" data-rebuild-trace>trace</a>
                                 </div>
                             {% endif %}
-                            {% if projection.canBeInitialized %}
-                            <details data-initialize-confirm="{{ projection.name }}">
-                                <summary>Initialize</summary>
-                                <p data-initialize-explanation>
-                                    {{ projection.name }} has not been set up yet: it waits for a kick-off and projects nothing until then. Initializing creates its state, then catches it up on the events stored so far, which is what the projection trigger command does.
-                                    It runs inside the request to {{ service.service }}, so the reply may arrive late, and it keeps showing as running until it ends.
-                                </p>
-                                <form method="post" action="{{ path('service_projection_initialize', {service: service.service, projection: projection.name}) }}">
-                                    <input type="hidden" name="confirm" value="1">{% if section.snapshot.tenant %}<input type="hidden" name="tenant" value="{{ section.snapshot.tenant }}">{% endif %}
-                                    <button type="submit" data-initialize-submit>Initialize {{ projection.name }}</button>
-                                </form>
-                            </details>
-                            {% endif %}
                             {% if projection.canBeBackfilled %}
                             <details data-backfill-confirm="{{ projection.name }}">
                                 <summary>Backfill</summary>
@@ -102,6 +115,7 @@
                                 </form>
                             </details>
                             {% endif %}
+                            {% if projection.canBeRebuilt %}
                             <details data-rebuild-confirm="{{ projection.name }}">
                                 <summary>Rebuild</summary>
                                 <p data-rebuild-explanation>
@@ -122,6 +136,7 @@
                                     <button type="submit" data-rebuild-submit>Rebuild {{ projection.name }}</button>
                                 </form>
                             </details>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
@@ -132,7 +147,7 @@
         {% if section.rebuilds.notAnswering %}
             <p class="drift" data-rebuilds-unavailable>{{ service.service }} did not answer the question for its tracked operations, so none are shown. Pulse asks again on the next visit.</p>
         {% elseif section.rebuilds.rebuilds is empty %}
-            <p class="muted" data-no-rebuilds>No rebuild, initialization or backfill was started from Pulse in the last {{ trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
+            <p class="muted" data-no-rebuilds>No rebuild or backfill was started from Pulse in the last {{ trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>
         {% else %}
             <div class="card flush" tabindex="0" role="region" aria-label="Recent operations of {{ service.service }}" data-recent-rebuilds>
                 <table>

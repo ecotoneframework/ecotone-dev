@@ -12,7 +12,7 @@ final readonly class ProjectionActionNotice
     public const SEND_FAILED = 'send_failed';
 
     private const CODES = [self::REQUESTED, self::NOT_CONFIRMED, self::UNKNOWN_PROJECTION, self::SEND_FAILED];
-    private const QUERY_KEYS = [Rebuild::REBUILD => 'rebuild', Rebuild::INITIALIZATION => 'initialize', Rebuild::BACKFILL => 'backfill'];
+    private const QUERY_KEYS = [Rebuild::REBUILD => 'rebuild', Rebuild::BACKFILL => 'backfill'];
 
     private function __construct(public string $action, public string $code, public string $projection)
     {
@@ -57,7 +57,6 @@ final readonly class ProjectionActionNotice
     public function noun(): string
     {
         return match ($this->action) {
-            Rebuild::INITIALIZATION => 'initialization',
             Rebuild::BACKFILL => 'backfill',
             default => 'rebuild',
         };

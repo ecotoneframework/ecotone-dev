@@ -132,6 +132,7 @@ final class ProjectingModule implements AnnotationModule
                     default => 'synchronous',
                 },
                 'partitioned' => $projectionBuilder->isPartitioned(),
+                'manualKickOff' => ! $projectionBuilder->automaticInitialization(),
                 'asyncChannel' => $projectionBuilder->asyncChannelName(),
                 'rebuildAsyncChannel' => $projectionBuilder->rebuildAsyncChannelName(),
                 'backfillAsyncChannel' => $projectionBuilder->backfillAsyncChannelName(),
@@ -219,7 +220,7 @@ final class ProjectingModule implements AnnotationModule
         }
 
         foreach (ExtensionObjectResolver::resolve(StreamingProjectionDescription::class, $extensionObjects) as $streaming) {
-            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null];
+            $projectionDescriptions[$streaming->projectionName] = ['mode' => 'streaming', 'partitioned' => false, 'manualKickOff' => false, 'asyncChannel' => $streaming->channelName, 'rebuildAsyncChannel' => null, 'backfillAsyncChannel' => null];
         }
 
         // Register ProjectionRegistry

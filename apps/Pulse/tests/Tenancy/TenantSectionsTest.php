@@ -39,22 +39,22 @@ final class TenantSectionsTest extends ReleasingWebTestCase
         self::assertSame('12 events behind', $crawler->filter('[data-projections-section="orders@tenant_a"] [data-gap]')->text());
     }
 
-    public function test_an_initialization_and_a_backfill_are_sent_for_the_tenant_whose_section_they_were_confirmed_in(): void
+    public function test_a_backfill_is_sent_for_the_tenant_whose_section_it_was_confirmed_in(): void
     {
         $client = $this->pulseWithMultiTenantOrders();
-        $this->orders->projections = ['tenant_a' => [$this->projection('tickets', events: 0, initialization: 'uninitialized')], 'tenant_b' => [$this->projection('tickets', events: 0, initialization: 'uninitialized')]];
+        $this->orders->projections = ['tenant_a' => [$this->projection('tickets', events: 0)], 'tenant_b' => [$this->projection('tickets', events: 0)]];
         $crawler = $this->observe($client, '/services/orders/projections');
-        self::assertSame('tenant_b', $crawler->filter('[data-projections-section="orders@tenant_b"] [data-initialize-confirm="tickets"] input[name="tenant"]')->attr('value'));
+        self::assertSame('tenant_b', $crawler->filter('[data-projections-section="orders@tenant_b"] [data-backfill-confirm="tickets"] input[name="tenant"]')->attr('value'));
         self::assertSame('tenant_a', $crawler->filter('[data-projections-section="orders@tenant_a"] [data-backfill-confirm="tickets"] input[name="tenant"]')->attr('value'));
 
-        $client->request('POST', '/services/orders/projections/tickets/initialize', ['confirm' => '1', 'tenant' => 'tenant_b']);
+        $client->request('POST', '/services/orders/projections/tickets/backfill', ['confirm' => '1', 'tenant' => 'tenant_b']);
         $this->runService($this->services['orders'], 'orders');
         $this->runPulseWorker($client->getKernel());
         $client->request('POST', '/services/orders/projections/tickets/backfill', ['confirm' => '1', 'tenant' => 'tenant_a']);
         $this->runService($this->services['orders'], 'orders');
         $this->runPulseWorker($client->getKernel());
 
-        self::assertSame([['initialize', 'tickets', 'tenant_b'], ['backfill', 'tickets', 'tenant_a']], $this->orders->actionRequests);
+        self::assertSame([['backfill', 'tickets', 'tenant_b'], ['backfill', 'tickets', 'tenant_a']], $this->orders->actionRequests);
     }
 
     public function test_a_projection_stalls_per_tenant_when_only_its_own_position_stops_moving(): void
@@ -108,15 +108,6 @@ final class TenantSectionsTest extends ReleasingWebTestCase
             public array $depths = [];
             public array $failures = [];
             public array $actionRequests = [];
-
-            #[Distributed]
-            #[CommandHandler('ecotone.pulse.projections.initialize', endpointId: 'orders.initialize')]
-            public function initialize(string $request, #[Headers] array $headers): string
-            {
-                $this->actionRequests[] = ['initialize', json_decode($request, true)['projection'], $headers['tenant'] ?? null];
-
-                return $this->snapshot('{}', $headers);
-            }
 
             #[Distributed]
             #[CommandHandler('ecotone.pulse.projections.backfill', endpointId: 'orders.backfill')]

@@ -131,7 +131,6 @@ final readonly class ScopeProblems
             $problem = match ($projection->state) {
                 ProjectionState::Failed => new Problem(Severity::Critical, 'projection-failed', sprintf('%s failed: its channel has dead letters', $projection->name), $href),
                 ProjectionState::Stalled => new Problem(Severity::Warning, 'projection-stalled', sprintf('%s stalled %d min', $projection->name, intdiv((int) $projection->changedSecondsAgo, 60)), $href),
-                ProjectionState::NotInitialized => new Problem(Severity::Warning, 'projection-not-initialized', sprintf('%s not initialized', $projection->name), $href),
                 ProjectionState::CatchingUp => new Problem(Severity::Warning, 'projection-behind', sprintf('%s behind: %s', $projection->name, $projection->gap), $href),
                 default => null,
             };

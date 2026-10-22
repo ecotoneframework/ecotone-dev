@@ -24,18 +24,16 @@ use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Lite\Test\FlowTestSupport;
 use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Api\Projecting\FromStream;
-use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\Partitioned;
-use Ecotone\Api\Projecting\Streaming;
-use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Scheduling\Duration;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
-use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

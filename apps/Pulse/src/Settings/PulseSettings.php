@@ -28,6 +28,7 @@ final readonly class PulseSettings
         public int $refreshIntervalSeconds,
         public int $doctorBudgetSeconds,
         public int $projectionStalledAfterSeconds,
+        public int $channelStalledAfterSeconds,
         public int $trackingDays,
         public string $internalDatabasePath,
         public QueueThresholds $queueThresholds,
@@ -80,6 +81,7 @@ final readonly class PulseSettings
 
         $doctorBudget = self::seconds($read('PULSE_DOCTOR_BUDGET_SECONDS', '8'), 'PULSE_DOCTOR_BUDGET_SECONDS', 0);
         $projectionStalledAfter = self::seconds($read('PULSE_PROJECTION_STALLED_AFTER', '300'), 'PULSE_PROJECTION_STALLED_AFTER', 1);
+        $channelStalledAfter = self::seconds($read('PULSE_CHANNEL_STALLED_AFTER', '300'), 'PULSE_CHANNEL_STALLED_AFTER', 1);
         $trackingDays = self::trackingDays($read('PULSE_TRACKING_DAYS', '7'));
 
         $internalDatabasePath = $read('PULSE_INTERNAL_DATABASE_PATH', 'var/internal/pulse.sqlite');
@@ -91,7 +93,7 @@ final readonly class PulseSettings
         $routes = self::routes($read('PULSE_SERVICES'), $serviceName, $channel, $connections);
         $serviceChannels = array_map(static fn (ServiceRoute $route) => $route->channel, $routes);
 
-        return new self($version, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
+        return new self($version, $serviceName, $channel, $connections, $routes, $serviceChannels, $replyTimeout, $awaitTimeout, $refreshInterval, $doctorBudget, $projectionStalledAfter, $channelStalledAfter, $trackingDays, $internalDatabasePath, QueueThresholds::fromEnvironment($read('PULSE_QUEUE_WARNING'), $read('PULSE_QUEUE_CRITICAL')));
     }
 
     public function transportConnectionReference(): string

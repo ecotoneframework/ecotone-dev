@@ -137,6 +137,18 @@ final class DatabaseSetupManager implements DefinedObject
     /**
      * @return array<string, bool>
      */
+    public function getInitializationStatusOnCurrentConnection(bool $onlyUsed = true): array
+    {
+        $connection = $this->singleConnection();
+        $status = [];
+
+        foreach ($this->getManagers($onlyUsed) as $manager) {
+            $status[$manager->getFeatureName()] = $manager->isInitialized($connection);
+        }
+
+        return $status;
+    }
+
     public function getUsageStatus(): array
     {
         $status = [];

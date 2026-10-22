@@ -32,29 +32,35 @@ final class PulseChannelDepth
         public readonly ?int $inFlight,
         public readonly ?int $consumers,
         public readonly ?string $probeError,
+        public readonly ?bool $setUp,
     ) {
     }
 
-    public static function measured(int $ready, ?int $delayed = null, ?int $inFlight = null, ?int $consumers = null): self
+    public static function measured(int $ready, ?int $delayed = null, ?int $inFlight = null, ?int $consumers = null, ?bool $setUp = null): self
     {
-        return new self($ready, $delayed, $inFlight, $consumers, null);
+        return new self($ready, $delayed, $inFlight, $consumers, null, $setUp);
     }
 
     public static function unmeasured(): self
     {
-        return new self(null, null, null, null, null);
+        return new self(null, null, null, null, null, null);
     }
 
     public static function failed(string $reason): self
     {
-        return new self(null, null, null, null, $reason);
+        return new self(null, null, null, null, $reason, null);
+    }
+
+    public static function missing(): self
+    {
+        return new self(null, null, null, null, null, false);
     }
 
     /**
-     * @return array{ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null}
+     * @return array{ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, setUp: bool|null}
      */
     public function toArray(): array
     {
-        return ['ready' => $this->ready, 'delayed' => $this->delayed, 'inFlight' => $this->inFlight, 'consumers' => $this->consumers, 'probeError' => $this->probeError];
+        return ['ready' => $this->ready, 'delayed' => $this->delayed, 'inFlight' => $this->inFlight, 'consumers' => $this->consumers, 'probeError' => $this->probeError, 'setUp' => $this->setUp];
     }
 }

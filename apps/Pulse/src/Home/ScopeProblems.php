@@ -9,6 +9,7 @@ use App\Projection\ProjectionState;
 use App\Projection\RebuildReport;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
+use App\Setup\SetupStatus;
 use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\ServiceStatus;
@@ -48,6 +49,7 @@ final readonly class ScopeProblems
 
         return [
             ...$this->versionDrift($scope, $newestVersion),
+            ...$this->setup($scope),
             ...$this->channels($scope),
             ...$this->projections($scope, $rebuilds),
             ...$this->rebuilds($scope, $rebuilds),
@@ -71,10 +73,36 @@ final readonly class ScopeProblems
     /**
      * @return list<Problem>
      */
+    private function setup(ServiceSnapshot $scope): array
+    {
+        $href = $this->hub($scope) . '#setup';
+        $status = SetupStatus::of($scope);
+        $problems = [];
+        foreach ($status->missing() as $item) {
+            $problems[] = new Problem(Severity::Critical, $item->kind === 'table' ? 'table-missing' : 'channel-not-set-up', $item->kind === 'table' ? sprintf('Table for %s missing on %s', $item->key, $item->connection) : sprintf('Channel %s not set up', $item->key), $href);
+        }
+        foreach ($status->sectionErrors as $section => $reason) {
+            $problems[] = new Problem(Severity::Warning, 'section-failed', sprintf('%s could not be read: %s', $section, strtok($reason, "\n")), $href);
+        }
+
+        return $problems;
+    }
+
+    /**
+     * @return list<Problem>
+     */
     private function channels(ServiceSnapshot $scope): array
     {
         $problems = [];
-        foreach (ChannelDepth::of($scope, $this->settings->queueThresholds) as $depth) {
+        foreach (ChannelDepth::of($scope, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds) as $depth) {
+            if ($depth->notConsumingSeconds !== null) {
+                $problems[] = new Problem(
+                    Severity::Warning,
+                    'channel-not-consuming',
+                    sprintf('%s: %s ready, no progress for %d min. %s%s', $depth->name, self::number((int) $depth->ready), intdiv($depth->notConsumingSeconds, 60), $depth->runCommand() === null ? 'No polling consumer runs this channel' : sprintf('Start `%s`', $depth->runCommand()), $depth->handlers === [] ? '' : sprintf(' (handles %s)', implode(', ', $depth->handlers))),
+                    $this->hub($scope) . '#channels',
+                );
+            }
             if (! in_array($depth->level, ['warning', 'critical'], true)) {
                 continue;
             }

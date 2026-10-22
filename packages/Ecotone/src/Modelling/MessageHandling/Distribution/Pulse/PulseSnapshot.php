@@ -8,6 +8,10 @@ use Composer\InstalledVersions;
 use DateTimeInterface;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
+use Ecotone\Api\Messaging\Flow\FlowEdge;
+use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
+use Ecotone\Api\Messaging\Flow\FlowNodeKind;
+use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 
@@ -36,7 +40,7 @@ final class PulseSnapshot
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
@@ -113,11 +117,12 @@ final class PulseSnapshot
             'channels' => $this->channelsWithDepth(forTenant: true),
         ];
 
+        $sectionErrors = [];
         foreach ($this->tenantScopedSections as $sectionName => $section) {
-            $snapshot[$sectionName] = $section->snapshot();
+            $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
         }
 
-        return $snapshot;
+        return $this->withSectionErrors($snapshot, $sectionErrors);
     }
 
     /**
@@ -128,7 +133,7 @@ final class PulseSnapshot
      *     overview: array{ecotoneVersion: string|null, phpVersion: string, framework: string, licence: array{enterprise: bool, expiresAt: string|null}},
      *     flowGraph: array<string, mixed>,
      *     topology: array{serviceMaps: array<mixed>},
-     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null}>,
+     *     channels: list<array{name: string, kind: string, ready: int|null, delayed: int|null, inFlight: int|null, consumers: int|null, probeError: string|null, consumerToRun: string|null, handlers: list<string>, setUp: bool|null}>,
      * }&array<string, mixed>
      */
     private function snapshot(): array
@@ -152,16 +157,40 @@ final class PulseSnapshot
             $snapshot['tenancy'] = $this->tenancy;
         }
 
+        $sectionErrors = [];
         foreach ($this->tenantIndependentSections as $sectionName => $section) {
-            $snapshot[$sectionName] = $section->snapshot();
+            $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
         }
         if (! $this->isMultiTenant()) {
             foreach ($this->tenantScopedSections as $sectionName => $section) {
-                $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+                $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
             }
         }
 
-        return $snapshot;
+        return $this->withSectionErrors($snapshot, $sectionErrors);
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @param array<string, string> $sectionErrors
+     */
+    private function addSection(array &$snapshot, array &$sectionErrors, string $sectionName, PulseSnapshotSection $section): void
+    {
+        try {
+            $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+        } catch (Throwable $exception) {
+            $sectionErrors[$sectionName] = $exception->getMessage();
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @param array<string, string> $sectionErrors
+     * @return array<string, mixed>
+     */
+    private function withSectionErrors(array $snapshot, array $sectionErrors): array
+    {
+        return $sectionErrors === [] ? $snapshot : [...$snapshot, 'sectionErrors' => $sectionErrors];
     }
 
     /**
@@ -182,16 +211,45 @@ final class PulseSnapshot
             $depths = [...$depths, ...$this->probe($this->probes[$group], $destinationByChannel)];
         }
 
+        $consumers = $this->messagingSystem->list();
+        $handlersByChannel = $this->handlersByChannel();
         $listed = $forTenant ? array_filter($this->channels, static fn (array $channel): bool => $channel['tenantScoped']) : $this->channels;
 
         return array_values(array_map(
             fn (array $channel): array => [
                 'name' => $channel['name'],
                 'kind' => $channel['kind'],
+                'consumerToRun' => in_array($channel['name'], $consumers, true) ? $channel['name'] : null,
+                'handlers' => $handlersByChannel[$channel['name']] ?? [],
                 ...($depths[$channel['name']] ?? PulseChannelDepth::unmeasured())->toArray(),
             ],
             $listed
         ));
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function handlersByChannel(): array
+    {
+        $graph = $this->messagingSystem->getMessageFlowGraph();
+        $handlers = [];
+        foreach ($graph->edgesOfKind(FlowEdgeKind::ASYNCHRONOUS) as $edge) {
+            $channel = $graph->node($edge->from);
+            if ($channel->kind === FlowNodeKind::CHANNEL) {
+                $handlers[(string) $channel->attributes['name']][] = $this->handlerDescription($graph, $edge->to);
+            }
+        }
+
+        return $handlers;
+    }
+
+    private function handlerDescription(MessageFlowGraph $graph, string $handlerId): string
+    {
+        $method = (string) $graph->node($handlerId)->attributes['method'];
+        $messages = array_map(static fn (FlowEdge $edge): string => $graph->node($edge->from)->label, $graph->edgesOfKind(FlowEdgeKind::ROUTED_TO, to: $handlerId));
+
+        return $messages === [] ? $method : implode(', ', array_unique($messages)) . ' → ' . $method;
     }
 
     /**

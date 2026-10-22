@@ -179,6 +179,7 @@ docker run -p 8080:8080 \
 | `PULSE_QUEUE_WARNING` | `1000` | Ready messages from which a channel shows a warning. A whole number, optionally with per-channel overrides: `orders:invoices=500,*=1000` |
 | `PULSE_QUEUE_CRITICAL` | `10000` | Ready messages from which a channel shows as critical. Same form as `PULSE_QUEUE_WARNING`, and always above it |
 | `PULSE_PROJECTION_STALLED_AFTER` | `300` | Seconds a projection that is behind may keep the same position across Pulse's snapshots before the projections page (`/services/{name}/projections`) calls it stalled. Whole number, `1` or more. |
+| `PULSE_CHANNEL_STALLED_AFTER` | `300` | Seconds a channel may have messages ready without its ready count going down across Pulse's snapshots before the service page and the home board call it not consuming. Pulse derives this from its own stored snapshots; the service reports only which consumers are expected to run the channel. Whole number, `1` or more. |
 | `PULSE_TRACKING_DAYS` | `7` | How many days back Pulse looks for tracked projection operations (rebuild, initialization, backfill), on the projections page (`/services/{name}/projections`) and in its recent operations list. Whole number from `1` to `365`. |
 | `PULSE_HTTP_PORT` | `8080` | |
 | `TRUSTED_PROXIES`, `TRUSTED_HOSTS` | | Behind a reverse proxy, see above |

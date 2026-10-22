@@ -56,6 +56,12 @@ trait ProblemBoardServicesTrait
 
                 public array $tenantSections = [];
 
+                public array $setup = [];
+
+                public array $sectionErrors = [];
+
+                public string $framework = 'symfony';
+
                 public function __construct(public string $name, public ?array $tenants)
                 {
                 }
@@ -75,19 +81,19 @@ trait ProblemBoardServicesTrait
                     $tenant = $headers['tenant'] ?? null;
                     if ($this->tenants !== null && $tenant === null) {
                         return json_encode($base + [
-                            'overview' => ['ecotoneVersion' => $this->version, 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
+                            'overview' => ['ecotoneVersion' => $this->version, 'phpVersion' => PHP_VERSION, 'framework' => $this->framework, 'licence' => ['enterprise' => true, 'expiresAt' => null]],
                             'flowGraph' => ['nodes' => [], 'edges' => []],
                             'topology' => ['serviceMaps' => []],
                             'channels' => array_map(static fn (string $name): array => ['name' => $name, 'kind' => 'async', 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null], array_values(array_unique(array_merge(...array_map(static fn (array $section): array => array_column($section['channels'] ?? [], 'name'), array_values($this->tenantSections) ?: [[]]))))),
                             'deadLetter' => ['enabled' => true],
                             'tenancy' => ['header' => 'tenant', 'tenants' => $this->tenants],
-                        ], JSON_THROW_ON_ERROR);
+                        ] + ($this->setup === [] ? [] : ['setup' => $this->setup]), JSON_THROW_ON_ERROR);
                     }
 
                     $sections = $tenant === null ? ['channels' => $this->channels, 'deadLetters' => $this->deadLetters, 'projections' => $this->projections] : ['tenant' => $tenant, ...($this->tenantSections[$tenant] ?? [])];
 
-                    return json_encode($base + $sections + ($tenant === null ? [
-                        'overview' => ['ecotoneVersion' => $this->version, 'phpVersion' => PHP_VERSION, 'framework' => 'symfony', 'licence' => ['enterprise' => true, 'expiresAt' => null]],
+                    return json_encode($base + $sections + ($tenant === null && $this->setup !== [] ? ['setup' => $this->setup] : []) + ($this->sectionErrors === [] ? [] : ['sectionErrors' => $this->sectionErrors]) + ($tenant === null ? [
+                        'overview' => ['ecotoneVersion' => $this->version, 'phpVersion' => PHP_VERSION, 'framework' => $this->framework, 'licence' => ['enterprise' => true, 'expiresAt' => null]],
                         'flowGraph' => ['nodes' => [], 'edges' => []],
                         'topology' => ['serviceMaps' => []],
                         'deadLetter' => ['enabled' => true],
@@ -134,7 +140,7 @@ trait ProblemBoardServicesTrait
 
     private function channel(string $name, int $ready): array
     {
-        return ['name' => $name, 'kind' => 'async', 'ready' => $ready, 'delayed' => 0, 'inFlight' => 0, 'consumers' => null, 'probeError' => null];
+        return ['name' => $name, 'kind' => 'async', 'ready' => $ready, 'delayed' => 0, 'inFlight' => 0, 'consumers' => null, 'probeError' => null, 'consumerToRun' => $name, 'handlers' => ['OrderPlaced → notifyCustomer'], 'setUp' => null];
     }
 
     private function failureGroup(string $messageName, int $count, string $failureId = 'failure-1'): array

@@ -10,6 +10,7 @@ use App\Doctor\DoctorCheck;
 use App\Home\ProblemBoard;
 use App\Projection\ProjectionOverview;
 use App\Settings\PulseSettings;
+use App\Setup\SetupStatus;
 use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\Snapshots;
@@ -61,7 +62,8 @@ final class ServiceHubController extends AbstractController
             'tenant' => $tenant === '' ? null : $tenant,
             'focus' => $focus,
             'tiles' => $tiles,
-            'focusChannels' => $focus === null ? [] : ChannelDepth::of($focus, $this->settings->queueThresholds),
+            'focusSetup' => $focus === null ? null : SetupStatus::of($focus),
+            'focusChannels' => $focus === null ? [] : ChannelDepth::of($focus, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds),
             'focusProjectionCounts' => ProjectionOverview::counts($focusProjections),
             'focusTracing' => $focusFlowTypes['tracing'],
             'focusFlowTypes' => $focusFlowTypes['flowTypes'],
@@ -75,13 +77,13 @@ final class ServiceHubController extends AbstractController
             'tenantFlowTypes' => FlowTypeOverview::of($tenantRows),
             'tenantChannels' => array_combine(
                 array_map(static fn (ServiceSnapshot $row): string => (string) $row->tenant, $tenantRows),
-                array_map(fn (ServiceSnapshot $row): array => array_values(array_filter(ChannelDepth::of($row, $this->settings->queueThresholds), static fn (ChannelDepth $depth): bool => $depth->perTenant)), $tenantRows),
+                array_map(fn (ServiceSnapshot $row): array => array_values(array_filter(ChannelDepth::of($row, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds), static fn (ChannelDepth $depth): bool => $depth->perTenant)), $tenantRows),
             ),
             'tenantProjectionCounts' => array_combine(
                 array_map(static fn (ServiceSnapshot $row): string => (string) $row->tenant, $tenantRows),
                 array_map(fn (ServiceSnapshot $row): array => ProjectionOverview::counts(ProjectionOverview::of($row, $this->settings->projectionStalledAfterSeconds)), $tenantRows),
             ),
-            'channels' => ChannelDepth::of($snapshot, $this->settings->queueThresholds),
+            'channels' => ChannelDepth::of($snapshot, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds),
             'projectionCounts' => ProjectionOverview::counts($projections),
             'tracing' => $flowTypes['tracing'],
             'flowTypes' => $flowTypes['flowTypes'],

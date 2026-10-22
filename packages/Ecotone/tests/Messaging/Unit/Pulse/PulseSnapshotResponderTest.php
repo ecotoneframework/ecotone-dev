@@ -128,9 +128,9 @@ final class PulseSnapshotResponderTest extends TestCase
         $snapshot = json_decode($pulse->snapshots[0], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(1, $snapshot['schemaVersion']);
         self::assertSame([
-            ['name' => 'order_channel', 'kind' => 'queue', 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null],
-            ['name' => 'orders_async', 'kind' => 'async', 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null],
-            ['name' => 'unused_queue', 'kind' => 'queue', 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null],
+            ['name' => 'order_channel', 'kind' => 'queue', 'consumerToRun' => 'order_channel', 'handlers' => [], 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null, 'setUp' => null],
+            ['name' => 'orders_async', 'kind' => 'async', 'consumerToRun' => 'orders_async', 'handlers' => ['order.place_later → placeLater'], 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null, 'setUp' => null],
+            ['name' => 'unused_queue', 'kind' => 'queue', 'consumerToRun' => 'unused_queue', 'handlers' => [], 'ready' => null, 'delayed' => null, 'inFlight' => null, 'consumers' => null, 'probeError' => null, 'setUp' => null],
         ], $snapshot['channels']);
     }
 

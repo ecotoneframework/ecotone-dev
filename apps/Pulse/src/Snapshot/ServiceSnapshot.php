@@ -13,6 +13,7 @@ final readonly class ServiceSnapshot
      * @param list<string> $tenants
      * @param list<string> $unadvertisedTenants
      * @param array<string, array{digest: string, since: string}> $projectionMovements
+     * @param array<string, array{ready: int, since: string}> $channelMovements
      */
     public function __construct(
         public string $service,
@@ -31,6 +32,7 @@ final readonly class ServiceSnapshot
         public array $unadvertisedTenants,
         public array $projectionMovements,
         public int $deadLettersGrewBy,
+        public array $channelMovements = [],
     ) {
     }
 

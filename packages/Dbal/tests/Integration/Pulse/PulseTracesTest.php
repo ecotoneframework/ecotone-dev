@@ -225,15 +225,15 @@ final class PulseTracesTest extends DbalMessagingTestCase
         }
     }
 
-    public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_snapshot_naming_how_to_upgrade_it(): void
+    public function test_a_spans_table_from_an_earlier_beta_is_reported_on_the_snapshot_naming_how_to_upgrade_it(): void
     {
         $this->bootstrap('dbal', connectionFactory: $this->connectionOfABetaSpansTable());
         $this->sendWithTrace('create.ticket', '100', self::FIRST_TRACE);
         BetaSpansTableConnection::$tableLacksFlowColumns = true;
 
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(self::UPGRADE_INSTRUCTIONS);
-        $this->requestSnapshot();
+        $snapshot = $this->requestSnapshot();
+
+        self::assertSame(self::UPGRADE_INSTRUCTIONS, $snapshot['sectionErrors']['tracing']);
     }
 
     public function test_a_spans_table_from_an_earlier_beta_is_refused_on_the_trace_list_naming_how_to_upgrade_it(): void

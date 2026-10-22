@@ -13,6 +13,7 @@ final readonly class ServiceRecord
     /**
      * @param array<string, mixed> $snapshot
      * @param array<string, array{digest: string, since: string}> $projectionMovements
+     * @param array<string, array{ready: int, since: string}> $channelMovements
      */
     public function __construct(
         public ?DateTimeImmutable $receivedAt,
@@ -25,6 +26,7 @@ final readonly class ServiceRecord
         public ?string $missingDestination = null,
         public array $projectionMovements = [],
         public int $deadLettersGrewBy = 0,
+        public array $channelMovements = [],
     ) {
     }
 
@@ -49,6 +51,7 @@ final readonly class ServiceRecord
             $stored['missingDestination'] ?? null,
             $stored['projectionMovements'] ?? [],
             $stored['deadLettersGrewBy'] ?? 0,
+            $stored['channelMovements'] ?? [],
         );
     }
 
@@ -68,6 +71,7 @@ final readonly class ServiceRecord
             'missingDestination' => $this->missingDestination,
             'projectionMovements' => $this->projectionMovements,
             'deadLettersGrewBy' => $this->deadLettersGrewBy,
+            'channelMovements' => $this->channelMovements,
         ];
     }
 
@@ -108,7 +112,7 @@ final readonly class ServiceRecord
      */
     public function received(array $snapshot, DateTimeImmutable $at): self
     {
-        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot)]);
+        return $this->with(['receivedAt' => $at, 'snapshot' => $snapshot, 'requestFailure' => null, 'replyError' => null, 'retrying' => false, 'missingDestination' => null, 'projectionMovements' => $this->projectionMovementsAfter($snapshot, $at), 'deadLettersGrewBy' => $this->deadLettersGrowthTo($snapshot), 'channelMovements' => $this->channelMovementsAfter($snapshot, $at)]);
     }
 
     /**
@@ -138,6 +142,26 @@ final readonly class ServiceRecord
             $movements[$projection['name']] = $previous !== null && $previous['digest'] === $digest
                 ? $previous
                 : ['digest' => $digest, 'since' => $at->format(self::TIME_FORMAT)];
+        }
+
+        return $movements;
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, array{ready: int, since: string}>
+     */
+    private function channelMovementsAfter(array $snapshot, DateTimeImmutable $at): array
+    {
+        $movements = [];
+        foreach (is_array($snapshot['channels'] ?? null) ? $snapshot['channels'] : [] as $channel) {
+            if (! is_array($channel) || ! is_string($channel['name'] ?? null) || ! is_int($channel['ready'] ?? null) || $channel['ready'] <= 0) {
+                continue;
+            }
+            $previous = $this->channelMovements[$channel['name']] ?? null;
+            $movements[$channel['name']] = $previous !== null && $channel['ready'] >= $previous['ready']
+                ? ['ready' => $channel['ready'], 'since' => $previous['since']]
+                : ['ready' => $channel['ready'], 'since' => $at->format(self::TIME_FORMAT)];
         }
 
         return $movements;

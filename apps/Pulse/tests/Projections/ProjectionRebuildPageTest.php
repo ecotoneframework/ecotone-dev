@@ -130,6 +130,21 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
         self::assertSame('backfilling', $this->statusOf($crawler, 'totals'));
     }
 
+    public function test_an_initialization_whose_duration_the_service_could_not_tell_shows_a_dash_instead_of_a_duration(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting'), $this->projection('totals')];
+        $this->orders->trackings = [
+            $this->tracking('waiting', 'done', durationMs: null, type: 'projection-initialization'),
+            $this->tracking('totals', 'done', durationMs: 5000, type: 'projection-initialization', tracingId: self::OTHER_TRACE),
+        ];
+
+        $crawler = $this->observe($client);
+
+        $cells = $crawler->filter('[data-recent-rebuilds] tr[data-rebuild]')->each(fn (Crawler $row): string => trim($row->filter('td')->eq(3)->text()));
+        self::assertSame(['–', '5s'], $cells);
+    }
+
     public function test_a_confirmed_rebuild_is_sent_to_the_service_under_a_new_tracing_id(): void
     {
         $client = $this->pulseWithOrders();

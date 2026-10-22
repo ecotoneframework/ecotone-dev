@@ -13,6 +13,7 @@ use App\Setup\SetupStatus;
 use App\Snapshot\ChannelDepth;
 use App\Snapshot\ServiceSnapshot;
 use App\Snapshot\ServiceStatus;
+use App\Snapshot\SnapshotRequester;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ScopeProblems
@@ -35,6 +36,10 @@ final readonly class ScopeProblems
             ServiceStatus::Waiting => [],
             ServiceStatus::Connected => $scope->hasSnapshot() ? $this->measured($scope, $newestVersion) : [],
         };
+        $refusal = $scope->refusalOf(SnapshotRequester::ROUTING_KEY);
+        if ($refusal !== null) {
+            $problems[] = new Problem(Severity::Critical, 'snapshot-refused', sprintf('Refused the snapshot request: %s', $refusal), $this->hub($scope));
+        }
         usort($problems, static fn (Problem $first, Problem $second): int => $second->severity->weight() <=> $first->severity->weight());
 
         return $problems;

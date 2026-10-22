@@ -38,7 +38,7 @@ final readonly class ProjectionActionRequester
     {
         $service = $scope->service;
         $now = DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->store->update($scope, fn ($record) => $record->requested($now, $this->settings->replyTimeoutSeconds));
+        $this->store->update($scope, fn ($record) => $record->requested($now, $this->settings->replyTimeoutSeconds)->forgettingRefusalOf(self::ROUTING_KEYS[$action]));
 
         $tracingId = ReplyAwaiter::newTracingId();
         try {

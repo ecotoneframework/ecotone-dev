@@ -49,6 +49,8 @@
         <p><span class="pill {{ {connected: 'ok', waiting: 'wait'}[service.status.value] ?? 'bad' }}" data-hub-status="{{ service.status.value }}">{{ service.status.value == 'channel_missing' ? 'Channel missing' : service.status.name }}</span>
             Last seen {{ service.lastSeenAt ? service.lastSeenAt|date('Y-m-d H:i:s T') : 'never' }}{% if service.hasSnapshot %} <span class="muted">({{ service.ageSeconds }}s ago)</span>{% endif %}</p>
         {% if service.requestFailure %}<p class="drift" data-request-error>{{ service.requestFailure }}</p>{% endif %}
+        {% set refusing = focus ?? service %}
+        {% if refusing.refusalOf('ecotone.pulse.snapshot') %}<p class="drift" role="alert" data-snapshot-refusal>{{ refusing.scope }} refused the snapshot request: {{ refusing.refusalOf('ecotone.pulse.snapshot') }}</p>{% endif %}
         {% if service.replyError %}<p class="drift" data-reply-error>Reply rejected: {{ service.replyError }}</p>{% endif %}
     </section>
 

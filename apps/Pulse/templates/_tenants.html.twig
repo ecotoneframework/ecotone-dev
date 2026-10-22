@@ -5,6 +5,7 @@
                 <span class="mono">{{ row.tenant }}</span>
                 <span class="pill {{ {connected: 'ok', waiting: 'wait'}[row.status.value] ?? 'bad' }}">{{ row.status.value == 'channel_missing' ? 'Channel missing' : row.status.name }}</span>
                 {% if row.deadLetterTotal is not null %}<a href="{{ path('dead_letters', {service: row.scope}) }}" data-tenant-dead-letters>{{ row.deadLetterTotal }} dead letters</a>{% endif %}
+                {% if row.refusalOf('ecotone.pulse.snapshot') %}<span class="drift" data-snapshot-refusal>{{ row.refusalOf('ecotone.pulse.snapshot') }}</span>{% endif %}
                 {% if row.requestFailure %}<span class="drift" data-request-error>{{ row.requestFailure }}</span>{% endif %}
             </li>
         {% endfor %}

@@ -19,6 +19,8 @@
     {% else %}
         {% if answer.state.value == 'waiting' and not answer.hasResult %}
             <p class="muted" data-waiting="{{ service }}">Waiting for {{ service }} to answer…</p>
+        {% elseif answer.state.value == 'refused' %}
+            <p class="drift" role="alert" data-refused="{{ service }}">{{ service }} refused this query: {{ answer.failure }}</p>
         {% elseif answer.state.value == 'not_answering' %}
             <p class="drift" data-not-answering="{{ service }}">{{ service }} is not answering for this query.{% if answer.failure %} {{ answer.failure }}{% endif %} Check that the service is running and consuming its channel.</p>
         {% endif %}

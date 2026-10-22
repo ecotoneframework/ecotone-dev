@@ -17,6 +17,10 @@
             {% else %}The {{ notice.noun }} of "{{ notice.projection }}" could not be sent to {{ service.service }}; the service shows the reason.
             {% endif %}
             </p>
+        {% elseif refusals %}
+            {% for refusal in refusals %}
+            <p class="notice toast drift" role="alert" data-notice-error data-service-refusal="{{ refusal.scope }}">The {{ notice.noun }} of "{{ notice.projection }}" was refused by {{ refusal.scope }}: {{ refusal.message }}</p>
+            {% endfor %}
         {% else %}
             <p class="notice toast" role="status" data-notice>{{ notice.noun|capitalize }} of {{ notice.projection }} requested. The service records it in its own database, so the progress below survives a restart of Pulse; it refreshes every few seconds while it runs.</p>
         {% endif %}
@@ -129,7 +133,9 @@
             </table>
         </div>
         <h2>Recent operations</h2>
-        {% if section.rebuilds.notAnswering %}
+        {% if section.rebuilds.refusal %}
+            <p class="drift" data-rebuilds-refused>{{ service.service }} refused the question for its tracked operations, so none are shown: {{ section.rebuilds.refusal }}</p>
+        {% elseif section.rebuilds.notAnswering %}
             <p class="drift" data-rebuilds-unavailable>{{ service.service }} did not answer the question for its tracked operations, so none are shown. Pulse asks again on the next visit.</p>
         {% elseif section.rebuilds.rebuilds is empty %}
             <p class="muted" data-no-rebuilds>No rebuild, initialization or backfill was started from Pulse in the last {{ trackingDays }} days (<code>PULSE_TRACKING_DAYS</code>).</p>

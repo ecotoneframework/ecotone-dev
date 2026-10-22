@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\DeadLetters;
 
 use App\Tests\Support\DeadLetterServicesTrait;
+use App\Tests\Support\FailureRepliesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
@@ -15,6 +16,7 @@ use Symfony\Component\DomCrawler\Crawler;
 final class DeadLetterActionsTest extends ReleasingWebTestCase
 {
     use DeadLetterServicesTrait;
+    use FailureRepliesTrait;
 
     public function test_replaying_selected_dead_letters_runs_their_handlers_again_and_removes_them_from_the_next_snapshot(): void
     {
@@ -30,6 +32,34 @@ final class DeadLetterActionsTest extends ReleasingWebTestCase
         $after = $client->request('GET', '/dead-letters');
         self::assertCount(1, $after->filter('[data-dead-letter]'));
         self::assertSame('order.cancel', $after->filter('[data-dead-letter]')->attr('data-message-name'));
+    }
+
+    public function test_a_replay_the_service_refused_shows_its_message_on_the_dead_letters_page_instead_of_the_sent_notice(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->serviceRefuses('orders', 'ecotone.pulse.dead_letter.replay', 'Service orders was asked by Pulse to act on its dead letters, but none is configured there.');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertStringContainsString('The replay was refused by orders: Service orders was asked by Pulse to act on its dead letters, but none is configured there.', $page->filter('[data-notice-error][data-service-refusal="orders"]')->text());
+        self::assertCount(0, $page->filter('[data-notice]'));
+        self::assertCount(2, $page->filter('[data-dead-letter][data-message-name="order.place"]'));
+    }
+
+    public function test_a_delete_the_service_refused_names_the_delete_and_leaves_the_replay_of_another_refusal_out(): void
+    {
+        $client = $this->pulseWithFailures();
+        $list = $this->freshView($client, '/dead-letters');
+
+        $this->post($client, ['action' => 'delete', 'confirm' => '1', 'scope' => 'ids', 'selected' => ['orders' => $this->selectionOf($list, 'orders', 'order.place')]]);
+        $this->serviceRefuses('orders', 'ecotone.pulse.dead_letter.delete', 'delete refused');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertStringContainsString('The delete was refused by orders: delete refused', $page->filter('[data-notice-error]')->text());
     }
 
     public function test_replaying_everything_matching_a_filter_replays_only_the_matching_messages(): void

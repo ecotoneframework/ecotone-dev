@@ -176,6 +176,7 @@ final readonly class Snapshots
             $record->projectionMovements,
             $record->deadLettersGrewBy,
             $service === null ? $record->channelMovements : [...$service->channelMovements, ...$record->channelMovements],
+            $record->refusedRequests,
         );
     }
 

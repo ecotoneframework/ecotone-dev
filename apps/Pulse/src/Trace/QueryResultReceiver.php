@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Trace;
 
+use App\Snapshot\FailureReply;
 use DateTimeImmutable;
 use Ecotone\Api\Attribute\InternalHandler;
 use Psr\Clock\ClockInterface;
@@ -34,8 +35,13 @@ final readonly class QueryResultReceiver
         }
 
         [$scope, $queryKey] = $asked;
-        $this->store->update($scope, $queryKey, function (QueryRecord $record) use ($queryId, $decoded): QueryRecord {
-            return $record->queryId === $queryId ? $record->received($decoded, DateTimeImmutable::createFromInterface($this->clock->now())) : $record;
+        $now = DateTimeImmutable::createFromInterface($this->clock->now());
+        $this->store->update($scope, $queryKey, function (QueryRecord $record) use ($queryId, $decoded, $now): QueryRecord {
+            if ($record->queryId !== $queryId) {
+                return $record;
+            }
+
+            return FailureReply::isOne($decoded) ? $record->refused(FailureReply::of($decoded)->message, $now) : $record->received($decoded, $now);
         });
     }
 }

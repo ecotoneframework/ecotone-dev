@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy;
 
+use App\Tests\Support\FailureRepliesTrait;
 use App\Tests\Support\MultiTenantServicesTrait;
 use App\Tests\Support\OpenedConnections;
 use App\Tests\Support\ReleasingWebTestCase;
@@ -16,6 +17,7 @@ use Symfony\Component\DomCrawler\Crawler;
 final class TenantViewsTest extends ReleasingWebTestCase
 {
     use MultiTenantServicesTrait;
+    use FailureRepliesTrait;
 
     private const QUEUE = 'pulse_tenant_queue';
 
@@ -67,6 +69,39 @@ final class TenantViewsTest extends ReleasingWebTestCase
         self::assertNotSame([], $this->problemsOf($home, 'orders@tenant_b', 'table-missing'));
         self::assertCount(0, $hubOfTenantA->filter('[data-hub-setup] [data-setup-missing]'));
         self::assertGreaterThan(0, $hubOfTenantB->filter('[data-hub-setup] [data-setup-missing]')->count());
+    }
+
+    public function test_a_snapshot_the_service_refused_for_one_tenant_shows_on_that_tenant_only(): void
+    {
+        $client = $this->pulseWithTenants();
+        $this->refreshedView($client, '/');
+
+        $this->serviceRefuses('orders', 'ecotone.pulse.snapshot', 'tenant_a database is down', tenant: 'tenant_a');
+        $this->runPulseWorker($client->getKernel());
+        $home = $client->request('GET', '/');
+        $hubOfTenantA = $client->request('GET', '/services/orders?tenant=tenant_a');
+        $hubOfTenantB = $client->request('GET', '/services/orders?tenant=tenant_b');
+
+        self::assertCount(1, $this->problemsOf($home, 'orders@tenant_a', 'snapshot-refused'));
+        self::assertSame([], $this->problemsOf($home, 'orders@tenant_b', 'snapshot-refused'));
+        self::assertStringContainsString('tenant_a database is down', $hubOfTenantA->filter('[data-snapshot-refusal]')->text());
+        self::assertCount(0, $hubOfTenantB->filter('[data-snapshot-refusal]'));
+    }
+
+    public function test_a_dead_letter_action_the_service_refused_for_one_tenant_shows_on_the_dead_letters_page(): void
+    {
+        $client = $this->pulseWithTenants();
+        $this->failOrderOfTenant($this->services['orders'], 'tenant_a', 1);
+        $list = $this->refreshedView($client, '/dead-letters');
+        $messageId = $list->filter('[data-dead-letter]')->first()->filter('input[type="checkbox"]')->attr('value');
+
+        $client->request('POST', '/dead-letters/actions', ['action' => 'replay', 'scope' => 'ids', 'selected' => ['orders@tenant_a' => [$messageId]]]);
+        $this->serviceRefuses('orders', 'ecotone.pulse.dead_letter.replay', 'replay refused for a', tenant: 'tenant_a');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertStringContainsString('The replay was refused by orders@tenant_a: replay refused for a', $page->filter('[data-notice-error]')->text());
+        self::assertCount(0, $page->filter('[data-service-refusal="orders@tenant_b"]'));
     }
 
     public function test_the_home_board_and_the_tenant_pages_show_the_dead_letters_of_their_own_tenant(): void

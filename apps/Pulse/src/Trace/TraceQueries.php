@@ -67,7 +67,7 @@ final readonly class TraceQueries
     {
         $record = $this->store->read($scope, $query->key());
 
-        return new TraceAnswer($scope->key(), $record->stateAt($this->now(), $this->settings->replyTimeoutSeconds), $record->result, $record->failure);
+        return new TraceAnswer($scope->key(), $record->stateAt($this->now(), $this->settings->replyTimeoutSeconds), $record->result, $record->refusal ?? $record->failure);
     }
 
     /**

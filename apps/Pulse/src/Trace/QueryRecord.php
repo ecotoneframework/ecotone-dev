@@ -20,6 +20,7 @@ final readonly class QueryRecord
         public ?DateTimeImmutable $receivedAt,
         public ?array $result,
         public ?string $failure,
+        public ?string $refusal = null,
     ) {
     }
 
@@ -39,6 +40,7 @@ final readonly class QueryRecord
             isset($stored['receivedAt']) ? new DateTimeImmutable($stored['receivedAt']) : null,
             $stored['result'] ?? null,
             $stored['failure'] ?? null,
+            $stored['refusal'] ?? null,
         );
     }
 
@@ -53,17 +55,18 @@ final readonly class QueryRecord
             'receivedAt' => $this->receivedAt?->format(self::TIME_FORMAT),
             'result' => $this->result,
             'failure' => $this->failure,
+            'refusal' => $this->refusal,
         ];
     }
 
     public function requested(string $queryId, DateTimeImmutable $at): self
     {
-        return new self($queryId, $at, $this->receivedAt, $this->result, null);
+        return new self($queryId, $at, $this->receivedAt, $this->result, null, null);
     }
 
     public function requestFailed(string $failure): self
     {
-        return new self($this->queryId, $this->requestedAt, $this->receivedAt, $this->result, $failure);
+        return new self($this->queryId, $this->requestedAt, $this->receivedAt, $this->result, $failure, $this->refusal);
     }
 
     /**
@@ -71,7 +74,12 @@ final readonly class QueryRecord
      */
     public function received(array $result, DateTimeImmutable $at): self
     {
-        return new self($this->queryId, $this->requestedAt, $at, $result, null);
+        return new self($this->queryId, $this->requestedAt, $at, $result, null, null);
+    }
+
+    public function refused(string $message, DateTimeImmutable $at): self
+    {
+        return new self($this->queryId, $this->requestedAt, $at, $this->result, null, $message);
     }
 
     public function hasOutstandingRequest(): bool
@@ -91,7 +99,7 @@ final readonly class QueryRecord
     public function stateAt(DateTimeImmutable $now, int $replyTimeoutSeconds): TraceAnswerState
     {
         if (! $this->hasOutstandingRequest()) {
-            return TraceAnswerState::Answered;
+            return $this->refusal === null ? TraceAnswerState::Answered : TraceAnswerState::Refused;
         }
 
         return $this->failure !== null || self::secondsBetween($this->requestedAt, $now) >= $replyTimeoutSeconds

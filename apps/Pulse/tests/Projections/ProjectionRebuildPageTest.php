@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Projections;
 
+use App\Tests\Support\FailureRepliesTrait;
 use App\Tests\Support\PulseServicesTrait;
 use App\Tests\Support\ReleasingWebTestCase;
 use DateTimeImmutable;
@@ -20,11 +21,78 @@ use Symfony\Component\DomCrawler\Crawler;
 final class ProjectionRebuildPageTest extends ReleasingWebTestCase
 {
     use PulseServicesTrait;
+    use FailureRepliesTrait;
 
     private const TRACE = '0af7651916cd43dd8448eb211c80319c';
     private const OTHER_TRACE = '1af7651916cd43dd8448eb211c80319c';
 
     private object $orders;
+
+    public function test_a_rebuild_the_service_refused_shows_its_message_where_the_operator_acted_instead_of_the_requested_notice(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->observe($client);
+
+        $client->request('POST', '/services/orders/projections/totals/rebuild', ['confirm' => '1']);
+        $this->serviceRefuses('orders', 'ecotone.pulse.projections.rebuild', 'Pulse asked to rebuild projection totals, but it is already rebuilding.');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertStringContainsString('The rebuild of "totals" was refused by orders: Pulse asked to rebuild projection totals, but it is already rebuilding.', $page->filter('[data-notice-error][data-service-refusal="orders"]')->text());
+        self::assertCount(0, $page->filter('[data-notice]'));
+    }
+
+    public function test_an_initialization_and_a_backfill_the_service_refused_show_their_own_messages(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('waiting', initialization: 'uninitialized')];
+        $this->observe($client);
+
+        $client->request('POST', '/services/orders/projections/waiting/initialize', ['confirm' => '1']);
+        $this->serviceRefuses('orders', 'ecotone.pulse.projections.initialize', 'initialization refused');
+        $this->runPulseWorker($client->getKernel());
+        $afterInitialize = $client->followRedirect();
+        $client->request('POST', '/services/orders/projections/waiting/backfill', ['confirm' => '1']);
+        $this->serviceRefuses('orders', 'ecotone.pulse.projections.backfill', 'backfill refused');
+        $this->runPulseWorker($client->getKernel());
+        $afterBackfill = $client->followRedirect();
+
+        self::assertStringContainsString('initialization refused', $afterInitialize->filter('[data-notice-error]')->text());
+        self::assertStringContainsString('backfill refused', $afterBackfill->filter('[data-notice-error]')->text());
+        self::assertStringNotContainsString('initialization refused', $afterBackfill->filter('[data-notice-error]')->text());
+    }
+
+    public function test_a_refusal_is_forgotten_when_the_same_kind_of_request_is_sent_again(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->observe($client);
+        $client->request('POST', '/services/orders/projections/totals/rebuild', ['confirm' => '1']);
+        $this->serviceRefuses('orders', 'ecotone.pulse.projections.rebuild', 'refused once');
+        $this->runPulseWorker($client->getKernel());
+        $client->followRedirect();
+
+        $client->request('POST', '/services/orders/projections/totals/rebuild', ['confirm' => '1']);
+        $this->runService($this->services['orders'], 'orders');
+        $this->runPulseWorker($client->getKernel());
+        $page = $client->followRedirect();
+
+        self::assertCount(0, $page->filter('[data-notice-error]'));
+        self::assertStringContainsString('Rebuild of totals requested', $page->filter('[data-notice]')->text());
+    }
+
+    public function test_tracked_operations_the_service_refused_to_list_say_so_instead_of_showing_none(): void
+    {
+        $client = $this->pulseWithOrders();
+        $this->orders->projections = [$this->projection('totals')];
+        $this->orders->trackingsRefusal = 'the tracking table is missing';
+
+        $page = $this->observe($client);
+
+        self::assertStringContainsString('the tracking table is missing', $page->filter('[data-rebuilds-refused]')->text());
+        self::assertCount(0, $page->filter('[data-no-rebuilds]'));
+    }
 
     public function test_every_projection_offers_a_rebuild_whose_confirmation_says_how_it_runs(): void
     {
@@ -320,6 +388,7 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             public array $rebuildRequests = [];
             public array $actionRequests = [];
             public ?string $trackingsSince = null;
+            public ?string $trackingsRefusal = null;
 
             #[Distributed]
             #[CommandHandler('ecotone.pulse.snapshot', endpointId: 'orders.snapshot')]
@@ -333,6 +402,9 @@ final class ProjectionRebuildPageTest extends ReleasingWebTestCase
             public function trackings(string $request, #[Header('ecotone_pulse_query_id')] string $queryId): string
             {
                 $this->trackingsSince = json_decode($request, true)['since'];
+                if ($this->trackingsRefusal !== null) {
+                    return json_encode(['requestKind' => 'ecotone.pulse.trackings.list', 'serviceName' => 'orders', 'tenant' => null, 'message' => $this->trackingsRefusal, 'queryId' => $queryId, 'tracingId' => null, 'failedAt' => gmdate('c')], JSON_THROW_ON_ERROR);
+                }
 
                 return json_encode(['queryId' => $queryId, 'cap' => 100, 'truncated' => false, 'trackings' => $this->trackings], JSON_THROW_ON_ERROR);
             }

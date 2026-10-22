@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\DeadLetter\DeadLetterFilter;
 use App\DeadLetter\DeadLetterNotice;
 use App\DeadLetter\DeadLetterOverview;
+use App\Snapshot\Refusals;
 use App\Snapshot\ServiceScope;
 use App\Snapshot\Snapshots;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,11 +27,14 @@ final class DeadLetterController extends AbstractController
         $filter = DeadLetterFilter::fromInput($request->query);
         $snapshots = $this->snapshots->viewScopesAndRequestStale();
 
+        $notice = ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->scope(), $snapshots));
+
         return $this->render('dead_letters/list.html.twig', [
             'filter' => $filter,
+            'refusals' => $notice?->code === DeadLetterNotice::ACTION_SENT ? Refusals::of($snapshots, 'ecotone.pulse.dead_letter.' . $notice->parameters['action'], $notice->services()) : [],
             'services' => DeadLetterOverview::of($snapshots, $filter),
             'serviceNames' => array_map(static fn ($snapshot) => $snapshot->scope(), $snapshots),
-            'notice' => ($invalidDate = $filter->invalidDateField()) !== null ? DeadLetterNotice::invalidDate($invalidDate) : DeadLetterNotice::fromInput($request->query, array_map(static fn ($snapshot) => $snapshot->scope(), $snapshots)),
+            'notice' => $notice,
             'channels' => DeadLetterOverview::channelsByService($snapshots),
             'sharedStores' => DeadLetterOverview::servicesSharingAStore($snapshots),
             'waiting' => Snapshots::needsAutoRefresh($snapshots),

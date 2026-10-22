@@ -304,6 +304,7 @@ final class PulseSnapshot
             'serviceName' => $this->serviceName,
             'tenant' => is_scalar($tenant) ? (string) $tenant : null,
             'message' => $cause->getMessage(),
+            'queryId' => $headers->containsKey(PulseRequest::QUERY_ID_HEADER) ? $headers->get(PulseRequest::QUERY_ID_HEADER) : null,
             'tracingId' => $headers->containsKey(MessageHeaders::TRACING_ID) ? $headers->get(MessageHeaders::TRACING_ID) : null,
             'failedAt' => $this->clock->now()->format('c'),
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
@@ -311,6 +312,7 @@ final class PulseSnapshot
         return [
             'payload' => $payload,
             'headers' => [
+                ...($headers->containsKey(PulseRequest::QUERY_ID_HEADER) ? [PulseRequest::QUERY_ID_HEADER => $headers->get(PulseRequest::QUERY_ID_HEADER)] : []),
                 MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
                 MessageHeaders::MESSAGE_CORRELATION_ID => $headers->get(MessageHeaders::MESSAGE_CORRELATION_ID),
                 MessageHeaders::PARENT_MESSAGE_ID => $headers->get(MessageHeaders::MESSAGE_ID),

@@ -27,6 +27,7 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 final class PulseRequest
 {
     public const ROUTING_PREFIX = 'ecotone.pulse.';
+    public const QUERY_ID_HEADER = 'ecotone_pulse_query_id';
 
     public static function isRoutedToPulse(mixed $routingKey): bool
     {

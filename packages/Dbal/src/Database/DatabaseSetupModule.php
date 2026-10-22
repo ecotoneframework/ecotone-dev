@@ -12,9 +12,14 @@ use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ModulePackageList;
+use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Database\Pulse\PulseSetupStatus;
+use Ecotone\Dbal\Database\Pulse\PulseTenantSetupStatus;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Lite\Test\DatabaseTablesSetUpReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -28,6 +33,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSectionRegistration;
 
 #[ModuleAnnotation]
 /**
@@ -96,6 +102,22 @@ final class DatabaseSetupModule implements AnnotationModule
         );
 
         $messagingConfiguration->registerServiceDefinition(
+            PulseSetupStatus::class,
+            new Definition(PulseSetupStatus::class, [
+                new Reference(ConfiguredMessagingSystem::class),
+                array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects)),
+            ])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            PulseTenantSetupStatus::class,
+            new Definition(PulseTenantSetupStatus::class, [
+                new Reference(ConfiguredMessagingSystem::class),
+                array_map(static fn (MultiTenantConfiguration $configuration): string => $configuration->getReferenceName(), ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects)),
+            ])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
             DatabaseSetupCommand::class,
             new Definition(DatabaseSetupCommand::class, [
                 new Reference(DatabaseSetupManagerRegistry::class),
@@ -130,7 +152,13 @@ final class DatabaseSetupModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [new DatabaseTablesSetUpReference(DbalDatabaseTablesSetUp::class)];
+        $extensions = [new DatabaseTablesSetUpReference(DbalDatabaseTablesSetUp::class)];
+        if (ExtensionObjectResolver::resolve(PulseConfiguration::class, $serviceExtensions) !== []) {
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'setup', serviceReference: PulseSetupStatus::class, tenantScoped: false);
+            $extensions[] = new PulseSnapshotSectionRegistration(sectionName: 'setup', serviceReference: PulseTenantSetupStatus::class, tenantScoped: true);
+        }
+
+        return $extensions;
     }
 
     public function getModulePackageName(): string

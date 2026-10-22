@@ -36,7 +36,7 @@ final class PulseSnapshot
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
-    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant'];
+    public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors'];
 
     /**
      * @param array<array{referenceName: string, commandMapping: array<string, string>, eventSubscriptions: array<array{channel: string, subscriptionKeys: string[], excludePublishingServices: string[], includePublishingServices: string[]}>, asynchronousChannel: string|null}> $serviceMaps
@@ -113,11 +113,12 @@ final class PulseSnapshot
             'channels' => $this->channelsWithDepth(forTenant: true),
         ];
 
+        $sectionErrors = [];
         foreach ($this->tenantScopedSections as $sectionName => $section) {
-            $snapshot[$sectionName] = $section->snapshot();
+            $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
         }
 
-        return $snapshot;
+        return $this->withSectionErrors($snapshot, $sectionErrors);
     }
 
     /**
@@ -152,16 +153,40 @@ final class PulseSnapshot
             $snapshot['tenancy'] = $this->tenancy;
         }
 
+        $sectionErrors = [];
         foreach ($this->tenantIndependentSections as $sectionName => $section) {
-            $snapshot[$sectionName] = $section->snapshot();
+            $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
         }
         if (! $this->isMultiTenant()) {
             foreach ($this->tenantScopedSections as $sectionName => $section) {
-                $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+                $this->addSection($snapshot, $sectionErrors, $sectionName, $section);
             }
         }
 
-        return $snapshot;
+        return $this->withSectionErrors($snapshot, $sectionErrors);
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @param array<string, string> $sectionErrors
+     */
+    private function addSection(array &$snapshot, array &$sectionErrors, string $sectionName, PulseSnapshotSection $section): void
+    {
+        try {
+            $snapshot[$sectionName] = [...($snapshot[$sectionName] ?? []), ...$section->snapshot()];
+        } catch (Throwable $exception) {
+            $sectionErrors[$sectionName] = $exception->getMessage();
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $snapshot
+     * @param array<string, string> $sectionErrors
+     * @return array<string, mixed>
+     */
+    private function withSectionErrors(array $snapshot, array $sectionErrors): array
+    {
+        return $sectionErrors === [] ? $snapshot : [...$snapshot, 'sectionErrors' => $sectionErrors];
     }
 
     /**

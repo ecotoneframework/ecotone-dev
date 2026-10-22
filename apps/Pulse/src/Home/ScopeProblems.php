@@ -100,6 +100,7 @@ final readonly class ScopeProblems
             $problem = match ($projection->state) {
                 ProjectionState::Failed => new Problem(Severity::Critical, 'projection-failed', sprintf('%s failed: its channel has dead letters', $projection->name), $href),
                 ProjectionState::Stalled => new Problem(Severity::Warning, 'projection-stalled', sprintf('%s stalled %d min', $projection->name, intdiv((int) $projection->changedSecondsAgo, 60)), $href),
+                ProjectionState::NotInitialized => new Problem(Severity::Warning, 'projection-not-initialized', sprintf('%s not initialized', $projection->name), $href),
                 ProjectionState::CatchingUp => new Problem(Severity::Warning, 'projection-behind', sprintf('%s behind: %s', $projection->name, $projection->gap), $href),
                 default => null,
             };
@@ -125,9 +126,9 @@ final readonly class ScopeProblems
             }
             $seen[$rebuild->projection] = true;
             if ($rebuild->isRunning()) {
-                $problems[] = new Problem(Severity::Info, 'rebuild-running', sprintf('%s rebuilding%s', $rebuild->projection, $rebuild->elapsed() === null ? '' : ' for ' . $rebuild->elapsed()), $href);
+                $problems[] = new Problem(Severity::Info, $rebuild->kind . '-running', sprintf('%s %s%s', $rebuild->projection, $rebuild->gerund(), $rebuild->elapsed() === null ? '' : ' for ' . $rebuild->elapsed()), $href);
             } elseif ($rebuild->state === 'failed') {
-                $problems[] = new Problem(Severity::Warning, 'rebuild-failed', sprintf('%s rebuild failed in the last %d days', $rebuild->projection, $this->settings->trackingDays), $href);
+                $problems[] = new Problem(Severity::Warning, $rebuild->kind . '-failed', sprintf('%s %s failed in the last %d days', $rebuild->projection, $rebuild->noun(), $this->settings->trackingDays), $href);
             }
         }
 

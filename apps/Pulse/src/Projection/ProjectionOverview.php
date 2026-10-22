@@ -53,11 +53,13 @@ final class ProjectionOverview
         $since = isset($service->projectionMovements[$name]['since']) ? new DateTimeImmutable($service->projectionMovements[$name]['since']) : null;
         $unmovedSeconds = $since !== null && $service->lastSeenAt !== null ? $service->lastSeenAt->getTimestamp() - $since->getTimestamp() : 0;
         [$gap, $behind] = self::gapOf($projection);
+        $notInitialized = ($projection['initialization'] ?? null) === 'uninitialized' && ($projection['partitioned'] ?? false) !== true && ($projection['mode'] ?? null) !== 'streaming';
 
         $state = match (true) {
-            $rebuilds->isRunning($name) => ProjectionState::Rebuilding,
+            $rebuilds->isRunning($name) => $rebuilds->latestOf($name)->runningState(),
             $unavailable !== null => ProjectionState::Unknown,
             $asyncChannel !== null && in_array($asyncChannel, $deadLetterChannels, true) => ProjectionState::Failed,
+            $notInitialized => ProjectionState::NotInitialized,
             $behind && $unmovedSeconds >= $stalledAfterSeconds => ProjectionState::Stalled,
             $behind => ProjectionState::CatchingUp,
             default => ProjectionState::UpToDate,
@@ -74,6 +76,7 @@ final class ProjectionOverview
             $since !== null && $service->lastSeenAt !== null ? $unmovedSeconds : null,
             $unavailable,
             is_string($projection['rebuildAsyncChannel'] ?? null) ? $projection['rebuildAsyncChannel'] : null,
+            is_string($projection['backfillAsyncChannel'] ?? null) ? $projection['backfillAsyncChannel'] : null,
             $rebuilds->latestOf($name),
         );
     }

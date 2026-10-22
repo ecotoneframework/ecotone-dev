@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Projection\ProjectionOverview;
-use App\Projection\RebuildNotice;
+use App\Projection\ProjectionActionNotice;
 use App\Projection\RebuildTrackings;
 use App\Settings\PulseSettings;
 use App\Snapshot\ServiceScope;
@@ -44,7 +44,7 @@ final class ProjectionsController extends AbstractController
             'sections' => $sections,
             'stalledAfter' => $this->settings->projectionStalledAfterSeconds,
             'trackingDays' => $this->settings->trackingDays,
-            'notice' => RebuildNotice::fromQuery($request->query->get('rebuild'), $request->query->get('projection')),
+            'notice' => ProjectionActionNotice::fromQuery($request->query->all()),
             'waiting' => Snapshots::needsAutoRefresh($rows) || array_filter($sections, static fn (array $section): bool => $section['rebuilds']->waiting || $section['rebuilds']->anyRunning()) !== [],
         ]);
     }

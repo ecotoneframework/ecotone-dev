@@ -6,9 +6,15 @@ namespace App\Projection;
 
 final readonly class Rebuild
 {
+    public const REBUILD = 'rebuild';
+    public const INITIALIZATION = 'initialization';
+    public const BACKFILL = 'backfill';
+    private const KINDS = ['projection-rebuild' => self::REBUILD, 'projection-initialization' => self::INITIALIZATION, 'projection-backfill' => self::BACKFILL];
+
     public function __construct(
         public string $tracingId,
         public string $projection,
+        public string $kind,
         public string $startedAt,
         public string $state,
         public int $batchesDone,
@@ -23,13 +29,15 @@ final readonly class Rebuild
      */
     public static function fromTracking(array $tracking): ?self
     {
-        if (! is_string($tracking['tracingId'] ?? null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed'], true)) {
+        $kind = self::KINDS[$tracking['type'] ?? null] ?? null;
+        if ($kind === null || ! is_string($tracking['tracingId'] ?? null) || ! is_string($tracking['reference'] ?? null) || ! in_array($tracking['state'] ?? null, ['running', 'done', 'failed'], true)) {
             return null;
         }
 
         return new self(
             $tracking['tracingId'],
             $tracking['reference'],
+            $kind,
             is_string($tracking['startedAt'] ?? null) ? $tracking['startedAt'] : '',
             $tracking['state'],
             is_int($tracking['batchesDone'] ?? null) ? $tracking['batchesDone'] : 0,
@@ -37,6 +45,47 @@ final readonly class Rebuild
             is_int($tracking['elapsedMs'] ?? null) ? $tracking['elapsedMs'] : null,
             is_int($tracking['durationMs'] ?? null) ? $tracking['durationMs'] : null,
         );
+    }
+
+    public function label(): string
+    {
+        return match ($this->kind) {
+            self::INITIALIZATION => 'Initialization',
+            self::BACKFILL => 'Backfill',
+            default => 'Rebuild',
+        };
+    }
+
+    public function noun(): string
+    {
+        return $this->kind;
+    }
+
+    public function gerund(): string
+    {
+        return match ($this->kind) {
+            self::INITIALIZATION => 'initializing',
+            self::BACKFILL => 'backfilling',
+            default => 'rebuilding',
+        };
+    }
+
+    public function doneLabel(): string
+    {
+        return match ($this->kind) {
+            self::INITIALIZATION => 'Initialized',
+            self::BACKFILL => 'Backfilled',
+            default => 'Rebuilt',
+        };
+    }
+
+    public function runningState(): ProjectionState
+    {
+        return match ($this->kind) {
+            self::INITIALIZATION => ProjectionState::Initializing,
+            self::BACKFILL => ProjectionState::Backfilling,
+            default => ProjectionState::Rebuilding,
+        };
     }
 
     public function isRunning(): bool

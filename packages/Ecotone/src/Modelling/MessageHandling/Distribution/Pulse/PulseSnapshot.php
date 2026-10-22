@@ -6,12 +6,16 @@ namespace Ecotone\Modelling\MessageHandling\Distribution\Pulse;
 
 use Composer\InstalledVersions;
 use DateTimeInterface;
+use Ecotone\Api\ExtensionObject\MediaType;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Api\Messaging\Flow\FlowEdge;
 use Ecotone\Api\Messaging\Flow\FlowEdgeKind;
 use Ecotone\Api\Messaging\Flow\FlowNodeKind;
 use Ecotone\Api\Messaging\Flow\MessageFlowGraph;
+use Ecotone\Api\Messaging\Message;
+use Ecotone\Api\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Throwable;
 
@@ -39,6 +43,7 @@ final class PulseSnapshot
 {
     public const SCHEMA_VERSION = 1;
     public const ROUTING_KEY = 'ecotone.pulse.snapshot';
+    public const REPLY_ROUTING_KEY = 'ecotone.pulse.snapshot_received';
     public const PROBE_BUDGET_IN_MILLISECONDS = 2000;
     public const CORE_KEYS = ['schemaVersion', 'serviceName', 'takenAt', 'overview', 'flowGraph', 'topology', 'channels', 'tenancy', 'tenant', 'sectionErrors'];
 
@@ -271,6 +276,51 @@ final class PulseSnapshot
         }
 
         return $depths;
+    }
+
+    public function isRequestFromPulse(Message $message): bool
+    {
+        $headers = $message->getHeaders();
+
+        return $headers->containsKey(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME)
+            && $headers->get(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME) === $this->pulseServiceName
+            && $headers->containsKey(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)
+            && PulseRequest::isRoutedToPulse($headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY));
+    }
+
+    /**
+     * @return array{payload: string, headers: array<string, mixed>}|null
+     */
+    public function failureReplyTo(Message $request, Throwable $cause): ?array
+    {
+        if (! $this->isRequestFromPulse($request)) {
+            return null;
+        }
+
+        $headers = $request->getHeaders();
+        $tenant = $this->isMultiTenant() && $headers->containsKey($this->tenancy['header']) ? $headers->get($this->tenancy['header']) : null;
+        $payload = json_encode([
+            'requestKind' => $headers->get(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+            'serviceName' => $this->serviceName,
+            'tenant' => is_scalar($tenant) ? (string) $tenant : null,
+            'message' => $cause->getMessage(),
+            'tracingId' => $headers->containsKey(MessageHeaders::TRACING_ID) ? $headers->get(MessageHeaders::TRACING_ID) : null,
+            'failedAt' => $this->clock->now()->format('c'),
+        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return [
+            'payload' => $payload,
+            'headers' => [
+                MessageHeaders::CONTENT_TYPE => MediaType::TEXT_PLAIN,
+                MessageHeaders::MESSAGE_CORRELATION_ID => $headers->get(MessageHeaders::MESSAGE_CORRELATION_ID),
+                MessageHeaders::PARENT_MESSAGE_ID => $headers->get(MessageHeaders::MESSAGE_ID),
+                MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,
+                DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE => 'message',
+                DistributedBusHeader::DISTRIBUTED_ROUTING_KEY => $headers->containsKey(DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY) ? $headers->get(DistributedBusHeader::DISTRIBUTED_REPLY_ROUTING_KEY) : self::REPLY_ROUTING_KEY,
+                DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME => $this->serviceName,
+                DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME => $this->pulseServiceName,
+            ],
+        ];
     }
 
     public function authorizeRequestFrom(?string $sourceService): void

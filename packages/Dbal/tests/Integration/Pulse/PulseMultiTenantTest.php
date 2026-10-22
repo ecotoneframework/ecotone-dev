@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Pulse;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Cache\QueryCacheProfile;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Result;
 use DateTimeZone;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -31,6 +35,7 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDeployment;
 use Ecotone\Api\Pulse\PulseConfiguration;
 use Ecotone\Api\Tracing\SpanContext;
+use Ecotone\Api\Dbal\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -386,6 +391,26 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
         @unlink(self::unpreparedDatabaseFile());
     }
 
+    public function test_a_slow_schema_read_on_a_tenant_connection_does_not_delay_the_snapshot_of_that_tenant_past_the_budget(): void
+    {
+        SlowTenantSchemaReadConnection::$secondsPerSchemaRead = 0.0;
+        $slowTenantB = new DbalConnectionFactory(['dsn' => getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone', 'connection' => ['wrapperClass' => SlowTenantSchemaReadConnection::class]]);
+        $this->bootstrap(unpreparedTenantB: $slowTenantB);
+        SlowTenantSchemaReadConnection::$secondsPerSchemaRead = 1.5;
+
+        $startedAt = hrtime(true);
+        $ofTenantB = $this->requestSnapshot('tenant_b');
+        $tookMilliseconds = (hrtime(true) - $startedAt) / 1_000_000;
+        SlowTenantSchemaReadConnection::$secondsPerSchemaRead = 0.0;
+        $ofTenantA = $this->requestSnapshot('tenant_a');
+
+        self::assertLessThan(4000, $tookMilliseconds);
+        self::assertSame('order_service', $ofTenantB['serviceName']);
+        self::assertContains(null, array_column($ofTenantB['setup']['tenantTables'], 'initialized'));
+        self::assertSame(['not checked within the budget'], array_values(array_unique(array_filter(array_column($ofTenantB['setup']['tenantTables'], 'error')))));
+        self::assertSame([], array_filter($ofTenantA['setup']['tenantTables'], static fn (array $table): bool => $table['initialized'] !== true));
+    }
+
     private static function unpreparedDatabaseFile(): string
     {
         return sys_get_temp_dir() . '/ecotone_pulse_unprepared_tenant_b.db';
@@ -517,5 +542,19 @@ final class PulseMultiTenantTest extends DbalMessagingTestCase
             enabledModules: [ModulePackageList::DBAL_PACKAGE],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+}
+
+final class SlowTenantSchemaReadConnection extends Connection
+{
+    public static float $secondsPerSchemaRead = 0.0;
+
+    public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
+    {
+        if (self::$secondsPerSchemaRead > 0.0 && stripos($sql, 'table_name') !== false) {
+            parent::executeQuery($this->getDatabasePlatform() instanceof PostgreSQLPlatform ? sprintf('SELECT pg_sleep(%s)', self::$secondsPerSchemaRead) : sprintf('SELECT SLEEP(%s)', self::$secondsPerSchemaRead))->free();
+        }
+
+        return parent::executeQuery($sql, $params, $types, $qcp);
     }
 }

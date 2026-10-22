@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Database\Pulse;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
 use Ecotone\Api\Messaging\ConfiguredMessagingSystem;
 use Ecotone\Modelling\MessageHandling\Distribution\Pulse\PulseSnapshotSection;
-use Throwable;
 
 /**
  * licence Enterprise
@@ -45,21 +44,14 @@ final class PulseSetupStatus implements PulseSnapshotSection
     {
         $registry = $this->messagingSystem->getServiceFromContainer(DatabaseSetupManagerRegistry::class);
         $tables = [];
+        $inspection = new BudgetedSetupInspection();
         foreach ($registry->getConnectionReferenceNames() as $connectionReferenceName) {
             if (in_array($connectionReferenceName, $this->tenantConnectionReferences, true)) {
                 continue;
             }
 
             $manager = $registry->getManagerFor($connectionReferenceName);
-            try {
-                foreach ($manager->getInitializationStatus() as $feature => $initialized) {
-                    $tables[] = ['feature' => $feature, 'connection' => $connectionReferenceName, 'initialized' => $initialized, 'error' => null];
-                }
-            } catch (Throwable $exception) {
-                foreach ($manager->getFeatureNames() as $feature) {
-                    $tables[] = ['feature' => $feature, 'connection' => $connectionReferenceName, 'initialized' => null, 'error' => $exception->getMessage()];
-                }
-            }
+            $tables = [...$tables, ...$inspection->of($manager, $connectionReferenceName, onCurrentConnection: false)];
         }
 
         return ['tables' => $tables];

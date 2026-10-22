@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Database\TimeBoxedSchemaRead;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -147,6 +148,26 @@ final class DatabaseSetupManager implements DefinedObject
         }
 
         return $status;
+    }
+
+    public function isFeatureInitializedWithin(string $featureName, int $milliseconds): bool
+    {
+        $manager = $this->findManager($featureName);
+        foreach ($this->connections() as $connection) {
+            if (! TimeBoxedSchemaRead::within($connection, $milliseconds, static fn (): bool => $manager->isInitialized($connection))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function isFeatureInitializedOnCurrentConnectionWithin(string $featureName, int $milliseconds): bool
+    {
+        $manager = $this->findManager($featureName);
+        $connection = $this->singleConnection();
+
+        return TimeBoxedSchemaRead::within($connection, $milliseconds, static fn (): bool => $manager->isInitialized($connection));
     }
 
     public function getUsageStatus(): array

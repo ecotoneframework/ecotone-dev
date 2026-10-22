@@ -224,6 +224,12 @@ Pulse reads replies on **every** connection, one reply consumer per connection, 
 
 A mistake in these entries (an unknown connection, a malformed entry, a service listed twice, two services on one channel or one destination) is refused at start with a message that names the entry and the fix.
 
+### Setup status
+
+The service page lists, for each database connection a service uses, which Ecotone tables exist and which broker channels are set up, with the command that creates what is missing. A service reads this inside a fixed 2 second budget per snapshot: every schema read runs under a statement timeout (PostgreSQL `statement_timeout`, MySQL `max_execution_time`, MariaDB `max_statement_time`; SQLite has no network), set only for that read. A table the service could not check in time shows as Unknown with "not checked within the budget" and a warning on the home board, and never as "All set up".
+
+The budget cannot interrupt opening a connection that hangs on a database it cannot reach, because that connection belongs to the application. Set `connect_timeout` in the DSN of every secondary connection, for example `pgsql://user:secret@reporting:5432/app?connect_timeout=2`, so a dead host fails fast.
+
 ### Doctor
 
 `bin/console pulse:doctor` checks, and says what to do about every failure in one line: the settings, for each connection the host and port (with the milliseconds it took), the broker login, and for each service that its queue or topic exists (on Redis and the database it cannot be detected, so it says that and shows the configured name), the internal database, the licence and which reply channel Pulse reads. It exits `0` when everything passed and `1` otherwise; `--format=json` prints the same checks as `{"ok": bool, "checks": [{"name", "status": "ok|info|fail", "message", "fix"}]}`.

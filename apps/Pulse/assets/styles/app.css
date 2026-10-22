@@ -28,11 +28,13 @@ main{max-width:76rem;margin:0 auto;padding:1.5rem 1.25rem;min-width:0}
 .intro{display:none}
 .intro-pending .intro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--magenta);transition:opacity .5s;cursor:pointer}
 .intro-pending .intro.intro-leaving{opacity:0}
+.intro-pending .intro{animation:intro-failsafe .5s ease 3.5s forwards}
 .intro-logo{height:min(38vh,260px);width:auto}
 .intro-heart{width:44px;height:auto;opacity:0}
 .intro.intro-beating .intro-heart{opacity:1}
 @media (prefers-reduced-motion:no-preference){.intro-logo{animation:intro-in .5s ease-out both}.intro.intro-beating .intro-heart{animation:intro-beat .6s ease-in-out 3}}
 @media (prefers-reduced-motion:reduce){.intro.intro-beating .intro-heart{opacity:1}.intro{transition:none}}
+@keyframes intro-failsafe{to{opacity:0;visibility:hidden;pointer-events:none}}
 @keyframes intro-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes intro-beat{0%,100%{transform:scale(1)}25%{transform:scale(1.35)}50%{transform:scale(1)}65%{transform:scale(1.2)}}
 nav{display:flex;flex-wrap:wrap;gap:.25rem;flex:1}

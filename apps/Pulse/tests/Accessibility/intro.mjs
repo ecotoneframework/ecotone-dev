@@ -81,6 +81,21 @@ for (const [name, act] of [['a click', (page) => page.mouse.click(300, 300)], ['
     await context.close();
 }
 
+{
+    const {context, page} = await open();
+    await page.route('**/assets/app-*.js', (route) => route.abort());
+    await page.goto(base + '/');
+    check('the splash shows while the application script is blocked', (await intro(page)) !== null);
+    await page.waitForTimeout(5000);
+    check('a blocked application script leaves the dashboard visible', await page.$eval('[data-intro]', (element) => getComputedStyle(element).visibility === 'hidden'));
+    check('a blocked application script leaves the dashboard clickable', await page.evaluate(() => {
+        const target = document.elementFromPoint(window.innerWidth / 2, 20) ?? document.body;
+
+        return target.closest('[data-intro]') === null;
+    }));
+    await context.close();
+}
+
 await browser.close();
 console.log(failures.length === 0 ? '\nintro: all checks passed' : `\nintro: ${failures.length} failed`);
 process.exit(failures.length === 0 ? 0 : 1);

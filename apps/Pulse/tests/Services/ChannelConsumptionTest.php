@@ -1,0 +1,132 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Services;
+
+use App\Tests\Support\ProblemBoardServicesTrait;
+use App\Tests\Support\ReleasingWebTestCase;
+
+/**
+ * @internal
+ */
+final class ChannelConsumptionTest extends ReleasingWebTestCase
+{
+    use ProblemBoardServicesTrait;
+
+    public function test_a_channel_with_ready_messages_on_its_first_snapshot_is_not_flagged(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame([], $this->notConsumingOf($crawler));
+    }
+
+    public function test_a_channel_whose_ready_count_has_not_gone_down_for_longer_than_five_minutes_is_not_consuming(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+        $this->settleBoard($client);
+
+        $this->advanceTimeBy(300);
+        $atLimit = $this->observeBoard($client);
+        $this->advanceTimeBy(1);
+        $pastLimit = $this->observeBoard($client);
+
+        self::assertSame([], $this->notConsumingOf($atLimit));
+        self::assertSame([['text' => 'invoices: 50 ready, no progress for 5 min, expected consumer: invoices', 'href' => '/services/orders#channels', 'severity' => 'warning', 'kind' => 'channel-not-consuming']], $this->notConsumingOf($pastLimit));
+    }
+
+    public function test_a_ready_count_that_goes_down_resets_the_clock(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 49)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame([], $this->notConsumingOf($crawler));
+    }
+
+    public function test_a_ready_count_that_keeps_growing_is_still_not_consuming(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 80)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(200);
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame(['invoices: 80 ready, no progress for 6 min, expected consumer: invoices'], array_column($this->notConsumingOf($crawler), 'text'));
+    }
+
+    public function test_a_channel_with_nothing_ready_is_never_flagged_and_starts_a_new_clock_when_messages_return(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 0)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(3600);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 5)];
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame([], $this->notConsumingOf($crawler));
+    }
+
+    public function test_a_channel_nobody_is_expected_to_consume_says_so(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [[...$this->channel('invoices', 50), 'expectedConsumers' => []]];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(301);
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame(['invoices: 50 ready, no progress for 5 min, expected consumer: none'], array_column($this->notConsumingOf($crawler), 'text'));
+    }
+
+    public function test_the_stalled_limit_follows_the_environment(): void
+    {
+        $client = $this->boardWith(['orders' => null], ['PULSE_CHANNEL_STALLED_AFTER' => '60']);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50)];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(61);
+
+        $crawler = $this->observeBoard($client);
+
+        self::assertSame(['invoices: 50 ready, no progress for 1 min, expected consumer: invoices'], array_column($this->notConsumingOf($crawler), 'text'));
+    }
+
+    public function test_the_service_page_lists_the_expected_consumers_and_marks_the_channel_not_consuming(): void
+    {
+        $client = $this->boardWith(['orders' => null]);
+        $this->boardState['orders']->channels = [$this->channel('invoices', 50), [...$this->channel('emails', 0), 'expectedConsumers' => []]];
+        $this->settleBoard($client);
+        $this->advanceTimeBy(301);
+        $this->observeBoard($client);
+
+        $crawler = $client->request('GET', '/services/orders');
+
+        self::assertSame('invoices', $crawler->filter('tr[data-channel="invoices"] [data-expected-consumers]')->text());
+        self::assertSame('none', $crawler->filter('tr[data-channel="emails"] [data-expected-consumers]')->text());
+        self::assertSame('Not consuming for 5 min', trim($crawler->filter('tr[data-channel="invoices"] [data-not-consuming]')->text()));
+        self::assertCount(0, $crawler->filter('tr[data-channel="emails"] [data-not-consuming]'));
+    }
+
+    /**
+     * @return list<array{text: string, href: string, severity: string, kind: string}>
+     */
+    private function notConsumingOf(\Symfony\Component\DomCrawler\Crawler $crawler): array
+    {
+        return array_values(array_filter($this->problemsOf($crawler, 'orders'), static fn (array $problem): bool => $problem['kind'] === 'channel-not-consuming'));
+    }
+}

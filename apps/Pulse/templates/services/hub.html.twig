@@ -10,7 +10,7 @@
     <div class="flush" style="overflow-x:auto" tabindex="0" role="region" aria-label="Channels{% if tenant %} of {{ tenant }}{% endif %}">
         <table>
             <thead>
-            <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th></tr>
+            <tr><th scope="col">Channel</th><th scope="col" class="num">Ready</th><th scope="col" class="num">Delayed</th><th scope="col" class="num">In flight</th><th scope="col">Consumers</th><th scope="col">Expected consumers</th></tr>
             </thead>
             <tbody>
             {% for channel in channels %}
@@ -23,6 +23,7 @@
                     <td class="num" data-delayed>{{ channel.delayed is null ? '–' : channel.delayed|number_format }}</td>
                     <td class="num" data-in-flight>{{ channel.inFlight is null ? '–' : channel.inFlight|number_format }}</td>
                     <td data-consumers>{% if channel.consumers is not null %}{{ channel.consumers|number_format }}{% elseif channel.inFlight is not null %}{{ channel.inFlight|number_format }} in flight{% else %}–{% endif %}</td>
+                    <td><span data-expected-consumers>{{ channel.expectedConsumers ? channel.expectedConsumers|join(', ') : 'none' }}</span>{% if channel.notConsumingSeconds is not null %} <span class="pill wait" data-not-consuming>Not consuming for {{ (channel.notConsumingSeconds // 60) }} min</span>{% endif %}</td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -128,6 +129,32 @@
         </section>
         {% endif %}
 
+
+        {% if focusSetup is not null %}
+        <section class="card" id="setup" data-hub-setup>
+            <h2>Setup</h2>
+            {% if focusSetup.items is empty and focusSetup.sectionErrors is empty %}
+                <p class="muted">{{ service.service }} reports no database table or broker channel to check.</p>
+            {% else %}
+                {% if focusSetup.allClear %}<p data-setup-ok><span class="pill ok">All set up</span> Every table and channel {{ service.service }} uses exists.</p>{% endif %}
+                {% if focusSetup.items %}
+                <ul data-setup-items>
+                    {% for item in focusSetup.items %}
+                        <li data-setup-item="{{ item.id }}"{% if item.missing %} data-setup-missing{% endif %}>
+                            <span class="pill {{ item.missing ? 'bad sq' : (item.initialized ? 'ok' : 'off') }}" data-setup-status>{{ item.initialized is null ? 'Unknown' : (item.initialized ? 'Set up' : 'Missing') }}</span>
+                            {{ item.kind == 'table' ? 'Table for ' ~ item.key ~ ' on ' ~ item.connection : 'Channel ' ~ item.key }}
+                            {% if item.error %}<br><span class="drift" data-setup-error>{{ item.error }}</span>{% endif %}
+                            {% if item.fix %}<br><code data-fix>{{ item.fix }}</code>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% for section, reason in focusSetup.sectionErrors %}
+                    <p data-section-error="{{ section }}"><span class="pill wait">Unavailable</span> {{ section }} could not be read: <span class="drift">{{ reason }}</span></p>
+                {% endfor %}
+            {% endif %}
+        </section>
+        {% endif %}
 
         <section class="card" id="channels" data-hub-channels>
             <h2>Channels</h2>

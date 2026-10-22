@@ -53,7 +53,7 @@ final class ServicesController extends AbstractController
             ],
             'channelsOver' => array_combine(
                 array_map(static fn (ServiceSnapshot $service) => $service->service, $services),
-                array_map(fn (ServiceSnapshot $service) => ChannelDepth::overThreshold(ChannelDepth::of($service, $this->settings->queueThresholds)) + array_sum(array_map(fn (ServiceSnapshot $row): int => ChannelDepth::overThreshold(array_filter(ChannelDepth::of($row, $this->settings->queueThresholds), static fn (ChannelDepth $depth): bool => $depth->perTenant)), $tenantRows[$service->service] ?? [])), $services),
+                array_map(fn (ServiceSnapshot $service) => ChannelDepth::overThreshold(ChannelDepth::of($service, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds)) + array_sum(array_map(fn (ServiceSnapshot $row): int => ChannelDepth::overThreshold(array_filter(ChannelDepth::of($row, $this->settings->queueThresholds, $this->settings->channelStalledAfterSeconds), static fn (ChannelDepth $depth): bool => $depth->perTenant)), $tenantRows[$service->service] ?? [])), $services),
             ),
             'updatedAgo' => $ages === [] ? null : min($ages),
             'waiting' => Snapshots::needsAutoRefresh($this->snapshots->scopes()),

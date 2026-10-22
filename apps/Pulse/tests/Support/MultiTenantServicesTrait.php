@@ -161,7 +161,7 @@ trait MultiTenantServicesTrait
 
     private function pulseWithTenantServices(string $narrowing, ?DbalConnectionFactory $unpreparedTenantB): KernelBrowser
     {
-        $suffix = uniqid();
+        $suffix = (string) getmypid();
         $this->pulseChannel = 'pulse_' . $suffix;
         $this->serviceChannels = ['orders' => 'orders_' . $suffix, 'billing' => 'billing_' . $suffix];
         $this->configurePulse([

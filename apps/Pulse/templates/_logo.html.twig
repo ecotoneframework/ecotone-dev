@@ -1,4 +1,4 @@
-<svg class="logo{% if class is defined %} {{ class }}{% endif %}" role="img" aria-label="Ecotone" viewBox="0 0 544 705" xmlns="http://www.w3.org/2000/svg">
+<svg class="logo{% if class is defined %} {{ class }}{% endif %}" {% if decorative|default(false) %}aria-hidden="true" {% else %}role="img" aria-label="Ecotone" {% endif %}viewBox="0 0 544 705" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <linearGradient id="ecotone-logo-green-{{ id|default('a') }}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#c8e07e"/><stop offset="1" stop-color="#a6ce39"/></linearGradient>
         <linearGradient id="ecotone-logo-blue-{{ id|default('a') }}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0066b3"/><stop offset="1" stop-color="#00a9e6"/></linearGradient>

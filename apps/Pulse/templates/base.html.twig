@@ -16,7 +16,7 @@
 </div>
 <a class="skip" href="#content">Skip to content</a>
 <header class="topbar">
-    <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand'} %}<span class="brand-title">Ecotone Pulse</span></a>
+    <a class="brand" href="{{ path('home') }}">{% include '_logo.html.twig' with {class: 'brand-logo', id: 'brand', decorative: true} %}<span class="brand-title">Ecotone Pulse</span></a>
     <nav>
         {% set current = app.request.attributes.get('_route') %}
         <a href="{{ path('home') }}"{% if current == 'home' %} class="active"{% endif %}>Home</a>

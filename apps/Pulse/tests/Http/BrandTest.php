@@ -26,7 +26,9 @@ final class BrandTest extends ReleasingWebTestCase
             self::assertCount(1, $brand, $path);
             self::assertSame($client->getRequest()->getSchemeAndHttpHost() . '/', $brand->link()->getUri(), $path);
             self::assertSame('Ecotone Pulse', trim($brand->filter('.brand-title')->text()), $path);
-            self::assertCount(1, $brand->filter('svg[role="img"][aria-label="Ecotone"]'), $path);
+            self::assertCount(1, $brand->filter('svg[aria-hidden="true"]'), $path);
+            self::assertCount(0, $brand->filter('svg[aria-label], svg[role]'), $path);
+            self::assertSame('Ecotone Pulse', trim(preg_replace('/\s+/', ' ', $brand->text())), $path);
         }
     }
 

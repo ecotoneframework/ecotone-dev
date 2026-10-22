@@ -35,7 +35,7 @@ const seen = (page) => page.evaluate(() => localStorage.getItem('ecotone-pulse.i
     check('the heart is beating', await page.$eval('[data-intro-heart]', (heart) => getComputedStyle(heart).animationName === 'intro-beat' && getComputedStyle(heart).opacity === '1'));
     check('the splash gives way to the dashboard', await gone(page, 5000));
     check('the version is stored once the splash is done', (await seen(page)) === version);
-    check('the header logo stays on the page', (await page.$('header.topbar a.brand svg[aria-label="Ecotone"]')) !== null);
+    check('the header logo stays on the page', (await page.$('header.topbar a.brand svg[aria-hidden="true"]')) !== null);
     await page.reload();
     check('a reload for the same version goes straight to the dashboard', (await intro(page)) === null);
     await page.evaluate(() => localStorage.setItem('ecotone-pulse.intro-seen', 'an-older-version'));

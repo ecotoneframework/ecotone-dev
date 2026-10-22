@@ -6,8 +6,8 @@ namespace Ecotone\Dbal\Pulse\Tracking;
 
 use Closure;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Interop\Queue\ConnectionFactory;
 use Throwable;
 
 /**
